@@ -25,7 +25,7 @@ export default function AuthLayout({
         >
           <div className="pointer-events-none absolute inset-0 lg:inset-8">
             <Image
-              src="/images/auth.avif"
+              src="https://assets.giabao.dev/auth.avif"
               alt="Abstract blue background"
               fill
               sizes="(max-width: 1024px) 100vw, 50vw"
