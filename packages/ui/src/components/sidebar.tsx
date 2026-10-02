@@ -19,9 +19,9 @@ import {
   TooltipTrigger,
 } from '@repo/ui/components/tooltip';
 import { useIsMobile } from '@repo/ui/hooks/use-mobile';
-import { cn } from '@repo/ui/lib/utils';
 import { IconLayoutSidebar } from '@tabler/icons-react';
 import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from 'cn';
 import * as React from 'react';
 
 const SIDEBAR_COOKIE_NAME = 'sidebar_state';
@@ -241,7 +241,7 @@ function Sidebar({
         <div
           data-sidebar="sidebar"
           data-slot="sidebar-inner"
-          className="bg-sidebar group-data-[variant=floating]:ring-sidebar-border flex size-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:shadow-sm group-data-[variant=floating]:ring-1"
+          className="bg-sidebar group-data-[variant=floating]:ring-sidebar-border flex size-full flex-col group-data-[variant=floating]:rounded-md group-data-[variant=floating]:shadow-sm group-data-[variant=floating]:ring-1"
         >
           {children}
         </div>
