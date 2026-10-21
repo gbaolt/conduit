@@ -1,8 +1,8 @@
 'use client';
 
+import { Button } from '@conduit/ui/components/button';
+import { Spinner } from '@conduit/ui/components/spinner';
 import { useControllableState } from '@radix-ui/react-use-controllable-state';
-import { Button } from '@repo/ui/components/button';
-import { Spinner } from '@repo/ui/components/spinner';
 import { IconCheck } from '@tabler/icons-react';
 import {
   AnimatePresence,

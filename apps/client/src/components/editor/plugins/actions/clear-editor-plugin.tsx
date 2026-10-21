@@ -1,5 +1,4 @@
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { Button } from '@repo/ui/components/button';
+import { Button } from '@conduit/ui/components/button';
 import {
   Dialog,
   DialogClose,
@@ -9,12 +8,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@repo/ui/components/dialog';
+} from '@conduit/ui/components/dialog';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@repo/ui/components/tooltip';
+} from '@conduit/ui/components/tooltip';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { CLEAR_EDITOR_COMMAND } from 'lexical';
 import { Trash2Icon } from 'lucide-react';
 

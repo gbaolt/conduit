@@ -1,10 +1,10 @@
-import { Button } from '@repo/ui/components/button';
-import { Input } from '@repo/ui/components/input';
+import { Button } from '@conduit/ui/components/button';
+import { Input } from '@conduit/ui/components/input';
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-} from '@repo/ui/components/input-group';
+} from '@conduit/ui/components/input-group';
 import { IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 

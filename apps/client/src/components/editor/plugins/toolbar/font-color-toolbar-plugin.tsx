@@ -5,11 +5,11 @@ const getThemeForegroundColor = () => {
   return getComputedStyle(document.documentElement).color || '#000';
 };
 
+import { Button } from '@conduit/ui/components/button';
 import {
   $getSelectionStyleValueForProperty,
   $patchStyleText,
 } from '@lexical/selection';
-import { Button } from '@repo/ui/components/button';
 import { $getSelection, $isRangeSelection, type BaseSelection } from 'lexical';
 import { BaselineIcon } from 'lucide-react';
 

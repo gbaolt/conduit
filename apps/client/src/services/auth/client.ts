@@ -1,18 +1,12 @@
-import { emailOTPClient } from 'better-auth/client/plugins';
+import { emailOTPClient, organizationClient } from 'better-auth/client/plugins';
 import { createAuthClient } from 'better-auth/react';
 
-export function createAppAuthClient(baseURL?: string) {
-  return createAuthClient({
-    baseURL:
-      baseURL ??
-      process.env.NEXT_PUBLIC_SERVER_URL ??
-      'https://api.conduit.localhost',
-    basePath: '/auth',
-    fetchOptions: {
-      credentials: 'include',
-    },
-    plugins: [emailOTPClient()],
-  });
-}
-
-export const authClient = createAppAuthClient();
+export const authClient = createAuthClient({
+  baseURL:
+    process.env.NEXT_PUBLIC_SERVER_URL ?? 'https://api.conduit.localhost',
+  basePath: '/auth',
+  fetchOptions: {
+    credentials: 'include',
+  },
+  plugins: [emailOTPClient(), organizationClient()],
+});

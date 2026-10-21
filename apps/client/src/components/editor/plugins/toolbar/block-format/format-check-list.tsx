@@ -1,6 +1,6 @@
+import { DropdownMenuItem } from '@conduit/ui/components/dropdown-menu';
 import { INSERT_CHECK_LIST_COMMAND } from '@lexical/list';
 import { $setBlocksType } from '@lexical/selection';
-import { DropdownMenuItem } from '@repo/ui/components/dropdown-menu';
 import {
   $createParagraphNode,
   $getSelection,

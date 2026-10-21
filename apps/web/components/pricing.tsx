@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@repo/ui/components/button';
+import { Button } from '@conduit/ui/components/button';
 import { IconCheck } from '@tabler/icons-react';
 import { motion, useReducedMotion } from 'motion/react';
 

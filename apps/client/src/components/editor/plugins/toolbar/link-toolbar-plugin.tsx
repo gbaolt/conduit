@@ -1,5 +1,5 @@
+import { Toggle } from '@conduit/ui/components/toggle';
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link';
-import { Toggle } from '@repo/ui/components/toggle';
 import {
   $isRangeSelection,
   // COMMAND_PRIORITY_NORMAL,

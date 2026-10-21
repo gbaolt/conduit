@@ -36,17 +36,12 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'images.unsplash.com',
-        port: '',
-      },
-      {
-        protocol: 'https',
-        hostname: '*',
+        hostname: 'assets.giabao.dev',
         port: '',
       },
     ],
   },
-  transpilePackages: ['@repo/contract', '@repo/ui'],
+  transpilePackages: ['@conduit/contract', '@conduit/ui'],
 };
 
 export default nextConfig;

@@ -22,6 +22,7 @@ export const SessionOutputSchema = z
       updatedAt: DateTimeSchema,
       ipAddress: z.string().nullable().optional(),
       userAgent: z.string().nullable().optional(),
+      activeOrganizationId: z.string().nullable().optional(),
     }),
   })
   .nullable();

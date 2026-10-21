@@ -1,7 +1,10 @@
 'use client';
 
-import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
-import { Alert, AlertDescription, AlertTitle } from '@repo/ui/components/alert';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@conduit/ui/components/alert';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,8 +14,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@repo/ui/components/alert-dialog';
-import { FieldGroup } from '@repo/ui/components/field';
+} from '@conduit/ui/components/alert-dialog';
+import { FieldGroup } from '@conduit/ui/components/field';
+import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { IconAlertCircle } from '@tabler/icons-react';
 import type { ErrorContext } from 'better-auth/react';
 import type { Route } from 'next';

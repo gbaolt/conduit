@@ -1,6 +1,6 @@
+import { contract } from '@conduit/contract';
 import { ResponseValidationLinkPlugin } from '@orpc/contract/plugins';
 import { OpenAPILink } from '@orpc/openapi/fetch';
-import { contract } from '@repo/contract';
 
 import { getServerBaseUrl } from './env';
 

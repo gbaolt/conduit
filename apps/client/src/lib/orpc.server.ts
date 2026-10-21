@@ -1,12 +1,12 @@
 import 'server-only';
 
+import type { contract } from '@conduit/contract';
 import { createORPCClient } from '@orpc/client';
 import type { RouterContractClient } from '@orpc/contract';
 import {
   createTanstackQueryUtils,
   type RouterUtils,
 } from '@orpc/tanstack-query';
-import type { contract } from '@repo/contract';
 import { headers } from 'next/headers';
 
 import { createOrpcLink } from './orpc-link';

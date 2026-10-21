@@ -1,7 +1,7 @@
 'use client';
 
 import { Menu as MenuPrimitive } from '@base-ui/react/menu';
-import { cn } from '@repo/ui/lib/utils';
+import { cn } from '@conduit/ui/lib/utils';
 import { IconCheck, IconChevronRight } from '@tabler/icons-react';
 import * as React from 'react';
 

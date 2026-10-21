@@ -1,8 +1,8 @@
 'use client';
 
 import { ProgressProvider } from '@bprogress/next/app';
-import { Toaster } from '@repo/ui/components/sonner';
-import { TooltipProvider } from '@repo/ui/components/tooltip';
+import { Toaster } from '@conduit/ui/components/sonner';
+import { TooltipProvider } from '@conduit/ui/components/tooltip';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { type ReactNode, useState } from 'react';
@@ -17,9 +17,9 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <AuthProvider>
       <ThemeProvider
-        defaultTheme="system"
+        defaultTheme="dark"
         attribute="class"
-        enableSystem={true}
+        enableSystem={false}
         disableTransitionOnChange
       >
         <ProgressProvider

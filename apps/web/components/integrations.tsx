@@ -1,6 +1,6 @@
 'use client';
 
-import { CanvasRevealEffect } from '@repo/ui/components/canvas-reveal-effect';
+import { CanvasRevealEffect } from '@conduit/ui/components/canvas-reveal-effect';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { type ComponentType, type SVGProps, useState } from 'react';
 

@@ -1,8 +1,8 @@
 'use client';
 
 import { Dialog as SheetPrimitive } from '@base-ui/react/dialog';
-import { Button } from '@repo/ui/components/button';
-import { cn } from '@repo/ui/lib/utils';
+import { Button } from '@conduit/ui/components/button';
+import { cn } from '@conduit/ui/lib/utils';
 import { IconX } from '@tabler/icons-react';
 import * as React from 'react';
 

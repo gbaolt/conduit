@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import { betterAuth, type BetterAuthOptions } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { APIError, createAuthMiddleware } from 'better-auth/api';
-import { emailOTP } from 'better-auth/plugins';
+import { emailOTP, organization } from 'better-auth/plugins';
 
 import { prisma } from '@/database/prisma.service';
 
@@ -52,6 +52,7 @@ const passwordHooks: BetterAuthOptions['hooks'] = {
 };
 
 const baseURL = process.env.BETTER_AUTH_URL ?? 'http://localhost:3333';
+const appURL = process.env.APP_URL ?? 'https://app.conduit.localhost';
 const emailFrom = `Gia Bảo from Conduit <${process.env.AUTH_EMAIL_FROM ?? 'conduit@giabao.dev'}>`;
 
 export const auth = betterAuth({
@@ -135,6 +136,29 @@ export const auth = betterAuth({
           to: [email],
           subject,
           html: `<p>Your OTP code is: <strong>${otp}</strong></p>`,
+        });
+      },
+    }),
+    organization({
+      allowUserToCreateOrganization: true,
+      organizationLimit: 10,
+      membershipLimit: 100,
+      invitationExpiresIn: 60 * 60 * 24 * 7,
+      async sendInvitationEmail(data) {
+        const inviteLink = `${appURL}/accept-invitation?id=${data.id}`;
+
+        if (!resend) {
+          console.log(
+            `[auth:invite] to=${data.email} org=${data.organization.name} link=${inviteLink}`
+          );
+          return;
+        }
+
+        await resend.emails.send({
+          from: emailFrom,
+          to: [data.email],
+          subject: `Join the ${data.organization.name} workspace on Conduit`,
+          html: `<p>${data.inviter.user.name} invited you to join ${data.organization.name}.</p><p><a href="${inviteLink}">Accept invitation</a></p>`,
         });
       },
     }),

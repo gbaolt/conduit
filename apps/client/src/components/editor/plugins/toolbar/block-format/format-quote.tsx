@@ -1,6 +1,6 @@
+import { DropdownMenuItem } from '@conduit/ui/components/dropdown-menu';
 import { $createQuoteNode } from '@lexical/rich-text';
 import { $setBlocksType } from '@lexical/selection';
-import { DropdownMenuItem } from '@repo/ui/components/dropdown-menu';
 import { $getSelection } from 'lexical';
 
 import { useToolbarContext } from '@/components/editor/context/toolbar-provider';

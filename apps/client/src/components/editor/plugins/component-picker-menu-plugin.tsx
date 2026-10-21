@@ -1,12 +1,12 @@
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { useBasicTypeaheadTriggerMatch } from '@lexical/react/LexicalTypeaheadMenuPlugin';
-import { LexicalTypeaheadMenuPlugin } from '@lexical/react/LexicalTypeaheadMenuPlugin';
 import {
   Command,
   CommandGroup,
   CommandItem,
   CommandList,
-} from '@repo/ui/components/command';
+} from '@conduit/ui/components/command';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { useBasicTypeaheadTriggerMatch } from '@lexical/react/LexicalTypeaheadMenuPlugin';
+import { LexicalTypeaheadMenuPlugin } from '@lexical/react/LexicalTypeaheadMenuPlugin';
 import type { TextNode } from 'lexical';
 import {
   type JSX,

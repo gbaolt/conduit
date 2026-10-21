@@ -1,5 +1,5 @@
+import { DropdownMenuItem } from '@conduit/ui/components/dropdown-menu';
 import { $setBlocksType } from '@lexical/selection';
-import { DropdownMenuItem } from '@repo/ui/components/dropdown-menu';
 import {
   $createParagraphNode,
   $getSelection,

@@ -26,7 +26,7 @@ export default function RootLayout({
       className={cn('h-full antialiased', fontVariables)}
       suppressHydrationWarning
     >
-      <body>
+      <body className="h-full">
         <Providers>
           <NuqsAdapter>{children}</NuqsAdapter>
         </Providers>

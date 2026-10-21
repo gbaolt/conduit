@@ -1,7 +1,7 @@
 'use client';
 
-import { Brand } from '@repo/ui/components/brand';
-import { Button } from '@repo/ui/components/button';
+import { Brand } from '@conduit/ui/components/brand';
+import { Button } from '@conduit/ui/components/button';
 import { IconMenu2, IconX } from '@tabler/icons-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import type { Route } from 'next';

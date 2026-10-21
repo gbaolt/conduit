@@ -1,6 +1,6 @@
+import { DropdownMenuItem } from '@conduit/ui/components/dropdown-menu';
 import { $createCodeNode } from '@lexical/code';
 import { $setBlocksType } from '@lexical/selection';
-import { DropdownMenuItem } from '@repo/ui/components/dropdown-menu';
 import { $getSelection, $isRangeSelection } from 'lexical';
 
 import { useToolbarContext } from '@/components/editor/context/toolbar-provider';

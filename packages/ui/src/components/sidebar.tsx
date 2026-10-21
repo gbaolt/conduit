@@ -2,26 +2,26 @@
 
 import { mergeProps } from '@base-ui/react/merge-props';
 import { useRender } from '@base-ui/react/use-render';
-import { Button } from '@repo/ui/components/button';
-import { Input } from '@repo/ui/components/input';
-import { Separator } from '@repo/ui/components/separator';
+import { Button } from '@conduit/ui/components/button';
+import { Input } from '@conduit/ui/components/input';
+import { Separator } from '@conduit/ui/components/separator';
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from '@repo/ui/components/sheet';
-import { Skeleton } from '@repo/ui/components/skeleton';
+} from '@conduit/ui/components/sheet';
+import { Skeleton } from '@conduit/ui/components/skeleton';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@repo/ui/components/tooltip';
-import { useIsMobile } from '@repo/ui/hooks/use-mobile';
-import { cn } from '@repo/ui/lib/utils';
+} from '@conduit/ui/components/tooltip';
+import { useIsMobile } from '@conduit/ui/hooks/use-mobile';
 import { IconLayoutSidebar } from '@tabler/icons-react';
 import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from 'cn';
 import * as React from 'react';
 
 const SIDEBAR_COOKIE_NAME = 'sidebar_state';
@@ -241,7 +241,7 @@ function Sidebar({
         <div
           data-sidebar="sidebar"
           data-slot="sidebar-inner"
-          className="bg-sidebar group-data-[variant=floating]:ring-sidebar-border flex size-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:shadow-sm group-data-[variant=floating]:ring-1"
+          className="bg-sidebar group-data-[variant=floating]:ring-sidebar-border flex size-full flex-col group-data-[variant=floating]:rounded-md group-data-[variant=floating]:shadow-sm group-data-[variant=floating]:ring-1"
         >
           {children}
         </div>

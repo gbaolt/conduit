@@ -2,6 +2,39 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
+catalog:
+  '@orpc/client': 2.0.0-beta.31
+  '@orpc/contract': 2.0.0-beta.31
+  '@orpc/nest': 2.0.0-beta.31
+  '@orpc/openapi': 2.0.0-beta.31
+  '@orpc/server': 2.0.0-beta.31
+  '@orpc/tanstack-query': 2.0.0-beta.31
+  '@orpc/zod': 2.0.0-beta.31
+  '@tailwindcss/postcss': ^4.3.3
+  '@types/node': ^22.15.3
+  '@types/react': 19.3.0
+  '@types/react-dom': 19.3.0
+  '@typescript/native': npm:typescript@^7.0.2
+  babel-plugin-react-compiler: 1.0.0
+  better-auth: ^1.7.1
+  class-variance-authority: ^0.7.1
+  cmdk: ^1.1.1
+  date-fns: ^4.4.0
+  eslint: ^10.9.0
+  geist: ^1.7.2
+  input-otp: ^1.4.2
+  motion: ^13.1.1
+  next: 16.4.2
+  next-themes: ^0.4.6
+  postcss: ^8.5.23
+  react: 19.3.1
+  react-day-picker: ^10.0.1
+  react-dom: 19.3.1
+  sonner: ^2.0.7
+  tailwindcss: ^4.3.3
+  typescript: npm:@typescript/typescript6@^6.0.2
+  zod: ^4.4.3
+
 allowBuilds:
   sharp: true
   '@prisma/engines': true
@@ -13,9 +46,19 @@ allowBuilds:
   '@swc/core': true
   unrs-resolver: true
 
+minimumReleaseAgeExclude:
+  - '@turbo/darwin-64@2.11.10'
+  - '@turbo/darwin-arm64@2.11.10'
+  - '@turbo/linux-64@2.11.10'
+  - '@turbo/linux-arm64@2.11.10'
+  - '@turbo/windows-64@2.11.10'
+  - '@turbo/windows-arm64@2.11.10'
+  - eslint-plugin-turbo@2.11.10
+  - turbo@2.11.10
+
 overrides:
-  '@types/react': 19.2.18
-  '@types/react-dom': 19.2.4
+  '@types/react': 'catalog:'
+  '@types/react-dom': 'catalog:'
 
 peerDependencyRules:
   allowedVersions:

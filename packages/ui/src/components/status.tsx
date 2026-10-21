@@ -1,5 +1,5 @@
-import { Badge } from '@repo/ui/components/badge';
-import { cn } from '@repo/ui/lib/utils';
+import { Badge } from '@conduit/ui/components/badge';
+import { cn } from '@conduit/ui/lib/utils';
 import type { ComponentProps, HTMLAttributes } from 'react';
 
 export type StatusProps = ComponentProps<typeof Badge> & {

@@ -15,6 +15,26 @@ Index and query this repo through CodeGraph. Do this **before** Grep, Read, or T
 
 Do not start a session, a feature, or a bugfix by walking the tree with Grep/Read, only use them when codegraph fails.
 
+## Browserbase access for coding agents
+
+Use the installed `browse` CLI for Browserbase cloud-browser tasks while developing this repo. The key is in the git-ignored root `.env.local`; load only that value into the command's environment without printing it:
+
+```powershell
+$keyLine = Get-Content 'D:/dev/conduit/.env.local' | Where-Object { $_ -match '^BROWSERBASE_API_KEY=' } | Select-Object -Last 1
+if (-not $keyLine) { throw 'Missing BROWSERBASE_API_KEY in .env.local' }
+$env:BROWSERBASE_API_KEY = $keyLine.Substring('BROWSERBASE_API_KEY='.Length).Trim().Trim('"').Trim("'")
+```
+
+- Verify access with `browse cloud projects list` when authentication fails.
+- Start with `browse open <public-url> --remote --session conduit --wait domcontentloaded`.
+- Reuse the named session across calls. Inspect with `browse snapshot --session conduit`, then use current element refs with `browse click` / `browse fill`. Refresh the snapshot after navigation or page changes.
+- Use `browse wait selector <selector> --state visible --session conduit` to wait for elements; do not use fixed sleeps.
+- Use `browse status --session conduit` for the full session link and `browse cloud sessions list` to verify the run. Share full session URLs without truncating IDs.
+- Close the session with `browse stop --session conduit` when the browser task ends to conserve browser time.
+- Assume the Free plan: do not enable proxies, Verified, or CAPTCHA solving. Before trying protected or login-walled targets, explain the likely limitation and offer a public source or another target.
+- Cloud browsers need a publicly reachable URL; local Conduit hosts require a tunnel or deployed preview.
+- Ask before installing additional packages. Keep the API key out of tracked files, logs, and tool output.
+
 ## 1. Think Before Coding
 
 **Don't assume. Don't hide confusion. Surface tradeoffs.**

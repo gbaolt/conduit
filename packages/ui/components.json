@@ -15,11 +15,11 @@
   "menuColor": "default-translucent",
   "menuAccent": "subtle",
   "aliases": {
-    "components": "@repo/ui/components",
-    "utils": "@repo/ui/lib/utils",
-    "ui": "@repo/ui/components",
-    "lib": "@repo/ui/lib",
-    "hooks": "@repo/ui/hooks"
+    "components": "@conduit/ui/components",
+    "utils": "@conduit/ui/lib/utils",
+    "ui": "@conduit/ui/components",
+    "lib": "@conduit/ui/lib",
+    "hooks": "@conduit/ui/hooks"
   },
   "registries": {
     "@tailark-oss": "https://oss.tailark.com/r/{name}.json",

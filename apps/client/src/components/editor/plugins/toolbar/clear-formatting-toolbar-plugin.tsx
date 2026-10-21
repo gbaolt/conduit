@@ -1,8 +1,8 @@
+import { Button } from '@conduit/ui/components/button';
 import { $isDecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode';
 import { $isHeadingNode, $isQuoteNode } from '@lexical/rich-text';
 import { $isTableSelection } from '@lexical/table';
 import { $getNearestBlockElementAncestorOrThrow } from '@lexical/utils';
-import { Button } from '@repo/ui/components/button';
 import {
   $createParagraphNode,
   $getSelection,

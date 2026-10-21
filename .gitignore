@@ -47,6 +47,10 @@ yarn-error.log*
 .cursor/*
 !.cursor/rules/
 !.cursor/rules/**
+CONTEXT.md
+
+# typescript
+*.tsbuildinfo
 
 # eslint
 .eslintcache
