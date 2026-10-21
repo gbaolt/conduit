@@ -1,5 +1,5 @@
 {
-  "extends": "@conduit/typescript-config/nextjs.json",
+  "extends": "@conduit/config/typescript/nextjs.json",
   "compilerOptions": {
     "plugins": [
       {

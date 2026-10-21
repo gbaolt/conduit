@@ -7,7 +7,7 @@ import pluginReactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
-import { config as baseConfig } from '@conduit/eslint-config/base';
+import { config as baseConfig } from '@conduit/config/eslint/base';
 
 /**
  * ESLint config for Next.js apps.

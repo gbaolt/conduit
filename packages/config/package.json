@@ -1,13 +1,16 @@
 {
-  "name": "@conduit/eslint-config",
+  "name": "@conduit/config",
   "version": "0.0.0",
   "type": "module",
   "private": true,
   "exports": {
-    "./base": "./base.js",
-    "./next-js": "./next.js",
-    "./node": "./node.js",
-    "./react-internal": "./react-internal.js"
+    "./eslint/base": "./eslint/base.js",
+    "./eslint/next-js": "./eslint/next.js",
+    "./eslint/node": "./eslint/node.js",
+    "./eslint/react-internal": "./eslint/react-internal.js",
+    "./typescript/base.json": "./typescript/base.json",
+    "./typescript/nextjs.json": "./typescript/nextjs.json",
+    "./typescript/react-library.json": "./typescript/react-library.json"
   },
   "dependencies": {
     "@eslint/js": "^10.0.1",
@@ -21,9 +24,9 @@
     "typescript-eslint": "^8.67.0"
   },
   "devDependencies": {
-    "@typescript/native": "npm:typescript@^7.0.2",
-    "eslint": "^10.9.0",
-    "typescript": "npm:@typescript/typescript6@^6.0.2"
+    "@typescript/native": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:"
   },
   "peerDependencies": {
     "eslint": "^10.0.0"

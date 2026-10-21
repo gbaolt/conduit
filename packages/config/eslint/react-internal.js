@@ -4,7 +4,7 @@ import tseslint from 'typescript-eslint';
 import pluginReactHooks from 'eslint-plugin-react-hooks';
 import pluginReact from 'eslint-plugin-react';
 import globals from 'globals';
-import { config as baseConfig } from '@conduit/eslint-config/base';
+import { config as baseConfig } from '@conduit/config/eslint/base';
 
 /**
  * A custom ESLint configuration for libraries that use React.

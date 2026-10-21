@@ -1,5 +1,5 @@
 {
-  "extends": "@conduit/typescript-config/base.json",
+  "extends": "@conduit/config/typescript/base.json",
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler",

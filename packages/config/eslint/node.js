@@ -1,6 +1,6 @@
 import globals from 'globals';
 import { defineConfig } from 'eslint/config';
-import { config as baseConfig } from '@conduit/eslint-config/base';
+import { config as baseConfig } from '@conduit/config/eslint/base';
 
 /**
  * ESLint config for Node / NestJS packages (no React / Next).

@@ -15,15 +15,15 @@
     "dev": "tsc-watch --compiler typescript/bin/tsc6 --onSuccess \"tsc-alias\""
   },
   "dependencies": {
-    "@orpc/contract": "2.0.0-beta.31",
-    "@orpc/openapi": "2.0.0-beta.31",
-    "zod": "^4.4.3"
+    "@orpc/contract": "catalog:",
+    "@orpc/openapi": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "@conduit/typescript-config": "workspace:*",
-    "@typescript/native": "npm:typescript@^7.0.2",
+    "@conduit/config": "workspace:*",
+    "@typescript/native": "catalog:",
     "tsc-alias": "^1.9.2",
     "tsc-watch": "^7.2.1",
-    "typescript": "npm:@typescript/typescript6@^6.0.2"
+    "typescript": "catalog:"
   }
 }

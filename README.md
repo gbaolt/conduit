@@ -19,10 +19,12 @@ This Turborepo includes the following packages/apps:
 - `docs`: a [Next.js](https://nextjs.org/) app
 - `web`: another [Next.js](https://nextjs.org/) app
 - `@conduit/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@conduit/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@conduit/typescript-config`: `tsconfig.json`s used throughout the monorepo
+- `@conduit/config`: shared ESLint configurations and TypeScript presets
 
 Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+
+Shared dependency versions live in the default `catalog` in `pnpm-workspace.yaml`.
+Package manifests reference them with `catalog:`.
 
 ### Imports
 
