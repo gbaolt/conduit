@@ -1,1 +1,1 @@
-export * from '@repo/ui/lib/utils';
+export * from '@conduit/ui/lib/utils';

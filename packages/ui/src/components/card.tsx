@@ -1,4 +1,4 @@
-import { cn } from '@repo/ui/lib/utils';
+import { cn } from '@conduit/ui/lib/utils';
 import * as React from 'react';
 
 function Card({

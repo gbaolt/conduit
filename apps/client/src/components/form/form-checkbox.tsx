@@ -1,4 +1,4 @@
-import { Checkbox } from '@repo/ui/components/checkbox';
+import { Checkbox } from '@conduit/ui/components/checkbox';
 
 import type { FormControlFn } from './form-base';
 import { FormBase } from './form-base';

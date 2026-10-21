@@ -3,7 +3,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@repo/ui/components/dialog';
+} from '@conduit/ui/components/dialog';
 import { type JSX, useCallback, useMemo, useState } from 'react';
 
 export function useEditorModal(): [

@@ -5,7 +5,7 @@ import {
   InputOTPGroup,
   InputOTPSeparator,
   InputOTPSlot,
-} from '@repo/ui/components/input-otp';
+} from '@conduit/ui/components/input-otp';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import type { ReactNode } from 'react';
 import { Activity } from 'react';

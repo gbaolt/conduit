@@ -1,7 +1,7 @@
 'use client';
 
 import { Select as SelectPrimitive } from '@base-ui/react/select';
-import { cn } from '@repo/ui/lib/utils';
+import { cn } from '@conduit/ui/lib/utils';
 import {
   IconCheck,
   IconChevronDown,

@@ -1,7 +1,7 @@
 'use client';
 
-import { BrandIcon } from '@repo/ui/components/brand';
-import { Button } from '@repo/ui/components/button';
+import { BrandIcon } from '@conduit/ui/components/brand';
+import { Button } from '@conduit/ui/components/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,7 +10,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@repo/ui/components/dropdown-menu';
+} from '@conduit/ui/components/dropdown-menu';
 import { IconCheck, IconPlus } from '@tabler/icons-react';
 
 import { useWorkspace } from './workspace-provider';

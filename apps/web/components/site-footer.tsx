@@ -1,4 +1,4 @@
-import { Brand } from '@repo/ui/components/brand';
+import { Brand } from '@conduit/ui/components/brand';
 import type { Route } from 'next';
 import Link from 'next/link';
 

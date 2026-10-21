@@ -6,9 +6,12 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@repo/ui/components/dialog';
-import { InputGroup, InputGroupAddon } from '@repo/ui/components/input-group';
-import { cn } from '@repo/ui/lib/utils';
+} from '@conduit/ui/components/dialog';
+import {
+  InputGroup,
+  InputGroupAddon,
+} from '@conduit/ui/components/input-group';
+import { cn } from '@conduit/ui/lib/utils';
 import { IconCheck, IconSearch } from '@tabler/icons-react';
 import { Command as CommandPrimitive } from 'cmdk';
 import * as React from 'react';

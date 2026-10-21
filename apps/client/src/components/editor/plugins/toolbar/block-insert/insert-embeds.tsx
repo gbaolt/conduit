@@ -1,5 +1,5 @@
+import { DropdownMenuItem } from '@conduit/ui/components/dropdown-menu';
 import { INSERT_EMBED_COMMAND } from '@lexical/react/LexicalAutoEmbedPlugin';
-import { DropdownMenuItem } from '@repo/ui/components/dropdown-menu';
 
 import { useToolbarContext } from '@/components/editor/context/toolbar-provider';
 import { EmbedConfigs } from '@/components/editor/plugins/embeds/auto-embed-plugin';

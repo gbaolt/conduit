@@ -1,14 +1,14 @@
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { TreeView } from '@lexical/react/LexicalTreeView';
-import { Button } from '@repo/ui/components/button';
+import { Button } from '@conduit/ui/components/button';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@repo/ui/components/dialog';
-import { ScrollArea, ScrollBar } from '@repo/ui/components/scroll-area';
+} from '@conduit/ui/components/dialog';
+import { ScrollArea, ScrollBar } from '@conduit/ui/components/scroll-area';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { TreeView } from '@lexical/react/LexicalTreeView';
 import { NotebookPenIcon } from 'lucide-react';
 import type { JSX } from 'react';
 

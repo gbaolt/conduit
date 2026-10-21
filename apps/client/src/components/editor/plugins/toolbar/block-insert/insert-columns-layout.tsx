@@ -1,4 +1,4 @@
-import { DropdownMenuItem } from '@repo/ui/components/dropdown-menu';
+import { DropdownMenuItem } from '@conduit/ui/components/dropdown-menu';
 import { Columns3Icon } from 'lucide-react';
 
 import { useToolbarContext } from '@/components/editor/context/toolbar-provider';

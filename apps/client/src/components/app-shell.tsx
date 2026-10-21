@@ -1,4 +1,4 @@
-import { Button } from '@repo/ui/components/button';
+import { Button } from '@conduit/ui/components/button';
 import {
   Sidebar,
   SidebarContent,
@@ -6,8 +6,8 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarProvider,
-} from '@repo/ui/components/sidebar';
-import { cn } from '@repo/ui/lib/utils';
+} from '@conduit/ui/components/sidebar';
+import { cn } from '@conduit/ui/lib/utils';
 import {
   IconBell,
   IconDots,

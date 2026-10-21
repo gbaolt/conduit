@@ -1,15 +1,15 @@
+import {
+  Command,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from '@conduit/ui/components/command';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
   MenuOption,
   useBasicTypeaheadTriggerMatch,
 } from '@lexical/react/LexicalTypeaheadMenuPlugin';
 import { LexicalTypeaheadMenuPlugin } from '@lexical/react/LexicalTypeaheadMenuPlugin';
-import {
-  Command,
-  CommandGroup,
-  CommandItem,
-  CommandList,
-} from '@repo/ui/components/command';
 import type { TextNode } from 'lexical';
 import { $createTextNode, $getSelection, $isRangeSelection } from 'lexical';
 import { useCallback, useEffect, useMemo, useState } from 'react';

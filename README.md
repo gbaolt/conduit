@@ -18,11 +18,26 @@ This Turborepo includes the following packages/apps:
 
 - `docs`: a [Next.js](https://nextjs.org/) app
 - `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+- `@conduit/ui`: a stub React component library shared by both `web` and `docs` applications
+- `@conduit/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
+- `@conduit/typescript-config`: `tsconfig.json`s used throughout the monorepo
 
 Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+
+### Imports
+
+Use either relative imports such as `./providers` or `@/…` for local code in the
+apps and contract package. Keep existing relative imports when they are clear.
+The alias maps to `src/`, except in `apps/web`, where it maps to the app root.
+Omit code file extensions.
+Use workspace package names such as `@conduit/contract` and
+`@conduit/ui/components/button` when importing across packages.
+
+The UI package currently exports source files. Keep its internal imports as
+`@conduit/ui/…` so consuming apps cannot resolve them through their own `@/…` alias.
+Node-loaded ESLint configs also use their package name for internal imports.
+CSS imports, configuration file paths, generated files, and emitted Node ESM
+imports retain the extensions their tools require.
 
 ### Utilities
 

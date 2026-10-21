@@ -1,7 +1,7 @@
 'use client';
 
-import { Button } from '@repo/ui/components/button';
-import { cn } from '@repo/ui/lib/utils';
+import { Button } from '@conduit/ui/components/button';
+import { cn } from '@conduit/ui/lib/utils';
 import {
   MessageScroller as MessageScrollerPrimitive,
   useMessageScroller,

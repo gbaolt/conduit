@@ -1,10 +1,10 @@
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { Button } from '@repo/ui/components/button';
+import { Button } from '@conduit/ui/components/button';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@repo/ui/components/tooltip';
+} from '@conduit/ui/components/tooltip';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { LockIcon, UnlockIcon } from 'lucide-react';
 import { useState } from 'react';
 

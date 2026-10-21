@@ -1,4 +1,4 @@
-import { cn } from '@repo/ui/lib/utils';
+import { cn } from '@conduit/ui/lib/utils';
 
 export function Spinner({ className, ...props }: React.ComponentProps<'svg'>) {
   return (

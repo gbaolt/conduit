@@ -1,4 +1,4 @@
-import { Button } from '@repo/ui/components/button';
+import { Button } from '@conduit/ui/components/button';
 import { IconChevronRight } from '@tabler/icons-react';
 import type { Route } from 'next';
 import Link from 'next/link';

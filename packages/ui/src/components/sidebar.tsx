@@ -2,23 +2,23 @@
 
 import { mergeProps } from '@base-ui/react/merge-props';
 import { useRender } from '@base-ui/react/use-render';
-import { Button } from '@repo/ui/components/button';
-import { Input } from '@repo/ui/components/input';
-import { Separator } from '@repo/ui/components/separator';
+import { Button } from '@conduit/ui/components/button';
+import { Input } from '@conduit/ui/components/input';
+import { Separator } from '@conduit/ui/components/separator';
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from '@repo/ui/components/sheet';
-import { Skeleton } from '@repo/ui/components/skeleton';
+} from '@conduit/ui/components/sheet';
+import { Skeleton } from '@conduit/ui/components/skeleton';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@repo/ui/components/tooltip';
-import { useIsMobile } from '@repo/ui/hooks/use-mobile';
+} from '@conduit/ui/components/tooltip';
+import { useIsMobile } from '@conduit/ui/hooks/use-mobile';
 import { IconLayoutSidebar } from '@tabler/icons-react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from 'cn';

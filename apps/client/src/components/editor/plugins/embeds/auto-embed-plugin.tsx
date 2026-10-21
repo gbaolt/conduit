@@ -1,3 +1,17 @@
+import { Button } from '@conduit/ui/components/button';
+import {
+  Command,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from '@conduit/ui/components/command';
+import { DialogFooter } from '@conduit/ui/components/dialog';
+import { Input } from '@conduit/ui/components/input';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@conduit/ui/components/popover';
 import {
   AutoEmbedOption,
   type EmbedConfig,
@@ -6,20 +20,6 @@ import {
   URL_MATCHER,
 } from '@lexical/react/LexicalAutoEmbedPlugin';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { Button } from '@repo/ui/components/button';
-import {
-  Command,
-  CommandGroup,
-  CommandItem,
-  CommandList,
-} from '@repo/ui/components/command';
-import { DialogFooter } from '@repo/ui/components/dialog';
-import { Input } from '@repo/ui/components/input';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@repo/ui/components/popover';
 import type { LexicalEditor } from 'lexical';
 import { type JSX, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';

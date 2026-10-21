@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@repo/ui/components/button';
+import { Button } from '@conduit/ui/components/button';
 import { IconLogout } from '@tabler/icons-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';

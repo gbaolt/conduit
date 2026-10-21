@@ -1,13 +1,13 @@
 import {
-  $getSelectionStyleValueForProperty,
-  $patchStyleText,
-} from '@lexical/selection';
-import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from '@repo/ui/components/input-group';
+} from '@conduit/ui/components/input-group';
+import {
+  $getSelectionStyleValueForProperty,
+  $patchStyleText,
+} from '@lexical/selection';
 import { $getSelection, $isRangeSelection, type BaseSelection } from 'lexical';
 import { Minus, Plus } from 'lucide-react';
 import { useCallback, useState } from 'react';

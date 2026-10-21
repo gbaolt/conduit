@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@repo/ui/components/button';
+import { Button } from '@conduit/ui/components/button';
 import { IconMoon, IconSun } from '@tabler/icons-react';
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';

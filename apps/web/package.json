@@ -15,22 +15,22 @@
     "upgrade:tailwind": "npx @tailwindcss/upgrade@latest"
   },
   "dependencies": {
-    "@repo/ui": "workspace:*",
+    "@conduit/ui": "workspace:*",
     "@tabler/icons-react": "^3.45.0",
     "geist": "^1.7.2",
     "motion": "^13.1.1",
-    "next": "16.3.2",
+    "next": "16.4.2",
     "next-themes": "^0.4.6",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   },
   "devDependencies": {
-    "@repo/eslint-config": "workspace:*",
-    "@repo/typescript-config": "workspace:*",
+    "@conduit/eslint-config": "workspace:*",
+    "@conduit/typescript-config": "workspace:*",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22.15.3",
-    "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.4",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
     "@typescript/native": "npm:typescript@^7.0.2",
     "babel-plugin-react-compiler": "^1.0.0",
     "eslint": "^10.9.0",

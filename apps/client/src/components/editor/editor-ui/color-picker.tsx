@@ -1,18 +1,18 @@
-import { Button } from '@repo/ui/components/button';
-import { Input } from '@repo/ui/components/input';
+import { Button } from '@conduit/ui/components/button';
+import { Input } from '@conduit/ui/components/input';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@repo/ui/components/popover';
+} from '@conduit/ui/components/popover';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@repo/ui/components/select';
-import { Slider } from '@repo/ui/components/slider';
+} from '@conduit/ui/components/select';
+import { Slider } from '@conduit/ui/components/slider';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { PipetteIcon } from 'lucide-react';
 import * as React from 'react';

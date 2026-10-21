@@ -41,7 +41,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  transpilePackages: ['@repo/contract', '@repo/ui'],
+  transpilePackages: ['@conduit/contract', '@conduit/ui'],
 };
 
 export default nextConfig;

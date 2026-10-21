@@ -1,3 +1,10 @@
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@conduit/ui/components/select';
 import { $isCodeNode } from '@lexical/code';
 import {
   CODE_LANGUAGE_FRIENDLY_NAME_MAP,
@@ -6,13 +13,6 @@ import {
 } from '@lexical/code-prism';
 import { $isListNode } from '@lexical/list';
 import { $findMatchingParent } from '@lexical/utils';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@repo/ui/components/select';
 import {
   $getNodeByKey,
   $isRangeSelection,

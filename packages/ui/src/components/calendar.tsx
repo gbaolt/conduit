@@ -1,7 +1,7 @@
 'use client';
 
-import { Button, buttonVariants } from '@repo/ui/components/button';
-import { cn } from '@repo/ui/lib/utils';
+import { Button, buttonVariants } from '@conduit/ui/components/button';
+import { cn } from '@conduit/ui/lib/utils';
 import {
   IconChevronDown,
   IconChevronLeft,

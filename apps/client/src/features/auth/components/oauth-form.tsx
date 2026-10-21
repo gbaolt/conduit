@@ -1,7 +1,7 @@
 'use client';
 
-import { Button } from '@repo/ui/components/button';
-import { Spinner } from '@repo/ui/components/spinner';
+import { Button } from '@conduit/ui/components/button';
+import { Spinner } from '@conduit/ui/components/spinner';
 
 import { GitHubIcon, GoogleIcon } from '@/components/icons';
 

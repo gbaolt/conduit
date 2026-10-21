@@ -1,6 +1,6 @@
+import { Button } from '@conduit/ui/components/button';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { IS_APPLE, mergeRegister } from '@lexical/utils';
-import { Button } from '@repo/ui/components/button';
 import {
   CAN_REDO_COMMAND,
   CAN_UNDO_COMMAND,

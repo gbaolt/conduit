@@ -13,9 +13,19 @@ allowBuilds:
   '@swc/core': true
   unrs-resolver: true
 
+minimumReleaseAgeExclude:
+  - '@turbo/darwin-64@2.11.10'
+  - '@turbo/darwin-arm64@2.11.10'
+  - '@turbo/linux-64@2.11.10'
+  - '@turbo/linux-arm64@2.11.10'
+  - '@turbo/windows-64@2.11.10'
+  - '@turbo/windows-arm64@2.11.10'
+  - eslint-plugin-turbo@2.11.10
+  - turbo@2.11.10
+
 overrides:
-  '@types/react': 19.2.18
-  '@types/react-dom': 19.2.4
+  '@types/react': 19.3.0
+  '@types/react-dom': 19.3.0
 
 peerDependencyRules:
   allowedVersions:

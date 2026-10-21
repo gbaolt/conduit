@@ -1,6 +1,4 @@
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { DraggableBlockPlugin_EXPERIMENTAL } from '@lexical/react/LexicalDraggableBlockPlugin';
-import { Button } from '@repo/ui/components/button';
+import { Button } from '@conduit/ui/components/button';
 import {
   Command,
   CommandEmpty,
@@ -8,7 +6,9 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@repo/ui/components/command';
+} from '@conduit/ui/components/command';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { DraggableBlockPlugin_EXPERIMENTAL } from '@lexical/react/LexicalDraggableBlockPlugin';
 import {
   $createParagraphNode,
   $createTextNode,

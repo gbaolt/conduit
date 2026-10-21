@@ -1,12 +1,12 @@
 import './load-env';
 import 'reflect-metadata';
 
+import { contract } from '@conduit/contract';
 import { NestFactory } from '@nestjs/core';
 import { OpenAPIGenerator } from '@orpc/openapi';
 import { OpenAPIHandler } from '@orpc/openapi/node';
 import { OpenAPIReferenceHandlerPlugin } from '@orpc/openapi/plugins';
 import { ZodToJsonSchemaConverter } from '@orpc/zod';
-import { contract } from '@repo/contract';
 import type { NextFunction, Request, Response } from 'express';
 
 import { AppModule } from './app.module';

@@ -5,11 +5,11 @@ const getThemeBackgroundColor = () => {
   return getComputedStyle(document.documentElement).backgroundColor || '#fff';
 };
 
+import { Button } from '@conduit/ui/components/button';
 import {
   $getSelectionStyleValueForProperty,
   $patchStyleText,
 } from '@lexical/selection';
-import { Button } from '@repo/ui/components/button';
 import { $getSelection, $isRangeSelection, type BaseSelection } from 'lexical';
 import { PaintBucketIcon } from 'lucide-react';
 

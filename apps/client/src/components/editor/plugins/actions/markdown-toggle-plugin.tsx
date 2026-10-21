@@ -1,3 +1,4 @@
+import { Button } from '@conduit/ui/components/button';
 import { $createCodeNode, $isCodeNode } from '@lexical/code';
 import {
   $convertFromMarkdownString,
@@ -5,7 +6,6 @@ import {
   type Transformer,
 } from '@lexical/markdown';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { Button } from '@repo/ui/components/button';
 import { $createTextNode, $getRoot } from 'lexical';
 import { FileTextIcon } from 'lucide-react';
 import { useCallback } from 'react';

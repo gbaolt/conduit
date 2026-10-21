@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@repo/ui/components/button';
+import { Button } from '@conduit/ui/components/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,8 +8,8 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@repo/ui/components/dropdown-menu';
-import { cn } from '@repo/ui/lib/utils';
+} from '@conduit/ui/components/dropdown-menu';
+import { cn } from '@conduit/ui/lib/utils';
 import {
   IconBell,
   IconLogout,

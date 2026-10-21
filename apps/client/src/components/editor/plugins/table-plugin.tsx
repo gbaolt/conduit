@@ -1,8 +1,8 @@
+import { Button } from '@conduit/ui/components/button';
+import { DialogFooter } from '@conduit/ui/components/dialog';
+import { Input } from '@conduit/ui/components/input';
+import { Label } from '@conduit/ui/components/label';
 import { INSERT_TABLE_COMMAND } from '@lexical/table';
-import { Button } from '@repo/ui/components/button';
-import { DialogFooter } from '@repo/ui/components/dialog';
-import { Input } from '@repo/ui/components/input';
-import { Label } from '@repo/ui/components/label';
 import type { LexicalEditor } from 'lexical';
 import type { JSX } from 'react';
 import { useEffect, useState } from 'react';

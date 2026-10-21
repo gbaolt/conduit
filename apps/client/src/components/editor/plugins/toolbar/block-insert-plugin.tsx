@@ -1,9 +1,9 @@
-import { Button } from '@repo/ui/components/button';
+import { Button } from '@conduit/ui/components/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from '@repo/ui/components/dropdown-menu';
+} from '@conduit/ui/components/dropdown-menu';
 import { PlusIcon } from 'lucide-react';
 
 import { useEditorModal } from '@/components/editor/editor-hooks/use-modal';

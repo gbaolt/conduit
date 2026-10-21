@@ -4,7 +4,7 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-} from '@repo/ui/components/input-group';
+} from '@conduit/ui/components/input-group';
 import { IconAt } from '@tabler/icons-react';
 import { motion, useReducedMotion } from 'motion/react';
 import Image from 'next/image';

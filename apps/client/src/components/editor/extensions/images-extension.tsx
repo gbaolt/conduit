@@ -1,3 +1,13 @@
+import { Button } from '@conduit/ui/components/button';
+import { DialogFooter } from '@conduit/ui/components/dialog';
+import { Field, FieldGroup, FieldLabel } from '@conduit/ui/components/field';
+import { Input } from '@conduit/ui/components/input';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@conduit/ui/components/tabs';
 import {
   $isAutoLinkNode,
   $isLinkNode,
@@ -5,16 +15,6 @@ import {
   TOGGLE_LINK_COMMAND,
 } from '@lexical/link';
 import { $wrapNodeInElement, mergeRegister } from '@lexical/utils';
-import { Button } from '@repo/ui/components/button';
-import { DialogFooter } from '@repo/ui/components/dialog';
-import { Field, FieldGroup, FieldLabel } from '@repo/ui/components/field';
-import { Input } from '@repo/ui/components/input';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@repo/ui/components/tabs';
 import {
   $createParagraphNode,
   $createRangeSelection,

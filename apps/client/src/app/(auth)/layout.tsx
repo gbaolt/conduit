@@ -1,6 +1,6 @@
-import { Brand } from '@repo/ui/components/brand';
-import { Button } from '@repo/ui/components/button';
-import { Toaster } from '@repo/ui/components/sonner';
+import { Brand } from '@conduit/ui/components/brand';
+import { Button } from '@conduit/ui/components/button';
+import { Toaster } from '@conduit/ui/components/sonner';
 import { IconChevronLeft } from '@tabler/icons-react';
 import Image from 'next/image';
 import { Suspense } from 'react';

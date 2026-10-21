@@ -1,5 +1,5 @@
+import { DropdownMenuItem } from '@conduit/ui/components/dropdown-menu';
 import { INSERT_HORIZONTAL_RULE_COMMAND } from '@lexical/react/LexicalHorizontalRuleNode';
-import { DropdownMenuItem } from '@repo/ui/components/dropdown-menu';
 import { ScissorsIcon } from 'lucide-react';
 
 import { useToolbarContext } from '@/components/editor/context/toolbar-provider';

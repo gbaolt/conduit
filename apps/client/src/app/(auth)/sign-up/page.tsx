@@ -1,6 +1,6 @@
 'use client';
 
-import { FieldSeparator } from '@repo/ui/components/field';
+import { FieldSeparator } from '@conduit/ui/components/field';
 import { useSearchParams } from 'next/navigation';
 
 import { AuthActionLink } from '@/features/auth/components/auth-action-link';

@@ -1,5 +1,8 @@
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from '@conduit/ui/components/toggle-group';
 import { $isTableSelection } from '@lexical/table';
-import { ToggleGroup, ToggleGroupItem } from '@repo/ui/components/toggle-group';
 import {
   $isRangeSelection,
   type BaseSelection,
