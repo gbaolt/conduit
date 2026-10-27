@@ -11,7 +11,7 @@ export function createQueryClient() {
     defaultOptions: {
       queries: {
         queryKeyHashFn(queryKey) {
-          const { json, meta } = serializer.serialize(queryKey);
+          const { json, meta } = serializer.serializeJson(queryKey);
           return hashKey([
             json,
             meta?.map((entry) => JSON.stringify(entry)).sort(),
@@ -24,13 +24,13 @@ export function createQueryClient() {
           defaultShouldDehydrateQuery(query) ||
           query.state.status === 'pending',
         serializeData(data) {
-          const { json, meta } = serializer.serialize(data);
+          const { json, meta } = serializer.serializeJson(data);
           return { json, meta };
         },
       },
       hydrate: {
         deserializeData(data) {
-          return serializer.deserialize(data);
+          return serializer.deserializeJson(data);
         },
       },
     },
