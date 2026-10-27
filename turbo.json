@@ -19,6 +19,8 @@
     "GITHUB_CLIENT_SECRET",
     "RESEND_API_KEY",
     "AUTH_EMAIL_FROM",
+    "ARCJET_KEY",
+    "ARCJET_ENV",
     "NODE_ENV",
     "HOST",
     "PORTLESS_URL"
