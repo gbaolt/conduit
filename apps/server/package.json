@@ -20,6 +20,8 @@
     "upgrade:nest": "npx npm-check-updates \"/^@nestjs/\" -u"
   },
   "dependencies": {
+    "@arcjet/nest": "^1.14.1",
+    "@conduit/contract": "workspace:*",
     "@neondatabase/serverless": "^1.0.1",
     "@nestjs/common": "^11.1.6",
     "@nestjs/core": "^11.1.6",
@@ -30,7 +32,6 @@
     "@orpc/zod": "catalog:",
     "@prisma/adapter-neon": "^7.0.0",
     "@prisma/client": "^7.0.0",
-    "@conduit/contract": "workspace:*",
     "@thallesp/nestjs-better-auth": "^2.7.0",
     "better-auth": "catalog:",
     "dotenv": "^17.4.2",
@@ -41,9 +42,9 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@conduit/config": "workspace:*",
     "@nestjs/cli": "^11.0.10",
     "@nestjs/schematics": "^11.0.7",
-    "@conduit/config": "workspace:*",
     "@swc/cli": "^0.8.1",
     "@swc/core": "^1.16.0",
     "@types/express": "^5.0.3",
