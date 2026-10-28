@@ -1,5 +1,6 @@
 'use client';
 
+import { useSuspenseQuery } from '@tanstack/react-query';
 import {
   createContext,
   type ReactNode,
@@ -9,6 +10,7 @@ import {
   useMemo,
 } from 'react';
 
+import { orpc } from '@/lib/orpc';
 import { authClient } from '@/services/auth/client';
 
 export type Workspace = {
@@ -25,18 +27,17 @@ type WorkspaceContextValue = {
   setActive: (organizationId: string) => Promise<void>;
 };
 
-const EMPTY_WORKSPACES: Workspace[] = [];
-
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
-  const { data: workspaces, isPending: isListPending } =
-    authClient.useListOrganizations();
+  const { data: workspaces } = useSuspenseQuery(
+    orpc.organizations.list.queryOptions()
+  );
   const { data: activeOrganization, isPending: isActivePending } =
     authClient.useActiveOrganization();
 
-  const isPending = isListPending || isActivePending;
-  const firstId = workspaces?.[0]?.id;
+  const isPending = isActivePending;
+  const firstId = workspaces[0]?.id;
   const activeId = activeOrganization?.id;
 
   useEffect(() => {
@@ -53,7 +54,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<WorkspaceContextValue>(
     () => ({
-      workspaces: workspaces ?? EMPTY_WORKSPACES,
+      workspaces,
       activeWorkspace: activeOrganization
         ? {
             id: activeOrganization.id,

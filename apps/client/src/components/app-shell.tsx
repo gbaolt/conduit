@@ -21,8 +21,8 @@ import type { ReactNode } from 'react';
 
 import { NavUser, type NavUserInfo } from '@/components/nav-user';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { WorkspaceProvider } from '@/features/workspace/workspace-provider';
-import { WorkspaceSwitcher } from '@/features/workspace/workspace-switcher';
+import { WorkspaceSwitcher } from '@/features/workspace/components/workspace-switcher';
+import { WorkspaceProvider } from '@/features/workspace/context/workspace-provider';
 
 function RailLink({
   href,

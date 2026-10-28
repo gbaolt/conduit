@@ -19,11 +19,12 @@ import {
   IconUser,
 } from '@tabler/icons-react';
 import { useQueryClient } from '@tanstack/react-query';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-import { useWorkspace } from '@/features/workspace/workspace-provider';
+import { useWorkspace } from '@/features/workspace/context/workspace-provider';
 import { authClient } from '@/services/auth/client';
 
 export type NavUserInfo = {
@@ -43,9 +44,12 @@ function UserAvatar({
 }) {
   if (image) {
     return (
-      <img
+      // 36px covers the largest render (size-9 in the sidebar).
+      <Image
         src={image}
         alt=""
+        width={36}
+        height={36}
         className={cn('size-8 rounded-full object-cover', className)}
       />
     );

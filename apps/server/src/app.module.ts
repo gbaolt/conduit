@@ -7,6 +7,8 @@ import type { Request } from 'express';
 
 import { DatabaseModule } from '@/database/database.module';
 import { HealthController } from '@/health.controller';
+import { OrganizationsController } from '@/organizations/organizations.controller';
+import { OrganizationsService } from '@/organizations/organizations.service';
 import { UsersController } from '@/users/users.controller';
 import { UsersService } from '@/users/users.service';
 
@@ -64,7 +66,7 @@ declare module '@orpc/nest' {
       }),
     }),
   ],
-  controllers: [HealthController, UsersController],
-  providers: [UsersService],
+  controllers: [HealthController, UsersController, OrganizationsController],
+  providers: [UsersService, OrganizationsService],
 })
 export class AppModule {}

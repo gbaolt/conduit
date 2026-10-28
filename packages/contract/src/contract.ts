@@ -1,4 +1,10 @@
 import { healthCheckContract } from './contracts/health';
+import {
+  acceptInvitationContract,
+  createOrganizationContract,
+  listInvitationsContract,
+  listOrganizationsContract,
+} from './contracts/organizations';
 import { getSessionContract } from './contracts/users';
 
 export const contract = {
@@ -7,5 +13,13 @@ export const contract = {
   },
   users: {
     getSession: getSessionContract,
+  },
+  organizations: {
+    list: listOrganizationsContract,
+    create: createOrganizationContract,
+  },
+  invitations: {
+    list: listInvitationsContract,
+    accept: acceptInvitationContract,
   },
 };
