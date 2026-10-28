@@ -15,8 +15,8 @@ import { type SyntheticEvent, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
 
+import { StatusButton } from '@/components/async/status-button';
 import { FormInput } from '@/components/form/form-input';
-import { StatusButton } from '@/components/status-button';
 import { useCreateWorkspace } from '@/services/workspaces/hooks';
 
 type CreateWorkspaceValues = z.infer<typeof CreateOrganizationInputSchema>;
