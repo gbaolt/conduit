@@ -7,6 +7,7 @@ import {
   SidebarInset,
   SidebarProvider,
 } from '@conduit/ui/components/sidebar';
+import { Skeleton } from '@conduit/ui/components/skeleton';
 import { cn } from '@conduit/ui/lib/utils';
 import {
   IconBell,
@@ -60,6 +61,47 @@ function RailLink({
   );
 }
 
+const railItems: { href: Route; label: string; icon: typeof IconHome }[] = [
+  { href: '/', label: 'Home', icon: IconHome },
+  { href: '#', label: 'DMs', icon: IconMessage },
+  { href: '#', label: 'Activity', icon: IconBell },
+  { href: '#', label: 'Files', icon: IconFolder },
+  { href: '#', label: 'More', icon: IconDots },
+];
+
+export function AppShellSkeleton() {
+  return (
+    <div
+      role="status"
+      aria-label="Loading workspace"
+      className="bg-sidebar flex min-h-svh"
+    >
+      <div aria-hidden className="flex h-svh w-16 shrink-0 flex-col">
+        <div className="flex flex-col items-center p-2 pt-4 pb-2">
+          <Skeleton className="size-9 rounded-lg" />
+        </div>
+        <div className="flex flex-1 flex-col items-center gap-2.5">
+          {railItems.map(({ label }) => (
+            <div key={label} className="flex flex-col items-center gap-1.5">
+              <Skeleton className="size-8.5 rounded-md" />
+              <Skeleton className="h-3 text-[10px] text-transparent">
+                {label}
+              </Skeleton>
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-col items-center gap-3 p-2 pt-2 pb-4">
+          <Skeleton className="size-8 rounded-[min(var(--radius-md),12px)]" />
+          <Skeleton className="size-9 rounded-md" />
+        </div>
+      </div>
+      <div className="flex min-w-0 flex-1 py-2 pe-2">
+        <div className="border-sidebar-border bg-background flex-1 rounded-xl border" />
+      </div>
+    </div>
+  );
+}
+
 export function AppShell({
   user,
   children,
@@ -82,11 +124,13 @@ export function AppShell({
             <WorkspaceSwitcher />
           </SidebarHeader>
           <SidebarContent className="items-center gap-2">
-            <RailLink href="/" label="Home" icon={IconHome} isActive />
-            <RailLink href="#" label="DMs" icon={IconMessage} />
-            <RailLink href="#" label="Activity" icon={IconBell} />
-            <RailLink href="#" label="Files" icon={IconFolder} />
-            <RailLink href="#" label="More" icon={IconDots} />
+            {railItems.map((item) => (
+              <RailLink
+                key={item.label}
+                {...item}
+                isActive={item.href === '/'}
+              />
+            ))}
           </SidebarContent>
           <SidebarFooter className="mt-auto items-center gap-3 pt-2 pb-4">
             <ThemeToggle />

@@ -1,6 +1,6 @@
 import { type ReactNode, Suspense } from 'react';
 
-import { AppShell } from '@/components/app-shell';
+import { AppShell, AppShellSkeleton } from '@/components/app-shell';
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
 import { requireSession } from '@/services/auth/server';
 import { requireWorkspaces } from '@/services/workspaces/server';
@@ -27,7 +27,7 @@ async function DashboardShell({ children }: { children: ReactNode }) {
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <Suspense fallback={<div className="bg-background min-h-svh" />}>
+    <Suspense fallback={<AppShellSkeleton />}>
       <DashboardShell>{children}</DashboardShell>
     </Suspense>
   );
