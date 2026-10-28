@@ -5,7 +5,10 @@ import { IconArrowLeft } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { parseAsStringLiteral, useQueryState } from 'nuqs';
 
-import { orpc } from '@/lib/orpc';
+import {
+  invitationsQuery,
+  workspacesQuery,
+} from '@/services/workspaces/queries';
 
 import { CreateWorkspaceForm } from './create-workspace-form';
 import { WorkspaceChooser } from './workspace-chooser';
@@ -14,8 +17,8 @@ const steps = ['create'] as const;
 
 export function OnboardingWizard({ email }: { email: string }) {
   const [step, setStep] = useQueryState('step', parseAsStringLiteral(steps));
-  const workspaces = useQuery(orpc.organizations.list.queryOptions());
-  const invitations = useQuery(orpc.invitations.list.queryOptions());
+  const workspaces = useQuery(workspacesQuery);
+  const invitations = useQuery(invitationsQuery);
   const hasChoices = !!workspaces.data?.length || !!invitations.data?.length;
 
   if (step === 'create') {

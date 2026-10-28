@@ -1,17 +1,11 @@
 'use client';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
-import {
-  createContext,
-  type ReactNode,
-  use,
-  useCallback,
-  useEffect,
-  useMemo,
-} from 'react';
+import { createContext, type ReactNode, use, useEffect, useMemo } from 'react';
 
-import { orpc } from '@/lib/orpc';
 import { authClient } from '@/services/auth/client';
+import { useSwitchWorkspace } from '@/services/workspaces/hooks';
+import { workspacesQuery } from '@/services/workspaces/queries';
 
 export type Workspace = {
   id: string;
@@ -24,15 +18,14 @@ type WorkspaceContextValue = {
   workspaces: Workspace[];
   activeWorkspace: Workspace | null;
   isPending: boolean;
-  setActive: (organizationId: string) => Promise<void>;
+  setActive: (organizationId: string) => void;
 };
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
-  const { data: workspaces } = useSuspenseQuery(
-    orpc.organizations.list.queryOptions()
-  );
+  const { data: workspaces } = useSuspenseQuery(workspacesQuery);
+  const { mutate: setActive } = useSwitchWorkspace();
   const { data: activeOrganization, isPending: isActivePending } =
     authClient.useActiveOrganization();
 
@@ -45,12 +38,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    void authClient.organization.setActive({ organizationId: firstId });
-  }, [activeId, firstId, isPending]);
-
-  const setActive = useCallback(async (organizationId: string) => {
-    await authClient.organization.setActive({ organizationId });
-  }, []);
+    setActive(firstId);
+  }, [activeId, firstId, isPending, setActive]);
 
   const value = useMemo<WorkspaceContextValue>(
     () => ({

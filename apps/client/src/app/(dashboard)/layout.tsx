@@ -1,25 +1,20 @@
-import { redirect, unauthorized } from 'next/navigation';
+import { unauthorized } from 'next/navigation';
 import { type ReactNode, Suspense } from 'react';
 
 import { AppShell } from '@/components/app-shell';
-import { orpc } from '@/lib/orpc';
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
 import { getSession } from '@/services/auth/session';
+import { requireWorkspaces } from '@/services/workspaces/server';
 
 async function DashboardShell({ children }: { children: ReactNode }) {
   const session = await getSession();
 
   if (!session) return unauthorized();
 
-  const queryClient = getQueryClient();
-  const workspaces = await queryClient.fetchQuery(
-    orpc.organizations.list.queryOptions()
-  );
-
-  if (workspaces.length === 0) return redirect('/onboarding');
+  await requireWorkspaces();
 
   return (
-    <HydrateClient client={queryClient}>
+    <HydrateClient client={getQueryClient()}>
       <AppShell
         user={{
           name: session.user.name,

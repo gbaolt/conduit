@@ -57,7 +57,7 @@ export function WorkspaceSwitcher() {
               <DropdownMenuItem
                 key={workspace.id}
                 onClick={() => {
-                  void setActive(workspace.id);
+                  setActive(workspace.id);
                 }}
               >
                 {workspace.logo ? (

@@ -3,16 +3,21 @@
 import { Button } from '@conduit/ui/components/button';
 import { Spinner } from '@conduit/ui/components/spinner';
 import { IconChevronRight, IconPlus } from '@tabler/icons-react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-import { orpc } from '@/lib/orpc';
 import { cn } from '@/lib/utils';
-import { authClient } from '@/services/auth/client';
-
-import { useFinishOnboarding } from '../hooks/use-finish-onboarding';
+import {
+  useAcceptInvitation,
+  useSwitchWorkspace,
+} from '@/services/workspaces/hooks';
+import {
+  invitationsQuery,
+  workspacesQuery,
+} from '@/services/workspaces/queries';
 
 const rowClass =
   'flex min-h-14 w-full items-center gap-3 px-4 py-2.5 text-left outline-none';
@@ -96,18 +101,12 @@ function ErrorLine({ children }: { children: ReactNode }) {
 }
 
 export function WorkspaceChooser({ onCreate }: { onCreate: () => void }) {
-  const finish = useFinishOnboarding();
-  const workspaces = useQuery(orpc.organizations.list.queryOptions());
-  const invitations = useQuery(orpc.invitations.list.queryOptions());
-  const accept = useMutation(orpc.invitations.accept.mutationOptions());
-  const open = useMutation({
-    mutationFn: async (organizationId: string) => {
-      const { error } = await authClient.organization.setActive({
-        organizationId,
-      });
-      if (error) throw new Error(error.message ?? 'Could not open workspace.');
-    },
-  });
+  const router = useRouter();
+  const goHome = () => router.push('/');
+  const workspaces = useQuery(workspacesQuery);
+  const invitations = useQuery(invitationsQuery);
+  const accept = useAcceptInvitation();
+  const open = useSwitchWorkspace();
   const leaving =
     accept.isPending || accept.isSuccess || open.isPending || open.isSuccess;
 
@@ -133,7 +132,7 @@ export function WorkspaceChooser({ onCreate }: { onCreate: () => void }) {
                   onClick={() =>
                     accept.mutate(
                       { invitationId: invitation.id },
-                      { onSuccess: finish }
+                      { onSuccess: goHome }
                     )
                   }
                 >
@@ -157,7 +156,7 @@ export function WorkspaceChooser({ onCreate }: { onCreate: () => void }) {
                   type="button"
                   disabled={leaving}
                   onClick={() =>
-                    open.mutate(workspace.id, { onSuccess: finish })
+                    open.mutate(workspace.id, { onSuccess: goHome })
                   }
                   className={buttonRowClass}
                 >

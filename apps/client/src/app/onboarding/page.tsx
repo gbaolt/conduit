@@ -2,9 +2,12 @@ import { unauthorized } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { OnboardingWizard } from '@/features/onboarding/components/onboarding-wizard';
-import { orpc } from '@/lib/orpc';
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
 import { getSession } from '@/services/auth/session';
+import {
+  invitationsQuery,
+  workspacesQuery,
+} from '@/services/workspaces/queries';
 
 async function OnboardingContent() {
   const session = await getSession();
@@ -14,8 +17,8 @@ async function OnboardingContent() {
   const queryClient = getQueryClient();
   // Awaited so the chooser renders whole, without rows popping in after hydration.
   await Promise.all([
-    queryClient.prefetchQuery(orpc.organizations.list.queryOptions()),
-    queryClient.prefetchQuery(orpc.invitations.list.queryOptions()),
+    queryClient.prefetchQuery(workspacesQuery),
+    queryClient.prefetchQuery(invitationsQuery),
   ]);
 
   return (

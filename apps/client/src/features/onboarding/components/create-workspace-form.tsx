@@ -10,16 +10,14 @@ import { FieldGroup } from '@conduit/ui/components/field';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { isDefinedError } from '@orpc/client';
 import { IconAlertCircle } from '@tabler/icons-react';
-import { useMutation } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { type SyntheticEvent, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
 
 import { FormInput } from '@/components/form/form-input';
 import { StatusButton } from '@/components/status-button';
-import { orpc } from '@/lib/orpc';
-
-import { useFinishOnboarding } from '../hooks/use-finish-onboarding';
+import { useCreateWorkspace } from '@/services/workspaces/hooks';
 
 type CreateWorkspaceValues = z.infer<typeof CreateOrganizationInputSchema>;
 
@@ -35,11 +33,9 @@ function slugify(name: string) {
 }
 
 export function CreateWorkspaceForm() {
-  const finish = useFinishOnboarding();
+  const router = useRouter();
   const [slugEdited, setSlugEdited] = useState(false);
-  const createWorkspace = useMutation(
-    orpc.organizations.create.mutationOptions()
-  );
+  const createWorkspace = useCreateWorkspace();
 
   const { control, handleSubmit, formState, setValue, setError } =
     useForm<CreateWorkspaceValues>({
@@ -50,7 +46,7 @@ export function CreateWorkspaceForm() {
   const onSubmit = (event: SyntheticEvent<HTMLFormElement>) =>
     handleSubmit((values) => {
       createWorkspace.mutate(values, {
-        onSuccess: finish,
+        onSuccess: () => router.push('/'),
         onError: (error) => {
           if (isDefinedError(error) && error.code === 'SLUG_TAKEN') {
             setError('slug', { message: error.message });
