@@ -2,7 +2,7 @@ import { getSessionCookie } from 'better-auth/cookies';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-const protectedRoutes = ['/'];
+const protectedRoutes = ['/', '/onboarding'];
 const authRoutes = [
   '/sign-in',
   '/sign-up',

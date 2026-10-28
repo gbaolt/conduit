@@ -8,8 +8,17 @@ import {
 
 import { createOrpcLink } from './orpc-link';
 
+// Next replaces this check at build time, so the server client never reaches the browser bundle.
+if (typeof window === 'undefined') {
+  await import('./orpc.server');
+}
+
+declare global {
+  var $client: RouterContractClient<typeof contract> | undefined;
+}
+
 export const client: RouterContractClient<typeof contract> =
-  createORPCClient(createOrpcLink());
+  globalThis.$client ?? createORPCClient(createOrpcLink());
 
 export const orpc: RouterUtils<typeof client> =
   createTanstackQueryUtils(client);

@@ -1,15 +1,13 @@
 'use client';
 
-import {
-  createContext,
-  type ReactNode,
-  use,
-  useCallback,
-  useEffect,
-  useMemo,
-} from 'react';
+import { useSuspenseQuery } from '@tanstack/react-query';
+import { createContext, type ReactNode, use, useEffect, useMemo } from 'react';
 
-import { authClient } from '@/services/auth/client';
+import {
+  useActiveWorkspace,
+  useSwitchWorkspace,
+} from '@/services/workspaces/hooks';
+import { workspacesQuery } from '@/services/workspaces/queries';
 
 export type Workspace = {
   id: string;
@@ -22,21 +20,19 @@ type WorkspaceContextValue = {
   workspaces: Workspace[];
   activeWorkspace: Workspace | null;
   isPending: boolean;
-  setActive: (organizationId: string) => Promise<void>;
+  setActive: (organizationId: string) => void;
 };
-
-const EMPTY_WORKSPACES: Workspace[] = [];
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
-  const { data: workspaces, isPending: isListPending } =
-    authClient.useListOrganizations();
+  const { data: workspaces } = useSuspenseQuery(workspacesQuery);
+  const { mutate: setActive } = useSwitchWorkspace();
   const { data: activeOrganization, isPending: isActivePending } =
-    authClient.useActiveOrganization();
+    useActiveWorkspace();
 
-  const isPending = isListPending || isActivePending;
-  const firstId = workspaces?.[0]?.id;
+  const isPending = isActivePending;
+  const firstId = workspaces[0]?.id;
   const activeId = activeOrganization?.id;
 
   useEffect(() => {
@@ -44,16 +40,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    void authClient.organization.setActive({ organizationId: firstId });
-  }, [activeId, firstId, isPending]);
-
-  const setActive = useCallback(async (organizationId: string) => {
-    await authClient.organization.setActive({ organizationId });
-  }, []);
+    setActive(firstId);
+  }, [activeId, firstId, isPending, setActive]);
 
   const value = useMemo<WorkspaceContextValue>(
     () => ({
-      workspaces: workspaces ?? EMPTY_WORKSPACES,
+      workspaces,
       activeWorkspace: activeOrganization
         ? {
             id: activeOrganization.id,

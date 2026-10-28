@@ -21,8 +21,8 @@ import type { ReactNode } from 'react';
 
 import { NavUser, type NavUserInfo } from '@/components/nav-user';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { WorkspaceProvider } from '@/features/workspace/workspace-provider';
-import { WorkspaceSwitcher } from '@/features/workspace/workspace-switcher';
+import { WorkspaceSwitcher } from '@/features/workspace/components/workspace-switcher';
+import { WorkspaceProvider } from '@/features/workspace/context/workspace-provider';
 
 function RailLink({
   href,
@@ -78,7 +78,7 @@ export function AppShell({
         }
       >
         <Sidebar variant="inset" collapsible="none" className="h-svh">
-          <SidebarHeader className="items-center pt-5 pb-2">
+          <SidebarHeader className="items-center pt-4 pb-2">
             <WorkspaceSwitcher />
           </SidebarHeader>
           <SidebarContent className="items-center gap-2">
@@ -88,12 +88,12 @@ export function AppShell({
             <RailLink href="#" label="Files" icon={IconFolder} />
             <RailLink href="#" label="More" icon={IconDots} />
           </SidebarContent>
-          <SidebarFooter className="mt-auto items-center gap-3 pt-2 pb-5">
+          <SidebarFooter className="mt-auto items-center gap-3 pt-2 pb-4">
             <ThemeToggle />
             <NavUser user={user} />
           </SidebarFooter>
         </Sidebar>
-        <div className="flex min-h-0 min-w-0 flex-1 py-2 pe-1.5">
+        <div className="flex min-h-0 min-w-0 flex-1 py-2 pe-2">
           <SidebarInset className="border-sidebar-border min-h-0 overflow-hidden rounded-xl border">
             {children}
           </SidebarInset>

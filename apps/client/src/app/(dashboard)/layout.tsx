@@ -1,24 +1,27 @@
-import { unauthorized } from 'next/navigation';
 import { type ReactNode, Suspense } from 'react';
 
 import { AppShell } from '@/components/app-shell';
-import { getSession } from '@/services/auth/session';
+import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
+import { requireSession } from '@/services/auth/server';
+import { requireWorkspaces } from '@/services/workspaces/server';
 
 async function DashboardShell({ children }: { children: ReactNode }) {
-  const session = await getSession();
+  const session = await requireSession();
 
-  if (!session) return unauthorized();
+  await requireWorkspaces();
 
   return (
-    <AppShell
-      user={{
-        name: session.user.name,
-        email: session.user.email,
-        image: session.user.image,
-      }}
-    >
-      {children}
-    </AppShell>
+    <HydrateClient client={getQueryClient()}>
+      <AppShell
+        user={{
+          name: session.user.name,
+          email: session.user.email,
+          image: session.user.image,
+        }}
+      >
+        {children}
+      </AppShell>
+    </HydrateClient>
   );
 }
 

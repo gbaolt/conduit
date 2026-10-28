@@ -12,8 +12,10 @@ import {
   DropdownMenuTrigger,
 } from '@conduit/ui/components/dropdown-menu';
 import { IconCheck, IconPlus } from '@tabler/icons-react';
+import Image from 'next/image';
+import Link from 'next/link';
 
-import { useWorkspace } from './workspace-provider';
+import { useWorkspace } from '../context/workspace-provider';
 
 export function WorkspaceSwitcher() {
   const { workspaces, activeWorkspace, isPending, setActive } = useWorkspace();
@@ -32,13 +34,15 @@ export function WorkspaceSwitcher() {
         }
       >
         {activeWorkspace?.logo ? (
-          <img
+          <Image
             src={activeWorkspace.logo}
             alt=""
+            width={36}
+            height={36}
             className="size-9 rounded-lg object-cover"
           />
         ) : (
-          <BrandIcon className="size-9" />
+          <BrandIcon className="size-9 rounded-lg" />
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent side="right" align="start" className="w-56 min-w-56">
@@ -53,13 +57,15 @@ export function WorkspaceSwitcher() {
               <DropdownMenuItem
                 key={workspace.id}
                 onClick={() => {
-                  void setActive(workspace.id);
+                  setActive(workspace.id);
                 }}
               >
                 {workspace.logo ? (
-                  <img
+                  <Image
                     src={workspace.logo}
                     alt=""
+                    width={16}
+                    height={16}
                     className="size-4 rounded-sm object-cover"
                   />
                 ) : (
@@ -74,7 +80,9 @@ export function WorkspaceSwitcher() {
           )}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
+        <DropdownMenuItem
+          render={<Link href="/onboarding?step=create" target="_blank" />}
+        >
           <IconPlus />
           Create workspace
         </DropdownMenuItem>
