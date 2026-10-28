@@ -42,7 +42,7 @@ export function WorkspaceSwitcher() {
             className="size-9 rounded-lg object-cover"
           />
         ) : (
-          <BrandIcon className="size-9" />
+          <BrandIcon className="size-9 rounded-lg" />
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent side="right" align="start" className="w-56 min-w-56">

@@ -12,10 +12,17 @@ function useActiveWorkspaceChanged() {
   return () => {
     void queryClient.invalidateQueries({ queryKey: orpc.organizations.key() });
     void queryClient.invalidateQueries({ queryKey: orpc.users.key() });
+
     // Better Auth's own atoms don't see changes made through oRPC.
     authClient.$store.notify('$activeOrgSignal');
     authClient.$store.notify('$listOrg');
   };
+}
+
+// shortcut: reads Better Auth's client atom, a second cache beside TanStack's
+// derive it from sessionQuery if the two drift.
+export function useActiveWorkspace() {
+  return authClient.useActiveOrganization();
 }
 
 export function useCreateWorkspace() {

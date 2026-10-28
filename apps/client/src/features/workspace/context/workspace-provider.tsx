@@ -3,8 +3,10 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createContext, type ReactNode, use, useEffect, useMemo } from 'react';
 
-import { authClient } from '@/services/auth/client';
-import { useSwitchWorkspace } from '@/services/workspaces/hooks';
+import {
+  useActiveWorkspace,
+  useSwitchWorkspace,
+} from '@/services/workspaces/hooks';
 import { workspacesQuery } from '@/services/workspaces/queries';
 
 export type Workspace = {
@@ -27,7 +29,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const { data: workspaces } = useSuspenseQuery(workspacesQuery);
   const { mutate: setActive } = useSwitchWorkspace();
   const { data: activeOrganization, isPending: isActivePending } =
-    authClient.useActiveOrganization();
+    useActiveWorkspace();
 
   const isPending = isActivePending;
   const firstId = workspaces[0]?.id;

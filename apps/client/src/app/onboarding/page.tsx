@@ -1,18 +1,15 @@
-import { unauthorized } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { OnboardingWizard } from '@/features/onboarding/components/onboarding-wizard';
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
-import { getSession } from '@/services/auth/session';
+import { requireSession } from '@/services/auth/server';
 import {
   invitationsQuery,
   workspacesQuery,
 } from '@/services/workspaces/queries';
 
 async function OnboardingContent() {
-  const session = await getSession();
-
-  if (!session) return unauthorized();
+  const session = await requireSession();
 
   const queryClient = getQueryClient();
   // Awaited so the chooser renders whole, without rows popping in after hydration.

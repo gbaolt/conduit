@@ -18,14 +18,10 @@ import {
   IconSettings,
   IconUser,
 } from '@tabler/icons-react';
-import { useQueryClient } from '@tanstack/react-query';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { toast } from 'sonner';
 
 import { useWorkspace } from '@/features/workspace/context/workspace-provider';
-import { authClient } from '@/services/auth/client';
+import { useSignOut } from '@/services/auth/hooks';
 
 export type NavUserInfo = {
   name: string;
@@ -70,32 +66,11 @@ function UserAvatar({
 }
 
 export function NavUser({ user }: { user: NavUserInfo }) {
-  const router = useRouter();
-  const queryClient = useQueryClient();
   const { activeWorkspace } = useWorkspace();
-  const [pending, setPending] = useState(false);
+  const signOut = useSignOut();
   const upgradeLabel = activeWorkspace
     ? `Upgrade ${activeWorkspace.name}`
     : 'Upgrade';
-
-  const handleSignOut = async () => {
-    setPending(true);
-
-    const { error } = await authClient.signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          queryClient.clear();
-          router.push('/sign-in');
-          router.refresh();
-        },
-      },
-    });
-
-    if (error) {
-      setPending(false);
-      toast.error(error.message ?? 'Sign-out failed. Please try again.');
-    }
-  };
 
   return (
     <DropdownMenu>
@@ -158,8 +133,8 @@ export function NavUser({ user }: { user: NavUserInfo }) {
             {upgradeLabel}
           </DropdownMenuItem>
           <DropdownMenuItem
-            disabled={pending}
-            onClick={() => void handleSignOut()}
+            disabled={signOut.isPending}
+            onClick={() => signOut.mutate()}
           >
             <IconLogout />
             Sign out

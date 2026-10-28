@@ -25,7 +25,7 @@ function Brand({
 function BrandIcon({ className }: { className?: string }) {
   return (
     <svg
-      className={cn('text-foreground relative size-8', className)}
+      className={cn('relative size-8', className)}
       width="512"
       height="512"
       viewBox="0 0 512 512"
@@ -38,11 +38,10 @@ function BrandIcon({ className }: { className?: string }) {
         height="512"
         rx="128"
         fill="none"
-        stroke="black"
+        stroke="white"
         strokeOpacity="0.1"
         strokeWidth="48"
         pathLength="100"
-        className="dark:stroke-white"
       />
       <clipPath id="clip"></clipPath>
       <defs>
@@ -69,17 +68,15 @@ function BrandIcon({ className }: { className?: string }) {
       </defs>
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        fill="none"
         viewBox="0 0 16 16"
         width="352"
         height="352"
         x="80"
         y="80"
         alignmentBaseline="middle"
-        style={{ color: 'rgb(255, 255, 255)', width: '352px', height: '352px' }}
       >
         <path
-          stroke="currentColor"
+          stroke="white"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="1.5"
