@@ -2,7 +2,7 @@ import { redirect, unauthorized } from 'next/navigation';
 import { type ReactNode, Suspense } from 'react';
 
 import { AppShell } from '@/components/app-shell';
-import { orpc } from '@/lib/orpc.server';
+import { orpc } from '@/lib/orpc';
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
 import { getSession } from '@/services/auth/session';
 

@@ -2,7 +2,7 @@ import { unauthorized } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { OnboardingWizard } from '@/features/onboarding/components/onboarding-wizard';
-import { orpc } from '@/lib/orpc.server';
+import { orpc } from '@/lib/orpc';
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
 import { getSession } from '@/services/auth/session';
 

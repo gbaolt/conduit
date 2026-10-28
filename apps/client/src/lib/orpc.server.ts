@@ -1,29 +1,14 @@
-import 'server-only';
-
-import type { contract } from '@conduit/contract';
 import { createORPCClient } from '@orpc/client';
-import type { RouterContractClient } from '@orpc/contract';
-import {
-  createTanstackQueryUtils,
-  type RouterUtils,
-} from '@orpc/tanstack-query';
-import { headers } from 'next/headers';
 
 import { createOrpcLink } from './orpc-link';
 
-export const client: RouterContractClient<typeof contract> = createORPCClient(
-  createOrpcLink(async () => {
-    const incoming = await headers();
-    const cookie = incoming.get('cookie');
-    const requestHeaders: Record<string, string> = {};
+// One instance serves every request, so the incoming cookie is read per call, not captured here.
+globalThis.$client = createORPCClient(
+  createOrpcLink(async (): Promise<Record<string, string>> => {
+    // Imported lazily: a static import fails the build in the client-component SSR graph.
+    const { headers } = await import('next/headers');
+    const cookie = (await headers()).get('cookie');
 
-    if (cookie) {
-      requestHeaders.cookie = cookie;
-    }
-
-    return requestHeaders;
+    return cookie ? { cookie } : {};
   })
 );
-
-export const orpc: RouterUtils<typeof client> =
-  createTanstackQueryUtils(client);
