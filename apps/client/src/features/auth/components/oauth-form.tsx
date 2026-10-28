@@ -1,8 +1,8 @@
 'use client';
 
-import { Button } from '@conduit/ui/components/button';
-import { Spinner } from '@conduit/ui/components/spinner';
+import { useCallback } from 'react';
 
+import { StatusButton } from '@/components/async/status-button';
 import { GitHubIcon, GoogleIcon } from '@/components/icons';
 
 import { useOAuth } from '../context/oauth-provider';
@@ -11,60 +11,34 @@ import type { OAuthProvider } from '../types/auth';
 export const OAuthForm = () => {
   const { pendingProvider, isOAuthPending, signInWith } = useOAuth();
 
-  const renderButtonContent = (provider: OAuthProvider) => {
-    if (pendingProvider === provider) {
-      return (
-        <>
-          <Spinner className="text-muted-foreground" data-icon="inline-start" />
-          <span>Redirecting...</span>
-        </>
-      );
-    }
-
-    switch (provider) {
-      case 'google':
-        return (
-          <>
-            <GoogleIcon data-icon="inline-start" />
-            <span className="max-lg:hidden">Continue with Google</span>
-          </>
-        );
-      case 'github':
-        return (
-          <>
-            <GitHubIcon data-icon="inline-start" />
-            <span className="max-lg:hidden">Continue with GitHub</span>
-          </>
-        );
-      default: {
-        const exhaustiveCheck: never = provider;
-        return exhaustiveCheck;
-      }
-    }
-  };
-
-  const handleSignIn = async (provider: OAuthProvider) => {
-    await signInWith(provider);
-  };
+  const getStatus = useCallback(
+    (provider: OAuthProvider) =>
+      pendingProvider === provider ? 'loading' : 'idle',
+    [pendingProvider]
+  );
 
   return (
     <div className="flex gap-2 lg:flex-col">
-      <Button
+      <StatusButton
         variant="outline"
         className="btn-outline max-lg:flex-1"
+        status={getStatus('google')}
         disabled={isOAuthPending}
-        onClick={() => void handleSignIn('google')}
+        onClick={() => void signInWith('google')}
       >
-        {renderButtonContent('google')}
-      </Button>
-      <Button
+        <GoogleIcon data-icon="inline-start" />
+        <span className="max-lg:hidden">Continue with Google</span>
+      </StatusButton>
+      <StatusButton
         variant="outline"
         className="btn-outline max-lg:flex-1"
+        status={getStatus('github')}
         disabled={isOAuthPending}
-        onClick={() => void handleSignIn('github')}
+        onClick={() => void signInWith('github')}
       >
-        {renderButtonContent('github')}
-      </Button>
+        <GitHubIcon data-icon="inline-start" />
+        <span className="max-lg:hidden">Continue with GitHub</span>
+      </StatusButton>
     </div>
   );
 };
