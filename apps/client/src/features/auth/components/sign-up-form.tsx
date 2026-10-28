@@ -14,9 +14,12 @@ import { type SyntheticEvent, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
 
+import {
+  type ButtonStatus,
+  StatusButton,
+} from '@/components/async/status-button';
 import { FormCheckbox } from '@/components/form/form-checkbox';
 import { FormInput } from '@/components/form/form-input';
-import { type ButtonStatus, StatusButton } from '@/components/status-button';
 import { withCallbackURL } from '@/features/auth/lib/callback-url';
 import { verifyEmailPath } from '@/features/auth/lib/email-otp-type';
 import { navigateWithTransition } from '@/features/auth/lib/navigate-with-transition';

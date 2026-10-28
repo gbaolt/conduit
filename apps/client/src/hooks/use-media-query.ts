@@ -1,12 +1,8 @@
 import { useEffect, useState } from 'react';
 
 export function useMediaQuery(query: string) {
-  const [value, setValue] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return window.matchMedia(query).matches;
-    }
-    return true;
-  });
+  // Match the server on the first render; the effect below reads the real value.
+  const [value, setValue] = useState(true);
 
   useEffect(() => {
     function onChange(event: MediaQueryListEvent) {

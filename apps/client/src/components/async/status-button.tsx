@@ -25,12 +25,6 @@ const swapVariants: Variants = {
   exit: { opacity: 0, y: -8, filter: 'blur(4px)' },
 };
 
-const reducedMotionVariants: Variants = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1 },
-  exit: { opacity: 0 },
-};
-
 // A spring keeps its velocity when the status changes mid-swap; a cubic-bezier
 // would restart from zero.
 const swapTransition: Transition = {
@@ -132,7 +126,8 @@ export function StatusButton({
     }
   };
 
-  const variants = shouldReduceMotion ? reducedMotionVariants : swapVariants;
+  // Reduced motion only changes the transition: the variants set the SSR style,
+  // and useReducedMotion is null on the server, so switching them breaks hydration.
   const transition = shouldReduceMotion ? { duration: 0 } : swapTransition;
 
   const successContent = (
@@ -168,7 +163,7 @@ export function StatusButton({
         {status === 'idle' && (
           <motion.span
             key="idle"
-            variants={variants}
+            variants={swapVariants}
             initial="initial"
             animate="animate"
             exit="exit"
@@ -182,7 +177,7 @@ export function StatusButton({
           <motion.span
             key="loading"
             role="status"
-            variants={variants}
+            variants={swapVariants}
             initial="initial"
             animate="animate"
             exit="exit"
@@ -197,7 +192,7 @@ export function StatusButton({
           <motion.span
             key="success"
             role="status"
-            variants={shouldReduceMotion ? variants : successVariants}
+            variants={shouldReduceMotion ? swapVariants : successVariants}
             initial="initial"
             animate="animate"
             exit="exit"
