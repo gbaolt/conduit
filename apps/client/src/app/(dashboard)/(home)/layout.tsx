@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import type { ReactNode } from 'react';
 
 import { ChannelPanels } from '@/features/channels/components/channel-panels';
+import { ChannelDialogsProvider } from '@/features/channels/context/channel-dialogs-provider';
 import {
   LAYOUT_COOKIE,
   parseLayout,
@@ -22,11 +23,13 @@ export default async function HomeLayout({
 
   return (
     <HydrateClient client={client}>
-      <ChannelPanels
-        defaultLayout={parseLayout(cookieStore.get(LAYOUT_COOKIE)?.value)}
-      >
-        {children}
-      </ChannelPanels>
+      <ChannelDialogsProvider>
+        <ChannelPanels
+          defaultLayout={parseLayout(cookieStore.get(LAYOUT_COOKIE)?.value)}
+        >
+          {children}
+        </ChannelPanels>
+      </ChannelDialogsProvider>
     </HydrateClient>
   );
 }

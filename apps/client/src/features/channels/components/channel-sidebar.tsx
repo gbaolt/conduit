@@ -2,13 +2,20 @@
 
 import type { Channel } from '@conduit/contract';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@conduit/ui/components/dropdown-menu';
+import {
   SidebarGroup,
+  SidebarGroupAction,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
 } from '@conduit/ui/components/sidebar';
 import { cn } from '@conduit/ui/lib/utils';
-import { IconChevronDown } from '@tabler/icons-react';
+import { IconChevronDown, IconListSearch, IconPlus } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
@@ -16,6 +23,7 @@ import { useState } from 'react';
 import { useWorkspace } from '@/features/workspace/context/workspace-provider';
 import { channelsQuery } from '@/services/channels/queries';
 
+import { useChannelDialogs } from '../context/channel-dialogs-provider';
 import { ChannelLink } from './channel-link';
 
 // The one place that decides which channels the sidebar shows and in what order.
@@ -27,6 +35,30 @@ function sidebarChannels(channels: Channel[]) {
         Number(b.isDefault) - Number(a.isDefault) ||
         a.name.localeCompare(b.name)
     );
+}
+
+function AddChannelsMenu() {
+  const { open } = useChannelDialogs();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={<SidebarGroupAction aria-label="Add channels" />}
+      >
+        <IconPlus />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuItem onClick={() => open({ kind: 'create' })}>
+          <IconPlus />
+          Create a new channel
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => open({ kind: 'browse' })}>
+          <IconListSearch />
+          Browse channels
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 
 export function ChannelSidebar() {
@@ -62,6 +94,7 @@ export function ChannelSidebar() {
           />
           Channels
         </SidebarGroupLabel>
+        <AddChannelsMenu />
         {isOpen && (
           <SidebarGroupContent>
             <SidebarMenu>

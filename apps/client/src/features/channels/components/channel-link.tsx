@@ -1,10 +1,16 @@
 import type { Channel } from '@conduit/contract';
 import {
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@conduit/ui/components/sidebar';
-import { IconHash, IconLock } from '@tabler/icons-react';
+import { IconDots, IconHash, IconLock } from '@tabler/icons-react';
 import Link from 'next/link';
+
+import {
+  ChannelActionsDropdown,
+  ChannelContextMenu,
+} from './channel-actions-menu';
 
 export function ChannelLink({
   channel,
@@ -16,7 +22,7 @@ export function ChannelLink({
   const Glyph = channel.visibility === 'private' ? IconLock : IconHash;
 
   return (
-    <SidebarMenuItem>
+    <ChannelContextMenu channel={channel} render={<SidebarMenuItem />}>
       <SidebarMenuButton
         isActive={isActive}
         render={
@@ -29,6 +35,17 @@ export function ChannelLink({
         <Glyph />
         <span>{channel.name}</span>
       </SidebarMenuButton>
-    </SidebarMenuItem>
+      <ChannelActionsDropdown
+        channel={channel}
+        trigger={
+          <SidebarMenuAction
+            showOnHover
+            aria-label={`Actions for #${channel.name}`}
+          />
+        }
+      >
+        <IconDots />
+      </ChannelActionsDropdown>
+    </ChannelContextMenu>
   );
 }
