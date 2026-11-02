@@ -336,4 +336,98 @@ describe.skipIf(!connectionString)('ChannelsService', () => {
       ).rejects.toMatchObject({ code: 'DEFAULT_CHANNEL_LOCKED' });
     });
   });
+
+  it('archives a channel, keeps its name reserved, and refuses writes', async () => {
+    const channel = await service.create(member, {
+      name: 'archive-me',
+      visibility: 'public',
+    });
+    const archived = await service.archive(member, channel.id);
+    expect(archived.archivedAt).not.toBeNull();
+    expect(archived.archivedByName).toBe(users.member);
+
+    expect((await service.list(member)).map((c) => c.id)).not.toContain(
+      channel.id
+    );
+    expect((await service.list(member, true)).map((c) => c.id)).toContain(
+      channel.id
+    );
+    await expect(service.get(users.member, channel.id)).resolves.toMatchObject({
+      archivedAt: expect.any(Date),
+    });
+    await expect(
+      service.rename(member, channel.id, 'renamed-archived')
+    ).rejects.toMatchObject({ code: 'CHANNEL_ARCHIVED' });
+    await expect(service.join(owner, channel.id)).rejects.toMatchObject({
+      code: 'CHANNEL_ARCHIVED',
+    });
+    await expect(
+      service.create(owner, { name: 'archive-me', visibility: 'public' })
+    ).rejects.toMatchObject({ code: 'NAME_TAKEN' });
+  });
+
+  it('unarchives only as an admin or manager, and only an archived channel', async () => {
+    const channel = await service.create(owner, {
+      name: 'unarchive-me',
+      visibility: 'public',
+    });
+    await expect(service.unarchive(owner, channel.id)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    await service.archive(owner, channel.id);
+    await expect(service.unarchive(member, channel.id)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    await expect(service.unarchive(owner, channel.id)).resolves.toMatchObject({
+      archivedAt: null,
+      archivedByName: null,
+    });
+    expect((await service.list(member)).map((c) => c.id)).toContain(channel.id);
+  });
+
+  it('refuses to archive the default channel or an archived one', async () => {
+    await expect(
+      service.archive(owner, defaultChannelId)
+    ).rejects.toMatchObject({ code: 'DEFAULT_CHANNEL_LOCKED' });
+    const channel = await service.create(owner, {
+      name: 'archive-twice',
+      visibility: 'public',
+    });
+    await service.archive(owner, channel.id);
+    await expect(service.archive(owner, channel.id)).rejects.toMatchObject({
+      code: 'CHANNEL_ARCHIVED',
+    });
+  });
+
+  it('lets a manager make a channel private but only an admin make it public', async () => {
+    const channel = await service.create(member, {
+      name: 'switch-me',
+      visibility: 'public',
+    });
+    await expect(
+      service.setVisibility(member, channel.id, 'private')
+    ).resolves.toMatchObject({ visibility: 'private' });
+    await expect(
+      service.setVisibility(member, channel.id, 'public')
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(
+      service.setVisibility(owner, channel.id, 'public')
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('lets an admin who is in a private channel make it public', async () => {
+    const channel = await service.create(owner, {
+      name: 'admin-switch',
+      visibility: 'private',
+    });
+    await expect(
+      service.setVisibility(owner, channel.id, 'public')
+    ).resolves.toMatchObject({ visibility: 'public' });
+  });
+
+  it('refuses to change the default channel visibility', async () => {
+    await expect(
+      service.setVisibility(owner, defaultChannelId, 'private')
+    ).rejects.toMatchObject({ code: 'DEFAULT_CHANNEL_LOCKED' });
+  });
 });

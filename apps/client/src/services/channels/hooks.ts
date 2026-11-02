@@ -129,3 +129,29 @@ export function useSetChannelMemberRole() {
     })
   );
 }
+
+export function useArchiveChannel() {
+  const invalidate = useInvalidateChannels();
+
+  return useMutation(
+    orpc.channels.archive.mutationOptions({ onSuccess: () => invalidate() })
+  );
+}
+
+export function useUnarchiveChannel() {
+  const invalidate = useInvalidateChannels();
+
+  return useMutation(
+    orpc.channels.unarchive.mutationOptions({ onSuccess: () => invalidate() })
+  );
+}
+
+export function useSetChannelVisibility() {
+  const invalidate = useInvalidateChannels();
+
+  return useMutation(
+    orpc.channels.setVisibility.mutationOptions({
+      onSuccess: () => invalidate(),
+    })
+  );
+}

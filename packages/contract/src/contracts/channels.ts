@@ -9,9 +9,11 @@ import {
   ChannelMemberSchema,
   ChannelSchema,
   CreateChannelInputSchema,
+  ListChannelsInputSchema,
   RenameChannelInputSchema,
   SetChannelMemberRoleInputSchema,
   UpdateChannelInputSchema,
+  SetChannelVisibilityInputSchema,
 } from '@/schemas/channels';
 
 export const channelErrors = {
@@ -44,6 +46,7 @@ const {
 export const listChannelsContract = oc
   .meta(openapi({ method: 'GET', path: '/channels' }))
   .errors({ FORBIDDEN })
+  .input(ListChannelsInputSchema)
   .output(z.array(ChannelSchema));
 
 export const getChannelContract = oc
@@ -124,3 +127,20 @@ export const setChannelMemberRoleContract = oc
   })
   .input(SetChannelMemberRoleInputSchema)
   .output(z.void());
+export const archiveChannelContract = oc
+  .meta(openapi({ method: 'POST', path: '/channels/{channelId}/archive' }))
+  .errors({ NOT_FOUND, FORBIDDEN, DEFAULT_CHANNEL_LOCKED, CHANNEL_ARCHIVED })
+  .input(ChannelIdInputSchema)
+  .output(ChannelSchema);
+
+export const unarchiveChannelContract = oc
+  .meta(openapi({ method: 'POST', path: '/channels/{channelId}/unarchive' }))
+  .errors({ NOT_FOUND, FORBIDDEN })
+  .input(ChannelIdInputSchema)
+  .output(ChannelSchema);
+
+export const setChannelVisibilityContract = oc
+  .meta(openapi({ method: 'PATCH', path: '/channels/{channelId}/visibility' }))
+  .errors({ NOT_FOUND, FORBIDDEN, DEFAULT_CHANNEL_LOCKED, CHANNEL_ARCHIVED })
+  .input(SetChannelVisibilityInputSchema)
+  .output(ChannelSchema);

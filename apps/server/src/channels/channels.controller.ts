@@ -34,7 +34,9 @@ export class ChannelsController {
       .use(authorized)
       .use(arcjet.read)
       .use(workspaceMember)
-      .handler(({ context }) => this.channelsService.list(viewerOf(context)));
+      .handler(({ context, input }) =>
+        this.channelsService.list(viewerOf(context), input?.archived)
+      );
   }
 
   @Implement(contract.channels.get)
@@ -170,6 +172,43 @@ export class ChannelsController {
           input.channelId,
           input.userId,
           input.role
+        )
+      );
+  }
+
+  @Implement(contract.channels.archive)
+  archive() {
+    return implement(contract.channels.archive)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.channelsService.archive(viewerOf(context), input.channelId)
+      );
+  }
+
+  @Implement(contract.channels.unarchive)
+  unarchive() {
+    return implement(contract.channels.unarchive)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.channelsService.unarchive(viewerOf(context), input.channelId)
+      );
+  }
+
+  @Implement(contract.channels.setVisibility)
+  setVisibility() {
+    return implement(contract.channels.setVisibility)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.channelsService.setVisibility(
+          viewerOf(context),
+          input.channelId,
+          input.visibility
         )
       );
   }

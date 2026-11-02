@@ -8,6 +8,7 @@ import { useActivateChannelWorkspace } from '@/services/channels/hooks';
 import { channelQuery } from '@/services/channels/queries';
 
 import { useChannelDialogs } from '../context/channel-dialogs-provider';
+import { ArchivedBanner } from './archived-banner';
 import { ChannelActionsDropdown } from './channel-actions-menu';
 
 export function ChannelHeader({ channelId }: { channelId: string }) {
@@ -60,6 +61,7 @@ export function ChannelHeader({ channelId }: { channelId: string }) {
           <IconDots />
         </ChannelActionsDropdown>
       </header>
+      <ArchivedBanner channel={channel} />
       <p className="text-muted-foreground p-4 text-sm">
         This is the very beginning of #{channel.name}.
       </p>

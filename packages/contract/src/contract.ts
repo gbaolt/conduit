@@ -1,5 +1,6 @@
 import {
   addChannelMembersContract,
+  archiveChannelContract,
   createChannelContract,
   deleteChannelContract,
   getChannelContract,
@@ -11,6 +12,8 @@ import {
   renameChannelContract,
   setChannelMemberRoleContract,
   updateChannelContract,
+  setChannelVisibilityContract,
+  unarchiveChannelContract,
 } from './contracts/channels';
 import { healthCheckContract } from './contracts/health';
 import {
@@ -51,5 +54,8 @@ export const contract = {
       remove: removeChannelMemberContract,
       setRole: setChannelMemberRoleContract,
     },
+    archive: archiveChannelContract,
+    unarchive: unarchiveChannelContract,
+    setVisibility: setChannelVisibilityContract,
   },
 };

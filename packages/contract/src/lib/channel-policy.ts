@@ -37,9 +37,20 @@ export const channelPolicy = {
   // The default channel's managers are the workspace admins, so it has no channel managers to set.
   setManager: { allow: adminOrManager, lockedOnDefault: true },
   archive: { allow: adminOrManager, lockedOnDefault: true },
-  unarchive: { allow: adminOrManager, openWhenArchived: true },
-  makePrivate: { allow: adminOrManager, lockedOnDefault: true },
-  makePublic: { allow: isAdmin, lockedOnDefault: true },
+  unarchive: {
+    allow: (role, channel) =>
+      channel.archivedAt !== null && adminOrManager(role, channel),
+    openWhenArchived: true,
+  },
+  makePrivate: {
+    allow: (role, channel) =>
+      channel.visibility === 'public' && adminOrManager(role, channel),
+    lockedOnDefault: true,
+  },
+  makePublic: {
+    allow: (role, channel) => channel.visibility === 'private' && isAdmin(role),
+    lockedOnDefault: true,
+  },
   delete: { allow: isAdmin, lockedOnDefault: true, openWhenArchived: true },
   // Joining a private channel you are already in is a no-op, not a refusal.
   join: {
