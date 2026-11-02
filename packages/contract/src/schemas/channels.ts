@@ -109,3 +109,41 @@ export const SetChannelVisibilityInputSchema = z.object({
   channelId: z.string(),
   visibility: ChannelVisibilitySchema,
 });
+
+export const MoveChannelToSectionInputSchema = z.object({
+  channelId: z.string(),
+  sectionId: z.string().nullable(),
+});
+
+export const CHANNEL_SECTION_NAME_MAX = 40;
+
+export const ChannelSectionNameSchema = z
+  .string()
+  .trim()
+  .min(1, 'Enter a section name.')
+  .max(
+    CHANNEL_SECTION_NAME_MAX,
+    `Use ${CHANNEL_SECTION_NAME_MAX} characters or fewer.`
+  );
+
+export const ChannelSectionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  position: z.number().int(),
+});
+export type ChannelSection = z.infer<typeof ChannelSectionSchema>;
+
+export const CreateChannelSectionInputSchema = z.object({
+  name: ChannelSectionNameSchema,
+});
+
+export const RenameChannelSectionInputSchema = z.object({
+  sectionId: z.string(),
+  name: ChannelSectionNameSchema,
+});
+
+export const ChannelSectionIdInputSchema = z.object({ sectionId: z.string() });
+
+export const ReorderChannelSectionsInputSchema = z.object({
+  sectionIds: z.array(z.string()),
+});

@@ -3,6 +3,7 @@ import {
   type ChannelAction,
   channelErrors,
   type ChannelMember,
+  channelSectionErrors,
   checkChannel,
   type WorkspaceRole,
 } from '@conduit/contract';
@@ -234,6 +235,48 @@ export class ChannelsService {
       include: include(viewer),
     });
     return toChannel(row);
+  }
+
+  async star(viewer: ChannelViewer, channelId: string) {
+    await this.authorize(viewer, channelId, 'star');
+    await prisma.channelMember.updateMany({
+      where: { channelId, userId: viewer.userId },
+      data: { starredAt: new Date() },
+    });
+  }
+
+  async unstar(viewer: ChannelViewer, channelId: string) {
+    await this.authorize(viewer, channelId, 'star');
+    await prisma.channelMember.updateMany({
+      where: { channelId, userId: viewer.userId },
+      data: { starredAt: null },
+    });
+  }
+
+  async moveToSection(
+    viewer: ChannelViewer,
+    channelId: string,
+    sectionId: string | null
+  ) {
+    await this.authorize(viewer, channelId, 'moveToSection');
+    // Another user's section is as good as missing.
+    if (
+      sectionId &&
+      !(await prisma.channelSection.findFirst({
+        where: {
+          id: sectionId,
+          userId: viewer.userId,
+          organizationId: viewer.organizationId,
+        },
+        select: { id: true },
+      }))
+    ) {
+      throw new ORPCError('NOT_FOUND', channelSectionErrors.NOT_FOUND);
+    }
+    await prisma.channelMember.updateMany({
+      where: { channelId, userId: viewer.userId },
+      data: { sectionId },
+    });
   }
 
   /** A channel the viewer cannot see is NOT_FOUND, so private channels do not leak. */

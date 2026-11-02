@@ -1,4 +1,11 @@
 import {
+  createChannelSectionContract,
+  deleteChannelSectionContract,
+  listChannelSectionsContract,
+  renameChannelSectionContract,
+  reorderChannelSectionsContract,
+} from './contracts/channel-sections';
+import {
   addChannelMembersContract,
   archiveChannelContract,
   createChannelContract,
@@ -8,8 +15,11 @@ import {
   leaveChannelContract,
   listChannelMembersContract,
   listChannelsContract,
+  moveChannelToSectionContract,
   removeChannelMemberContract,
   renameChannelContract,
+  starChannelContract,
+  unstarChannelContract,
   setChannelMemberRoleContract,
   updateChannelContract,
   setChannelVisibilityContract,
@@ -57,5 +67,15 @@ export const contract = {
     archive: archiveChannelContract,
     unarchive: unarchiveChannelContract,
     setVisibility: setChannelVisibilityContract,
+    star: starChannelContract,
+    unstar: unstarChannelContract,
+    moveToSection: moveChannelToSectionContract,
+  },
+  channelSections: {
+    list: listChannelSectionsContract,
+    create: createChannelSectionContract,
+    rename: renameChannelSectionContract,
+    delete: deleteChannelSectionContract,
+    reorder: reorderChannelSectionsContract,
   },
 };

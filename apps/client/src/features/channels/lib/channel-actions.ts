@@ -2,18 +2,22 @@ import {
   canChannel,
   type Channel,
   type ChannelAction,
+  type ChannelSection,
   type WorkspaceRole,
 } from '@conduit/contract';
 import {
   IconArchive,
   IconArchiveOff,
   IconCopy,
+  IconFolder,
   IconInfoCircle,
   IconLink,
   IconLock,
   IconLockOpen,
   IconLogout,
   IconPencil,
+  IconStar,
+  IconStarOff,
   IconTrash,
   IconUserPlus,
   type TablerIcon,
@@ -26,6 +30,16 @@ import type { ChannelDialog } from '../context/channel-dialogs-provider';
 export type ChannelActionContext = {
   open: (dialog: ChannelDialog) => void;
   leave: (channel: Channel) => void;
+  setStarred: (channel: Channel, starred: boolean) => void;
+  moveToSection: (channel: Channel, sectionId: string | null) => void;
+};
+
+/** One entry of a submenu row. */
+export type ChannelMenuItem = {
+  id: string;
+  label: string;
+  checked: boolean;
+  run: (context: ChannelActionContext) => void;
 };
 
 export type ChannelMenuAction = {
@@ -33,15 +47,26 @@ export type ChannelMenuAction = {
   label: string;
   icon: TablerIcon;
   destructive: boolean;
-  run: (context: ChannelActionContext) => void;
-};
+} & (
+  | { run: (context: ChannelActionContext) => void }
+  | { items: ChannelMenuItem[] }
+);
 
 type Row = Pick<ChannelMenuAction, 'id' | 'label' | 'icon'> & {
   destructive?: true;
   /** The policy action that gates the row. Omit it for rows anyone who sees the channel can use. */
   policy?: ChannelAction;
-  run: (channel: Channel, context: ChannelActionContext) => void;
-};
+  /** Hides the row for channels it does not apply to. */
+  when?: (channel: Channel) => boolean;
+} & (
+    | { run: (channel: Channel, context: ChannelActionContext) => void }
+    | {
+        items: (
+          channel: Channel,
+          sections: ChannelSection[]
+        ) => ChannelMenuItem[];
+      }
+  );
 
 export function copy(text: string) {
   navigator.clipboard.writeText(text).then(
@@ -128,23 +153,74 @@ const rows: Row[] = [
     policy: 'makePublic',
     run: (channel, { open }) => open({ kind: 'visibility', channel }),
   },
+  {
+    id: 'star',
+    label: 'Star channel',
+    icon: IconStar,
+    policy: 'star',
+    when: (channel) => !channel.membership?.starredAt,
+    run: (channel, { setStarred }) => setStarred(channel, true),
+  },
+  {
+    id: 'unstar',
+    label: 'Unstar channel',
+    icon: IconStarOff,
+    policy: 'star',
+    when: (channel) => !!channel.membership?.starredAt,
+    run: (channel, { setStarred }) => setStarred(channel, false),
+  },
+  {
+    id: 'move-to',
+    label: 'Move to',
+    icon: IconFolder,
+    policy: 'moveToSection',
+    items: (channel, sections) => {
+      const current = channel.membership?.sectionId ?? null;
+      return [
+        {
+          id: 'channels',
+          label: 'Channels',
+          checked: current === null,
+          run: ({ moveToSection }) => moveToSection(channel, null),
+        },
+        ...sections.map((section) => ({
+          id: section.id,
+          label: section.name,
+          checked: current === section.id,
+          run: ({ moveToSection }: ChannelActionContext) =>
+            moveToSection(channel, section.id),
+        })),
+        {
+          id: 'new-section',
+          label: 'New section',
+          checked: false,
+          run: ({ open }) => open({ kind: 'section-name', channel }),
+        },
+      ];
+    },
+  },
 ];
 
 /** The rows the viewer may use on this channel, so the menu hides what the server refuses. */
 export function getChannelActions(
   channel: Channel,
-  viewer: { workspaceRole: WorkspaceRole }
+  viewer: { workspaceRole: WorkspaceRole; sections?: ChannelSection[] }
 ): ChannelMenuAction[] {
   return rows
     .filter(
       (row) =>
-        !row.policy || canChannel(row.policy, viewer.workspaceRole, channel)
+        (!row.when || row.when(channel)) &&
+        (!row.policy || canChannel(row.policy, viewer.workspaceRole, channel))
     )
-    .map((row) => ({
-      id: row.id,
-      label: row.label,
-      icon: row.icon,
-      destructive: row.destructive ?? false,
-      run: (context) => row.run(channel, context),
-    }));
+    .map((row) => {
+      const base = {
+        id: row.id,
+        label: row.label,
+        icon: row.icon,
+        destructive: row.destructive ?? false,
+      };
+      return 'items' in row
+        ? { ...base, items: row.items(channel, viewer.sections ?? []) }
+        : { ...base, run: (context) => row.run(channel, context) };
+    });
 }

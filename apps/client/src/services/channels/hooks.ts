@@ -1,15 +1,19 @@
 'use client';
 
+import type { Channel } from '@conduit/contract';
 import {
   partialMatchKey,
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 
 import { useWorkspace } from '@/features/workspace/context/workspace-provider';
 import { orpc } from '@/lib/orpc';
 import { useSwitchWorkspace } from '@/services/workspaces/hooks';
+
+import { channelsQuery } from './queries';
 
 /** A channel link can point into another workspace the viewer belongs to: make that workspace active, once per channel. */
 export function useActivateChannelWorkspace(
@@ -152,6 +156,118 @@ export function useSetChannelVisibility() {
   return useMutation(
     orpc.channels.setVisibility.mutationOptions({
       onSuccess: () => invalidate(),
+    })
+  );
+}
+
+type Membership = NonNullable<Channel['membership']>;
+
+/** Per-user state can't conflict, so the cache moves first and rolls back if the server refuses. */
+function useOptimisticMembership<TInput extends { channelId: string }>(
+  patchOf: (input: TInput) => Partial<Membership>
+) {
+  const queryClient = useQueryClient();
+  const invalidate = useInvalidateChannels();
+  const { queryKey } = channelsQuery;
+
+  return {
+    onMutate: async (input: TInput) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData(queryKey);
+      queryClient.setQueryData(queryKey, (channels) =>
+        channels?.map((channel) =>
+          channel.id === input.channelId && channel.membership
+            ? {
+                ...channel,
+                membership: { ...channel.membership, ...patchOf(input) },
+              }
+            : channel
+        )
+      );
+      return { previous };
+    },
+    onError: (
+      error: Error,
+      _input: TInput,
+      context: { previous: Channel[] | undefined } | undefined
+    ) => {
+      queryClient.setQueryData(queryKey, context?.previous);
+      toast.error(error.message);
+    },
+    onSettled: () => invalidate(),
+  };
+}
+
+export function useStarChannel() {
+  return useMutation(
+    orpc.channels.star.mutationOptions(
+      useOptimisticMembership(() => ({ starredAt: new Date() }))
+    )
+  );
+}
+
+export function useUnstarChannel() {
+  return useMutation(
+    orpc.channels.unstar.mutationOptions(
+      useOptimisticMembership(() => ({ starredAt: null }))
+    )
+  );
+}
+
+export function useMoveChannelToSection() {
+  return useMutation(
+    orpc.channels.moveToSection.mutationOptions(
+      useOptimisticMembership(
+        ({ sectionId }: { channelId: string; sectionId: string | null }) => ({
+          sectionId,
+        })
+      )
+    )
+  );
+}
+
+function useInvalidateSections() {
+  const queryClient = useQueryClient();
+
+  return () =>
+    queryClient.invalidateQueries({ queryKey: orpc.channelSections.key() });
+}
+
+export function useCreateChannelSection() {
+  const invalidate = useInvalidateSections();
+
+  return useMutation(
+    orpc.channelSections.create.mutationOptions({ onSuccess: invalidate })
+  );
+}
+
+export function useRenameChannelSection() {
+  const invalidate = useInvalidateSections();
+
+  return useMutation(
+    orpc.channelSections.rename.mutationOptions({ onSuccess: invalidate })
+  );
+}
+
+export function useReorderChannelSections() {
+  const invalidate = useInvalidateSections();
+
+  return useMutation(
+    orpc.channelSections.reorder.mutationOptions({
+      onSettled: invalidate,
+      onError: (error) => toast.error(error.message),
+    })
+  );
+}
+
+export function useDeleteChannelSection() {
+  const invalidate = useInvalidateSections();
+  const invalidateChannels = useInvalidateChannels();
+
+  // The server moves the section's channels back to Channels, so the channel list is stale too.
+  return useMutation(
+    orpc.channelSections.delete.mutationOptions({
+      onSuccess: () => Promise.all([invalidate(), invalidateChannels()]),
     })
   );
 }
