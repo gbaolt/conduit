@@ -8,17 +8,21 @@ datasource db {
 }
 
 model User {
-  id            String       @id @default(cuid())
-  name          String
-  email         String       @unique
-  emailVerified Boolean      @default(false)
-  image         String?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  sessions      Session[]
-  accounts      Account[]
-  members       Member[]
-  invitations   Invitation[]
+  id                 String           @id @default(cuid())
+  name               String
+  email              String           @unique
+  emailVerified      Boolean          @default(false)
+  image              String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  sessions           Session[]
+  accounts           Account[]
+  members            Member[]
+  invitations        Invitation[]
+  channelsCreated    Channel[]        @relation("ChannelCreatedBy")
+  channelsArchived   Channel[]        @relation("ChannelArchivedBy")
+  channelMemberships ChannelMember[]
+  channelSections    ChannelSection[]
 }
 
 model Session {
@@ -37,14 +41,16 @@ model Session {
 }
 
 model Organization {
-  id          String       @id @default(cuid())
-  name        String
-  slug        String       @unique
-  logo        String?
-  createdAt   DateTime
-  metadata    String?
-  members     Member[]
-  invitations Invitation[]
+  id              String           @id @default(cuid())
+  name            String
+  slug            String           @unique
+  logo            String?
+  createdAt       DateTime
+  metadata        String?
+  members         Member[]
+  invitations     Invitation[]
+  channels        Channel[]
+  channelSections ChannelSection[]
 }
 
 model Member {
@@ -106,4 +112,64 @@ model Verification {
   updatedAt  DateTime @updatedAt
 
   @@index([identifier])
+}
+
+enum ChannelVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum ChannelRole {
+  MANAGER
+  MEMBER
+}
+
+model Channel {
+  id                       String            @id @default(cuid())
+  organizationId           String
+  organization             Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name                     String // toChannelName output, shown with a # prefix
+  topic                    String?
+  description              String?
+  visibility               ChannelVisibility @default(PUBLIC)
+  defaultForOrganizationId String?           @unique // set only on the workspace's default channel
+  createdById              String?
+  createdBy                User?             @relation("ChannelCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  archivedAt               DateTime?
+  archivedById             String?
+  archivedBy               User?             @relation("ChannelArchivedBy", fields: [archivedById], references: [id], onDelete: SetNull)
+  createdAt                DateTime          @default(now())
+  updatedAt                DateTime          @updatedAt
+  members                  ChannelMember[]
+
+  @@unique([organizationId, name])
+}
+
+model ChannelMember {
+  channelId String
+  channel   Channel         @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      ChannelRole     @default(MEMBER)
+  starredAt DateTime?
+  sectionId String?
+  section   ChannelSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  joinedAt  DateTime        @default(now())
+
+  @@id([channelId, userId])
+  @@index([userId])
+}
+
+model ChannelSection {
+  id             String          @id @default(cuid())
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  position       Int
+  createdAt      DateTime        @default(now())
+  channels       ChannelMember[]
+
+  @@unique([userId, organizationId, name])
 }

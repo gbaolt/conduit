@@ -12,6 +12,7 @@
   "scripts": {
     "build": "tsc && tsc-alias",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "dev": "tsc-watch --compiler typescript/bin/tsc6 --onSuccess \"tsc-alias\""
   },
   "dependencies": {
@@ -24,6 +25,7 @@
     "@typescript/native": "catalog:",
     "tsc-alias": "^1.9.2",
     "tsc-watch": "^7.2.1",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { CreateOrganizationInputSchema } from '@conduit/contract';
+import { CreateOrganizationInputSchema, toAscii } from '@conduit/contract';
 import {
   Alert,
   AlertDescription,
@@ -20,17 +20,6 @@ import { FormInput } from '@/components/form/form-input';
 import { useCreateWorkspace } from '@/services/workspaces/hooks';
 
 type CreateWorkspaceValues = z.infer<typeof CreateOrganizationInputSchema>;
-
-function slugify(name: string) {
-  return name
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/\p{M}/gu, '')
-    .replace(/đ/g, 'd')
-    .replace(/[^a-z0-9]+/g, '-')
-    .slice(0, 48)
-    .replace(/^-+|-+$/g, '');
-}
 
 export function CreateWorkspaceForm() {
   const router = useRouter();
@@ -74,7 +63,13 @@ export function CreateWorkspaceForm() {
           onChange={(event) => {
             const { value } = event.target;
             setValue('name', value, revalidate);
-            if (!slugEdited) setValue('slug', slugify(value), revalidate);
+            if (!slugEdited) {
+              const slug = toAscii(value)
+                .replace(/[^a-z0-9]+/g, '-')
+                .slice(0, 48)
+                .replace(/^-+|-+$/g, '');
+              setValue('slug', slug, revalidate);
+            }
           }}
         />
         <FormInput

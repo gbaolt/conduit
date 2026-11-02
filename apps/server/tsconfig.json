@@ -23,7 +23,7 @@
       "@generated/*": ["./generated/*"]
     }
   },
-  "include": ["src/**/*", "generated/**/*"],
+  "include": ["src/**/*", "generated/**/*", "scripts/**/*.ts"],
   "exclude": ["node_modules", "dist"],
   "references": [{ "path": "../../packages/contract" }]
 }

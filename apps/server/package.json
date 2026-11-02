@@ -13,10 +13,12 @@
     "conduit": "nest build && node dist/src/main.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
+    "test": "vitest run",
     "db:generate": "npx prisma generate",
     "db:push": "npx prisma db push",
     "db:migrate": "npx prisma migrate dev",
     "db:migrate-deploy": "npx prisma migrate deploy",
+    "db:backfill-default-channels": "tsx scripts/backfill-default-channels.ts",
     "upgrade:nest": "npx npm-check-updates \"/^@nestjs/\" -u"
   },
   "dependencies": {
@@ -53,6 +55,8 @@
     "@typescript/native": "catalog:",
     "eslint": "catalog:",
     "prisma": "^7.0.0",
-    "typescript": "catalog:"
+    "tsx": "^4.23.15",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

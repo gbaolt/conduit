@@ -33,6 +33,7 @@ catalog:
   sonner: ^2.0.7
   tailwindcss: ^4.3.3
   typescript: npm:@typescript/typescript6@^6.0.2
+  vitest: ^5.0.5
   zod: ^4.4.3
 
 allowBuilds:

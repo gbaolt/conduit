@@ -5,6 +5,7 @@ import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { emailOTP, organization } from 'better-auth/plugins';
 
+import { ensureDefaultChannel } from '@/channels/default-channel';
 import { prisma } from '@/database/prisma.service';
 
 import { resend } from './resend';
@@ -50,6 +51,21 @@ const passwordHooks: BetterAuthOptions['hooks'] = {
     }
   }),
 };
+
+// Logged, not thrown: the member row is already committed, and the backfill script repairs a miss.
+async function joinDefaultChannel(
+  organization: { id: string; name: string; slug: string },
+  userId: string
+) {
+  try {
+    await ensureDefaultChannel(prisma, organization, [userId]);
+  } catch (error) {
+    console.error(
+      `[channels] default channel sync failed org=${organization.id} user=${userId}`,
+      error
+    );
+  }
+}
 
 const baseURL = process.env.BETTER_AUTH_URL ?? 'http://localhost:3333';
 const appURL = process.env.APP_URL ?? 'https://app.conduit.localhost';
@@ -160,6 +176,36 @@ export const auth = betterAuth({
           subject: `Join the ${data.organization.name} workspace on Conduit`,
           html: `<p>${data.inviter.user.name} invited you to join ${data.organization.name}.</p><p><a href="${inviteLink}">Accept invitation</a></p>`,
         });
+      },
+      // Better Auth also calls afterAddMember for the creator inside createOrganization, so that path is covered too.
+      organizationHooks: {
+        afterAddMember: ({ organization, member }) =>
+          joinDefaultChannel(organization, member.userId),
+        afterAcceptInvitation: ({ organization, member }) =>
+          joinDefaultChannel(organization, member.userId),
+        afterRemoveMember: async ({ organization, member }) => {
+          try {
+            await prisma.$transaction([
+              prisma.channelMember.deleteMany({
+                where: {
+                  userId: member.userId,
+                  channel: { organizationId: organization.id },
+                },
+              }),
+              prisma.channelSection.deleteMany({
+                where: {
+                  userId: member.userId,
+                  organizationId: organization.id,
+                },
+              }),
+            ]);
+          } catch (error) {
+            console.error(
+              `[channels] remove failed org=${organization.id} user=${member.userId}`,
+              error
+            );
+          }
+        },
       },
     }),
   ],
