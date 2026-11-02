@@ -31,6 +31,9 @@ function channel(
   };
 }
 
+const STAR_AND_MOVE = ['star', 'unstar', 'move-to'];
+
+// Star and move rows apply to every member, so they are asserted separately below.
 const ids = (
   workspaceRole: WorkspaceRole,
   kind: Kind,
@@ -39,7 +42,9 @@ const ids = (
 ) =>
   getChannelActions(channel(kind, membership, archivedAt), {
     workspaceRole,
-  }).map((action) => action.id);
+  })
+    .map((action) => action.id)
+    .filter((id) => !STAR_AND_MOVE.includes(id));
 
 const COPY = ['copy-name', 'copy-link'];
 const DETAILS = ['details'];
@@ -128,5 +133,46 @@ describe('getChannelActions', () => {
     expect(
       actions.filter((action) => action.destructive).map((action) => action.id)
     ).toEqual(['leave', 'delete']);
+  });
+
+  it('offers star to a member and unstar once it is starred', () => {
+    const plain = channel('public', 'member');
+    const starred = {
+      ...plain,
+      membership: { ...plain.membership!, starredAt: new Date(0) },
+    };
+    const idsOf = (c: Channel) =>
+      getChannelActions(c, { workspaceRole: 'member' }).map((a) => a.id);
+
+    expect(idsOf(plain)).toContain('star');
+    expect(idsOf(plain)).not.toContain('unstar');
+    expect(idsOf(starred)).toContain('unstar');
+    expect(idsOf(starred)).not.toContain('star');
+  });
+
+  it('lists Channels, each section, and New section under Move to, ticking the current one', () => {
+    const plain = channel('public', 'member');
+    const inSection = {
+      ...plain,
+      membership: { ...plain.membership!, sectionId: 's1' },
+    };
+    const move = getChannelActions(inSection, {
+      workspaceRole: 'member',
+      sections: [{ id: 's1', name: 'Projects', position: 0 }],
+    }).find((action) => action.id === 'move-to');
+
+    expect(move && 'items' in move && move.items).toMatchObject([
+      { label: 'Channels', checked: false },
+      { label: 'Projects', checked: true },
+      { label: 'New section', checked: false },
+    ]);
+  });
+
+  it('gives an outsider neither star nor move', () => {
+    expect(
+      getChannelActions(channel('public', null), {
+        workspaceRole: 'member',
+      }).map((action) => action.id)
+    ).toEqual([...COPY, ...DETAILS]);
   });
 });

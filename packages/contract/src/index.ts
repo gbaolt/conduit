@@ -1,4 +1,5 @@
 export { contract } from './contract';
+export * from './contracts/channel-sections';
 export * from './contracts/channels';
 export * from './contracts/health';
 export * from './contracts/organizations';

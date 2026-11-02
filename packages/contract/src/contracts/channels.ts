@@ -10,6 +10,7 @@ import {
   ChannelSchema,
   CreateChannelInputSchema,
   ListChannelsInputSchema,
+  MoveChannelToSectionInputSchema,
   RenameChannelInputSchema,
   SetChannelMemberRoleInputSchema,
   UpdateChannelInputSchema,
@@ -144,3 +145,21 @@ export const setChannelVisibilityContract = oc
   .errors({ NOT_FOUND, FORBIDDEN, DEFAULT_CHANNEL_LOCKED, CHANNEL_ARCHIVED })
   .input(SetChannelVisibilityInputSchema)
   .output(ChannelSchema);
+
+export const starChannelContract = oc
+  .meta(openapi({ method: 'POST', path: '/channels/{channelId}/star' }))
+  .errors({ NOT_FOUND, FORBIDDEN })
+  .input(ChannelIdInputSchema)
+  .output(z.void());
+
+export const unstarChannelContract = oc
+  .meta(openapi({ method: 'DELETE', path: '/channels/{channelId}/star' }))
+  .errors({ NOT_FOUND, FORBIDDEN })
+  .input(ChannelIdInputSchema)
+  .output(z.void());
+
+export const moveChannelToSectionContract = oc
+  .meta(openapi({ method: 'PATCH', path: '/channels/{channelId}/section' }))
+  .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED })
+  .input(MoveChannelToSectionInputSchema)
+  .output(z.void());

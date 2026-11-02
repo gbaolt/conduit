@@ -5,6 +5,8 @@ import { onError } from '@orpc/server';
 import { AuthModule } from '@thallesp/nestjs-better-auth';
 import type { Request } from 'express';
 
+import { ChannelSectionsController } from '@/channels/channel-sections.controller';
+import { ChannelSectionsService } from '@/channels/channel-sections.service';
 import { ChannelsController } from '@/channels/channels.controller';
 import { ChannelsService } from '@/channels/channels.service';
 import { DatabaseModule } from '@/database/database.module';
@@ -73,7 +75,13 @@ declare module '@orpc/nest' {
     UsersController,
     OrganizationsController,
     ChannelsController,
+    ChannelSectionsController,
   ],
-  providers: [UsersService, OrganizationsService, ChannelsService],
+  providers: [
+    UsersService,
+    OrganizationsService,
+    ChannelsService,
+    ChannelSectionsService,
+  ],
 })
 export class AppModule {}

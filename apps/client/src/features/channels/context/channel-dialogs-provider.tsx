@@ -1,6 +1,6 @@
 'use client';
 
-import type { Channel } from '@conduit/contract';
+import type { Channel, ChannelSection } from '@conduit/contract';
 import { createContext, type ReactNode, use, useMemo, useState } from 'react';
 
 import { AddMembersDialog } from '../components/add-members-dialog';
@@ -11,6 +11,7 @@ import { ChannelDetailsDialog } from '../components/channel-details-dialog';
 import { CreateChannelDialog } from '../components/create-channel-dialog';
 import { DeleteChannelDialog } from '../components/delete-channel-dialog';
 import { RenameChannelDialog } from '../components/rename-channel-dialog';
+import { SectionNameDialog } from '../components/section-name-dialog';
 
 /** Every dialog the channel UI can open. A new dialog adds one member here and one case in `OpenChannelDialog`. */
 export type ChannelDialog =
@@ -22,7 +23,9 @@ export type ChannelDialog =
   | { kind: 'add-members'; channel: Channel }
   /** Archives an active channel and unarchives an archived one. */
   | { kind: 'archive'; channel: Channel }
-  | { kind: 'visibility'; channel: Channel };
+  | { kind: 'visibility'; channel: Channel }
+  /** Renames `section`, or creates one (and moves `channel` into it) when there is no `section`. */
+  | { kind: 'section-name'; section?: ChannelSection; channel?: Channel };
 
 type ChannelDialogsValue = {
   open: (dialog: ChannelDialog) => void;
@@ -49,6 +52,10 @@ function OpenChannelDialog({ dialog }: { dialog: ChannelDialog }) {
       return <ArchiveChannelDialog channel={dialog.channel} />;
     case 'visibility':
       return <ChangeVisibilityDialog channel={dialog.channel} />;
+    case 'section-name':
+      return (
+        <SectionNameDialog section={dialog.section} channel={dialog.channel} />
+      );
   }
 }
 
