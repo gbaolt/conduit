@@ -88,7 +88,7 @@ export function NavUser({ user }: { user: NavUserInfo }) {
         side="right"
         align="end"
         sideOffset={8}
-        className="w-72 min-w-72"
+        className="min-w-64"
       >
         <DropdownMenuGroup>
           <div className="flex items-center gap-2 px-1.5 py-1.5">

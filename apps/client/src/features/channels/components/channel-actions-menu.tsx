@@ -98,7 +98,7 @@ function DropdownActionItems({ channel }: { channel: Channel }) {
               <action.icon />
               {action.label}
             </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent>
+            <DropdownMenuSubContent className="w-32">
               {action.items.map(({ id, label, checked, run }) => (
                 <DropdownMenuItem key={id} onClick={run}>
                   {label}
