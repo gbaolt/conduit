@@ -5,9 +5,13 @@ import {
   type WorkspaceRole,
 } from '@conduit/contract';
 import {
+  IconArchive,
+  IconArchiveOff,
   IconCopy,
   IconInfoCircle,
   IconLink,
+  IconLock,
+  IconLockOpen,
   IconLogout,
   IconPencil,
   IconTrash,
@@ -95,6 +99,34 @@ const rows: Row[] = [
     icon: IconUserPlus,
     policy: 'addMembers',
     run: (channel, { open }) => open({ kind: 'add-members', channel }),
+  },
+  {
+    id: 'archive',
+    label: 'Archive channel',
+    icon: IconArchive,
+    policy: 'archive',
+    run: (channel, { open }) => open({ kind: 'archive', channel }),
+  },
+  {
+    id: 'unarchive',
+    label: 'Unarchive channel',
+    icon: IconArchiveOff,
+    policy: 'unarchive',
+    run: (channel, { open }) => open({ kind: 'archive', channel }),
+  },
+  {
+    id: 'make-private',
+    label: 'Change to private',
+    icon: IconLock,
+    policy: 'makePrivate',
+    run: (channel, { open }) => open({ kind: 'visibility', channel }),
+  },
+  {
+    id: 'make-public',
+    label: 'Change to public',
+    icon: IconLockOpen,
+    policy: 'makePublic',
+    run: (channel, { open }) => open({ kind: 'visibility', channel }),
   },
 ];
 

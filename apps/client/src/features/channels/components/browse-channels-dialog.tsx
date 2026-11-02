@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from '@conduit/ui/components/dialog';
 import { Input } from '@conduit/ui/components/input';
+import { Tabs, TabsList, TabsTrigger } from '@conduit/ui/components/tabs';
 import { IconHash, IconLock } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
@@ -18,7 +19,10 @@ import { toast } from 'sonner';
 
 import { StatusButton } from '@/components/async/status-button';
 import { useJoinChannel } from '@/services/channels/hooks';
-import { channelsQuery } from '@/services/channels/queries';
+import {
+  archivedChannelsQuery,
+  channelsQuery,
+} from '@/services/channels/queries';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
 import { useChannelDialogs } from '../context/channel-dialogs-provider';
@@ -39,9 +43,10 @@ function BrowseChannelRow({ channel }: { channel: Channel }) {
         <p className="text-muted-foreground text-xs">
           {channel.memberCount}{' '}
           {channel.memberCount === 1 ? 'member' : 'members'}
+          {channel.archivedAt && ' \u00b7 Archived'}
         </p>
       </div>
-      {channel.membership ? (
+      {channel.membership || channel.archivedAt ? (
         <Button
           variant="outline"
           size="sm"
@@ -78,7 +83,10 @@ function BrowseChannelRow({ channel }: { channel: Channel }) {
 
 export function BrowseChannelsDialog() {
   const { close } = useChannelDialogs();
-  const { data: channels = [] } = useQuery(channelsQuery);
+  const [view, setView] = useState<'active' | 'archived'>('active');
+  const { data: channels = [] } = useQuery(
+    view === 'active' ? channelsQuery : archivedChannelsQuery
+  );
   const [filter, setFilter] = useState('');
   const needle = filter.trim().replace(/^#/, '').toLowerCase();
   const matches = channels
@@ -91,6 +99,15 @@ export function BrowseChannelsDialog() {
         <DialogHeader>
           <DialogTitle>Browse channels</DialogTitle>
         </DialogHeader>
+        <Tabs
+          value={view}
+          onValueChange={(value) => setView(value as typeof view)}
+        >
+          <TabsList>
+            <TabsTrigger value="active">Active</TabsTrigger>
+            <TabsTrigger value="archived">Archived</TabsTrigger>
+          </TabsList>
+        </Tabs>
         <Input
           autoFocus
           type="search"

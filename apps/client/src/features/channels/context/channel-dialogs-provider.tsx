@@ -4,7 +4,9 @@ import type { Channel } from '@conduit/contract';
 import { createContext, type ReactNode, use, useMemo, useState } from 'react';
 
 import { AddMembersDialog } from '../components/add-members-dialog';
+import { ArchiveChannelDialog } from '../components/archive-channel-dialog';
 import { BrowseChannelsDialog } from '../components/browse-channels-dialog';
+import { ChangeVisibilityDialog } from '../components/change-visibility-dialog';
 import { ChannelDetailsDialog } from '../components/channel-details-dialog';
 import { CreateChannelDialog } from '../components/create-channel-dialog';
 import { DeleteChannelDialog } from '../components/delete-channel-dialog';
@@ -17,7 +19,10 @@ export type ChannelDialog =
   | { kind: 'rename'; channel: Channel }
   | { kind: 'delete'; channel: Channel }
   | { kind: 'details'; channel: Channel; tab?: 'about' | 'members' }
-  | { kind: 'add-members'; channel: Channel };
+  | { kind: 'add-members'; channel: Channel }
+  /** Archives an active channel and unarchives an archived one. */
+  | { kind: 'archive'; channel: Channel }
+  | { kind: 'visibility'; channel: Channel };
 
 type ChannelDialogsValue = {
   open: (dialog: ChannelDialog) => void;
@@ -40,6 +45,10 @@ function OpenChannelDialog({ dialog }: { dialog: ChannelDialog }) {
       return <ChannelDetailsDialog channel={dialog.channel} tab={dialog.tab} />;
     case 'add-members':
       return <AddMembersDialog channel={dialog.channel} />;
+    case 'archive':
+      return <ArchiveChannelDialog channel={dialog.channel} />;
+    case 'visibility':
+      return <ChangeVisibilityDialog channel={dialog.channel} />;
   }
 }
 

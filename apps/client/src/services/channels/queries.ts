@@ -7,3 +7,7 @@ export const channelQuery = (channelId: string) =>
 
 export const channelMembersQuery = (channelId: string) =>
   orpc.channels.members.list.queryOptions({ input: { channelId } });
+
+export const archivedChannelsQuery = orpc.channels.list.queryOptions({
+  input: { archived: true },
+});

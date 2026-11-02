@@ -44,6 +44,7 @@ export const ChannelSchema = z.object({
       sectionId: z.string().nullable(),
     })
     .nullable(),
+  archivedByName: z.string().nullable(),
 });
 export type Channel = z.infer<typeof ChannelSchema>;
 
@@ -98,4 +99,13 @@ export const SetChannelMemberRoleInputSchema = z.object({
   channelId: z.string(),
   userId: z.string(),
   role: ChannelRoleSchema,
+});
+
+export const ListChannelsInputSchema = z
+  .object({ archived: z.boolean().optional() })
+  .optional();
+
+export const SetChannelVisibilityInputSchema = z.object({
+  channelId: z.string(),
+  visibility: ChannelVisibilitySchema,
 });

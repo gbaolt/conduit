@@ -111,6 +111,18 @@ describe('channelPolicy', () => {
     expect(decide('rename', personas[3]![1], defaultChannel)).toBe('FORBIDDEN');
   });
 
+  it('offers only the visibility switch that changes something', () => {
+    const admin = personas[1]![1];
+    expect(
+      decide('makePrivate', admin, channel({ visibility: 'private' }))
+    ).toBe('FORBIDDEN');
+    expect(decide('makePublic', admin, channel())).toBe('FORBIDDEN');
+  });
+
+  it('offers unarchive only on an archived channel', () => {
+    expect(decide('unarchive', personas[1]![1], channel())).toBe('FORBIDDEN');
+  });
+
   const openWhenArchived: ChannelAction[] = [
     'view',
     'create',

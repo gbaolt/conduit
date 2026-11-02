@@ -44,6 +44,7 @@ function include(viewer: ChannelViewer) {
       where: { userId: viewer.userId },
       select: { role: true, starredAt: true, sectionId: true },
     },
+    archivedBy: { select: { name: true } },
   } satisfies Prisma.ChannelInclude;
 }
 
@@ -72,6 +73,7 @@ function toChannel(row: ChannelRow): Channel {
           sectionId: membership.sectionId,
         }
       : null,
+    archivedByName: row.archivedBy?.name ?? null,
   };
 }
 
@@ -94,10 +96,12 @@ function stillInWorkspace(viewer: ChannelViewer) {
 
 @Injectable()
 export class ChannelsService {
-  async list(viewer: ChannelViewer) {
+  /** Active channels, or only the archived ones when asked. */
+  async list(viewer: ChannelViewer, archived = false) {
     const rows = await prisma.channel.findMany({
       where: {
         organizationId: viewer.organizationId,
+        archivedAt: archived ? { not: null } : null,
         OR: [
           { visibility: 'PUBLIC' },
           { members: { some: { userId: viewer.userId } } },
@@ -180,6 +184,56 @@ export class ChannelsService {
     await prisma.channelMember.deleteMany({
       where: { channelId, userId: viewer.userId },
     });
+  }
+
+  async archive(viewer: ChannelViewer, channelId: string) {
+    await this.authorize(viewer, channelId, 'archive');
+    const row = await prisma.channel.update({
+      where: { id: channelId },
+      data: { archivedAt: new Date(), archivedById: viewer.userId },
+      include: include(viewer),
+    });
+    return toChannel(row);
+  }
+
+  async unarchive(viewer: ChannelViewer, channelId: string) {
+    await this.authorize(viewer, channelId, 'unarchive');
+    const row = await prisma.channel.update({
+      where: { id: channelId },
+      data: { archivedAt: null, archivedById: null },
+      include: include(viewer),
+    });
+    return toChannel(row);
+  }
+
+  async setVisibility(
+    viewer: ChannelViewer,
+    channelId: string,
+    visibility: Channel['visibility']
+  ) {
+    await this.authorize(
+      viewer,
+      channelId,
+      visibility === 'private' ? 'makePrivate' : 'makePublic'
+    );
+    const row = await prisma.channel.update({
+      where: { id: channelId },
+      data: {
+        visibility: visibility === 'private' ? 'PRIVATE' : 'PUBLIC',
+        // An admin outside the channel would lock themselves out of the channel they just made private.
+        members:
+          visibility === 'private'
+            ? {
+                createMany: {
+                  data: { userId: viewer.userId },
+                  skipDuplicates: true,
+                },
+              }
+            : undefined,
+      },
+      include: include(viewer),
+    });
+    return toChannel(row);
   }
 
   /** A channel the viewer cannot see is NOT_FOUND, so private channels do not leak. */
