@@ -14,11 +14,16 @@ import {
 import { IconCheck, IconPlus } from '@tabler/icons-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
+import { useSwitchWorkspace } from '@/services/workspaces/hooks';
 
 import { useWorkspace } from '../context/workspace-provider';
 
 export function WorkspaceSwitcher() {
-  const { workspaces, activeWorkspace, isPending, setActive } = useWorkspace();
+  const router = useRouter();
+  const { workspaces, activeWorkspace, isPending } = useWorkspace();
+  const { mutate: switchWorkspace } = useSwitchWorkspace();
   const label = activeWorkspace?.name ?? 'Workspaces';
 
   return (
@@ -57,7 +62,10 @@ export function WorkspaceSwitcher() {
               <DropdownMenuItem
                 key={workspace.id}
                 onClick={() => {
-                  setActive(workspace.id);
+                  // The open channel belongs to the old workspace, so land on the new one's default channel.
+                  switchWorkspace(workspace.id, {
+                    onSuccess: () => router.push('/'),
+                  });
                 }}
               >
                 {workspace.logo ? (

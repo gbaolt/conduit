@@ -10,7 +10,7 @@ export function ChannelHeader({ channelId }: { channelId: string }) {
   const { data: channel } = useSuspenseQuery(channelQuery(channelId));
   const Glyph = channel.visibility === 'private' ? IconLock : IconHash;
 
-  useActivateChannelWorkspace(channel.organizationId);
+  useActivateChannelWorkspace(channelId, channel.organizationId);
 
   return (
     <>
