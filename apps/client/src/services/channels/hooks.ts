@@ -93,3 +93,39 @@ export function useDeleteChannel() {
     })
   );
 }
+
+export function useUpdateChannel() {
+  const invalidate = useInvalidateChannels();
+
+  return useMutation(
+    orpc.channels.update.mutationOptions({ onSuccess: () => invalidate() })
+  );
+}
+
+export function useAddChannelMembers() {
+  const invalidate = useInvalidateChannels();
+
+  return useMutation(
+    orpc.channels.members.add.mutationOptions({ onSuccess: () => invalidate() })
+  );
+}
+
+export function useRemoveChannelMember() {
+  const invalidate = useInvalidateChannels();
+
+  return useMutation(
+    orpc.channels.members.remove.mutationOptions({
+      onSuccess: () => invalidate(),
+    })
+  );
+}
+
+export function useSetChannelMemberRole() {
+  const invalidate = useInvalidateChannels();
+
+  return useMutation(
+    orpc.channels.members.setRole.mutationOptions({
+      onSuccess: () => invalidate(),
+    })
+  );
+}

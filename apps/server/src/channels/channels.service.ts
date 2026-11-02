@@ -2,6 +2,7 @@ import {
   type Channel,
   type ChannelAction,
   channelErrors,
+  type ChannelMember,
   checkChannel,
   type WorkspaceRole,
 } from '@conduit/contract';
@@ -18,8 +19,11 @@ export type ChannelViewer = {
   workspaceRole: WorkspaceRole;
 };
 
-function channelError(code: keyof typeof channelErrors) {
-  return new ORPCError(code, channelErrors[code]);
+function channelError(code: keyof typeof channelErrors, message?: string) {
+  return new ORPCError(code, {
+    ...channelErrors[code],
+    message: message ?? channelErrors[code].message,
+  });
 }
 
 function include(viewer: ChannelViewer) {
@@ -80,6 +84,12 @@ function rethrowNameTaken(error: unknown): never {
     throw channelError('NAME_TAKEN');
   }
   throw error;
+}
+
+function stillInWorkspace(viewer: ChannelViewer) {
+  return {
+    user: { members: { some: { organizationId: viewer.organizationId } } },
+  } satisfies Prisma.ChannelMemberWhereInput;
 }
 
 @Injectable()
@@ -196,5 +206,106 @@ export class ChannelsService {
       throw channelError(denial);
     }
     return channel;
+  }
+
+  async update(
+    viewer: ChannelViewer,
+    channelId: string,
+    input: { topic?: string | null; description?: string | null }
+  ) {
+    await this.authorize(viewer, channelId, 'editDetails');
+    // undefined leaves a column alone; null or empty clears it.
+    const text = (value?: string | null) =>
+      value === undefined ? undefined : value?.trim() || null;
+    const row = await prisma.channel.update({
+      where: { id: channelId },
+      data: { topic: text(input.topic), description: text(input.description) },
+      include: include(viewer),
+    });
+    return toChannel(row);
+  }
+
+  async listMembers(
+    viewer: ChannelViewer,
+    channelId: string
+  ): Promise<ChannelMember[]> {
+    await this.find(viewer, channelId);
+    const rows = await prisma.channelMember.findMany({
+      where: { channelId, ...stillInWorkspace(viewer) },
+      include: { user: { select: { name: true, image: true } } },
+      // MANAGER is declared first in the enum, so managers sort first.
+      orderBy: [{ role: 'asc' }, { joinedAt: 'asc' }],
+    });
+    return rows.map((row) => ({
+      userId: row.userId,
+      name: row.user.name,
+      image: row.user.image,
+      role: row.role === 'MANAGER' ? 'manager' : 'member',
+      joinedAt: row.joinedAt,
+    }));
+  }
+
+  async addMembers(
+    viewer: ChannelViewer,
+    channelId: string,
+    userIds: string[]
+  ) {
+    await this.authorize(viewer, channelId, 'addMembers');
+    const ids = [...new Set(userIds)];
+    const inWorkspace = await prisma.member.count({
+      where: { organizationId: viewer.organizationId, userId: { in: ids } },
+    });
+    if (inWorkspace !== ids.length) {
+      throw channelError('NOT_FOUND', 'That person is not in this workspace.');
+    }
+    await prisma.channelMember.createMany({
+      data: ids.map((userId) => ({ channelId, userId })),
+      skipDuplicates: true,
+    });
+  }
+
+  async removeMember(viewer: ChannelViewer, channelId: string, userId: string) {
+    await this.authorize(viewer, channelId, 'removeMember');
+    if (userId === viewer.userId) {
+      throw channelError('FORBIDDEN', 'Use Leave channel to remove yourself.');
+    }
+    const { count } = await prisma.channelMember.deleteMany({
+      where: { channelId, userId },
+    });
+    if (!count) {
+      throw channelError('NOT_FOUND', 'That person is not in this channel.');
+    }
+  }
+
+  async setMemberRole(
+    viewer: ChannelViewer,
+    channelId: string,
+    userId: string,
+    role: ChannelMember['role']
+  ) {
+    await this.authorize(viewer, channelId, 'setManager');
+    const target = await prisma.channelMember.findFirst({
+      where: { channelId, userId, ...stillInWorkspace(viewer) },
+      select: { role: true },
+    });
+    if (!target) {
+      throw channelError('NOT_FOUND', 'That person is not in this channel.');
+    }
+    await prisma.$transaction(async (tx) => {
+      if (role === 'member' && target.role === 'MANAGER') {
+        // Locking the channel row serializes demotions, so two at once cannot both see another manager.
+        await tx.$queryRaw`SELECT id FROM "Channel" WHERE id = ${channelId} FOR UPDATE`;
+        const managers = await tx.channelMember.count({
+          where: { channelId, role: 'MANAGER', ...stillInWorkspace(viewer) },
+        });
+        if (managers <= 1) {
+          throw channelError('LAST_MANAGER');
+        }
+      }
+      await tx.channelMember.update({
+        where: { channelId_userId: { channelId, userId } },
+        data: { role: role === 'manager' ? 'MANAGER' : 'MEMBER' },
+      });
+    });
   }
 }

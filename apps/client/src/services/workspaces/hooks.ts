@@ -1,7 +1,7 @@
 'use client';
 
 import type { WorkspaceRole } from '@conduit/contract';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { orpc } from '@/lib/orpc';
 import { authClient } from '@/services/auth/client';
@@ -70,5 +70,23 @@ export function useSwitchWorkspace() {
       }
     },
     onSuccess: onChanged,
+  });
+}
+
+// shortcut: Better Auth caps the page at 500 members; page through `offset` if a workspace outgrows it.
+export function useWorkspaceMembers(organizationId: string) {
+  return useQuery({
+    queryKey: ['workspace-members', organizationId],
+    queryFn: async () => {
+      const { data, error } = await authClient.organization.listMembers({
+        query: { organizationId, limit: 500 },
+      });
+
+      if (error) {
+        throw new Error(error.message ?? 'Could not load workspace members.');
+      }
+
+      return data.members;
+    },
   });
 }
