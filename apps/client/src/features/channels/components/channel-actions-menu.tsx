@@ -4,7 +4,11 @@ import type { Channel } from '@conduit/contract';
 import {
   ContextMenu,
   ContextMenuContent,
+  ContextMenuGroup,
   ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuRadioGroup,
+  ContextMenuRadioItem,
   ContextMenuSeparator,
   ContextMenuSub,
   ContextMenuSubContent,
@@ -14,16 +18,33 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@conduit/ui/components/dropdown-menu';
-import { IconCheck } from '@tabler/icons-react';
+import {
+  IconBell,
+  IconBellOff,
+  IconBellRinging,
+  IconCheck,
+} from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
-import type { ComponentProps, ReactElement } from 'react';
+import {
+  type ComponentProps,
+  createContext,
+  Fragment,
+  type ReactElement,
+  type ReactNode,
+  use,
+  useState,
+} from 'react';
 import { toast } from 'sonner';
 
 import {
@@ -36,7 +57,11 @@ import { channelSectionsQuery } from '@/services/channels/queries';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
 import { useChannelDialogs } from '../context/channel-dialogs-provider';
-import { getChannelActions } from '../lib/channel-actions';
+import {
+  type ChannelMenuGroup,
+  type ChannelSubmenu,
+  getChannelActions,
+} from '../lib/channel-actions';
 import { useExitOpenChannel } from '../lib/use-exit-open-channel';
 
 // Only the open menu mounts this, so a sidebar of rows pays for none of it until a menu opens.
@@ -79,99 +104,161 @@ function useChannelActions(channel: Channel) {
         : { ...action, run: () => action.run(context) }
   );
 
-  // Destructive actions sit apart, below a separator.
-  return {
-    regular: actions.filter((action) => !action.destructive),
-    destructive: actions.filter((action) => action.destructive),
+  return actions;
+}
+
+const dropdownParts = {
+  Group: DropdownMenuGroup,
+  Item: DropdownMenuItem,
+  Label: DropdownMenuLabel,
+  RadioGroup: DropdownMenuRadioGroup,
+  RadioItem: DropdownMenuRadioItem,
+  Separator: DropdownMenuSeparator,
+  Sub: DropdownMenuSub,
+  SubContent: DropdownMenuSubContent,
+  SubTrigger: DropdownMenuSubTrigger,
+};
+
+const contextParts: typeof dropdownParts = {
+  Group: ContextMenuGroup,
+  Item: ContextMenuItem,
+  Label: ContextMenuLabel,
+  RadioGroup: ContextMenuRadioGroup,
+  RadioItem: ContextMenuRadioItem,
+  Separator: ContextMenuSeparator,
+  Sub: ContextMenuSub,
+  SubContent: ContextMenuSubContent,
+  SubTrigger: ContextMenuSubTrigger,
+};
+
+/** The menu primitives in use, so one layout renders as a dropdown or a context menu. */
+const MenuParts = createContext(dropdownParts);
+
+type Action = ReturnType<typeof useChannelActions>[number];
+
+const SUBMENU_LABELS: Record<ChannelSubmenu, string> = {
+  details: 'Channel details',
+  copy: 'Copy',
+};
+
+const NOTIFY_OPTIONS = [
+  { value: 'all', label: 'All new posts', icon: IconBellRinging },
+  { value: 'mentions', label: 'Just mentions', icon: IconBell },
+  { value: 'mute', label: 'Mute and hide', icon: IconBellOff },
+];
+
+function SubmenuRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  const Menu = use(MenuParts);
+
+  return (
+    <Menu.Sub>
+      <Menu.SubTrigger>{label}</Menu.SubTrigger>
+      <Menu.SubContent className="w-40">{children}</Menu.SubContent>
+    </Menu.Sub>
+  );
+}
+
+function ActionRow({ action }: { action: Action }) {
+  const Menu = use(MenuParts);
+
+  if ('items' in action) {
+    return (
+      <SubmenuRow label={action.label}>
+        {action.items.map(({ id, label, icon: Icon, checked, run }) => (
+          <Menu.Item key={id} onClick={run}>
+            <Icon />
+            {label}
+            {checked && <IconCheck className="ml-auto" />}
+          </Menu.Item>
+        ))}
+      </SubmenuRow>
+    );
+  }
+  return (
+    <Menu.Item
+      variant={action.group === 'danger' ? 'destructive' : 'default'}
+      onClick={action.run}
+    >
+      {action.icon && <action.icon />}
+      {action.label}
+    </Menu.Item>
+  );
+}
+
+/** Rows of one group: submenus in their fixed order first, then the top-level rows. */
+function ActionRows({ actions }: { actions: Action[] }) {
+  const submenus = (Object.keys(SUBMENU_LABELS) as ChannelSubmenu[]).flatMap(
+    (submenu) => {
+      const rows = actions.filter((action) => action.submenu === submenu);
+      return rows.length > 0 ? [{ submenu, rows }] : [];
+    }
+  );
+
+  return (
+    <>
+      {submenus.map(({ submenu, rows }) => (
+        <SubmenuRow key={submenu} label={SUBMENU_LABELS[submenu]}>
+          {rows.map((action) => (
+            <ActionRow key={action.id} action={action} />
+          ))}
+        </SubmenuRow>
+      ))}
+      {actions
+        .filter((action) => !action.submenu)
+        .map((action) => (
+          <ActionRow key={action.id} action={action} />
+        ))}
+    </>
+  );
+}
+
+function NotifyRows() {
+  const Menu = use(MenuParts);
+  const [notify, setNotify] = useState('all');
+
+  return (
+    <>
+      <Menu.Label>Notifications</Menu.Label>
+      <Menu.RadioGroup value={notify} onValueChange={setNotify}>
+        {NOTIFY_OPTIONS.map(({ value, label, icon: Icon }) => (
+          <Menu.RadioItem key={value} value={value}>
+            <Icon />
+            {label}
+          </Menu.RadioItem>
+        ))}
+      </Menu.RadioGroup>
+    </>
+  );
+}
+
+/** The channel's menu as separated groups; an empty group and its separator are left out. */
+function ChannelMenuItems({ channel }: { channel: Channel }) {
+  const Menu = use(MenuParts);
+  const actions = useChannelActions(channel);
+  const rows = (group: ChannelMenuGroup) => {
+    const inGroup = actions.filter((action) => action.group === group);
+    return inGroup.length > 0 ? <ActionRows actions={inGroup} /> : null;
   };
-}
 
-function DropdownActionItems({ channel }: { channel: Channel }) {
-  const { regular, destructive } = useChannelActions(channel);
+  const groups = [
+    { id: 'main', content: rows('main') },
+    { id: 'notify', content: channel.membership ? <NotifyRows /> : null },
+    { id: 'organize', content: rows('organize') },
+    { id: 'danger', content: rows('danger') },
+  ].filter(({ content }) => content !== null);
 
-  return (
-    <>
-      {regular.map((action) =>
-        'items' in action ? (
-          <DropdownMenuSub key={action.id}>
-            <DropdownMenuSubTrigger>
-              <action.icon />
-              {action.label}
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className="w-32">
-              {action.items.map(({ id, label, checked, run }) => (
-                <DropdownMenuItem key={id} onClick={run}>
-                  {label}
-                  {checked && <IconCheck className="ml-auto" />}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
-        ) : (
-          <DropdownMenuItem key={action.id} onClick={action.run}>
-            <action.icon />
-            {action.label}
-          </DropdownMenuItem>
-        )
-      )}
-      {regular.length > 0 && destructive.length > 0 && (
-        <DropdownMenuSeparator />
-      )}
-      {destructive.map((action) => (
-        <DropdownMenuItem
-          key={action.id}
-          variant="destructive"
-          onClick={'run' in action ? action.run : undefined}
-        >
-          <action.icon />
-          {action.label}
-        </DropdownMenuItem>
-      ))}
-    </>
-  );
-}
-
-function ContextActionItems({ channel }: { channel: Channel }) {
-  const { regular, destructive } = useChannelActions(channel);
-
-  return (
-    <>
-      {regular.map((action) =>
-        'items' in action ? (
-          <ContextMenuSub key={action.id}>
-            <ContextMenuSubTrigger>
-              <action.icon />
-              {action.label}
-            </ContextMenuSubTrigger>
-            <ContextMenuSubContent>
-              {action.items.map(({ id, label, checked, run }) => (
-                <ContextMenuItem key={id} onClick={run}>
-                  {label}
-                  {checked && <IconCheck className="ml-auto" />}
-                </ContextMenuItem>
-              ))}
-            </ContextMenuSubContent>
-          </ContextMenuSub>
-        ) : (
-          <ContextMenuItem key={action.id} onClick={action.run}>
-            <action.icon />
-            {action.label}
-          </ContextMenuItem>
-        )
-      )}
-      {regular.length > 0 && destructive.length > 0 && <ContextMenuSeparator />}
-      {destructive.map((action) => (
-        <ContextMenuItem
-          key={action.id}
-          variant="destructive"
-          onClick={'run' in action ? action.run : undefined}
-        >
-          <action.icon />
-          {action.label}
-        </ContextMenuItem>
-      ))}
-    </>
-  );
+  return groups.map(({ id, content }, index) => (
+    <Fragment key={id}>
+      {index > 0 && <Menu.Separator />}
+      <Menu.Group>{content}</Menu.Group>
+    </Fragment>
+  ));
 }
 
 /** The channel's actions as a dropdown. `trigger` is the button element; `children` is its content. */
@@ -187,8 +274,10 @@ export function ChannelActionsDropdown({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger render={trigger}>{children}</DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownActionItems channel={channel} />
+      <DropdownMenuContent align="end" className="w-56">
+        <MenuParts value={dropdownParts}>
+          <ChannelMenuItems channel={channel} />
+        </MenuParts>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -207,8 +296,10 @@ export function ChannelContextMenu({
   return (
     <ContextMenu>
       <ContextMenuTrigger render={render}>{children}</ContextMenuTrigger>
-      <ContextMenuContent className="w-48">
-        <ContextActionItems channel={channel} />
+      <ContextMenuContent className="w-56">
+        <MenuParts value={contextParts}>
+          <ChannelMenuItems channel={channel} />
+        </MenuParts>
       </ContextMenuContent>
     </ContextMenu>
   );

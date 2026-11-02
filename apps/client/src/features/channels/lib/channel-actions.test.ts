@@ -56,25 +56,25 @@ describe('getChannelActions', () => {
     (role) => {
       expect(ids(role, 'default', 'member')).toEqual([
         ...COPY,
-        'rename',
         ...DETAILS,
+        'rename',
       ]);
       expect(ids(role, 'public', 'member')).toEqual([
         ...COPY,
+        ...DETAILS,
         'rename',
         'leave',
         'delete',
-        ...DETAILS,
         ...ADD,
         'archive',
         'make-private',
       ]);
       expect(ids(role, 'private', 'member')).toEqual([
         ...COPY,
+        ...DETAILS,
         'rename',
         'leave',
         'delete',
-        ...DETAILS,
         ...ADD,
         'archive',
         'make-public',
@@ -85,18 +85,18 @@ describe('getChannelActions', () => {
   it('keeps delete, and making a channel public, from a channel manager', () => {
     expect(ids('member', 'public', 'manager')).toEqual([
       ...COPY,
+      ...DETAILS,
       'rename',
       'leave',
-      ...DETAILS,
       ...ADD,
       'archive',
       'make-private',
     ]);
     expect(ids('member', 'private', 'manager')).toEqual([
       ...COPY,
+      ...DETAILS,
       'rename',
       'leave',
-      ...DETAILS,
       ...ADD,
       'archive',
     ]);
@@ -105,15 +105,15 @@ describe('getChannelActions', () => {
   it('offers unarchive, not rename or archive, on an archived channel', () => {
     expect(ids('admin', 'public', 'member', new Date(0))).toEqual([
       ...COPY,
+      ...DETAILS,
       'leave',
       'delete',
-      ...DETAILS,
       'unarchive',
     ]);
   });
 
   it('gives a plain member copy, leave, details, and add people', () => {
-    const expected = [...COPY, 'leave', ...DETAILS, ...ADD];
+    const expected = [...COPY, ...DETAILS, 'leave', ...ADD];
     expect(ids('member', 'public', 'member')).toEqual(expected);
     expect(ids('member', 'private', 'member')).toEqual(expected);
   });
@@ -126,13 +126,41 @@ describe('getChannelActions', () => {
     expect(ids('member', 'public', null)).toEqual([...COPY, ...DETAILS]);
   });
 
-  it('flags leave and delete as destructive', () => {
-    const actions = getChannelActions(channel('public', 'member'), {
-      workspaceRole: 'owner',
+  it('groups copy rows under Copy and channel settings under Channel details', () => {
+    const submenus = Object.fromEntries(
+      getChannelActions(channel('public', 'member'), {
+        workspaceRole: 'owner',
+      }).map((action) => [action.id, action.submenu])
+    );
+    expect(submenus).toMatchObject({
+      'copy-name': 'copy',
+      'copy-link': 'copy',
+      details: 'details',
+      rename: 'details',
+      'add-members': 'details',
+      archive: 'details',
+      'make-private': 'details',
+      star: null,
+      'move-to': null,
+      leave: null,
+      delete: null,
     });
-    expect(
-      actions.filter((action) => action.destructive).map((action) => action.id)
-    ).toEqual(['leave', 'delete']);
+  });
+
+  it('puts move to in its own group and leave and delete in the danger group', () => {
+    const groups = Object.fromEntries(
+      getChannelActions(channel('public', 'member'), {
+        workspaceRole: 'owner',
+      }).map((action) => [action.id, action.group])
+    );
+    expect(groups).toMatchObject({
+      'copy-name': 'main',
+      details: 'main',
+      star: 'main',
+      'move-to': 'organize',
+      leave: 'danger',
+      delete: 'danger',
+    });
   });
 
   it('offers star to a member and unstar once it is starred', () => {

@@ -10,15 +10,13 @@ import {
   IconArchiveOff,
   IconCopy,
   IconFolder,
+  IconHash,
   IconInfoCircle,
   IconLink,
   IconLock,
   IconLockOpen,
-  IconLogout,
   IconPencil,
-  IconStar,
-  IconStarOff,
-  IconTrash,
+  IconPlus,
   IconUserPlus,
   type TablerIcon,
 } from '@tabler/icons-react';
@@ -38,22 +36,33 @@ export type ChannelActionContext = {
 export type ChannelMenuItem = {
   id: string;
   label: string;
+  icon: TablerIcon;
   checked: boolean;
   run: (context: ChannelActionContext) => void;
 };
 
+/** A submenu that groups related rows; rows without one sit at the top level. */
+export type ChannelSubmenu = 'details' | 'copy';
+
+/** The menu's separated groups, top to bottom. `danger` rows render as destructive. */
+export type ChannelMenuGroup = 'main' | 'organize' | 'danger';
+
 export type ChannelMenuAction = {
   id: string;
   label: string;
-  icon: TablerIcon;
-  destructive: boolean;
+  /** Shown on rows inside a submenu. */
+  icon?: TablerIcon;
+  group: ChannelMenuGroup;
+  submenu: ChannelSubmenu | null;
 } & (
   | { run: (context: ChannelActionContext) => void }
   | { items: ChannelMenuItem[] }
 );
 
 type Row = Pick<ChannelMenuAction, 'id' | 'label' | 'icon'> & {
-  destructive?: true;
+  /** Defaults to `main`. */
+  group?: Exclude<ChannelMenuGroup, 'main'>;
+  submenu?: ChannelSubmenu;
   /** The policy action that gates the row. Omit it for rows anyone who sees the channel can use. */
   policy?: ChannelAction;
   /** Hides the row for channels it does not apply to. */
@@ -79,84 +88,90 @@ export function copy(text: string) {
 const rows: Row[] = [
   {
     id: 'copy-name',
-    label: 'Copy name',
     icon: IconCopy,
+    submenu: 'copy',
+    label: 'Copy name',
     run: (channel) => copy(`#${channel.name}`),
   },
   {
     id: 'copy-link',
-    label: 'Copy link',
     icon: IconLink,
+    submenu: 'copy',
+    label: 'Copy link',
     run: (channel) => copy(`${location.origin}/channels/${channel.id}`),
   },
   {
+    id: 'details',
+    icon: IconInfoCircle,
+    submenu: 'details',
+    label: 'View details',
+    run: (channel, { open }) => open({ kind: 'details', channel }),
+  },
+  {
     id: 'rename',
-    label: 'Rename',
     icon: IconPencil,
+    submenu: 'details',
+    label: 'Rename',
     policy: 'rename',
     run: (channel, { open }) => open({ kind: 'rename', channel }),
   },
   {
     id: 'leave',
     label: 'Leave channel',
-    icon: IconLogout,
-    destructive: true,
+    group: 'danger',
     policy: 'leave',
     run: (channel, { leave }) => leave(channel),
   },
   {
     id: 'delete',
     label: 'Delete channel',
-    icon: IconTrash,
-    destructive: true,
+    group: 'danger',
     policy: 'delete',
     run: (channel, { open }) => open({ kind: 'delete', channel }),
   },
   {
-    id: 'details',
-    label: 'View details',
-    icon: IconInfoCircle,
-    run: (channel, { open }) => open({ kind: 'details', channel }),
-  },
-  {
     id: 'add-members',
-    label: 'Add people',
     icon: IconUserPlus,
+    submenu: 'details',
+    label: 'Add people',
     policy: 'addMembers',
     run: (channel, { open }) => open({ kind: 'add-members', channel }),
   },
   {
     id: 'archive',
-    label: 'Archive channel',
     icon: IconArchive,
+    submenu: 'details',
+    label: 'Archive channel',
     policy: 'archive',
     run: (channel, { open }) => open({ kind: 'archive', channel }),
   },
   {
     id: 'unarchive',
-    label: 'Unarchive channel',
     icon: IconArchiveOff,
+    submenu: 'details',
+    label: 'Unarchive channel',
     policy: 'unarchive',
     run: (channel, { open }) => open({ kind: 'archive', channel }),
   },
   {
     id: 'make-private',
-    label: 'Change to private',
     icon: IconLock,
+    submenu: 'details',
+    label: 'Change to private',
     policy: 'makePrivate',
     run: (channel, { open }) => open({ kind: 'visibility', channel }),
   },
   {
     id: 'make-public',
-    label: 'Change to public',
     icon: IconLockOpen,
+    submenu: 'details',
+    label: 'Change to public',
     policy: 'makePublic',
     run: (channel, { open }) => open({ kind: 'visibility', channel }),
   },
   {
     id: 'star',
     label: 'Star channel',
-    icon: IconStar,
     policy: 'star',
     when: (channel) => !channel.membership?.starredAt,
     run: (channel, { setStarred }) => setStarred(channel, true),
@@ -164,15 +179,14 @@ const rows: Row[] = [
   {
     id: 'unstar',
     label: 'Unstar channel',
-    icon: IconStarOff,
     policy: 'star',
     when: (channel) => !!channel.membership?.starredAt,
     run: (channel, { setStarred }) => setStarred(channel, false),
   },
   {
     id: 'move-to',
+    group: 'organize',
     label: 'Move to',
-    icon: IconFolder,
     policy: 'moveToSection',
     items: (channel, sections) => {
       const current = channel.membership?.sectionId ?? null;
@@ -180,12 +194,14 @@ const rows: Row[] = [
         {
           id: 'channels',
           label: 'Channels',
+          icon: IconHash,
           checked: current === null,
           run: ({ moveToSection }) => moveToSection(channel, null),
         },
         ...sections.map((section) => ({
           id: section.id,
           label: section.name,
+          icon: IconFolder,
           checked: current === section.id,
           run: ({ moveToSection }: ChannelActionContext) =>
             moveToSection(channel, section.id),
@@ -193,6 +209,7 @@ const rows: Row[] = [
         {
           id: 'new-section',
           label: 'New section',
+          icon: IconPlus,
           checked: false,
           run: ({ open }) => open({ kind: 'section-name', channel }),
         },
@@ -217,7 +234,8 @@ export function getChannelActions(
         id: row.id,
         label: row.label,
         icon: row.icon,
-        destructive: row.destructive ?? false,
+        group: row.group ?? ('main' as const),
+        submenu: row.submenu ?? null,
       };
       return 'items' in row
         ? { ...base, items: row.items(channel, viewer.sections ?? []) }
