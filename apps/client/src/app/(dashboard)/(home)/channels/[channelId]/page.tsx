@@ -1,13 +1,24 @@
 import { ORPCError } from '@orpc/client';
 import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
 
 import { ChannelHeader } from '@/features/channels/components/channel-header';
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
 import { channelQuery } from '@/services/channels/queries';
 
-export default async function ChannelPage({
+export default function ChannelPage({
   params,
 }: PageProps<'/channels/[channelId]'>) {
+  return (
+    <Suspense fallback="Loading...">
+      <Channel params={params} />
+    </Suspense>
+  );
+}
+
+async function Channel({
+  params,
+}: Omit<PageProps<'/channels/[channelId]'>, 'searchParams'>) {
   const { channelId } = await params;
   const client = getQueryClient();
 

@@ -137,7 +137,7 @@ export function AppShell({
             <NavUser user={user} />
           </SidebarFooter>
         </Sidebar>
-        <div className="flex min-h-0 min-w-0 flex-1 py-2 pe-2">
+        <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden py-2 pe-2">
           <SidebarInset className="border-sidebar-border min-h-0 overflow-hidden rounded-xl border">
             {children}
           </SidebarInset>

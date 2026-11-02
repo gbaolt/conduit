@@ -40,12 +40,11 @@ export function UserAvatar({
 }) {
   if (image) {
     return (
-      // 36px covers the largest render (size-9 in the sidebar).
       <Image
         src={image}
-        alt=""
-        width={36}
-        height={36}
+        alt="User avatar"
+        width={32}
+        height={32}
         className={cn('size-8 rounded-full object-cover', className)}
       />
     );

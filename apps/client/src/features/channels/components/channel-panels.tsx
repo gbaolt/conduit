@@ -23,21 +23,19 @@ export function ChannelPanels({
   children: ReactNode;
 }) {
   return (
-    // The height cap is the shell's min-h-svh minus its py-2, so each panel scrolls on its own. The library's inline height beats a class.
     <ResizablePanelGroup
       defaultLayout={defaultLayout}
       onLayoutChanged={(layout, { isUserInteraction }) => {
-        // Mount and constraint recomputes would freeze the default width as a percentage.
         if (isUserInteraction) writeLayoutCookie(layout);
       }}
-      style={{ height: 'calc(100svh - 1rem)' }}
+      style={{ height: '100%' }}
     >
       <ResizablePanel
         id={CHANNELS_PANEL}
         defaultSize={260}
         minSize={200}
         maxSize="40"
-        className="bg-sidebar"
+        className="bg-surface"
       >
         <ChannelSidebar />
       </ResizablePanel>

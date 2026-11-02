@@ -25,6 +25,7 @@ export function ChannelLink({
     <ChannelContextMenu channel={channel} render={<SidebarMenuItem />}>
       <SidebarMenuButton
         isActive={isActive}
+        className="data-active:bg-primary data-active:hover:bg-primary"
         render={
           <Link
             href={`/channels/${channel.id}`}
@@ -41,6 +42,7 @@ export function ChannelLink({
           <SidebarMenuAction
             showOnHover
             aria-label={`Actions for #${channel.name}`}
+            className="hover:bg-surface/20 rounded-sm"
           />
         }
       >

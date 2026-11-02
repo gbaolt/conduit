@@ -60,7 +60,7 @@ export function SidebarSection({
             type="button"
             aria-expanded={!isCollapsed}
             onClick={onToggle}
-            className="hover:bg-sidebar-accent gap-1 text-left"
+            className="hover:bg-sidebar-accent mb-1 gap-1 text-left"
           />
         }
       >

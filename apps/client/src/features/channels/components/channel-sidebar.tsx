@@ -11,6 +11,8 @@ import { IconListSearch, IconPlus } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 
+import { WorkspaceHeader } from '@/features/workspace/components/sidebar/workspace-header';
+import { WorkspaceNav } from '@/features/workspace/components/sidebar/workspace-nav';
 import { useWorkspace } from '@/features/workspace/context/workspace-provider';
 import { useReorderChannelSections } from '@/services/channels/hooks';
 import {
@@ -76,13 +78,10 @@ export function ChannelSidebar() {
   return (
     <nav
       aria-label="Channels"
-      className="text-sidebar-foreground flex h-full flex-col overflow-y-auto"
+      className="text-surface-foreground flex h-full flex-col overflow-y-auto"
     >
-      <div className="flex h-12 shrink-0 items-center px-4">
-        <h2 className="truncate text-sm font-semibold">
-          {activeWorkspace?.name}
-        </h2>
-      </div>
+      <WorkspaceHeader />
+      <WorkspaceNav />
       {groups.map((group) => (
         <SidebarSection
           key={group.id}

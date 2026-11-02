@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import type { ReactNode } from 'react';
+import { type ReactNode, Suspense } from 'react';
 
 import { ChannelPanels } from '@/features/channels/components/channel-panels';
 import { ChannelDialogsProvider } from '@/features/channels/context/channel-dialogs-provider';
@@ -10,11 +10,17 @@ import {
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
 import { channelsQuery } from '@/services/channels/queries';
 
-export default async function HomeLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function HomeLayout({ children }: { children: ReactNode }) {
+  return (
+    <ChannelDialogsProvider>
+      <Suspense>
+        <ChannelPanel>{children}</ChannelPanel>
+      </Suspense>
+    </ChannelDialogsProvider>
+  );
+}
+
+async function ChannelPanel({ children }: { children: ReactNode }) {
   const client = getQueryClient();
   const [, cookieStore] = await Promise.all([
     client.prefetchQuery(channelsQuery),
@@ -23,13 +29,11 @@ export default async function HomeLayout({
 
   return (
     <HydrateClient client={client}>
-      <ChannelDialogsProvider>
-        <ChannelPanels
-          defaultLayout={parseLayout(cookieStore.get(LAYOUT_COOKIE)?.value)}
-        >
-          {children}
-        </ChannelPanels>
-      </ChannelDialogsProvider>
+      <ChannelPanels
+        defaultLayout={parseLayout(cookieStore.get(LAYOUT_COOKIE)?.value)}
+      >
+        {children}
+      </ChannelPanels>
     </HydrateClient>
   );
 }
