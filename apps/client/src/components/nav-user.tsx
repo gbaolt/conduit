@@ -29,7 +29,7 @@ export type NavUserInfo = {
   image?: string | null;
 };
 
-function UserAvatar({
+export function UserAvatar({
   name,
   image,
   className,

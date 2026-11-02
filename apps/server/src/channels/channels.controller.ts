@@ -105,4 +105,72 @@ export class ChannelsController {
         this.channelsService.leave(viewerOf(context), input.channelId)
       );
   }
+
+  @Implement(contract.channels.update)
+  update() {
+    return implement(contract.channels.update)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input: { channelId, ...details } }) =>
+        this.channelsService.update(viewerOf(context), channelId, details)
+      );
+  }
+
+  @Implement(contract.channels.members.list)
+  listMembers() {
+    return implement(contract.channels.members.list)
+      .use(authorized)
+      .use(arcjet.read)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.channelsService.listMembers(viewerOf(context), input.channelId)
+      );
+  }
+
+  @Implement(contract.channels.members.add)
+  addMembers() {
+    return implement(contract.channels.members.add)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.channelsService.addMembers(
+          viewerOf(context),
+          input.channelId,
+          input.userIds
+        )
+      );
+  }
+
+  @Implement(contract.channels.members.remove)
+  removeMember() {
+    return implement(contract.channels.members.remove)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.channelsService.removeMember(
+          viewerOf(context),
+          input.channelId,
+          input.userId
+        )
+      );
+  }
+
+  @Implement(contract.channels.members.setRole)
+  setMemberRole() {
+    return implement(contract.channels.members.setRole)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.channelsService.setMemberRole(
+          viewerOf(context),
+          input.channelId,
+          input.userId,
+          input.role
+        )
+      );
+  }
 }

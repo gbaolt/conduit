@@ -218,4 +218,122 @@ describe.skipIf(!connectionString)('ChannelsService', () => {
       code: 'NOT_FOUND',
     });
   });
+
+  describe('details and members', () => {
+    it('sets and clears the topic and description, and refuses someone outside the channel', async () => {
+      const channel = await service.create(member, {
+        name: 'details',
+        visibility: 'public',
+      });
+      await expect(
+        service.update(member, channel.id, {
+          topic: ' Weekly design crits ',
+          description: 'Where we review work',
+        })
+      ).resolves.toMatchObject({
+        topic: 'Weekly design crits',
+        description: 'Where we review work',
+      });
+      await expect(
+        service.update(member, channel.id, { topic: '' })
+      ).resolves.toMatchObject({
+        topic: null,
+        description: 'Where we review work',
+      });
+      await expect(
+        service.update(owner, channel.id, { description: null })
+      ).resolves.toMatchObject({ description: null });
+      await expect(
+        service.update(viewer(users.stranger, 'member'), channel.id, {
+          topic: 'x',
+        })
+      ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    });
+
+    it('lists members with managers first and hides stale rows', async () => {
+      const channel = await service.create(owner, {
+        name: 'roster',
+        visibility: 'public',
+      });
+      await service.join(member, channel.id);
+      await service.join(admin, channel.id);
+      await prisma.member.deleteMany({
+        where: { organizationId: organization.id, userId: users.admin },
+      });
+      const members = await service.listMembers(member, channel.id);
+      expect(members.map((m) => [m.userId, m.role])).toEqual([
+        [users.owner, 'manager'],
+        [users.member, 'member'],
+      ]);
+      expect(members[0]).toMatchObject({ name: users.owner, image: null });
+      await prisma.member.create({
+        data: {
+          userId: users.admin,
+          organizationId: organization.id,
+          role: 'admin',
+          createdAt: new Date(),
+        },
+      });
+    });
+
+    it('adds only workspace members and refuses the default channel', async () => {
+      const channel = await service.create(owner, {
+        name: 'secret-add',
+        visibility: 'private',
+      });
+      await expect(
+        service.addMembers(owner, channel.id, [users.stranger])
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+      await expect(
+        service.addMembers(owner, defaultChannelId, [users.member])
+      ).rejects.toMatchObject({ code: 'DEFAULT_CHANNEL_LOCKED' });
+      await service.addMembers(owner, channel.id, [users.member, users.member]);
+      await expect(
+        service.get(users.member, channel.id)
+      ).resolves.toMatchObject({
+        membership: { role: 'member' },
+        memberCount: 2,
+      });
+    });
+
+    it('removes someone else, but not the caller or from the default channel', async () => {
+      const channel = await service.create(owner, {
+        name: 'remove-me',
+        visibility: 'public',
+      });
+      await service.addMembers(owner, channel.id, [users.member]);
+      await expect(
+        service.removeMember(member, channel.id, users.owner)
+      ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+      await expect(
+        service.removeMember(owner, channel.id, users.owner)
+      ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+      await expect(
+        service.removeMember(owner, defaultChannelId, users.member)
+      ).rejects.toMatchObject({ code: 'DEFAULT_CHANNEL_LOCKED' });
+      await service.removeMember(owner, channel.id, users.member);
+      await expect(
+        service.removeMember(owner, channel.id, users.member)
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    });
+
+    it('sets roles, refuses to demote the last manager, and locks the default channel', async () => {
+      const channel = await service.create(owner, {
+        name: 'roles',
+        visibility: 'public',
+      });
+      await service.addMembers(owner, channel.id, [users.member]);
+      await expect(
+        service.setMemberRole(owner, channel.id, users.owner, 'member')
+      ).rejects.toMatchObject({ code: 'LAST_MANAGER' });
+      await service.setMemberRole(owner, channel.id, users.member, 'manager');
+      await service.setMemberRole(member, channel.id, users.owner, 'member');
+      await expect(
+        service.setMemberRole(member, channel.id, users.member, 'member')
+      ).rejects.toMatchObject({ code: 'LAST_MANAGER' });
+      await expect(
+        service.setMemberRole(owner, defaultChannelId, users.member, 'manager')
+      ).rejects.toMatchObject({ code: 'DEFAULT_CHANNEL_LOCKED' });
+    });
+  });
 });

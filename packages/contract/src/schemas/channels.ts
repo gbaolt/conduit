@@ -58,3 +58,44 @@ export const RenameChannelInputSchema = z.object({
   channelId: z.string(),
   name: ChannelNameSchema,
 });
+
+export const CHANNEL_TEXT_MAX = 250;
+
+// Omit a field to keep it; null or empty clears it.
+const ChannelTextSchema = z
+  .string()
+  .trim()
+  .max(CHANNEL_TEXT_MAX, `Use ${CHANNEL_TEXT_MAX} characters or fewer.`)
+  .nullable()
+  .optional();
+
+export const UpdateChannelInputSchema = z.object({
+  channelId: z.string(),
+  topic: ChannelTextSchema,
+  description: ChannelTextSchema,
+});
+
+export const ChannelMemberSchema = z.object({
+  userId: z.string(),
+  name: z.string(),
+  image: z.string().nullable(),
+  role: ChannelRoleSchema,
+  joinedAt: z.coerce.date(),
+});
+export type ChannelMember = z.infer<typeof ChannelMemberSchema>;
+
+export const AddChannelMembersInputSchema = z.object({
+  channelId: z.string(),
+  userIds: z.array(z.string()).min(1).max(100),
+});
+
+export const ChannelMemberInputSchema = z.object({
+  channelId: z.string(),
+  userId: z.string(),
+});
+
+export const SetChannelMemberRoleInputSchema = z.object({
+  channelId: z.string(),
+  userId: z.string(),
+  role: ChannelRoleSchema,
+});

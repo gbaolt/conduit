@@ -3,10 +3,15 @@ import { openapi } from '@orpc/openapi';
 import { z } from 'zod';
 
 import {
+  AddChannelMembersInputSchema,
   ChannelIdInputSchema,
+  ChannelMemberInputSchema,
+  ChannelMemberSchema,
   ChannelSchema,
   CreateChannelInputSchema,
   RenameChannelInputSchema,
+  SetChannelMemberRoleInputSchema,
+  UpdateChannelInputSchema,
 } from '@/schemas/channels';
 
 export const channelErrors = {
@@ -21,6 +26,10 @@ export const channelErrors = {
     message: 'The default channel cannot be changed this way.',
   },
   CHANNEL_ARCHIVED: { status: 409, message: 'This channel is archived.' },
+  LAST_MANAGER: {
+    status: 409,
+    message: 'A channel needs at least one manager.',
+  },
 } as const;
 
 const {
@@ -29,6 +38,7 @@ const {
   NAME_TAKEN,
   DEFAULT_CHANNEL_LOCKED,
   CHANNEL_ARCHIVED,
+  LAST_MANAGER,
 } = channelErrors;
 
 export const listChannelsContract = oc
@@ -70,4 +80,47 @@ export const leaveChannelContract = oc
   .meta(openapi({ method: 'POST', path: '/channels/{channelId}/leave' }))
   .errors({ NOT_FOUND, FORBIDDEN, DEFAULT_CHANNEL_LOCKED })
   .input(ChannelIdInputSchema)
+  .output(z.void());
+
+export const updateChannelContract = oc
+  .meta(openapi({ method: 'PATCH', path: '/channels/{channelId}' }))
+  .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED })
+  .input(UpdateChannelInputSchema)
+  .output(ChannelSchema);
+
+export const listChannelMembersContract = oc
+  .meta(openapi({ method: 'GET', path: '/channels/{channelId}/members' }))
+  .errors({ NOT_FOUND })
+  .input(ChannelIdInputSchema)
+  .output(z.array(ChannelMemberSchema));
+
+export const addChannelMembersContract = oc
+  .meta(openapi({ method: 'POST', path: '/channels/{channelId}/members' }))
+  .errors({ NOT_FOUND, FORBIDDEN, DEFAULT_CHANNEL_LOCKED, CHANNEL_ARCHIVED })
+  .input(AddChannelMembersInputSchema)
+  .output(z.void());
+
+export const removeChannelMemberContract = oc
+  .meta(
+    openapi({
+      method: 'DELETE',
+      path: '/channels/{channelId}/members/{userId}',
+    })
+  )
+  .errors({ NOT_FOUND, FORBIDDEN, DEFAULT_CHANNEL_LOCKED, CHANNEL_ARCHIVED })
+  .input(ChannelMemberInputSchema)
+  .output(z.void());
+
+export const setChannelMemberRoleContract = oc
+  .meta(
+    openapi({ method: 'PATCH', path: '/channels/{channelId}/members/{userId}' })
+  )
+  .errors({
+    NOT_FOUND,
+    FORBIDDEN,
+    DEFAULT_CHANNEL_LOCKED,
+    CHANNEL_ARCHIVED,
+    LAST_MANAGER,
+  })
+  .input(SetChannelMemberRoleInputSchema)
   .output(z.void());

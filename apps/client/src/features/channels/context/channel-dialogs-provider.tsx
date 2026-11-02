@@ -3,7 +3,9 @@
 import type { Channel } from '@conduit/contract';
 import { createContext, type ReactNode, use, useMemo, useState } from 'react';
 
+import { AddMembersDialog } from '../components/add-members-dialog';
 import { BrowseChannelsDialog } from '../components/browse-channels-dialog';
+import { ChannelDetailsDialog } from '../components/channel-details-dialog';
 import { CreateChannelDialog } from '../components/create-channel-dialog';
 import { DeleteChannelDialog } from '../components/delete-channel-dialog';
 import { RenameChannelDialog } from '../components/rename-channel-dialog';
@@ -13,7 +15,9 @@ export type ChannelDialog =
   | { kind: 'create' }
   | { kind: 'browse' }
   | { kind: 'rename'; channel: Channel }
-  | { kind: 'delete'; channel: Channel };
+  | { kind: 'delete'; channel: Channel }
+  | { kind: 'details'; channel: Channel; tab?: 'about' | 'members' }
+  | { kind: 'add-members'; channel: Channel };
 
 type ChannelDialogsValue = {
   open: (dialog: ChannelDialog) => void;
@@ -32,6 +36,10 @@ function OpenChannelDialog({ dialog }: { dialog: ChannelDialog }) {
       return <RenameChannelDialog channel={dialog.channel} />;
     case 'delete':
       return <DeleteChannelDialog channel={dialog.channel} />;
+    case 'details':
+      return <ChannelDetailsDialog channel={dialog.channel} tab={dialog.tab} />;
+    case 'add-members':
+      return <AddMembersDialog channel={dialog.channel} />;
   }
 }
 

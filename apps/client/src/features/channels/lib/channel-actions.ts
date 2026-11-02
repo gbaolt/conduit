@@ -6,10 +6,12 @@ import {
 } from '@conduit/contract';
 import {
   IconCopy,
+  IconInfoCircle,
   IconLink,
   IconLogout,
   IconPencil,
   IconTrash,
+  IconUserPlus,
   type TablerIcon,
 } from '@tabler/icons-react';
 import { toast } from 'sonner';
@@ -37,7 +39,7 @@ type Row = Pick<ChannelMenuAction, 'id' | 'label' | 'icon'> & {
   run: (channel: Channel, context: ChannelActionContext) => void;
 };
 
-function copy(text: string) {
+export function copy(text: string) {
   navigator.clipboard.writeText(text).then(
     () => toast.success('Copied'),
     () => toast.error('Could not copy')
@@ -80,6 +82,19 @@ const rows: Row[] = [
     destructive: true,
     policy: 'delete',
     run: (channel, { open }) => open({ kind: 'delete', channel }),
+  },
+  {
+    id: 'details',
+    label: 'View details',
+    icon: IconInfoCircle,
+    run: (channel, { open }) => open({ kind: 'details', channel }),
+  },
+  {
+    id: 'add-members',
+    label: 'Add people',
+    icon: IconUserPlus,
+    policy: 'addMembers',
+    run: (channel, { open }) => open({ kind: 'add-members', channel }),
   },
 ];
 

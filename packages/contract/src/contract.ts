@@ -1,11 +1,16 @@
 import {
+  addChannelMembersContract,
   createChannelContract,
   deleteChannelContract,
   getChannelContract,
   joinChannelContract,
   leaveChannelContract,
+  listChannelMembersContract,
   listChannelsContract,
+  removeChannelMemberContract,
   renameChannelContract,
+  setChannelMemberRoleContract,
+  updateChannelContract,
 } from './contracts/channels';
 import { healthCheckContract } from './contracts/health';
 import {
@@ -39,5 +44,12 @@ export const contract = {
     delete: deleteChannelContract,
     join: joinChannelContract,
     leave: leaveChannelContract,
+    update: updateChannelContract,
+    members: {
+      list: listChannelMembersContract,
+      add: addChannelMembersContract,
+      remove: removeChannelMemberContract,
+      setRole: setChannelMemberRoleContract,
+    },
   },
 };
