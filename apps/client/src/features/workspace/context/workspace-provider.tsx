@@ -20,7 +20,6 @@ type WorkspaceContextValue = {
   workspaces: Workspace[];
   activeWorkspace: Workspace | null;
   isPending: boolean;
-  setActive: (organizationId: string) => void;
 };
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -55,9 +54,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           }
         : null,
       isPending,
-      setActive,
     }),
-    [activeOrganization, isPending, setActive, workspaces]
+    [activeOrganization, isPending, workspaces]
   );
 
   return (

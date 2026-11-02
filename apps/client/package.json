@@ -11,6 +11,7 @@
     "start:app": "portless app.conduit next start",
     "conduit": "next build && next start",
     "lint": "eslint .",
+    "test": "vitest run",
     "typecheck": "next typegen && tsc --noEmit --extendedDiagnostics",
     "upgrade:next": "npx @next/codemod@latest upgrade latest",
     "upgrade:tailwind": "npx @tailwindcss/upgrade@latest"
@@ -81,7 +82,8 @@
     "postcss": "catalog:",
     "shadcn": "^4.18.0",
     "tailwindcss": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "packageManager": "pnpm@11.8.0"
 }
