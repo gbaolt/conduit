@@ -1,3 +1,12 @@
+import {
+  createChannelContract,
+  deleteChannelContract,
+  getChannelContract,
+  joinChannelContract,
+  leaveChannelContract,
+  listChannelsContract,
+  renameChannelContract,
+} from './contracts/channels';
 import { healthCheckContract } from './contracts/health';
 import {
   acceptInvitationContract,
@@ -21,5 +30,14 @@ export const contract = {
   invitations: {
     list: listInvitationsContract,
     accept: acceptInvitationContract,
+  },
+  channels: {
+    list: listChannelsContract,
+    get: getChannelContract,
+    create: createChannelContract,
+    rename: renameChannelContract,
+    delete: deleteChannelContract,
+    join: joinChannelContract,
+    leave: leaveChannelContract,
   },
 };

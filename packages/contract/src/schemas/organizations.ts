@@ -31,3 +31,6 @@ export const InvitationSchema = z.object({
   role: z.string(),
   expiresAt: z.coerce.date(),
 });
+
+export const WorkspaceRoleSchema = z.enum(['owner', 'admin', 'member']);
+export type WorkspaceRole = z.infer<typeof WorkspaceRoleSchema>;
