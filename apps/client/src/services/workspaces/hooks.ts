@@ -1,5 +1,6 @@
 'use client';
 
+import type { WorkspaceRole } from '@conduit/contract';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { orpc } from '@/lib/orpc';
@@ -24,6 +25,19 @@ function useActiveWorkspaceChanged() {
 // derive it from sessionQuery if the two drift.
 export function useActiveWorkspace() {
   return authClient.useActiveOrganization();
+}
+
+/** The viewer's role in the active workspace. Plain `member` until it loads, so nothing privileged flashes in; the server enforces the real rule. */
+export function useWorkspaceRole(): WorkspaceRole {
+  const { data } = authClient.useActiveMemberRole();
+  // Better Auth stores multiple roles comma-separated; same mapping as the server's findWorkspaceRole.
+  const roles = data?.role.split(',').map((role) => role.trim()) ?? [];
+
+  return roles.includes('owner')
+    ? 'owner'
+    : roles.includes('admin')
+      ? 'admin'
+      : 'member';
 }
 
 export function useCreateWorkspace() {
