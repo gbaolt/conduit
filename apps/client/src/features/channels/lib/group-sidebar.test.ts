@@ -4,7 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { groupSidebar } from './group-sidebar';
 
 function channel(
-  name: string,
+  name: string,
+
   membership: Partial<NonNullable<Channel['membership']>> | null = {},
   isDefault = false
 ): Channel {
