@@ -291,18 +291,21 @@ export class ChannelsService {
     if (!target) {
       throw channelError('NOT_FOUND', 'That person is not in this channel.');
     }
-    if (role === 'member' && target.role === 'MANAGER') {
-      const managers = await prisma.channelMember.count({
-        where: { channelId, role: 'MANAGER', ...stillInWorkspace(viewer) },
-      });
-      // shortcut: two simultaneous demotions can both pass and leave no manager; workspace admins can still repair it.
-      if (managers <= 1) {
-        throw channelError('LAST_MANAGER');
+    await prisma.$transaction(async (tx) => {
+      if (role === 'member' && target.role === 'MANAGER') {
+        // Locking the channel row serializes demotions, so two at once cannot both see another manager.
+        await tx.$queryRaw`SELECT id FROM "Channel" WHERE id = ${channelId} FOR UPDATE`;
+        const managers = await tx.channelMember.count({
+          where: { channelId, role: 'MANAGER', ...stillInWorkspace(viewer) },
+        });
+        if (managers <= 1) {
+          throw channelError('LAST_MANAGER');
+        }
       }
-    }
-    await prisma.channelMember.update({
-      where: { channelId_userId: { channelId, userId } },
-      data: { role: role === 'manager' ? 'MANAGER' : 'MEMBER' },
+      await tx.channelMember.update({
+        where: { channelId_userId: { channelId, userId } },
+        data: { role: role === 'manager' ? 'MANAGER' : 'MEMBER' },
+      });
     });
   }
 }
