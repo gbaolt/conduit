@@ -14,9 +14,9 @@ import {
   MAIN_PANEL,
   SIDEBAR_PANEL,
   writeLayoutCookie,
-} from '../lib/layout-cookie';
-import { WorkspaceHeader } from './sidebar/workspace-header';
-import { WorkspaceNav } from './sidebar/workspace-nav';
+} from '../../lib/layout-cookie';
+import { WorkspaceHeader } from './workspace-header';
+import { WorkspaceNav } from './workspace-nav';
 
 /** The workspace shell. A resizable sidebar beside the page. */
 export function WorkspaceSidebar({
@@ -32,7 +32,6 @@ export function WorkspaceSidebar({
       onLayoutChanged={(layout, { isUserInteraction }) => {
         if (isUserInteraction) writeLayoutCookie(layout);
       }}
-      style={{ height: '100%' }}
     >
       <ResizablePanel
         id={SIDEBAR_PANEL}
@@ -43,7 +42,7 @@ export function WorkspaceSidebar({
       >
         <nav
           aria-label="Channels"
-          className="text-surface-foreground flex h-full flex-col overflow-y-auto"
+          className="text-surface-foreground flex flex-col overflow-x-hidden overflow-y-auto"
         >
           <WorkspaceHeader />
           <WorkspaceNav />

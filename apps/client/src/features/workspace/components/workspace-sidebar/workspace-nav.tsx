@@ -49,7 +49,7 @@ export function WorkspaceNav() {
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
-      <SidebarSeparator className="mx-4" />
+      <SidebarSeparator className="mx-0" />
     </>
   );
 }

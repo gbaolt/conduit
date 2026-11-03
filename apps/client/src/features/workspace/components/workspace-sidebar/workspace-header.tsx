@@ -20,7 +20,16 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@conduit/ui/components/tooltip';
-import { IconChevronDown, IconEdit, IconSettings } from '@tabler/icons-react';
+import {
+  IconArrowsSplit2,
+  IconChevronDown,
+  IconDashboard,
+  IconEdit,
+  IconLogout,
+  IconSettings,
+  IconSettings2,
+  IconUsersPlus,
+} from '@tabler/icons-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -60,13 +69,26 @@ function WorkspaceMenu() {
         <IconChevronDown data-icon="inline-end" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-64">
-        <DropdownMenuItem>Invite people to {name}</DropdownMenuItem>
+        <DropdownMenuItem>
+          <IconUsersPlus data-slot="icon" aria-hidden />
+          Invite people to {name}
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>Preferences</DropdownMenuItem>
-        <DropdownMenuItem>Workflow builder</DropdownMenuItem>
-        <DropdownMenuItem>Admin tools</DropdownMenuItem>
+        <DropdownMenuItem>
+          <IconSettings2 data-slot="icon" aria-hidden />
+          Preferences
+        </DropdownMenuItem>
+        <DropdownMenuItem>
+          <IconArrowsSplit2 data-slot="icon" aria-hidden />
+          Workflow builder
+        </DropdownMenuItem>
+        <DropdownMenuItem>
+          <IconDashboard data-slot="icon" aria-hidden />
+          Admin tools
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem render={<Link href="/onboarding" />}>
+          <IconLogout data-slot="icon" aria-hidden />
           Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>
