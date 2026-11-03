@@ -5,16 +5,13 @@ import { onError } from '@orpc/server';
 import { AuthModule } from '@thallesp/nestjs-better-auth';
 import type { Request } from 'express';
 
-import { ChannelSectionsController } from '@/channels/channel-sections.controller';
-import { ChannelSectionsService } from '@/channels/channel-sections.service';
-import { ChannelsController } from '@/channels/channels.controller';
-import { ChannelsService } from '@/channels/channels.service';
+import { ChannelsModule } from '@/channels/channels.module';
 import { DatabaseModule } from '@/database/database.module';
 import { HealthController } from '@/health.controller';
-import { OrganizationsController } from '@/organizations/organizations.controller';
-import { OrganizationsService } from '@/organizations/organizations.service';
-import { UsersController } from '@/users/users.controller';
-import { UsersService } from '@/users/users.service';
+import { OrganizationsModule } from '@/organizations/organizations.module';
+import { UsersModule } from '@/users/users.module';
+import { WorkspaceMembersRepository } from '@/workspaces/workspace-members.repository';
+import { WorkspacesModule } from '@/workspaces/workspaces.module';
 
 import { arcjetAuthMiddleware } from './auth/arcjet.middleware';
 import { auth } from './auth/auth.config';
@@ -23,6 +20,7 @@ declare module '@orpc/server' {
   interface DefaultInitialContext {
     request: Request;
     arcjet: ArcjetNest;
+    workspaceMembers: WorkspaceMembersRepository;
   }
 }
 
@@ -30,12 +28,16 @@ declare module '@orpc/nest' {
   interface ORPCGlobalContext {
     request: Request;
     arcjet: ArcjetNest;
+    workspaceMembers: WorkspaceMembersRepository;
   }
 }
 
 @Module({
   imports: [
     DatabaseModule,
+    UsersModule,
+    OrganizationsModule,
+    ChannelsModule,
     ArcjetModule.forRoot({
       isGlobal: true,
       key: process.env.ARCJET_KEY!,
@@ -53,8 +55,12 @@ declare module '@orpc/nest' {
       }),
     }),
     ORPCModule.forRootAsync({
-      inject: [ARCJET],
-      useFactory: (aj: ArcjetNest) => ({
+      imports: [WorkspacesModule],
+      inject: [ARCJET, WorkspaceMembersRepository],
+      useFactory: (
+        aj: ArcjetNest,
+        workspaceMembers: WorkspaceMembersRepository
+      ) => ({
         interceptors: [
           onError((error) => {
             console.error(error);
@@ -65,23 +71,12 @@ declare module '@orpc/nest' {
             .switchToHttp()
             .getRequest<Request>(),
           arcjet: aj,
+          workspaceMembers,
         }),
         plugins: [],
       }),
     }),
   ],
-  controllers: [
-    HealthController,
-    UsersController,
-    OrganizationsController,
-    ChannelsController,
-    ChannelSectionsController,
-  ],
-  providers: [
-    UsersService,
-    OrganizationsService,
-    ChannelsService,
-    ChannelSectionsService,
-  ],
+  controllers: [HealthController],
 })
 export class AppModule {}

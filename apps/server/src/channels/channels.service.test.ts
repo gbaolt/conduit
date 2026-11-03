@@ -1,7 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { prisma } from '@/database/prisma.service';
+import { WorkspaceMembersRepository } from '@/workspaces/workspace-members.repository';
 
+import { ChannelSectionsRepository } from './channel-sections.repository';
+import { ChannelsRepository } from './channels.repository';
 import { ChannelsService, type ChannelViewer } from './channels.service';
 import { ensureDefaultChannel } from './default-channel';
 
@@ -15,7 +18,11 @@ vi.hoisted(() => {
 const connectionString = process.env.TEST_DATABASE_URL;
 
 describe.skipIf(!connectionString)('ChannelsService', () => {
-  const service = new ChannelsService();
+  const service = new ChannelsService(
+    new ChannelsRepository(prisma),
+    new ChannelSectionsRepository(prisma),
+    new WorkspaceMembersRepository(prisma)
+  );
   const run = crypto.randomUUID();
   const organization = { id: run, name: 'Acme', slug: `acme-${run}` };
   const otherOrganizationId = `${run}-other`;
