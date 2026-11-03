@@ -96,6 +96,30 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+## 5. Load skills before you code
+
+Before you write code, load every skill whose row matches the task. Load them yourself; the user won't name them. The `conduit-*` skills live in `.agents/skills/<name>/SKILL.md`. An agent without a Skill tool reads that file directly.
+
+| When the task touches                                              | Load                                                                                                                                                                                                                                      |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| New files or folders, moved code, or a new feature                 | `conduit-structure`, `mattpocock-skills:codebase-design`                                                                                                                                                                                  |
+| `packages/contract`, or oRPC procedures                            | `orpc-contract`                                                                                                                                                                                                                           |
+| `apps/server/src`                                                  | `nestjs-best-practices`. The oRPC contract and Better Auth take precedence over its validation rules (`class-validator` DTOs, `ValidationPipe`), its auth rules (JWT, Passport), and its error rules (`HttpException`, exception filters) |
+| Workspaces, members, invitations, or roles                         | `organization-best-practices`                                                                                                                                                                                                             |
+| `apps/server/database/`, or a server request that fails with a 500 | `conduit-database`                                                                                                                                                                                                                        |
+| React components                                                   | `vercel-react-best-practices`, `vercel-composition-patterns`                                                                                                                                                                              |
+| A blocking-prerender or "uncached data" error                      | `next-cache-components-adoption`                                                                                                                                                                                                          |
+| A new route, layout, or Suspense boundary, or a slow navigation    | `next-cache-components-optimizer`                                                                                                                                                                                                         |
+| `<Link>` prefetching, or what a navigation shows before the click  | `next-partial-prefetching-optimizer`                                                                                                                                                                                                      |
+| A change in `apps/client` that you are about to report as done     | `next-dev-loop`                                                                                                                                                                                                                           |
+
+## 6. Repository workflow
+
+- Open every PR against `staging`. A finished project lands on `main` through one final PR from `staging`.
+- Write commit messages as conventional commits. commitlint rejects a body line of 100 characters or more.
+- Run a subagent on the same or a weaker model than its parent, at the same or a lower effort.
+- End your reply with the checks you ran and the checks you skipped. Signed-in flows need a session that agent browsers lack, so ask the user to check those.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
