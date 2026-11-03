@@ -1,7 +1,7 @@
 import type { Channel, WorkspaceRole } from '@conduit/contract';
 import { describe, expect, it } from 'vitest';
 
-import { getChannelActions } from './channel-actions';
+import { getChannelActions } from '../channel-actions';
 
 type Kind = 'default' | 'public' | 'private';
 

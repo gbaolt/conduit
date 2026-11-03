@@ -1,12 +1,12 @@
 import { cookies } from 'next/headers';
 import { type ReactNode, Suspense } from 'react';
 
-import { ChannelPanels } from '@/features/channels/components/channel-panels';
 import { ChannelDialogsProvider } from '@/features/channels/context/channel-dialogs-provider';
+import { WorkspaceSidebar } from '@/features/workspace/components/workspace-sidebar';
 import {
   LAYOUT_COOKIE,
   parseLayout,
-} from '@/features/channels/lib/layout-cookie';
+} from '@/features/workspace/lib/layout-cookie';
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
 import { channelsQuery } from '@/services/channels/queries';
 
@@ -29,11 +29,11 @@ async function ChannelPanel({ children }: { children: ReactNode }) {
 
   return (
     <HydrateClient client={client}>
-      <ChannelPanels
+      <WorkspaceSidebar
         defaultLayout={parseLayout(cookieStore.get(LAYOUT_COOKIE)?.value)}
       >
         {children}
-      </ChannelPanels>
+      </WorkspaceSidebar>
     </HydrateClient>
   );
 }

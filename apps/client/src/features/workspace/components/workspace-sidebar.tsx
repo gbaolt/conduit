@@ -7,15 +7,19 @@ import {
 } from '@conduit/ui/components/resizable';
 import type { ReactNode } from 'react';
 
+import { ChannelList } from '@/features/channels/components/channel-list';
+
 import {
-  CHANNELS_PANEL,
   type Layout,
   MAIN_PANEL,
+  SIDEBAR_PANEL,
   writeLayoutCookie,
 } from '../lib/layout-cookie';
-import { ChannelSidebar } from './channel-sidebar';
+import { WorkspaceHeader } from './sidebar/workspace-header';
+import { WorkspaceNav } from './sidebar/workspace-nav';
 
-export function ChannelPanels({
+/** The workspace shell. A resizable sidebar beside the page. */
+export function WorkspaceSidebar({
   defaultLayout,
   children,
 }: {
@@ -31,13 +35,20 @@ export function ChannelPanels({
       style={{ height: '100%' }}
     >
       <ResizablePanel
-        id={CHANNELS_PANEL}
+        id={SIDEBAR_PANEL}
         defaultSize={260}
         minSize={200}
         maxSize="40"
         className="bg-surface"
       >
-        <ChannelSidebar />
+        <nav
+          aria-label="Channels"
+          className="text-surface-foreground flex h-full flex-col overflow-y-auto"
+        >
+          <WorkspaceHeader />
+          <WorkspaceNav />
+          <ChannelList />
+        </nav>
       </ResizablePanel>
       <ResizableHandle className="bg-sidebar-border focus-visible:ring-sidebar-ring" />
       <ResizablePanel id={MAIN_PANEL}>

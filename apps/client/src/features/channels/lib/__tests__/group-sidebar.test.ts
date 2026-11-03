@@ -1,7 +1,7 @@
 import type { Channel, ChannelSection } from '@conduit/contract';
 import { describe, expect, it } from 'vitest';
 
-import { groupSidebar } from './group-sidebar';
+import { groupSidebar } from '../group-sidebar';
 
 function channel(
   name: string,

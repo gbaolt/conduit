@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ChannelNameInputSchema } from './channel-name-input';
+import { ChannelNameInputSchema } from '../channel-name-input';
 
 const messages = (input: string) =>
   ChannelNameInputSchema.safeParse(input).error?.issues.map(

@@ -11,8 +11,6 @@ import { IconListSearch, IconPlus } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 
-import { WorkspaceHeader } from '@/features/workspace/components/sidebar/workspace-header';
-import { WorkspaceNav } from '@/features/workspace/components/sidebar/workspace-nav';
 import { useWorkspace } from '@/features/workspace/context/workspace-provider';
 import { useReorderChannelSections } from '@/services/channels/hooks';
 import {
@@ -49,7 +47,7 @@ function AddChannelsMenu() {
   );
 }
 
-export function ChannelSidebar() {
+export function ChannelList() {
   const { activeWorkspace } = useWorkspace();
   // Empty lists stand in until WorkspaceProvider activates a workspace and the queries refetch.
   const { data: channels = [] } = useQuery(channelsQuery);
@@ -75,35 +73,26 @@ export function ChannelSidebar() {
     };
   };
 
-  return (
-    <nav
-      aria-label="Channels"
-      className="text-surface-foreground flex h-full flex-col overflow-y-auto"
-    >
-      <WorkspaceHeader />
-      <WorkspaceNav />
-      {groups.map((group) => (
-        <SidebarSection
-          key={group.id}
-          group={group}
-          activeChannelId={channelId}
-          isCollapsed={isCollapsed(group.id)}
-          onToggle={() => toggle(group.id)}
-          action={
-            group.section ? (
-              <SectionMenu
-                section={group.section}
-                onMove={{
-                  up: moveBy(group.section.id, -1),
-                  down: moveBy(group.section.id, 1),
-                }}
-              />
-            ) : group.id === CHANNELS_GROUP_ID ? (
-              <AddChannelsMenu />
-            ) : null
-          }
-        />
-      ))}
-    </nav>
-  );
+  return groups.map((group) => (
+    <SidebarSection
+      key={group.id}
+      group={group}
+      activeChannelId={channelId}
+      isCollapsed={isCollapsed(group.id)}
+      onToggle={() => toggle(group.id)}
+      action={
+        group.section ? (
+          <SectionMenu
+            section={group.section}
+            onMove={{
+              up: moveBy(group.section.id, -1),
+              down: moveBy(group.section.id, 1),
+            }}
+          />
+        ) : group.id === CHANNELS_GROUP_ID ? (
+          <AddChannelsMenu />
+        ) : null
+      }
+    />
+  ));
 }

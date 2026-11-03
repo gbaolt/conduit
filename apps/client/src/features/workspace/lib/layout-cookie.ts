@@ -2,7 +2,8 @@
 export type Layout = Record<string, number>;
 
 export const LAYOUT_COOKIE = 'conduit-layout';
-export const CHANNELS_PANEL = 'channels';
+// The value predates the move to workspace; changing it would discard every saved layout.
+export const SIDEBAR_PANEL = 'channels';
 export const MAIN_PANEL = 'main';
 
 /** The saved layout, or undefined when the cookie is missing, malformed, or for other panels. */
@@ -15,7 +16,7 @@ export function parseLayout(value: string | undefined): Layout | undefined {
     if (
       typeof layout === 'object' &&
       layout !== null &&
-      [CHANNELS_PANEL, MAIN_PANEL].every((id) =>
+      [SIDEBAR_PANEL, MAIN_PANEL].every((id) =>
         Number.isFinite((layout as Layout)[id])
       )
     ) {
