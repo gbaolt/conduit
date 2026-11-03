@@ -10,6 +10,12 @@ export type SectionScope = { userId: string; organizationId: string };
 
 const select = { id: true, name: true, position: true } as const;
 
+// Callers pass wider viewers, and Prisma rejects any key that is not a column.
+const owner = ({ userId, organizationId }: SectionScope) => ({
+  userId,
+  organizationId,
+});
+
 // The only unique a create or rename can hit is (userId, organizationId, name).
 function rethrowNameTaken(error: unknown): never {
   if (
@@ -27,7 +33,7 @@ export class ChannelSectionsRepository {
 
   list(scope: SectionScope) {
     return this.db.channelSection.findMany({
-      where: scope,
+      where: owner(scope),
       select,
       orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
     });
@@ -36,12 +42,16 @@ export class ChannelSectionsRepository {
   /** Appends the section after the scope's last one. */
   async create(scope: SectionScope, name: string) {
     const last = await this.db.channelSection.aggregate({
-      where: scope,
+      where: owner(scope),
       _max: { position: true },
     });
     return this.db.channelSection
       .create({
-        data: { ...scope, name, position: (last._max.position ?? -1) + 1 },
+        data: {
+          ...owner(scope),
+          name,
+          position: (last._max.position ?? -1) + 1,
+        },
         select,
       })
       .catch(rethrowNameTaken);
@@ -60,7 +70,7 @@ export class ChannelSectionsRepository {
 
   async exists(scope: SectionScope, sectionId: string) {
     const section = await this.db.channelSection.findFirst({
-      where: { ...scope, id: sectionId },
+      where: { ...owner(scope), id: sectionId },
       select: { id: true },
     });
     return section !== null;
@@ -69,7 +79,7 @@ export class ChannelSectionsRepository {
   /** How many of `sectionIds` the scope owns. */
   count(scope: SectionScope, sectionIds: string[]) {
     return this.db.channelSection.count({
-      where: { ...scope, id: { in: sectionIds } },
+      where: { ...owner(scope), id: { in: sectionIds } },
     });
   }
 
