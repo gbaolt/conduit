@@ -172,7 +172,7 @@ function ActionRow({ action }: { action: Action }) {
       <SubmenuRow label={action.label}>
         {action.items.map(({ id, label, icon: Icon, checked, run }) => (
           <Menu.Item key={id} onClick={run}>
-            <Icon />
+            <Icon data-slot="icon" aria-hidden />
             {label}
             {checked && <IconCheck className="ml-auto" />}
           </Menu.Item>
@@ -180,12 +180,13 @@ function ActionRow({ action }: { action: Action }) {
       </SubmenuRow>
     );
   }
+
   return (
     <Menu.Item
       variant={action.group === 'danger' ? 'destructive' : 'default'}
       onClick={action.run}
     >
-      {action.icon && <action.icon />}
+      {action.icon && <action.icon data-slot="icon" aria-hidden />}
       {action.label}
     </Menu.Item>
   );
@@ -228,7 +229,7 @@ function NotifyRows() {
       <Menu.RadioGroup value={notify} onValueChange={setNotify}>
         {NOTIFY_OPTIONS.map(({ value, label, icon: Icon }) => (
           <Menu.RadioItem key={value} value={value}>
-            <Icon />
+            <Icon data-slot="icon" aria-hidden />
             {label}
           </Menu.RadioItem>
         ))}
