@@ -17,7 +17,7 @@ const secrets = [
   'GITHUB_CLIENT_SECRET',
 ] as const;
 
-// Values come from `.dev.vars` locally and from `cf deploy --secrets-file` in production.
+// Values come from `.dev.vars` locally. Deployed versions keep the secrets already set on the Worker.
 export default defineConfig({
   worker: {
     name: 'conduit-server',
