@@ -9,8 +9,9 @@ import { OpenAPIReferenceHandlerPlugin } from '@orpc/openapi/plugins';
 import { ZodToJsonSchemaConverter } from '@orpc/zod';
 import type { NextFunction, Request, Response } from 'express';
 
+import { getTrustedOrigins } from '@/infrastructure/auth/trusted-origins';
+
 import { AppModule } from './app.module';
-import { getTrustedOrigins } from './auth/trusted-origins';
 
 const generator = new OpenAPIGenerator({
   converters: [new ZodToJsonSchemaConverter()],

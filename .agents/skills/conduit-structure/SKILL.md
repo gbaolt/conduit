@@ -12,7 +12,7 @@ Place every new file by the tables below. A file sits at the lowest level that e
 A new feature touches the layers in this order. Each step builds on the one before it.
 
 1. Contract. Add the procedure to `packages/contract/src/contracts/<domain>.ts`, and its zod schemas, types, and error map to `schemas/<domain>.ts`.
-2. Server. Add the repository, then the service, then the controller, in `apps/server/src/<domain>/`.
+2. Server. In `apps/server/src/<domain>/`, add the port to `domain/`, its Prisma or Better Auth implementation to `infrastructure/`, the service to `application/`, and the controller to `presentation/`. Then bind the port to its implementation in `<domain>.module.ts`.
 3. Client data. Add query options and hooks to `apps/client/src/services/<domain>/`.
 4. Client UI. Add components to `apps/client/src/features/<domain>/` and the route to `app/`.
 
@@ -28,24 +28,37 @@ The contract is the source of truth for input validation, output types, and erro
 
 ## `apps/server/src`
 
-| Path                          | Holds                                                                                                                                                                                                                 |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `<domain>/<domain>.module.ts` | the feature module, imported by `app.module.ts`                                                                                                                                                                       |
-| `<domain>/*.controller.ts`    | one method per procedure, decorated with `@Implement(contract.x)`. It chains `authorized`, then `arcjet.read` or `arcjet.write`, then `workspaceMember` for workspace-scoped procedures, and calls one service method |
-| `<domain>/*.service.ts`       | business rules and permission checks. It throws contract errors through helpers such as `channelError` in `channels/channel-errors.ts`                                                                                |
-| `<domain>/*.repository.ts`    | every Prisma query. It takes `PrismaService` by constructor injection and returns contract types, so Prisma rows stay inside the file                                                                                 |
-| `workspaces/`                 | `WorkspaceMembersRepository`, which reads workspace membership for every feature                                                                                                                                      |
-| `orpc/`                       | oRPC middleware: `authorized`, `arcjet`, and `workspaceMember`                                                                                                                                                        |
-| `auth/`                       | the Better Auth config, its hooks, and the Arcjet auth middleware                                                                                                                                                     |
-| `database/`                   | `PrismaService` and `DatabaseModule`                                                                                                                                                                                  |
+The server follows Clean Architecture. Each feature folder holds four layers, and dependencies point inward only: `presentation/` and `infrastructure/` depend on `application/`, which depends on `domain/`.
 
-Import rules:
+| Path                                       | Holds                                                                                                                                                                                                                 |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `<domain>/<domain>.module.ts`              | the feature module, imported by `app.module.ts`. It binds each port to its implementation: `{ provide: ChannelsRepository, useClass: PrismaChannelsRepository }`                                                      |
+| `<domain>/domain/*.repository.ts`          | ports for data the app owns: abstract classes that take and return contract types, such as `ChannelsRepository`                                                                                                       |
+| `<domain>/domain/*.gateway.ts`             | ports for Better Auth, such as `OrganizationsGateway` and `SessionsGateway`. Methods take web `Headers`, which carry the caller's session                                                                             |
+| `<domain>/domain/*-errors.ts`              | error helpers such as `channelError('NOT_FOUND')`. They build a `DomainError` from the contract's error map                                                                                                           |
+| `<domain>/application/*.service.ts`        | use cases: business rules and permission checks, written against the ports. Tests beside them run against `TEST_DATABASE_URL` or a fake port                                                                          |
+| `<domain>/infrastructure/prisma-*.ts`      | every Prisma query, behind a port. Prisma rows stay inside the file. A unique-constraint error becomes a `DomainError`                                                                                                |
+| `<domain>/infrastructure/better-auth-*.ts` | every `AuthService` call, behind a gateway port. A known Better Auth error becomes a `DomainError`                                                                                                                    |
+| `<domain>/presentation/*.controller.ts`    | one method per procedure, decorated with `@Implement(contract.x)`. It chains `authorized`, then `arcjet.read` or `arcjet.write`, then `workspaceMember` for workspace-scoped procedures, and calls one service method |
+| `shared/domain/`                           | `DomainError`, which every feature's error helpers build                                                                                                                                                              |
+| `workspaces/`                              | the `WorkspaceMembersRepository` port and its Prisma reader, which every feature uses for workspace membership                                                                                                        |
+| `health/presentation/`                     | the health check and the root page                                                                                                                                                                                    |
+| `infrastructure/auth/`                     | the Better Auth config and its hooks, the password policy, trusted origins, and the Resend client                                                                                                                     |
+| `infrastructure/database/`                 | `PrismaService` and `DatabaseModule`                                                                                                                                                                                  |
+| `infrastructure/orpc/`                     | the oRPC context (`context.ts`), the `authorized` and `workspaceMember` middleware, and `translateErrors`, which turns a `DomainError` into the contract's `ORPCError`                                                |
+| `infrastructure/security/`                 | Arcjet: `auth-routes.middleware.ts` guards Better Auth's routes, and `procedure.middleware.ts` exports the `arcjet.read`, `arcjet.write`, and `arcjet.heavyWrite` tiers                                               |
 
-- A controller imports its service. A service imports repositories. A repository imports `PrismaService`.
-- Inject with `@Inject(Class)` on each constructor parameter, as every existing class does.
-- Middleware gets its dependencies from the oRPC context. `workspaceMember` reads `context.workspaceMembers`, which `app.module.ts` adds to the context. Add a new middleware dependency the same way.
-- Better Auth owns the `user`, `session`, `organization`, `member`, and `invitation` tables. Write to them only through Better Auth's API, which is `AuthService` or the hooks in `auth/auth.config.ts`. Repositories may read them, as `WorkspaceMembersRepository` does.
-- The `prisma` export in `database/prisma.service.ts` serves code outside Nest DI: `auth/auth.config.ts`, `scripts/`, and test setup. Code inside DI injects `PrismaService`, which is the same client.
+Import rules. `apps/server/eslint.config.js` enforces the first three, so lint fails on a violation:
+
+- `domain/` imports only `@conduit/contract`, `shared/domain/`, and other `domain/` folders. No Nest, oRPC, Express, Prisma, Better Auth, or Arcjet.
+- `application/` may also import `@nestjs/common` for `@Injectable` and `@Inject`. It never imports `infrastructure/` or `presentation/`.
+- `presentation/` calls services. It never imports a feature's `infrastructure/`, Prisma, or `infrastructure/database/`.
+- Inject with `@Inject(Class)` on each constructor parameter, as every existing class does. A port's abstract class is its injection token.
+- Throw a domain error from the helper, never an `ORPCError`. `translateErrors` runs inside the procedure client, so oRPC still matches the error against the contract's map and marks it `defined`.
+- Middleware gets its dependencies from the oRPC context. `workspaceMember` reads `context.workspaceMembers`, which `createORPCContext` adds. Add a new middleware dependency the same way.
+- Better Auth owns the `user`, `session`, `organization`, `member`, and `invitation` tables. Write to them only through Better Auth's API, which is an `infrastructure/better-auth-*` gateway or the hooks in `infrastructure/auth/auth.config.ts`. Prisma repositories may read them, as `PrismaWorkspaceMembersRepository` does.
+- Better Auth is built at import time, outside Nest DI. Its organization hooks call `WorkspaceMembershipService`, which `auth.config.ts` builds by hand with its Prisma repository.
+- The `prisma` export in `infrastructure/database/prisma.service.ts` serves code outside Nest DI: `auth.config.ts`, `scripts/`, and test setup. Code inside DI injects `PrismaService`, which is the same client.
 
 ## `apps/client/src`
 

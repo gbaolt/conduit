@@ -2,12 +2,14 @@ import { Module } from '@nestjs/common';
 
 import { WorkspacesModule } from '@/workspaces/workspaces.module';
 
-import { ChannelSectionsController } from './channel-sections.controller';
-import { ChannelSectionsRepository } from './channel-sections.repository';
-import { ChannelSectionsService } from './channel-sections.service';
-import { ChannelsController } from './channels.controller';
-import { ChannelsRepository } from './channels.repository';
-import { ChannelsService } from './channels.service';
+import { ChannelSectionsService } from './application/channel-sections.service';
+import { ChannelsService } from './application/channels.service';
+import { ChannelSectionsRepository } from './domain/channel-sections.repository';
+import { ChannelsRepository } from './domain/channels.repository';
+import { PrismaChannelSectionsRepository } from './infrastructure/prisma-channel-sections.repository';
+import { PrismaChannelsRepository } from './infrastructure/prisma-channels.repository';
+import { ChannelSectionsController } from './presentation/channel-sections.controller';
+import { ChannelsController } from './presentation/channels.controller';
 
 @Module({
   imports: [WorkspacesModule],
@@ -15,8 +17,11 @@ import { ChannelsService } from './channels.service';
   providers: [
     ChannelsService,
     ChannelSectionsService,
-    ChannelsRepository,
-    ChannelSectionsRepository,
+    { provide: ChannelsRepository, useClass: PrismaChannelsRepository },
+    {
+      provide: ChannelSectionsRepository,
+      useClass: PrismaChannelSectionsRepository,
+    },
   ],
 })
 export class ChannelsModule {}

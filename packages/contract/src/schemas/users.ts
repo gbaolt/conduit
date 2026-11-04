@@ -26,3 +26,5 @@ export const SessionOutputSchema = z
     }),
   })
   .nullable();
+
+export type SessionOutput = z.infer<typeof SessionOutputSchema>;
