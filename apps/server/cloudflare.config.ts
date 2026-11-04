@@ -24,6 +24,9 @@ export default defineConfig({
     entrypoint: './dist/src/worker.js',
     compatibilityDate: '2026-10-20',
     compatibilityFlags: ['nodejs_compat'],
+    domains: ['api.conduit.giabao.dev'],
+    workersDev: true,
+    previewUrls: true,
     env: {
       NODE_ENV: bindings.text('production'),
       ...Object.fromEntries(secrets.map((name) => [name, bindings.secret()])),
