@@ -7,6 +7,7 @@
     "dev": "nest start --watch",
     "dev:app": "portless api.conduit nest start --watch",
     "build": "nest build",
+    "build:workder": "turbo run build --filter=server && vite build",
     "check:dist": "node scripts/assert-dist.mjs",
     "start": "node dist/src/main.js",
     "start:app": "portless api.conduit node dist/src/main.js",
