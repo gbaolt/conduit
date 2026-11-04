@@ -23,7 +23,7 @@ const outerLayers = (...layers) => ({
 /** @type {import("eslint").Linter.Config[]} */
 export default [
   ...nodeConfig,
-  { ignores: ['generated/**'] },
+  { ignores: ['generated/**', '.cloudflare/**'] },
   {
     files: ['src/**/domain/**/*.ts'],
     rules: {

@@ -5,7 +5,9 @@ import { Injectable, type OnModuleDestroy } from '@nestjs/common';
 import { PrismaNeon } from '@prisma/adapter-neon';
 import ws from 'ws';
 
-neonConfig.webSocketConstructor = ws;
+// The Worker uses its native WebSocket; Node keeps the ws package.
+neonConfig.webSocketConstructor =
+  navigator.userAgent === 'Cloudflare-Workers' ? WebSocket : ws;
 
 @Injectable()
 export class PrismaService
