@@ -7,6 +7,7 @@ export const OrganizationSchema = z.object({
   logo: z.string().nullable().optional(),
   createdAt: z.coerce.date(),
 });
+export type Organization = z.infer<typeof OrganizationSchema>;
 
 export const CreateOrganizationInputSchema = z.object({
   name: z
@@ -23,6 +24,9 @@ export const CreateOrganizationInputSchema = z.object({
       'Use lowercase letters, numbers, and single hyphens.'
     ),
 });
+export type CreateOrganizationInput = z.infer<
+  typeof CreateOrganizationInputSchema
+>;
 
 export const InvitationSchema = z.object({
   id: z.string(),
@@ -31,6 +35,7 @@ export const InvitationSchema = z.object({
   role: z.string(),
   expiresAt: z.coerce.date(),
 });
+export type Invitation = z.infer<typeof InvitationSchema>;
 
 export const WorkspaceRoleSchema = z.enum(['owner', 'admin', 'member']);
 export type WorkspaceRole = z.infer<typeof WorkspaceRoleSchema>;

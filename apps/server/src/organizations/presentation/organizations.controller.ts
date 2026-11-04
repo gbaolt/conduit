@@ -2,12 +2,10 @@ import { contract } from '@conduit/contract';
 import { Controller, Inject } from '@nestjs/common';
 import { Implement } from '@orpc/nest';
 import { implement } from '@orpc/server';
-import { isAPIError } from 'better-auth/api';
 
 import { authorized } from '@/infrastructure/orpc/authorized';
 import { arcjet } from '@/infrastructure/security/procedure.middleware';
-
-import { OrganizationsService } from './organizations.service';
+import { OrganizationsService } from '@/organizations/application/organizations.service';
 
 @Controller()
 export class OrganizationsController {
@@ -22,7 +20,7 @@ export class OrganizationsController {
       .use(authorized)
       .use(arcjet.read)
       .handler(({ context }) =>
-        this.organizationsService.list(context.request)
+        this.organizationsService.list(context.headers)
       );
   }
 
@@ -31,19 +29,9 @@ export class OrganizationsController {
     return implement(contract.organizations.create)
       .use(authorized)
       .use(arcjet.heavyWrite)
-      .handler(async ({ context, input, errors }) => {
-        try {
-          return await this.organizationsService.create(context.request, input);
-        } catch (error) {
-          if (
-            isAPIError(error) &&
-            error.body?.code === 'ORGANIZATION_ALREADY_EXISTS'
-          ) {
-            throw errors.SLUG_TAKEN();
-          }
-          throw error;
-        }
-      });
+      .handler(({ context, input }) =>
+        this.organizationsService.create(context.headers, input)
+      );
   }
 
   @Implement(contract.invitations.list)
@@ -52,7 +40,7 @@ export class OrganizationsController {
       .use(authorized)
       .use(arcjet.read)
       .handler(({ context }) =>
-        this.organizationsService.listInvitations(context.request)
+        this.organizationsService.listInvitations(context.headers)
       );
   }
 
@@ -63,7 +51,7 @@ export class OrganizationsController {
       .use(arcjet.write)
       .handler(({ context, input }) =>
         this.organizationsService.acceptInvitation(
-          context.request,
+          context.headers,
           input.invitationId
         )
       );
