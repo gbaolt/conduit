@@ -8,6 +8,7 @@ import { emailOTP, organization } from 'better-auth/plugins';
 import { WorkspaceMembershipService } from '@/channels/application/workspace-membership.service';
 import { PrismaWorkspaceMembershipRepository } from '@/channels/infrastructure/prisma-workspace-membership.repository';
 import { prisma } from '@/infrastructure/database/prisma.service';
+import { isWorker } from '@/infrastructure/runtime';
 
 import { PasswordSchema } from './password-policy';
 import { resend } from './resend';
@@ -26,6 +27,10 @@ function getCookieAdvanced(baseURL: string) {
 
   return {
     useSecureCookies: baseURL.startsWith('https://'),
+    // Cloudflare sets cf-connecting-ip itself; elsewhere a client could forge it.
+    ipAddress: {
+      ipAddressHeaders: isWorker ? ['cf-connecting-ip'] : ['x-forwarded-for'],
+    },
     crossSubDomainCookies:
       domain && !domain.includes(':')
         ? { enabled: true as const, domain }
