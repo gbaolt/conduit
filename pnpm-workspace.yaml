@@ -68,11 +68,8 @@ minimumReleaseAgeExclude:
   - '@orpc/shared@2.0.0-beta.47'
   - '@orpc/tanstack-query@2.0.0-beta.47'
   - '@orpc/zod@2.0.0-beta.47'
-  - '@cloudflare/build-output-utils@0.9.9'
-  - '@cloudflare/config@0.30.1'
-  - '@cloudflare/runtime-types@0.1.22'
-  - '@cloudflare/vite-plugin@2.0.0-beta.v.11'
   - miniflare@5.20261103.0-beta
+  - wrangler@4.157.0
 
 overrides:
   '@types/react': 'catalog:'

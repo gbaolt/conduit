@@ -1,0 +1,35 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "conduit-server",
+  "main": "./dist/src/worker.js",
+  "compatibility_date": "2026-10-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "routes": [{ "pattern": "api.conduit.giabao.dev", "custom_domain": true }],
+  "workers_dev": true,
+  "preview_urls": true,
+  "vars": {
+    "APP_URL": "https://app.conduit.giabao.dev",
+    "ARCJET_ENV": "production",
+    "AUTH_COOKIE_DOMAIN": ".conduit.giabao.dev",
+    "AUTH_EMAIL_FROM": "conduit@giabao.dev",
+    "BETTER_AUTH_TRUSTED_ORIGIN": "https://app.conduit.giabao.dev",
+    "BETTER_AUTH_URL": "https://api.conduit.giabao.dev",
+    "GITHUB_CLIENT_ID": "Ov23li6ltlk6X0J6oDC9",
+    "GOOGLE_CLIENT_ID": "306146664034-2f331dnin7r7988k8ba1udu7ornnsojr.apps.googleusercontent.com",
+    "NODE_ENV": "production"
+  },
+  "observability": { "enabled": true },
+  "previews": {
+    "vars": {
+      "APP_URL": "https://app.conduit.giabao.dev",
+      "ARCJET_ENV": "preview",
+      "AUTH_COOKIE_DOMAIN": ".conduit.giabao.dev",
+      "AUTH_EMAIL_FROM": "conduit@giabao.dev",
+      "BETTER_AUTH_TRUSTED_ORIGIN": "https://app.conduit.giabao.dev",
+      "BETTER_AUTH_URL": "https://api.conduit.giabao.dev",
+      "GITHUB_CLIENT_ID": "Ov23li6ltlk6X0J6oDC9",
+      "GOOGLE_CLIENT_ID": "306146664034-2f331dnin7r7988k8ba1udu7ornnsojr.apps.googleusercontent.com",
+      "NODE_ENV": "preview",
+    },
+  },
+}

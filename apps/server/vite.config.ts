@@ -9,18 +9,7 @@ const nodeClient = normalizePath(resolve('dist/generated/prisma'));
 const workerClient = normalizePath(resolve('generated/prisma-worker'));
 
 export default defineConfig({
-  build: {
-    rolldownOptions: {
-      output: {
-        // Workers Free caps a Worker at 3 MB gzipped. The compress pass ran for 30+ minutes without finishing; mangling alone fits.
-        minify: {
-          compress: false,
-          mangle: true,
-          codegen: { removeWhitespace: true },
-        },
-      },
-    },
-  },
+  build: { minify: true },
   plugins: [
     {
       name: 'conduit:prisma-worker-client',
