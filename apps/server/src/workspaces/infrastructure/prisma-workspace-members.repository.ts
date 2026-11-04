@@ -2,13 +2,13 @@ import type { WorkspaceRole } from '@conduit/contract';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import type { WorkspaceMembersRepository } from '@/workspaces/domain/workspace-members.repository';
 
-/** Reads the `Member` rows that Better Auth's organization plugin owns. Better Auth does every write. */
+/** Reads the `Member` rows that Better Auth's organization plugin owns. */
 @Injectable()
-export class WorkspaceMembersRepository {
+export class PrismaWorkspaceMembersRepository implements WorkspaceMembersRepository {
   constructor(@Inject(PrismaService) private readonly db: PrismaService) {}
 
-  /** The user's role from their current `Member` row, or null when they are not in the workspace. */
   async findRole(
     organizationId: string,
     userId: string
@@ -30,7 +30,6 @@ export class WorkspaceMembersRepository {
         : 'member';
   }
 
-  /** How many of `userIds` belong to the workspace. */
   count(organizationId: string, userIds: string[]) {
     return this.db.member.count({
       where: { organizationId, userId: { in: userIds } },

@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { prisma } from '@/infrastructure/database/prisma.service';
-import { WorkspaceMembersRepository } from '@/workspaces/workspace-members.repository';
+import { PrismaWorkspaceMembersRepository } from '@/workspaces/infrastructure/prisma-workspace-members.repository';
 
 import { ChannelSectionsRepository } from './channel-sections.repository';
 import {
@@ -26,7 +26,7 @@ describe.skipIf(!connectionString)('star and sections', () => {
   const channels = new ChannelsService(
     new ChannelsRepository(prisma),
     sectionsRepository,
-    new WorkspaceMembersRepository(prisma)
+    new PrismaWorkspaceMembersRepository(prisma)
   );
   const sections = new ChannelSectionsService(sectionsRepository);
   const run = crypto.randomUUID();

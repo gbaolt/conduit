@@ -7,7 +7,7 @@ import {
 } from '@conduit/contract';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { WorkspaceMembersRepository } from '@/workspaces/workspace-members.repository';
+import { WorkspaceMembersRepository } from '@/workspaces/domain/workspace-members.repository';
 
 import { ChannelSectionsRepository } from './channel-sections.repository';
 import { ChannelsRepository } from './channels.repository';

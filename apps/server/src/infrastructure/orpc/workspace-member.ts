@@ -1,7 +1,7 @@
 import { ORPCError, os } from '@orpc/server';
 
 import type { Session, User } from '@/infrastructure/auth/auth.config';
-import type { WorkspaceMembersRepository } from '@/workspaces/workspace-members.repository';
+import type { WorkspaceMembersRepository } from '@/workspaces/domain/workspace-members.repository';
 
 /** Chain after `authorized`. Scopes the procedure to the active workspace. */
 export const workspaceMember = os

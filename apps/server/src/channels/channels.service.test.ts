@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { prisma } from '@/infrastructure/database/prisma.service';
-import { WorkspaceMembersRepository } from '@/workspaces/workspace-members.repository';
+import { PrismaWorkspaceMembersRepository } from '@/workspaces/infrastructure/prisma-workspace-members.repository';
 
 import { ChannelSectionsRepository } from './channel-sections.repository';
 import { ChannelsRepository } from './channels.repository';
@@ -21,7 +21,7 @@ describe.skipIf(!connectionString)('ChannelsService', () => {
   const service = new ChannelsService(
     new ChannelsRepository(prisma),
     new ChannelSectionsRepository(prisma),
-    new WorkspaceMembersRepository(prisma)
+    new PrismaWorkspaceMembersRepository(prisma)
   );
   const run = crypto.randomUUID();
   const organization = { id: run, name: 'Acme', slug: `acme-${run}` };

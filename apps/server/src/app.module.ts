@@ -13,7 +13,7 @@ import { translateErrors } from '@/infrastructure/orpc/errors';
 import { arcjetAuthMiddleware } from '@/infrastructure/security/auth-routes.middleware';
 import { OrganizationsModule } from '@/organizations/organizations.module';
 import { UsersModule } from '@/users/users.module';
-import { WorkspaceMembersRepository } from '@/workspaces/workspace-members.repository';
+import { WorkspaceMembersRepository } from '@/workspaces/domain/workspace-members.repository';
 import { WorkspacesModule } from '@/workspaces/workspaces.module';
 
 @Module({

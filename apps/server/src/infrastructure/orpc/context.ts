@@ -2,7 +2,7 @@ import type { ArcjetNest } from '@arcjet/nest';
 import type { ExecutionContext } from '@nestjs/common';
 import type { Request } from 'express';
 
-import type { WorkspaceMembersRepository } from '@/workspaces/workspace-members.repository';
+import type { WorkspaceMembersRepository } from '@/workspaces/domain/workspace-members.repository';
 
 export type ORPCContext = {
   request: Request;
