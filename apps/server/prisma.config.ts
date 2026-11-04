@@ -2,7 +2,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { config } from 'dotenv';
-import { defineConfig, env } from 'prisma/config';
+import { defineConfig } from 'prisma/config';
 
 const root = dirname(fileURLToPath(import.meta.url));
 
@@ -13,8 +13,9 @@ export default defineConfig({
   migrations: {
     path: 'database/migrations',
   },
+  // process.env, not env(), so `prisma generate` runs without a database, as on Workers Builds.
   datasource: {
-    url: env('DATABASE_URL'),
-    shadowDatabaseUrl: env('DATABASE_DIRECT_URL'),
+    url: process.env.DATABASE_URL,
+    shadowDatabaseUrl: process.env.DATABASE_DIRECT_URL,
   },
 });

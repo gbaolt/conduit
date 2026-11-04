@@ -8,6 +8,7 @@ import { emailOTP, organization } from 'better-auth/plugins';
 import { WorkspaceMembershipService } from '@/channels/application/workspace-membership.service';
 import { PrismaWorkspaceMembershipRepository } from '@/channels/infrastructure/prisma-workspace-membership.repository';
 import { prisma } from '@/infrastructure/database/prisma.service';
+import { isWorker } from '@/infrastructure/runtime';
 
 import { PasswordSchema } from './password-policy';
 import { resend } from './resend';
@@ -26,6 +27,10 @@ function getCookieAdvanced(baseURL: string) {
 
   return {
     useSecureCookies: baseURL.startsWith('https://'),
+    // Cloudflare sets cf-connecting-ip itself; elsewhere a client could forge it.
+    ipAddress: {
+      ipAddressHeaders: isWorker ? ['cf-connecting-ip'] : ['x-forwarded-for'],
+    },
     crossSubDomainCookies:
       domain && !domain.includes(':')
         ? { enabled: true as const, domain }
@@ -59,7 +64,7 @@ const workspaceMembership = new WorkspaceMembershipService(
 );
 
 const baseURL = process.env.BETTER_AUTH_URL ?? 'http://localhost:3333';
-const appURL = process.env.APP_URL ?? 'https://app.conduit.localhost';
+const appURL = process.env.APP_URL ?? 'https://localhost:3000';
 const emailFrom = `Gia Bảo from Conduit <${process.env.AUTH_EMAIL_FROM ?? 'conduit@giabao.dev'}>`;
 
 export const auth = betterAuth({

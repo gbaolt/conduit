@@ -53,3 +53,7 @@ yarn-error.log*
 
 # eslint
 .eslintcache
+# Cloudflare
+.cloudflare/
+.wrangler/
+.dev.vars*

@@ -5,7 +5,10 @@ import { Injectable, type OnModuleDestroy } from '@nestjs/common';
 import { PrismaNeon } from '@prisma/adapter-neon';
 import ws from 'ws';
 
-neonConfig.webSocketConstructor = ws;
+import { isWorker } from '@/infrastructure/runtime';
+
+// The Worker uses its native WebSocket; Node keeps the ws package.
+neonConfig.webSocketConstructor = isWorker ? WebSocket : ws;
 
 @Injectable()
 export class PrismaService
@@ -19,7 +22,13 @@ export class PrismaService
       throw new Error('Missing DATABASE_URL (Neon connection string)');
     }
 
-    super({ adapter: new PrismaNeon({ connectionString }) });
+    // A Worker cannot reuse a socket opened by an earlier request, so each connection serves one checkout.
+    super({
+      adapter: new PrismaNeon({
+        connectionString,
+        ...(isWorker && { maxUses: 1 }),
+      }),
+    });
   }
 
   async onModuleInit() {

@@ -5,6 +5,7 @@
     "DATABASE_URL",
     "DATABASE_DIRECT_URL",
     "PORT",
+    "APP_URL",
     "SERVER_URL",
     "NEXT_PUBLIC_SERVER_URL",
     "NEXT_PUBLIC_APP_URL",
