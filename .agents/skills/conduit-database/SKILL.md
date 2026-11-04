@@ -31,7 +31,7 @@ These commands write to a database: `prisma migrate dev`, `migrate deploy`, `mig
 
 ## Backfill data
 
-Put a backfill in `apps/server/scripts/`, and add a `db:` script for it to `apps/server/package.json`. Make it idempotent, so a second run changes nothing. `ensureDefaultChannel` in `src/channels/default-channel.ts` is the reference. It uses `createMany` with `skipDuplicates`, and reads the winner's row after it loses a race.
+Put a backfill in `apps/server/scripts/`, and add a `db:` script for it to `apps/server/package.json`. Make it idempotent, so a second run changes nothing. `ensureDefaultChannel` in `src/channels/infrastructure/default-channel.ts` is the reference. It uses `createMany` with `skipDuplicates`, and reads the winner's row after it loses a race.
 
 ## Debug a 500
 
