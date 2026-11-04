@@ -9,6 +9,7 @@ import { HealthController } from '@/health/presentation/health.controller';
 import { auth } from '@/infrastructure/auth/auth.config';
 import { DatabaseModule } from '@/infrastructure/database/database.module';
 import { createORPCContext } from '@/infrastructure/orpc/context';
+import { translateErrors } from '@/infrastructure/orpc/errors';
 import { arcjetAuthMiddleware } from '@/infrastructure/security/auth-routes.middleware';
 import { OrganizationsModule } from '@/organizations/organizations.module';
 import { UsersModule } from '@/users/users.module';
@@ -49,6 +50,7 @@ import { WorkspacesModule } from '@/workspaces/workspaces.module';
             console.error(error);
           }),
         ],
+        clientInterceptors: [translateErrors],
         context: (executionContext: object) =>
           createORPCContext(executionContext, { arcjet, workspaceMembers }),
         plugins: [],

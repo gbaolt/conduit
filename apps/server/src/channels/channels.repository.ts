@@ -4,7 +4,7 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 
-import { channelError } from './channel-errors';
+import { channelError } from './domain/channel-errors';
 
 /** Whose view of a channel to load: the member counts and the `membership` field depend on it. */
 export type ChannelScope = { userId: string; organizationId: string };

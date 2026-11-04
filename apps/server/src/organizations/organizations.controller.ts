@@ -5,7 +5,6 @@ import { implement } from '@orpc/server';
 import { isAPIError } from 'better-auth/api';
 
 import { authorized } from '@/infrastructure/orpc/authorized';
-import { toORPCError } from '@/infrastructure/orpc/errors';
 import { arcjet } from '@/infrastructure/security/procedure.middleware';
 
 import { OrganizationsService } from './organizations.service';
@@ -22,11 +21,9 @@ export class OrganizationsController {
     return implement(contract.organizations.list)
       .use(authorized)
       .use(arcjet.read)
-      .handler(async ({ context }) => {
-        return this.organizationsService
-          .list(context.request)
-          .catch(toORPCError);
-      });
+      .handler(({ context }) =>
+        this.organizationsService.list(context.request)
+      );
   }
 
   @Implement(contract.organizations.create)
@@ -44,8 +41,7 @@ export class OrganizationsController {
           ) {
             throw errors.SLUG_TAKEN();
           }
-
-          return toORPCError(error);
+          throw error;
         }
       });
   }
@@ -55,11 +51,9 @@ export class OrganizationsController {
     return implement(contract.invitations.list)
       .use(authorized)
       .use(arcjet.read)
-      .handler(async ({ context }) => {
-        return this.organizationsService
-          .listInvitations(context.request)
-          .catch(toORPCError);
-      });
+      .handler(({ context }) =>
+        this.organizationsService.listInvitations(context.request)
+      );
   }
 
   @Implement(contract.invitations.accept)
@@ -67,10 +61,11 @@ export class OrganizationsController {
     return implement(contract.invitations.accept)
       .use(authorized)
       .use(arcjet.write)
-      .handler(async ({ context, input }) => {
-        return this.organizationsService
-          .acceptInvitation(context.request, input.invitationId)
-          .catch(toORPCError);
-      });
+      .handler(({ context, input }) =>
+        this.organizationsService.acceptInvitation(
+          context.request,
+          input.invitationId
+        )
+      );
   }
 }

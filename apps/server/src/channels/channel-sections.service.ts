@@ -1,10 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 
-import { sectionError } from './channel-errors';
 import {
   ChannelSectionsRepository,
   type SectionScope,
 } from './channel-sections.repository';
+import { sectionError } from './domain/channel-errors';
 
 export type SectionViewer = SectionScope;
 

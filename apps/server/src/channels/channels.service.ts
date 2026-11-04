@@ -9,9 +9,9 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import { WorkspaceMembersRepository } from '@/workspaces/workspace-members.repository';
 
-import { channelError, sectionError } from './channel-errors';
 import { ChannelSectionsRepository } from './channel-sections.repository';
 import { ChannelsRepository } from './channels.repository';
+import { channelError, sectionError } from './domain/channel-errors';
 
 export type ChannelViewer = {
   userId: string;
