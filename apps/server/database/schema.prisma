@@ -5,9 +5,10 @@ generator client {
 
 // Same client for the Cloudflare Worker, which cannot compile Wasm from bytes at runtime.
 generator worker {
-  provider = "prisma-client"
-  output   = "../generated/prisma-worker"
-  runtime  = "workerd"
+  provider      = "prisma-client"
+  output        = "../generated/prisma-worker"
+  runtime       = "workerd"
+  compilerBuild = "small"
 }
 
 datasource db {
