@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { prisma } from '@/database/prisma.service';
+import { prisma } from '@/infrastructure/database/prisma.service';
 import { WorkspaceMembersRepository } from '@/workspaces/workspace-members.repository';
 
 import { ChannelSectionsRepository } from './channel-sections.repository';

@@ -4,9 +4,9 @@ import { Implement } from '@orpc/nest';
 import { implement } from '@orpc/server';
 import { isAPIError } from 'better-auth/api';
 
-import { arcjet } from '@/orpc/arcjet.middleware';
-import { authorized } from '@/orpc/auth.middleware';
-import { toORPCError } from '@/orpc/auth-error';
+import { authorized } from '@/infrastructure/orpc/authorized';
+import { toORPCError } from '@/infrastructure/orpc/errors';
+import { arcjet } from '@/infrastructure/security/procedure.middleware';
 
 import { OrganizationsService } from './organizations.service';
 

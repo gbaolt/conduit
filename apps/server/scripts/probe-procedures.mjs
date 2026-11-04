@@ -15,9 +15,11 @@ const server = spawn(process.execPath, ['dist/src/main.js'], {
 
 async function waitForServer() {
   for (let attempt = 0; attempt < 120; attempt++) {
-    try {
-      if ((await fetch(`${base}/health`)).ok) return;
-    } catch {}
+    const up = await fetch(`${base}/health`).then(
+      (response) => response.ok,
+      () => false
+    );
+    if (up) return;
     await new Promise((done) => setTimeout(done, 250));
   }
   throw new Error('server did not start');
@@ -32,11 +34,7 @@ async function call(method, path) {
     },
     body: method === 'GET' ? undefined : '{}',
   });
-  const text = await response.text();
-  let body = {};
-  try {
-    body = JSON.parse(text);
-  } catch {}
+  const body = await response.json().catch(() => ({}));
   return { status: response.status, code: body?.code, message: body?.message };
 }
 

@@ -2,7 +2,7 @@ import { type ArcjetNest, detectBot, slidingWindow } from '@arcjet/nest';
 import { ORPCError, os } from '@orpc/server';
 import type { Request } from 'express';
 
-import type { User } from '@/auth/auth.config';
+import type { User } from '@/infrastructure/auth/auth.config';
 
 const bots = detectBot({
   mode: 'LIVE',

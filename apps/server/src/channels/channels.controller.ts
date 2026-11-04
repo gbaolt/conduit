@@ -3,9 +3,9 @@ import { Controller, Inject } from '@nestjs/common';
 import { Implement } from '@orpc/nest';
 import { implement } from '@orpc/server';
 
-import { arcjet } from '@/orpc/arcjet.middleware';
-import { authorized } from '@/orpc/auth.middleware';
-import { workspaceMember } from '@/orpc/workspace.middleware';
+import { authorized } from '@/infrastructure/orpc/authorized';
+import { workspaceMember } from '@/infrastructure/orpc/workspace-member';
+import { arcjet } from '@/infrastructure/security/procedure.middleware';
 
 import { ChannelsService, type ChannelViewer } from './channels.service';
 

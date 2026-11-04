@@ -2,7 +2,7 @@ import { ORPCError, os } from '@orpc/server';
 import { fromNodeHeaders } from 'better-auth/node';
 import type { Request } from 'express';
 
-import { auth } from '@/auth/auth.config';
+import { auth } from '@/infrastructure/auth/auth.config';
 
 export const authorized = os
   .$context<{ request: Request }>()

@@ -3,7 +3,7 @@ import { AuthService } from '@thallesp/nestjs-better-auth';
 import { fromNodeHeaders } from 'better-auth/node';
 import type { Request } from 'express';
 
-import type { Auth } from '@/auth/auth.config';
+import type { Auth } from '@/infrastructure/auth/auth.config';
 
 @Injectable()
 export class OrganizationsService {

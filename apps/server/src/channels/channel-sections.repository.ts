@@ -1,7 +1,7 @@
 import { Prisma } from '@generated/prisma/client';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { PrismaService } from '@/database/prisma.service';
+import { PrismaService } from '@/infrastructure/database/prisma.service';
 
 import { sectionError } from './channel-errors';
 

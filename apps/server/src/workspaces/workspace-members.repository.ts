@@ -1,7 +1,7 @@
 import type { WorkspaceRole } from '@conduit/contract';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { PrismaService } from '@/database/prisma.service';
+import { PrismaService } from '@/infrastructure/database/prisma.service';
 
 /** Reads the `Member` rows that Better Auth's organization plugin owns. Better Auth does every write. */
 @Injectable()

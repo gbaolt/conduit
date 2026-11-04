@@ -6,11 +6,11 @@ import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { emailOTP, organization } from 'better-auth/plugins';
 
 import { ensureDefaultChannel } from '@/channels/default-channel';
-import { prisma } from '@/database/prisma.service';
+import { prisma } from '@/infrastructure/database/prisma.service';
 
+import { PasswordSchema } from './password-policy';
 import { resend } from './resend';
 import { getTrustedOrigins } from './trusted-origins';
-import { PasswordSchema } from './validations';
 
 function requireEnv(name: string): string {
   const value = process.env[name];

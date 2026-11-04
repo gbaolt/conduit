@@ -1,36 +1,19 @@
 import { ARCJET, ArcjetModule, type ArcjetNest, shield } from '@arcjet/nest';
-import { type ExecutionContext, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ORPCModule } from '@orpc/nest';
 import { onError } from '@orpc/server';
 import { AuthModule } from '@thallesp/nestjs-better-auth';
-import type { Request } from 'express';
 
 import { ChannelsModule } from '@/channels/channels.module';
-import { DatabaseModule } from '@/database/database.module';
-import { HealthController } from '@/health.controller';
+import { HealthController } from '@/health/presentation/health.controller';
+import { auth } from '@/infrastructure/auth/auth.config';
+import { DatabaseModule } from '@/infrastructure/database/database.module';
+import { createORPCContext } from '@/infrastructure/orpc/context';
+import { arcjetAuthMiddleware } from '@/infrastructure/security/auth-routes.middleware';
 import { OrganizationsModule } from '@/organizations/organizations.module';
 import { UsersModule } from '@/users/users.module';
 import { WorkspaceMembersRepository } from '@/workspaces/workspace-members.repository';
 import { WorkspacesModule } from '@/workspaces/workspaces.module';
-
-import { arcjetAuthMiddleware } from './auth/arcjet.middleware';
-import { auth } from './auth/auth.config';
-
-declare module '@orpc/server' {
-  interface DefaultInitialContext {
-    request: Request;
-    arcjet: ArcjetNest;
-    workspaceMembers: WorkspaceMembersRepository;
-  }
-}
-
-declare module '@orpc/nest' {
-  interface ORPCGlobalContext {
-    request: Request;
-    arcjet: ArcjetNest;
-    workspaceMembers: WorkspaceMembersRepository;
-  }
-}
 
 @Module({
   imports: [
@@ -58,7 +41,7 @@ declare module '@orpc/nest' {
       imports: [WorkspacesModule],
       inject: [ARCJET, WorkspaceMembersRepository],
       useFactory: (
-        aj: ArcjetNest,
+        arcjet: ArcjetNest,
         workspaceMembers: WorkspaceMembersRepository
       ) => ({
         interceptors: [
@@ -66,13 +49,8 @@ declare module '@orpc/nest' {
             console.error(error);
           }),
         ],
-        context: (ctx: object) => ({
-          request: (ctx as ExecutionContext)
-            .switchToHttp()
-            .getRequest<Request>(),
-          arcjet: aj,
-          workspaceMembers,
-        }),
+        context: (executionContext: object) =>
+          createORPCContext(executionContext, { arcjet, workspaceMembers }),
         plugins: [],
       }),
     }),
