@@ -2,12 +2,12 @@ import type { Channel, ChannelMember } from '@conduit/contract';
 import { Prisma } from '@generated/prisma/client';
 import { Inject, Injectable } from '@nestjs/common';
 
+import { channelError } from '@/channels/domain/channel-errors';
+import type {
+  ChannelScope,
+  ChannelsRepository,
+} from '@/channels/domain/channels.repository';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
-
-import { channelError } from './domain/channel-errors';
-
-/** Whose view of a channel to load: the member counts and the `membership` field depend on it. */
-export type ChannelScope = { userId: string; organizationId: string };
 
 function include(scope: ChannelScope) {
   return {
@@ -79,7 +79,7 @@ function stillInWorkspace(scope: ChannelScope) {
 
 /** Channel and channel-member rows. Returns contract types, so no Prisma row leaves this file. */
 @Injectable()
-export class ChannelsRepository {
+export class PrismaChannelsRepository implements ChannelsRepository {
   constructor(@Inject(PrismaService) private readonly db: PrismaService) {}
 
   /** Public channels plus the private ones the scope's user belongs to. */

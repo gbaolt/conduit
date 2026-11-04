@@ -1,16 +1,16 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { ensureDefaultChannel } from '@/channels/infrastructure/default-channel';
+import { PrismaChannelSectionsRepository } from '@/channels/infrastructure/prisma-channel-sections.repository';
+import { PrismaChannelsRepository } from '@/channels/infrastructure/prisma-channels.repository';
 import { prisma } from '@/infrastructure/database/prisma.service';
 import { PrismaWorkspaceMembersRepository } from '@/workspaces/infrastructure/prisma-workspace-members.repository';
 
-import { ChannelSectionsRepository } from './channel-sections.repository';
 import {
   ChannelSectionsService,
   type SectionViewer,
 } from './channel-sections.service';
-import { ChannelsRepository } from './channels.repository';
 import { ChannelsService, type ChannelViewer } from './channels.service';
-import { ensureDefaultChannel } from './default-channel';
 
 // vi.hoisted runs before the imports above.
 vi.hoisted(() => {
@@ -22,9 +22,9 @@ vi.hoisted(() => {
 const connectionString = process.env.TEST_DATABASE_URL;
 
 describe.skipIf(!connectionString)('star and sections', () => {
-  const sectionsRepository = new ChannelSectionsRepository(prisma);
+  const sectionsRepository = new PrismaChannelSectionsRepository(prisma);
   const channels = new ChannelsService(
-    new ChannelsRepository(prisma),
+    new PrismaChannelsRepository(prisma),
     sectionsRepository,
     new PrismaWorkspaceMembersRepository(prisma)
   );

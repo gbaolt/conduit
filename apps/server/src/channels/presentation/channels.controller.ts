@@ -3,11 +3,13 @@ import { Controller, Inject } from '@nestjs/common';
 import { Implement } from '@orpc/nest';
 import { implement } from '@orpc/server';
 
+import {
+  ChannelsService,
+  type ChannelViewer,
+} from '@/channels/application/channels.service';
 import { authorized } from '@/infrastructure/orpc/authorized';
 import { workspaceMember } from '@/infrastructure/orpc/workspace-member';
 import { arcjet } from '@/infrastructure/security/procedure.middleware';
-
-import { ChannelsService, type ChannelViewer } from './channels.service';
 
 function viewerOf(context: {
   user: { id: string };

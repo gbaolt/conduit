@@ -1,7 +1,7 @@
 import '@/load-env';
 import 'reflect-metadata';
 
-import { ensureDefaultChannel } from '@/channels/default-channel';
+import { ensureDefaultChannel } from '@/channels/infrastructure/default-channel';
 import { prisma } from '@/infrastructure/database/prisma.service';
 
 const organizations = await prisma.organization.findMany({

@@ -1,12 +1,12 @@
 import { Prisma } from '@generated/prisma/client';
 import { Inject, Injectable } from '@nestjs/common';
 
+import { sectionError } from '@/channels/domain/channel-errors';
+import type {
+  ChannelSectionsRepository,
+  SectionScope,
+} from '@/channels/domain/channel-sections.repository';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
-
-import { sectionError } from './domain/channel-errors';
-
-/** One user's sections in one workspace. Sections are private to their owner. */
-export type SectionScope = { userId: string; organizationId: string };
 
 const select = { id: true, name: true, position: true } as const;
 
@@ -28,7 +28,7 @@ function rethrowNameTaken(error: unknown): never {
 }
 
 @Injectable()
-export class ChannelSectionsRepository {
+export class PrismaChannelSectionsRepository implements ChannelSectionsRepository {
   constructor(@Inject(PrismaService) private readonly db: PrismaService) {}
 
   list(scope: SectionScope) {

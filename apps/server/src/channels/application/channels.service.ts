@@ -7,11 +7,10 @@ import {
 } from '@conduit/contract';
 import { Inject, Injectable } from '@nestjs/common';
 
+import { channelError, sectionError } from '@/channels/domain/channel-errors';
+import { ChannelSectionsRepository } from '@/channels/domain/channel-sections.repository';
+import { ChannelsRepository } from '@/channels/domain/channels.repository';
 import { WorkspaceMembersRepository } from '@/workspaces/domain/workspace-members.repository';
-
-import { ChannelSectionsRepository } from './channel-sections.repository';
-import { ChannelsRepository } from './channels.repository';
-import { channelError, sectionError } from './domain/channel-errors';
 
 export type ChannelViewer = {
   userId: string;

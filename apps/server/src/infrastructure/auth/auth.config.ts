@@ -5,7 +5,8 @@ import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { emailOTP, organization } from 'better-auth/plugins';
 
-import { ensureDefaultChannel } from '@/channels/default-channel';
+import { WorkspaceMembershipService } from '@/channels/application/workspace-membership.service';
+import { PrismaWorkspaceMembershipRepository } from '@/channels/infrastructure/prisma-workspace-membership.repository';
 import { prisma } from '@/infrastructure/database/prisma.service';
 
 import { PasswordSchema } from './password-policy';
@@ -52,20 +53,10 @@ const passwordHooks: BetterAuthOptions['hooks'] = {
   }),
 };
 
-// Logged, not thrown: the member row is already committed, and the backfill script repairs a miss.
-async function joinDefaultChannel(
-  organization: { id: string; name: string; slug: string },
-  userId: string
-) {
-  try {
-    await ensureDefaultChannel(prisma, organization, [userId]);
-  } catch (error) {
-    console.error(
-      `[channels] default channel sync failed org=${organization.id} user=${userId}`,
-      error
-    );
-  }
-}
+// Better Auth is built at import time, outside Nest DI, so its hooks get their use case here.
+const workspaceMembership = new WorkspaceMembershipService(
+  new PrismaWorkspaceMembershipRepository(prisma)
+);
 
 const baseURL = process.env.BETTER_AUTH_URL ?? 'http://localhost:3333';
 const appURL = process.env.APP_URL ?? 'https://app.conduit.localhost';
@@ -180,32 +171,11 @@ export const auth = betterAuth({
       // Better Auth also calls afterAddMember for the creator inside createOrganization, so that path is covered too.
       organizationHooks: {
         afterAddMember: ({ organization, member }) =>
-          joinDefaultChannel(organization, member.userId),
+          workspaceMembership.memberJoined(organization, member.userId),
         afterAcceptInvitation: ({ organization, member }) =>
-          joinDefaultChannel(organization, member.userId),
-        afterRemoveMember: async ({ organization, member }) => {
-          try {
-            await prisma.$transaction([
-              prisma.channelMember.deleteMany({
-                where: {
-                  userId: member.userId,
-                  channel: { organizationId: organization.id },
-                },
-              }),
-              prisma.channelSection.deleteMany({
-                where: {
-                  userId: member.userId,
-                  organizationId: organization.id,
-                },
-              }),
-            ]);
-          } catch (error) {
-            console.error(
-              `[channels] remove failed org=${organization.id} user=${member.userId}`,
-              error
-            );
-          }
-        },
+          workspaceMembership.memberJoined(organization, member.userId),
+        afterRemoveMember: ({ organization, member }) =>
+          workspaceMembership.memberRemoved(organization.id, member.userId),
       },
     }),
   ],

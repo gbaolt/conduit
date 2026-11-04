@@ -3,14 +3,13 @@ import { Controller, Inject } from '@nestjs/common';
 import { Implement } from '@orpc/nest';
 import { implement } from '@orpc/server';
 
-import { authorized } from '@/infrastructure/orpc/authorized';
-import { workspaceMember } from '@/infrastructure/orpc/workspace-member';
-import { arcjet } from '@/infrastructure/security/procedure.middleware';
-
 import {
   ChannelSectionsService,
   type SectionViewer,
-} from './channel-sections.service';
+} from '@/channels/application/channel-sections.service';
+import { authorized } from '@/infrastructure/orpc/authorized';
+import { workspaceMember } from '@/infrastructure/orpc/workspace-member';
+import { arcjet } from '@/infrastructure/security/procedure.middleware';
 
 function viewerOf(context: {
   user: { id: string };
