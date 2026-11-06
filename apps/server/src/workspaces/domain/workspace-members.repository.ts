@@ -13,4 +13,10 @@ export abstract class WorkspaceMembersRepository {
 
   /** Every member of the workspace, oldest first. */
   abstract list(organizationId: string): Promise<WorkspaceMember[]>;
+
+  /** A member of the workspace by member id, or null. */
+  abstract findMember(
+    organizationId: string,
+    memberId: string
+  ): Promise<{ memberId: string; userId: string; role: WorkspaceRole } | null>;
 }

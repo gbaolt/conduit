@@ -5,6 +5,8 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { membersQuery } from '@/services/workspaces/queries';
 
+import { MemberActions } from './member-actions';
+
 const joinedFormat = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
 });
@@ -32,6 +34,9 @@ export function MembersTable() {
           >
             Joined
           </th>
+          <th scope="col" className="w-10 py-2 ps-3">
+            <span className="sr-only">Actions</span>
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -56,6 +61,9 @@ export function MembersTable() {
             </td>
             <td className="text-muted-foreground hidden px-3 py-3 sm:table-cell">
               {joinedFormat.format(member.joinedAt)}
+            </td>
+            <td className="py-3 ps-3 text-right">
+              <MemberActions member={member} />
             </td>
           </tr>
         ))}

@@ -5,19 +5,23 @@ import { z } from 'zod';
 import {
   CreateOrganizationInputSchema,
   InvitationSchema,
+  MemberIdInputSchema,
   OrganizationSchema,
+  UpdateMemberRoleInputSchema,
   WorkspaceMemberSchema,
 } from '@/schemas/organizations';
 
 export const organizationErrors = {
   SLUG_TAKEN: { status: 409, message: 'That URL is already taken.' },
+  NOT_FOUND: { status: 404, message: 'Member not found.' },
   FORBIDDEN: {
     status: 403,
     message: 'You do not have permission to do that in this workspace.',
   },
+  LAST_OWNER: { status: 409, message: 'A workspace needs at least one owner.' },
 } as const;
 
-const { SLUG_TAKEN, FORBIDDEN } = organizationErrors;
+const { SLUG_TAKEN, NOT_FOUND, FORBIDDEN, LAST_OWNER } = organizationErrors;
 
 export const listOrganizationsContract = oc
   .meta(openapi({ method: 'GET', path: '/organizations' }))
@@ -42,3 +46,15 @@ export const listMembersContract = oc
   .meta(openapi({ method: 'GET', path: '/members' }))
   .errors({ FORBIDDEN })
   .output(z.array(WorkspaceMemberSchema));
+
+export const updateMemberRoleContract = oc
+  .meta(openapi({ method: 'PATCH', path: '/members/{memberId}/role' }))
+  .errors({ NOT_FOUND, FORBIDDEN, LAST_OWNER })
+  .input(UpdateMemberRoleInputSchema)
+  .output(z.void());
+
+export const removeMemberContract = oc
+  .meta(openapi({ method: 'DELETE', path: '/members/{memberId}' }))
+  .errors({ NOT_FOUND, FORBIDDEN, LAST_OWNER })
+  .input(MemberIdInputSchema)
+  .output(z.void());

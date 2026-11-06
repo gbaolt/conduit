@@ -32,6 +32,8 @@ import {
   listInvitationsContract,
   listMembersContract,
   listOrganizationsContract,
+  removeMemberContract,
+  updateMemberRoleContract,
 } from './contracts/organizations';
 import { getSessionContract } from './contracts/users';
 
@@ -48,6 +50,8 @@ export const contract = {
   },
   members: {
     list: listMembersContract,
+    updateRole: updateMemberRoleContract,
+    remove: removeMemberContract,
   },
   invitations: {
     list: listInvitationsContract,

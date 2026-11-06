@@ -79,3 +79,25 @@ export function useSwitchWorkspace() {
 export function useWorkspaceMembers() {
   return useQuery(membersQuery);
 }
+
+function useInvalidateMembers() {
+  const queryClient = useQueryClient();
+
+  return () => queryClient.invalidateQueries({ queryKey: orpc.members.key() });
+}
+
+export function useUpdateMemberRole() {
+  const invalidate = useInvalidateMembers();
+
+  return useMutation(
+    orpc.members.updateRole.mutationOptions({ onSuccess: invalidate })
+  );
+}
+
+export function useRemoveMember() {
+  const invalidate = useInvalidateMembers();
+
+  return useMutation(
+    orpc.members.remove.mutationOptions({ onSuccess: invalidate })
+  );
+}

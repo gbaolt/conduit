@@ -36,6 +36,20 @@ export class PrismaWorkspaceMembersRepository implements WorkspaceMembersReposit
     });
   }
 
+  async findMember(organizationId: string, memberId: string) {
+    const member = await this.db.member.findFirst({
+      where: { id: memberId, organizationId },
+      select: { id: true, userId: true, role: true },
+    });
+    return member
+      ? {
+          memberId: member.id,
+          userId: member.userId,
+          role: toWorkspaceRole(member.role),
+        }
+      : null;
+  }
+
   async list(organizationId: string): Promise<WorkspaceMember[]> {
     const members = await this.db.member.findMany({
       where: { organizationId },

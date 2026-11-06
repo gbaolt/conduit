@@ -54,3 +54,10 @@ export const WorkspaceMemberSchema = z.object({
   joinedAt: z.coerce.date(),
 });
 export type WorkspaceMember = z.infer<typeof WorkspaceMemberSchema>;
+
+export const MemberIdInputSchema = z.object({ memberId: z.string() });
+
+export const UpdateMemberRoleInputSchema = z.object({
+  memberId: z.string(),
+  role: WorkspaceRoleSchema,
+});
