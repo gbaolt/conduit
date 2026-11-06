@@ -1,0 +1,23 @@
+// Anyone can get an address on these, so allowing one would open the workspace to everyone.
+export const PUBLIC_MAIL_DOMAINS: ReadonlySet<string> = new Set([
+  'gmail.com',
+  'googlemail.com',
+  'outlook.com',
+  'hotmail.com',
+  'live.com',
+  'msn.com',
+  'yahoo.com',
+  'ymail.com',
+  'icloud.com',
+  'me.com',
+  'mac.com',
+  'aol.com',
+  'proton.me',
+  'protonmail.com',
+  'gmx.com',
+  'mail.com',
+  'zoho.com',
+  'yandex.com',
+  'qq.com',
+  '163.com',
+]);

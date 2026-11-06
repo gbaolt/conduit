@@ -12,10 +12,12 @@ import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import {
   useAcceptInvitation,
+  useJoinOrganization,
   useSwitchWorkspace,
 } from '@/services/workspaces/hooks';
 import {
   invitationsQuery,
+  joinableWorkspacesQuery,
   workspacesQuery,
 } from '@/services/workspaces/queries';
 
@@ -105,10 +107,17 @@ export function WorkspaceChooser({ onCreate }: { onCreate: () => void }) {
   const goHome = () => router.push('/');
   const workspaces = useQuery(workspacesQuery);
   const invitations = useQuery(invitationsQuery);
+  const joinable = useQuery(joinableWorkspacesQuery);
   const accept = useAcceptInvitation();
+  const join = useJoinOrganization();
   const open = useSwitchWorkspace();
   const leaving =
-    accept.isPending || accept.isSuccess || open.isPending || open.isSuccess;
+    accept.isPending ||
+    accept.isSuccess ||
+    join.isPending ||
+    join.isSuccess ||
+    open.isPending ||
+    open.isSuccess;
 
   return (
     <div className="flex flex-col gap-4">
@@ -145,6 +154,38 @@ export function WorkspaceChooser({ onCreate }: { onCreate: () => void }) {
               </li>
             ))}
             {accept.isError && <ErrorLine>{accept.error.message}</ErrorLine>}
+          </Section>
+        )}
+
+        {!!joinable.data?.length && (
+          <Section title="Join your team">
+            {joinable.data.map((workspace) => (
+              <li key={workspace.id} className={rowClass}>
+                <WorkspaceMark {...workspace} />
+                <RowText
+                  title={workspace.name}
+                  detail="Open to people with your email domain"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={leaving}
+                  onClick={() =>
+                    join.mutate(
+                      { organizationId: workspace.id },
+                      { onSuccess: goHome }
+                    )
+                  }
+                >
+                  {join.isPending &&
+                  join.variables.organizationId === workspace.id ? (
+                    <Spinner />
+                  ) : null}
+                  Join
+                </Button>
+              </li>
+            ))}
+            {join.isError && <ErrorLine>{join.error.message}</ErrorLine>}
           </Section>
         )}
 

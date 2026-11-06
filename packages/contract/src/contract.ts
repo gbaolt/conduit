@@ -33,8 +33,11 @@ import {
   deactivateMemberContract,
   getInvitationContract,
   getJoinLinkContract,
+  joinOrganizationContract,
   joinWithLinkContract,
+  listAllowedDomainsContract,
   listInvitationsContract,
+  listJoinableOrganizationsContract,
   listMembersContract,
   listOrganizationsContract,
   listWorkspaceInvitationsContract,
@@ -43,6 +46,7 @@ import {
   removeMemberContract,
   resetJoinLinkContract,
   revokeInvitationContract,
+  setAllowedDomainsContract,
   updateMemberRoleContract,
 } from './contracts/organizations';
 import { getSessionContract } from './contracts/users';
@@ -57,12 +61,18 @@ export const contract = {
   organizations: {
     list: listOrganizationsContract,
     create: createOrganizationContract,
+    joinable: listJoinableOrganizationsContract,
+    join: joinOrganizationContract,
   },
   joinLink: {
     get: getJoinLinkContract,
     reset: resetJoinLinkContract,
     preview: previewJoinLinkContract,
     join: joinWithLinkContract,
+  },
+  allowedDomains: {
+    list: listAllowedDomainsContract,
+    set: setAllowedDomainsContract,
   },
   members: {
     list: listMembersContract,

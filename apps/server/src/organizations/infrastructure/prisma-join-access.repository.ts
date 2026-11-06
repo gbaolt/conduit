@@ -47,4 +47,42 @@ export class PrismaJoinAccessRepository implements JoinAccessRepository {
         }
       : null;
   }
+
+  async listDomains(organizationId: string) {
+    const rows = await this.db.allowedDomain.findMany({
+      where: { organizationId },
+      orderBy: { domain: 'asc' },
+    });
+    return rows.map((row) => row.domain);
+  }
+
+  async setDomains(organizationId: string, domains: string[]) {
+    await this.db.$transaction([
+      this.db.allowedDomain.deleteMany({
+        where: { organizationId, domain: { notIn: domains } },
+      }),
+      this.db.allowedDomain.createMany({
+        data: domains.map((domain) => ({ organizationId, domain })),
+        skipDuplicates: true,
+      }),
+    ]);
+  }
+
+  async allowsDomain(organizationId: string, domain: string) {
+    const count = await this.db.allowedDomain.count({
+      where: { organizationId, domain },
+    });
+    return count > 0;
+  }
+
+  async listJoinable(userId: string, domain: string) {
+    return this.db.organization.findMany({
+      where: {
+        allowedDomains: { some: { domain } },
+        members: { none: { userId } },
+      },
+      select: { id: true, name: true, logo: true },
+      orderBy: { name: 'asc' },
+    });
+  }
 }

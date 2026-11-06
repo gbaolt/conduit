@@ -132,4 +132,76 @@ describe.skipIf(!connectionString)('OrganizationsService join access', () => {
       ).rejects.toMatchObject({ code: 'DEACTIVATED' });
     });
   });
+
+  describe('allowed domains', () => {
+    const domain = 'test.local';
+
+    it('stores lower-cased domains and refuses a public mail domain', async () => {
+      expect(
+        await service.setAllowedDomains(admin(), ['Eng.Acme.dev', 'ACME.dev'])
+      ).toEqual(['acme.dev', 'eng.acme.dev']);
+
+      await expect(
+        service.setAllowedDomains(admin(), ['acme.dev', 'GMAIL.com'])
+      ).rejects.toMatchObject({ code: 'PUBLIC_MAIL_DOMAIN' });
+      expect(await service.listAllowedDomains(admin())).toEqual([
+        'acme.dev',
+        'eng.acme.dev',
+      ]);
+    });
+
+    it('lists and joins a verified user at the domain', async () => {
+      await service.setAllowedDomains(admin(), [domain]);
+      const user = await newcomer('domain');
+
+      const listed = await service.listJoinable(user);
+      expect(listed.map(({ id }) => id)).toEqual([workspace.organizationId]);
+
+      await service.joinOrganization(
+        user.headers,
+        user,
+        workspace.organizationId
+      );
+
+      expect(await memberRows(user.id)).toBe(1);
+      expect(await service.listJoinable(user)).toEqual([]);
+    });
+
+    it('neither lists nor joins an unverified user', async () => {
+      await service.setAllowedDomains(admin(), [domain]);
+      const user = { ...(await newcomer('unverified')), emailVerified: false };
+
+      expect(await service.listJoinable(user)).toEqual([]);
+      await expect(
+        service.joinOrganization(user.headers, user, workspace.organizationId)
+      ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+      expect(await memberRows(user.id)).toBe(0);
+    });
+
+    it('does not match a subdomain of an allowed domain', async () => {
+      await service.setAllowedDomains(admin(), [domain]);
+      const user = {
+        ...(await newcomer('sub')),
+        email: `sub@eng.${domain}`,
+      };
+
+      expect(await service.listJoinable(user)).toEqual([]);
+      await expect(
+        service.joinOrganization(user.headers, user, workspace.organizationId)
+      ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    });
+
+    it('does not list a workspace the user is deactivated in', async () => {
+      await service.setAllowedDomains(admin(), [domain]);
+      const { userId, memberId } = workspace.people.other;
+      await members.deactivate(memberId, workspace.people.owner.userId);
+      const { email } = await prisma.user.findUniqueOrThrow({
+        where: { id: userId },
+      });
+
+      expect(
+        await service.listJoinable({ id: userId, email, emailVerified: true })
+      ).toEqual([]);
+    });
+  });
 });

@@ -13,10 +13,15 @@ import { InvitationsRepository } from '@/organizations/domain/invitations.reposi
 import { JoinAccessRepository } from '@/organizations/domain/join-access.repository';
 import { organizationError } from '@/organizations/domain/organization-errors';
 import { OrganizationsGateway } from '@/organizations/domain/organizations.gateway';
+import { PUBLIC_MAIL_DOMAINS } from '@/organizations/domain/public-mail-domains';
 import { WorkspaceMembersRepository } from '@/workspaces/domain/workspace-members.repository';
 import type { WorkspaceViewer } from '@/workspaces/domain/workspace-viewer';
 
+type Joiner = { id: string; email: string; emailVerified: boolean };
+
 const newToken = () => randomBytes(32).toString('base64url');
+const domainOf = (email: string) =>
+  email.slice(email.lastIndexOf('@') + 1).toLowerCase();
 
 @Injectable()
 export class OrganizationsService {
@@ -195,6 +200,44 @@ export class OrganizationsService {
     return { organizationId };
   }
 
+  listAllowedDomains(viewer: WorkspaceViewer) {
+    this.requireDomainAdmin(viewer);
+    return this.joinAccess.listDomains(viewer.organizationId);
+  }
+
+  async setAllowedDomains(viewer: WorkspaceViewer, domains: string[]) {
+    this.requireDomainAdmin(viewer);
+    const unique = [...new Set(domains.map((d) => d.trim().toLowerCase()))];
+    if (unique.some((domain) => PUBLIC_MAIL_DOMAINS.has(domain))) {
+      throw organizationError('PUBLIC_MAIL_DOMAIN');
+    }
+    await this.joinAccess.setDomains(viewer.organizationId, unique);
+    return this.joinAccess.listDomains(viewer.organizationId);
+  }
+
+  async listJoinable(user: Joiner) {
+    if (!user.emailVerified) return [];
+    return this.joinAccess.listJoinable(user.id, domainOf(user.email));
+  }
+
+  async joinOrganization(
+    headers: Headers,
+    user: Joiner,
+    organizationId: string
+  ) {
+    if (
+      !user.emailVerified ||
+      !(await this.joinAccess.allowsDomain(
+        organizationId,
+        domainOf(user.email)
+      ))
+    ) {
+      throw organizationError('FORBIDDEN');
+    }
+    await this.joinWithoutInvitation(headers, user.id, organizationId);
+    return { organizationId };
+  }
+
   /** Idempotent: a current member only has the workspace made active. */
   private async joinWithoutInvitation(
     headers: Headers,
@@ -216,6 +259,12 @@ export class OrganizationsService {
 
   private requireJoinLinkAdmin(viewer: WorkspaceViewer) {
     if (!canWorkspace('manageJoinLink', viewer.workspaceRole)) {
+      throw organizationError('FORBIDDEN');
+    }
+  }
+
+  private requireDomainAdmin(viewer: WorkspaceViewer) {
+    if (!canWorkspace('manageAllowedDomains', viewer.workspaceRole)) {
       throw organizationError('FORBIDDEN');
     }
   }

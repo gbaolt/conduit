@@ -7,6 +7,7 @@ import { orpc } from '@/lib/orpc';
 import { authClient } from '@/services/auth/client';
 
 import {
+  allowedDomainsQuery,
   joinLinkQuery,
   membersQuery,
   workspaceInvitationsQuery,
@@ -172,5 +173,28 @@ export function useJoinWithLink() {
 
   return useMutation(
     orpc.joinLink.join.mutationOptions({ onSuccess: onChanged })
+  );
+}
+
+export function useAllowedDomains() {
+  return useQuery(allowedDomainsQuery);
+}
+
+export function useSetAllowedDomains() {
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    orpc.allowedDomains.set.mutationOptions({
+      onSuccess: (domains) =>
+        queryClient.setQueryData(allowedDomainsQuery.queryKey, domains),
+    })
+  );
+}
+
+export function useJoinOrganization() {
+  const onChanged = useActiveWorkspaceChanged();
+
+  return useMutation(
+    orpc.organizations.join.mutationOptions({ onSuccess: onChanged })
   );
 }

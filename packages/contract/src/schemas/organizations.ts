@@ -112,3 +112,30 @@ export const JoinLinkPreviewSchema = z.object({
 });
 
 export const JoinedWorkspaceSchema = z.object({ organizationId: z.string() });
+
+export const DomainSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(
+    /^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/,
+    'Enter a domain such as acme.dev.'
+  );
+
+export const AllowedDomainsInputSchema = z.object({
+  domains: z.array(DomainSchema).max(20, 'Add up to 20 domains.'),
+});
+
+export const AllowedDomainsSchema = z.array(z.string());
+
+export const OrganizationIdInputSchema = z.object({
+  organizationId: z.string(),
+});
+
+/** A workspace the caller may join because their email domain is allowed. */
+export const JoinableWorkspaceSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  logo: z.string().nullable(),
+});
+export type JoinableWorkspace = z.infer<typeof JoinableWorkspaceSchema>;

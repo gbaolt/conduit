@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@conduit/ui/lib/utils';
-import { IconMailPlus, IconUsers } from '@tabler/icons-react';
+import { IconKey, IconMailPlus, IconUsers } from '@tabler/icons-react';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -10,6 +10,7 @@ import { usePathname } from 'next/navigation';
 const SECTIONS: { href: Route; label: string; icon: typeof IconUsers }[] = [
   { href: '/settings/members', label: 'Members', icon: IconUsers },
   { href: '/settings/invitations', label: 'Invitations', icon: IconMailPlus },
+  { href: '/settings/access', label: 'Access', icon: IconKey },
 ];
 
 export function SettingsNav() {

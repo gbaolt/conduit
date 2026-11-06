@@ -3,17 +3,21 @@ import { openapi } from '@orpc/openapi';
 import { z } from 'zod';
 
 import {
+  AllowedDomainsInputSchema,
+  AllowedDomainsSchema,
   CreateInvitationsInputSchema,
   CreateInvitationsResultSchema,
   CreateOrganizationInputSchema,
   InvitationIdInputSchema,
   InvitationPreviewSchema,
   InvitationSchema,
+  JoinableWorkspaceSchema,
   JoinedWorkspaceSchema,
   JoinLinkPreviewSchema,
   JoinLinkSchema,
   JoinLinkTokenInputSchema,
   MemberIdInputSchema,
+  OrganizationIdInputSchema,
   OrganizationSchema,
   UpdateMemberRoleInputSchema,
   WorkspaceInvitationSchema,
@@ -40,6 +44,10 @@ export const organizationErrors = {
     status: 403,
     message: 'Your access to this workspace is deactivated.',
   },
+  PUBLIC_MAIL_DOMAIN: {
+    status: 422,
+    message: 'Public mail providers such as gmail.com cannot be allowed.',
+  },
 } as const;
 
 const {
@@ -50,6 +58,7 @@ const {
   INVITATION_NOT_FOUND,
   JOIN_LINK_INVALID,
   DEACTIVATED,
+  PUBLIC_MAIL_DOMAIN,
 } = organizationErrors;
 
 export const listOrganizationsContract = oc
@@ -145,4 +154,27 @@ export const joinWithLinkContract = oc
   .meta(openapi({ method: 'POST', path: '/join-link/{token}/join' }))
   .errors({ JOIN_LINK_INVALID, DEACTIVATED })
   .input(JoinLinkTokenInputSchema)
+  .output(JoinedWorkspaceSchema);
+
+export const listAllowedDomainsContract = oc
+  .meta(openapi({ method: 'GET', path: '/allowed-domains' }))
+  .errors({ FORBIDDEN })
+  .output(AllowedDomainsSchema);
+
+export const setAllowedDomainsContract = oc
+  .meta(openapi({ method: 'PUT', path: '/allowed-domains' }))
+  .errors({ FORBIDDEN, PUBLIC_MAIL_DOMAIN })
+  .input(AllowedDomainsInputSchema)
+  .output(AllowedDomainsSchema);
+
+export const listJoinableOrganizationsContract = oc
+  .meta(openapi({ method: 'GET', path: '/organizations/joinable' }))
+  .output(z.array(JoinableWorkspaceSchema));
+
+export const joinOrganizationContract = oc
+  .meta(
+    openapi({ method: 'POST', path: '/organizations/{organizationId}/join' })
+  )
+  .errors({ FORBIDDEN, DEACTIVATED })
+  .input(OrganizationIdInputSchema)
   .output(JoinedWorkspaceSchema);

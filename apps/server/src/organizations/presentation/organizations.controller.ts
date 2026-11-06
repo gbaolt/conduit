@@ -201,4 +201,53 @@ export class OrganizationsController {
         )
       );
   }
+
+  @Implement(contract.allowedDomains.list)
+  listAllowedDomains() {
+    return implement(contract.allowedDomains.list)
+      .use(authorized)
+      .use(arcjet.read)
+      .use(workspaceMember)
+      .handler(({ context }) =>
+        this.organizationsService.listAllowedDomains(viewerOf(context))
+      );
+  }
+
+  @Implement(contract.allowedDomains.set)
+  setAllowedDomains() {
+    return implement(contract.allowedDomains.set)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.organizationsService.setAllowedDomains(
+          viewerOf(context),
+          input.domains
+        )
+      );
+  }
+
+  @Implement(contract.organizations.joinable)
+  listJoinable() {
+    return implement(contract.organizations.joinable)
+      .use(authorized)
+      .use(arcjet.read)
+      .handler(({ context }) =>
+        this.organizationsService.listJoinable(context.user)
+      );
+  }
+
+  @Implement(contract.organizations.join)
+  joinOrganization() {
+    return implement(contract.organizations.join)
+      .use(authorized)
+      .use(arcjet.heavyWrite)
+      .handler(({ context, input }) =>
+        this.organizationsService.joinOrganization(
+          context.headers,
+          context.user,
+          input.organizationId
+        )
+      );
+  }
 }
