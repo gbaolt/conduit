@@ -1,5 +1,6 @@
 import './load-env';
 import 'reflect-metadata';
+import '@nestjs/core';
 
 import { createApp } from './create-app';
 
