@@ -38,9 +38,7 @@ export function AddMembersDialog({ channel }: { channel: Channel }) {
   const { close } = useChannelDialogs();
   const anchor = useComboboxAnchor();
   const addMembers = useAddChannelMembers();
-  const { data: workspaceMembers = [] } = useWorkspaceMembers(
-    channel.organizationId
-  );
+  const { data: workspaceMembers = [] } = useWorkspaceMembers();
   const { data: channelMembers = [] } = useQuery(
     channelMembersQuery(channel.id)
   );
@@ -48,8 +46,10 @@ export function AddMembersDialog({ channel }: { channel: Channel }) {
 
   const inChannel = new Set(channelMembers.map((member) => member.userId));
   const people: Person[] = workspaceMembers
-    .filter((member) => !inChannel.has(member.userId))
-    .map((member) => ({ id: member.userId, name: member.user.name }));
+    .filter(
+      (member) => member.status === 'active' && !inChannel.has(member.userId)
+    )
+    .map((member) => ({ id: member.userId, name: member.name }));
 
   return (
     <Dialog open onOpenChange={(open) => !open && close()}>

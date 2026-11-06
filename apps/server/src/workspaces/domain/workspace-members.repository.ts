@@ -1,4 +1,4 @@
-import type { WorkspaceRole } from '@conduit/contract';
+import type { WorkspaceMember, WorkspaceRole } from '@conduit/contract';
 
 /** Reads workspace membership. Better Auth owns the rows and does every write. */
 export abstract class WorkspaceMembersRepository {
@@ -10,4 +10,7 @@ export abstract class WorkspaceMembersRepository {
 
   /** How many of `userIds` belong to the workspace. */
   abstract count(organizationId: string, userIds: string[]): Promise<number>;
+
+  /** Every member of the workspace, oldest first. */
+  abstract list(organizationId: string): Promise<WorkspaceMember[]>;
 }

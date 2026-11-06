@@ -6,6 +6,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { orpc } from '@/lib/orpc';
 import { authClient } from '@/services/auth/client';
 
+import { membersQuery } from './queries';
+
 // Every change to memberships or the active workspace must refresh the same things.
 function useActiveWorkspaceChanged() {
   const queryClient = useQueryClient();
@@ -14,6 +16,7 @@ function useActiveWorkspaceChanged() {
     void queryClient.invalidateQueries({ queryKey: orpc.organizations.key() });
     void queryClient.invalidateQueries({ queryKey: orpc.users.key() });
     void queryClient.invalidateQueries({ queryKey: orpc.channels.key() });
+    void queryClient.invalidateQueries({ queryKey: orpc.members.key() });
 
     // Better Auth's own atoms don't see changes made through oRPC.
     authClient.$store.notify('$activeOrgSignal');
@@ -73,20 +76,6 @@ export function useSwitchWorkspace() {
   });
 }
 
-// shortcut: Better Auth caps the page at 500 members; page through `offset` if a workspace outgrows it.
-export function useWorkspaceMembers(organizationId: string) {
-  return useQuery({
-    queryKey: ['workspace-members', organizationId],
-    queryFn: async () => {
-      const { data, error } = await authClient.organization.listMembers({
-        query: { organizationId, limit: 500 },
-      });
-
-      if (error) {
-        throw new Error(error.message ?? 'Could not load workspace members.');
-      }
-
-      return data.members;
-    },
-  });
+export function useWorkspaceMembers() {
+  return useQuery(membersQuery);
 }

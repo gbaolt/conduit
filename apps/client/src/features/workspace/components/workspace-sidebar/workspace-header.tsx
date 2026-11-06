@@ -1,5 +1,6 @@
 'use client';
 
+import { canWorkspace } from '@conduit/contract';
 import { Button } from '@conduit/ui/components/button';
 import {
   DropdownMenu,
@@ -35,6 +36,7 @@ import { useState } from 'react';
 
 import { useChannelDialogs } from '@/features/channels/context/channel-dialogs-provider';
 import { useWorkspace } from '@/features/workspace/context/workspace-provider';
+import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
 const FILTERS = [
   {
@@ -56,6 +58,7 @@ const SORTS = [
 
 function WorkspaceMenu() {
   const { activeWorkspace } = useWorkspace();
+  const role = useWorkspaceRole();
   const name = activeWorkspace?.name ?? 'Workspace';
 
   return (
@@ -74,6 +77,12 @@ function WorkspaceMenu() {
           Invite people to {name}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
+        {canWorkspace('viewSettings', role) ? (
+          <DropdownMenuItem render={<Link href="/settings/members" />}>
+            <IconSettings data-slot="icon" aria-hidden />
+            Workspace settings
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem>
           <IconSettings2 data-slot="icon" aria-hidden />
           Preferences

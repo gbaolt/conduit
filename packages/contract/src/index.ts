@@ -6,6 +6,7 @@ export * from './contracts/organizations';
 export * from './contracts/users';
 export * from './lib/channel-policy';
 export * from './lib/names';
+export * from './lib/workspace-policy';
 export * from './schemas/channels';
 export * from './schemas/health';
 export * from './schemas/organizations';

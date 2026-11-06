@@ -30,6 +30,7 @@ import {
   acceptInvitationContract,
   createOrganizationContract,
   listInvitationsContract,
+  listMembersContract,
   listOrganizationsContract,
 } from './contracts/organizations';
 import { getSessionContract } from './contracts/users';
@@ -44,6 +45,9 @@ export const contract = {
   organizations: {
     list: listOrganizationsContract,
     create: createOrganizationContract,
+  },
+  members: {
+    list: listMembersContract,
   },
   invitations: {
     list: listInvitationsContract,
