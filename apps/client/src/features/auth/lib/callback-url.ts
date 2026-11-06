@@ -1,10 +1,12 @@
+// Browsers read `/\evil.com` as `//evil.com`, so no backslash may appear anywhere.
 export function isSafeInternalPath(
   value: string | null | undefined
 ): value is string {
   return (
     typeof value === 'string' &&
     value.startsWith('/') &&
-    !value.startsWith('//')
+    !value.startsWith('//') &&
+    !value.includes('\\')
   );
 }
 
