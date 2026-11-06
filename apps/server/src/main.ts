@@ -1,6 +1,5 @@
 import './load-env';
 import 'reflect-metadata';
-// Vercel's NestJS builder only accepts an entry file that imports @nestjs/core itself.
 import '@nestjs/core';
 
 import { createApp } from './create-app';
