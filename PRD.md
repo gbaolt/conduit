@@ -130,9 +130,9 @@ A team can't try messaging until more than one person can get in. Today a member
 
 | ID   | Sub-feature                                                            | Status      | PR                                               |
 | ---- | ---------------------------------------------------------------------- | ----------- | ------------------------------------------------ |
-| M0.1 | Invite people by email                                                 | Not started |                                                  |
+| M0.1 | Invite people by email                                                 | Shipped     | [#55](https://github.com/gbaolt/conduit/pull/55) |
 | M0.2 | Invite people with a shareable link that an admin can reset            | Not started |                                                  |
-| M0.3 | Revoke a pending invitation                                            | Not started |                                                  |
+| M0.3 | Revoke a pending invitation                                            | Shipped     | [#55](https://github.com/gbaolt/conduit/pull/55) |
 | M0.4 | Remove a member from the workspace                                     | Shipped     | [#54](https://github.com/gbaolt/conduit/pull/54) |
 | M0.5 | Deactivate and reactivate a member                                     | Shipped     | [#54](https://github.com/gbaolt/conduit/pull/54) |
 | M0.6 | Change a member's role to owner, admin, or member                      | Shipped     | [#54](https://github.com/gbaolt/conduit/pull/54) |
