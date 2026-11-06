@@ -48,6 +48,7 @@ import {
   revokeInvitationContract,
   setAllowedDomainsContract,
   updateMemberRoleContract,
+  updateOrganizationContract,
 } from './contracts/organizations';
 import { getSessionContract } from './contracts/users';
 
@@ -63,6 +64,7 @@ export const contract = {
     create: createOrganizationContract,
     joinable: listJoinableOrganizationsContract,
     join: joinOrganizationContract,
+    update: updateOrganizationContract,
   },
   joinLink: {
     get: getJoinLinkContract,

@@ -19,6 +19,7 @@ import {
   MemberIdInputSchema,
   OrganizationIdInputSchema,
   OrganizationSchema,
+  UpdateOrganizationInputSchema,
   UpdateMemberRoleInputSchema,
   WorkspaceInvitationSchema,
   WorkspaceMemberSchema,
@@ -69,6 +70,12 @@ export const createOrganizationContract = oc
   .meta(openapi({ method: 'POST', path: '/organizations' }))
   .errors({ SLUG_TAKEN })
   .input(CreateOrganizationInputSchema)
+  .output(OrganizationSchema);
+
+export const updateOrganizationContract = oc
+  .meta(openapi({ method: 'PATCH', path: '/organizations/active' }))
+  .errors({ SLUG_TAKEN, FORBIDDEN })
+  .input(UpdateOrganizationInputSchema)
   .output(OrganizationSchema);
 
 export const listInvitationsContract = oc

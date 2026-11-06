@@ -28,6 +28,12 @@ export type CreateOrganizationInput = z.infer<
   typeof CreateOrganizationInputSchema
 >;
 
+export const UpdateOrganizationInputSchema =
+  CreateOrganizationInputSchema.partial();
+export type UpdateOrganizationInput = z.infer<
+  typeof UpdateOrganizationInputSchema
+>;
+
 export const InvitationSchema = z.object({
   id: z.string(),
   organizationId: z.string(),

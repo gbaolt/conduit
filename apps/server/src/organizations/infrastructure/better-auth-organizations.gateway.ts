@@ -2,6 +2,7 @@ import type {
   CreateOrganizationInput,
   InviteRole,
   organizationErrors,
+  UpdateOrganizationInput,
   WorkspaceRole,
 } from '@conduit/contract';
 import { Inject, Injectable } from '@nestjs/common';
@@ -48,6 +49,31 @@ export class BetterAuthOrganizationsGateway implements OrganizationsGateway {
         error.body?.code === 'ORGANIZATION_ALREADY_EXISTS'
       ) {
         throw organizationError('SLUG_TAKEN');
+      }
+      throw error;
+    }
+  }
+
+  async update(
+    headers: Headers,
+    organizationId: string,
+    input: UpdateOrganizationInput
+  ) {
+    try {
+      const updated = await this.authService.api.updateOrganization({
+        body: { organizationId, data: input },
+        headers,
+      });
+      // Better Auth returns null only when the workspace is gone.
+      if (!updated) throw organizationError('NOT_FOUND');
+      return updated;
+    } catch (error) {
+      const code = isAPIError(error) ? error.body?.code : undefined;
+      if (code === 'ORGANIZATION_SLUG_ALREADY_TAKEN') {
+        throw organizationError('SLUG_TAKEN');
+      }
+      if (code === 'YOU_ARE_NOT_ALLOWED_TO_UPDATE_THIS_ORGANIZATION') {
+        throw organizationError('FORBIDDEN');
       }
       throw error;
     }

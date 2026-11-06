@@ -5,6 +5,7 @@ import {
   type CreateInvitationsResult,
   type CreateOrganizationInput,
   type InviteRole,
+  type UpdateOrganizationInput,
   type WorkspaceRole,
 } from '@conduit/contract';
 import { Inject, Injectable } from '@nestjs/common';
@@ -46,6 +47,17 @@ export class OrganizationsService {
 
   create(headers: Headers, input: CreateOrganizationInput) {
     return this.organizations.create(headers, input);
+  }
+
+  async update(
+    headers: Headers,
+    viewer: WorkspaceViewer,
+    input: UpdateOrganizationInput
+  ) {
+    if (!canWorkspace('editWorkspace', viewer.workspaceRole)) {
+      throw organizationError('FORBIDDEN');
+    }
+    return this.organizations.update(headers, viewer.organizationId, input);
   }
 
   async listInvitations(headers: Headers) {

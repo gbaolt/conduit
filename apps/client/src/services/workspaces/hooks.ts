@@ -57,6 +57,14 @@ export function useCreateWorkspace() {
   );
 }
 
+export function useUpdateWorkspace() {
+  const onChanged = useActiveWorkspaceChanged();
+
+  return useMutation(
+    orpc.organizations.update.mutationOptions({ onSuccess: onChanged })
+  );
+}
+
 export function useAcceptInvitation() {
   const onChanged = useActiveWorkspaceChanged();
 
