@@ -29,7 +29,10 @@ export type CreateOrganizationInput = z.infer<
 >;
 
 export const UpdateOrganizationInputSchema =
-  CreateOrganizationInputSchema.partial();
+  CreateOrganizationInputSchema.partial().extend({
+    /** A URL that `organizations.iconUploadUrl` issued. */
+    logo: z.url().optional(),
+  });
 export type UpdateOrganizationInput = z.infer<
   typeof UpdateOrganizationInputSchema
 >;
@@ -145,3 +148,25 @@ export const JoinableWorkspaceSchema = z.object({
   logo: z.string().nullable(),
 });
 export type JoinableWorkspace = z.infer<typeof JoinableWorkspaceSchema>;
+
+export const ICON_MAX_BYTES = 1024 * 1024;
+/** Accepted icon content types and the file extension each gets. */
+export const ICON_CONTENT_TYPES = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/webp': 'webp',
+} as const;
+
+export const IconUploadInputSchema = z.object({
+  contentType: z.string(),
+  size: z.number().int().positive(),
+});
+export type IconUploadInput = z.infer<typeof IconUploadInputSchema>;
+
+export const IconUploadSchema = z.object({
+  /** Presigned PUT URL. Send the file with the same `Content-Type`. */
+  uploadUrl: z.string(),
+  /** Where the file is served from once uploaded. Save it as the workspace `logo`. */
+  publicUrl: z.string(),
+});
+export type IconUpload = z.infer<typeof IconUploadSchema>;

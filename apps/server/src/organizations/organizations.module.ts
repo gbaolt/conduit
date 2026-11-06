@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { StorageModule } from '@/storage/storage.module';
 import { WorkspacesModule } from '@/workspaces/workspaces.module';
 
 import { OrganizationsService } from './application/organizations.service';
@@ -12,7 +13,7 @@ import { PrismaJoinAccessRepository } from './infrastructure/prisma-join-access.
 import { OrganizationsController } from './presentation/organizations.controller';
 
 @Module({
-  imports: [WorkspacesModule],
+  imports: [WorkspacesModule, StorageModule],
   controllers: [OrganizationsController],
   providers: [
     OrganizationsService,

@@ -64,6 +64,17 @@ export class OrganizationsController {
       );
   }
 
+  @Implement(contract.organizations.iconUploadUrl)
+  iconUploadUrl() {
+    return implement(contract.organizations.iconUploadUrl)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.organizationsService.iconUploadUrl(viewerOf(context), input)
+      );
+  }
+
   @Implement(contract.invitations.list)
   listInvitations() {
     return implement(contract.invitations.list)

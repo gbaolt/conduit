@@ -39,6 +39,7 @@ import {
   listInvitationsContract,
   listJoinableOrganizationsContract,
   listMembersContract,
+  organizationIconUploadUrlContract,
   listOrganizationsContract,
   listWorkspaceInvitationsContract,
   previewJoinLinkContract,
@@ -65,6 +66,7 @@ export const contract = {
     joinable: listJoinableOrganizationsContract,
     join: joinOrganizationContract,
     update: updateOrganizationContract,
+    iconUploadUrl: organizationIconUploadUrlContract,
   },
   joinLink: {
     get: getJoinLinkContract,

@@ -10,6 +10,8 @@ import {
   CreateOrganizationInputSchema,
   InvitationIdInputSchema,
   InvitationPreviewSchema,
+  IconUploadInputSchema,
+  IconUploadSchema,
   InvitationSchema,
   JoinableWorkspaceSchema,
   JoinedWorkspaceSchema,
@@ -49,6 +51,14 @@ export const organizationErrors = {
     status: 422,
     message: 'Public mail providers such as gmail.com cannot be allowed.',
   },
+  INVALID_ICON: {
+    status: 400,
+    message: 'Use a PNG, JPEG, or WebP image under 1 MB.',
+  },
+  STORAGE_UNAVAILABLE: {
+    status: 503,
+    message: 'Image uploads are not set up for this deployment.',
+  },
 } as const;
 
 const {
@@ -60,6 +70,8 @@ const {
   JOIN_LINK_INVALID,
   DEACTIVATED,
   PUBLIC_MAIL_DOMAIN,
+  INVALID_ICON,
+  STORAGE_UNAVAILABLE,
 } = organizationErrors;
 
 export const listOrganizationsContract = oc
@@ -74,9 +86,15 @@ export const createOrganizationContract = oc
 
 export const updateOrganizationContract = oc
   .meta(openapi({ method: 'PATCH', path: '/organizations/active' }))
-  .errors({ SLUG_TAKEN, FORBIDDEN })
+  .errors({ SLUG_TAKEN, FORBIDDEN, INVALID_ICON, STORAGE_UNAVAILABLE })
   .input(UpdateOrganizationInputSchema)
   .output(OrganizationSchema);
+
+export const organizationIconUploadUrlContract = oc
+  .meta(openapi({ method: 'POST', path: '/organizations/active/icon' }))
+  .errors({ FORBIDDEN, INVALID_ICON, STORAGE_UNAVAILABLE })
+  .input(IconUploadInputSchema)
+  .output(IconUploadSchema);
 
 export const listInvitationsContract = oc
   .meta(openapi({ method: 'GET', path: '/invitations' }))

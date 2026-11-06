@@ -1,6 +1,5 @@
 'use client';
 
-import { BrandIcon } from '@conduit/ui/components/brand';
 import { Button } from '@conduit/ui/components/button';
 import {
   DropdownMenu,
@@ -12,13 +11,13 @@ import {
   DropdownMenuTrigger,
 } from '@conduit/ui/components/dropdown-menu';
 import { IconCheck, IconPlus } from '@tabler/icons-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 import { useSwitchWorkspace } from '@/services/workspaces/hooks';
 
 import { useWorkspace } from '../context/workspace-provider';
+import { WorkspaceIcon } from './workspace-icon';
 
 export function WorkspaceSwitcher() {
   const router = useRouter();
@@ -38,17 +37,11 @@ export function WorkspaceSwitcher() {
           />
         }
       >
-        {activeWorkspace?.logo ? (
-          <Image
-            src={activeWorkspace.logo}
-            alt=""
-            width={36}
-            height={36}
-            className="size-9 rounded-lg object-cover"
-          />
-        ) : (
-          <BrandIcon className="size-9 rounded-lg" />
-        )}
+        <WorkspaceIcon
+          logo={activeWorkspace?.logo}
+          size={36}
+          className="size-9"
+        />
       </DropdownMenuTrigger>
       <DropdownMenuContent side="right" align="start" className="w-56 min-w-56">
         <DropdownMenuGroup>
@@ -68,17 +61,11 @@ export function WorkspaceSwitcher() {
                   });
                 }}
               >
-                {workspace.logo ? (
-                  <Image
-                    src={workspace.logo}
-                    alt=""
-                    width={16}
-                    height={16}
-                    className="size-4 rounded-sm object-cover"
-                  />
-                ) : (
-                  <BrandIcon className="size-4" />
-                )}
+                <WorkspaceIcon
+                  logo={workspace.logo}
+                  size={16}
+                  className="size-4 rounded-sm"
+                />
                 <span className="min-w-0 flex-1 truncate">
                   {workspace.name}
                 </span>
