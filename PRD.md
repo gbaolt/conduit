@@ -96,7 +96,7 @@ Each milestone ships its core features first, then the AI feature that depends o
 | Milestone                                  | Core features                            | AI feature                  | Status      |
 | ------------------------------------------ | ---------------------------------------- | --------------------------- | ----------- |
 | [Foundations](#foundations)                | Sign-in, workspaces, channels, sections  | None                        | Shipped     |
-| [M0](#m0-workspace-admin)                  | Invitations, member management, settings | None                        | Not started |
+| [M0](#m0-workspace-admin)                  | Invitations, member management, settings | None                        | In progress |
 | [M1](#m1-messaging)                        | Messages, threads, DMs, realtime         | Summaries                   | Not started |
 | [M2](#m2-activity-and-notifications)       | Activity feed, notifications             | Smart Activity, Catch me up | Not started |
 | [M3](#m3-files-and-search)                 | Files, search, quick switcher            | Ask Conduit                 | Not started |
@@ -133,9 +133,9 @@ A team can't try messaging until more than one person can get in. Today a member
 | M0.1 | Invite people by email                                                 | Not started |     |
 | M0.2 | Invite people with a shareable link that an admin can reset            | Not started |     |
 | M0.3 | Revoke a pending invitation                                            | Not started |     |
-| M0.4 | Remove a member from the workspace                                     | Not started |     |
-| M0.5 | Deactivate and reactivate a member                                     | Not started |     |
-| M0.6 | Change a member's role to owner, admin, or member                      | Not started |     |
+| M0.4 | Remove a member from the workspace                                     | Shipped     |     |
+| M0.5 | Deactivate and reactivate a member                                     | Shipped     |     |
+| M0.6 | Change a member's role to owner, admin, or member                      | Shipped     |     |
 | M0.7 | Edit the workspace name, icon, and URL slug                            | Not started |     |
 | M0.8 | Choose who can create channels and who can create public channels      | Not started |     |
 | M0.9 | Let people with an email on a listed domain join without an invitation | Not started |     |

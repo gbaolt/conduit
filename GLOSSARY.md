@@ -18,6 +18,10 @@ _Avoid_: Using this word in UI copy
 A user who belongs to a workspace, with one of owner, admin, or member.
 _Avoid_: User (when you mean workspace membership), teammate
 
+**Deactivated member**:
+A member whose access to one workspace is switched off by an admin. They keep their account, their other workspaces, and their channel memberships here, but cannot open or change anything in this workspace until an admin reactivates them. Removing a member is different: it deletes the membership.
+_Avoid_: Suspended, banned, disabled user
+
 **Invitation**:
 A pending offer for an email address to join a workspace.
 _Avoid_: Invite link (the invitation is the record; the link is how it is delivered)

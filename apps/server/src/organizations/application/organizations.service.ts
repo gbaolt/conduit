@@ -8,12 +8,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { organizationError } from '@/organizations/domain/organization-errors';
 import { OrganizationsGateway } from '@/organizations/domain/organizations.gateway';
 import { WorkspaceMembersRepository } from '@/workspaces/domain/workspace-members.repository';
-
-export type WorkspaceViewer = {
-  userId: string;
-  organizationId: string;
-  workspaceRole: WorkspaceRole;
-};
+import type { WorkspaceViewer } from '@/workspaces/domain/workspace-viewer';
 
 @Injectable()
 export class OrganizationsService {
@@ -24,8 +19,12 @@ export class OrganizationsService {
     private readonly members: WorkspaceMembersRepository
   ) {}
 
-  list(headers: Headers) {
-    return this.organizations.list(headers);
+  async list(headers: Headers, userId: string) {
+    const [organizations, deactivated] = await Promise.all([
+      this.organizations.list(headers),
+      this.members.deactivatedOrganizationIds(userId),
+    ]);
+    return organizations.filter(({ id }) => !deactivated.includes(id));
   }
 
   create(headers: Headers, input: CreateOrganizationInput) {

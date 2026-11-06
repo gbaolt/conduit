@@ -30,6 +30,8 @@ import { toast } from 'sonner';
 import { StatusButton } from '@/components/async/status-button';
 import { sessionQuery } from '@/services/auth/queries';
 import {
+  useDeactivateMember,
+  useReactivateMember,
   useRemoveMember,
   useUpdateMemberRole,
   useWorkspaceRole,
@@ -84,6 +86,8 @@ export function MemberActions({ member }: { member: WorkspaceMember }) {
   const viewerRole = useWorkspaceRole();
   const { data: session } = useQuery(sessionQuery);
   const updateRole = useUpdateMemberRole();
+  const deactivate = useDeactivateMember();
+  const reactivate = useReactivateMember();
   const [removing, setRemoving] = useState(false);
 
   const isSelf = member.userId === session?.user.id;
@@ -101,7 +105,18 @@ export function MemberActions({ member }: { member: WorkspaceMember }) {
     isSelf,
   });
 
-  if (roleChoices.length === 0 && !canRemove) return null;
+  const isDeactivated = member.status === 'deactivated';
+  const canToggle = canWorkspace(
+    isDeactivated ? 'reactivate' : 'deactivate',
+    viewerRole,
+    {
+      role: member.role,
+      isSelf,
+    }
+  );
+  const toggle = isDeactivated ? reactivate : deactivate;
+
+  if (roleChoices.length === 0 && !canRemove && !canToggle) return null;
 
   return (
     <>
@@ -132,7 +147,19 @@ export function MemberActions({ member }: { member: WorkspaceMember }) {
               Make {role}
             </DropdownMenuItem>
           ))}
-          {roleChoices.length > 0 && canRemove ? (
+          {canToggle ? (
+            <DropdownMenuItem
+              onClick={() =>
+                toggle.mutate(
+                  { memberId: member.memberId },
+                  { onError: (error) => toast.error(error.message) }
+                )
+              }
+            >
+              {isDeactivated ? 'Reactivate' : 'Deactivate'}
+            </DropdownMenuItem>
+          ) : null}
+          {(roleChoices.length > 0 || canToggle) && canRemove ? (
             <DropdownMenuSeparator />
           ) : null}
           {canRemove ? (

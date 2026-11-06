@@ -6,10 +6,8 @@ import { implement } from '@orpc/server';
 import { authorized } from '@/infrastructure/orpc/authorized';
 import { workspaceMember } from '@/infrastructure/orpc/workspace-member';
 import { arcjet } from '@/infrastructure/security/procedure.middleware';
-import {
-  OrganizationsService,
-  type WorkspaceViewer,
-} from '@/organizations/application/organizations.service';
+import { OrganizationsService } from '@/organizations/application/organizations.service';
+import type { WorkspaceViewer } from '@/workspaces/domain/workspace-viewer';
 
 function viewerOf(context: {
   user: { id: string };
@@ -36,7 +34,7 @@ export class OrganizationsController {
       .use(authorized)
       .use(arcjet.read)
       .handler(({ context }) =>
-        this.organizationsService.list(context.headers)
+        this.organizationsService.list(context.headers, context.user.id)
       );
   }
 

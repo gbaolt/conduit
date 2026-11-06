@@ -29,9 +29,11 @@ import { healthCheckContract } from './contracts/health';
 import {
   acceptInvitationContract,
   createOrganizationContract,
+  deactivateMemberContract,
   listInvitationsContract,
   listMembersContract,
   listOrganizationsContract,
+  reactivateMemberContract,
   removeMemberContract,
   updateMemberRoleContract,
 } from './contracts/organizations';
@@ -52,6 +54,8 @@ export const contract = {
     list: listMembersContract,
     updateRole: updateMemberRoleContract,
     remove: removeMemberContract,
+    deactivate: deactivateMemberContract,
+    reactivate: reactivateMemberContract,
   },
   invitations: {
     list: listInvitationsContract,

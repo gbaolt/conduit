@@ -69,9 +69,18 @@ model Member {
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   role           String
   createdAt      DateTime
+  deactivation   MemberDeactivation?
 
   @@index([organizationId])
   @@index([userId])
+}
+
+/// App-owned. A row means the member is deactivated; reactivating deletes it.
+model MemberDeactivation {
+  memberId        String   @id
+  member          Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  deactivatedAt   DateTime @default(now())
+  deactivatedById String
 }
 
 model Invitation {

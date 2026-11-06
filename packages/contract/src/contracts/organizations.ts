@@ -58,3 +58,15 @@ export const removeMemberContract = oc
   .errors({ NOT_FOUND, FORBIDDEN, LAST_OWNER })
   .input(MemberIdInputSchema)
   .output(z.void());
+
+export const deactivateMemberContract = oc
+  .meta(openapi({ method: 'POST', path: '/members/{memberId}/deactivate' }))
+  .errors({ NOT_FOUND, FORBIDDEN })
+  .input(MemberIdInputSchema)
+  .output(z.void());
+
+export const reactivateMemberContract = oc
+  .meta(openapi({ method: 'POST', path: '/members/{memberId}/reactivate' }))
+  .errors({ NOT_FOUND, FORBIDDEN })
+  .input(MemberIdInputSchema)
+  .output(z.void());

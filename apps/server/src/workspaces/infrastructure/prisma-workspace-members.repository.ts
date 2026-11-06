@@ -24,7 +24,7 @@ export class PrismaWorkspaceMembersRepository implements WorkspaceMembersReposit
     userId: string
   ): Promise<WorkspaceRole | null> {
     const member = await this.db.member.findFirst({
-      where: { organizationId, userId },
+      where: { organizationId, userId, deactivation: null },
       select: { role: true },
     });
     return member ? toWorkspaceRole(member.role) : null;
@@ -32,7 +32,7 @@ export class PrismaWorkspaceMembersRepository implements WorkspaceMembersReposit
 
   count(organizationId: string, userIds: string[]) {
     return this.db.member.count({
-      where: { organizationId, userId: { in: userIds } },
+      where: { organizationId, userId: { in: userIds }, deactivation: null },
     });
   }
 
@@ -53,7 +53,7 @@ export class PrismaWorkspaceMembersRepository implements WorkspaceMembersReposit
   async list(organizationId: string): Promise<WorkspaceMember[]> {
     const members = await this.db.member.findMany({
       where: { organizationId },
-      include: { user: true },
+      include: { user: true, deactivation: true },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
 
@@ -64,8 +64,35 @@ export class PrismaWorkspaceMembersRepository implements WorkspaceMembersReposit
       email: member.user.email,
       image: member.user.image,
       role: toWorkspaceRole(member.role),
-      status: 'active',
+      status: member.deactivation ? 'deactivated' : 'active',
       joinedAt: member.createdAt,
     }));
+  }
+
+  async isDeactivated(organizationId: string, userId: string) {
+    const count = await this.db.memberDeactivation.count({
+      where: { member: { organizationId, userId } },
+    });
+    return count > 0;
+  }
+
+  async deactivatedOrganizationIds(userId: string) {
+    const rows = await this.db.member.findMany({
+      where: { userId, deactivation: { isNot: null } },
+      select: { organizationId: true },
+    });
+    return rows.map((row) => row.organizationId);
+  }
+
+  async deactivate(memberId: string, deactivatedById: string) {
+    await this.db.memberDeactivation.upsert({
+      where: { memberId },
+      create: { memberId, deactivatedById },
+      update: {},
+    });
+  }
+
+  async reactivate(memberId: string) {
+    await this.db.memberDeactivation.deleteMany({ where: { memberId } });
   }
 }

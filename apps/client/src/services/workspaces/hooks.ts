@@ -101,3 +101,19 @@ export function useRemoveMember() {
     orpc.members.remove.mutationOptions({ onSuccess: invalidate })
   );
 }
+
+export function useDeactivateMember() {
+  const invalidate = useInvalidateMembers();
+
+  return useMutation(
+    orpc.members.deactivate.mutationOptions({ onSuccess: invalidate })
+  );
+}
+
+export function useReactivateMember() {
+  const invalidate = useInvalidateMembers();
+
+  return useMutation(
+    orpc.members.reactivate.mutationOptions({ onSuccess: invalidate })
+  );
+}

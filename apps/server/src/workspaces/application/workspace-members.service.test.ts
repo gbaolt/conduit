@@ -1,89 +1,142 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { auth } from '@/infrastructure/auth/auth.config';
 import { prisma } from '@/infrastructure/database/prisma.service';
+import {
+  createWorkspace,
+  type Workspace,
+} from '@/shared/testing/workspace-fixture';
 import { PrismaWorkspaceMembersRepository } from '@/workspaces/infrastructure/prisma-workspace-members.repository';
 
 import { WorkspaceMembersService } from './workspace-members.service';
-
-// vi.hoisted runs before the imports above.
-vi.hoisted(() => {
-  // The prisma singleton reads DATABASE_URL on import; never let tests reach the shared database.
-  process.env.DATABASE_URL =
-    process.env.TEST_DATABASE_URL ?? 'postgres://unused@localhost/unused';
-});
 
 const connectionString = process.env.TEST_DATABASE_URL;
 
 describe.skipIf(!connectionString)('WorkspaceMembersService', () => {
   const repository = new PrismaWorkspaceMembersRepository(prisma);
   const service = new WorkspaceMembersService(repository);
-  const run = crypto.randomUUID();
-  const organizationId = `${run}-org`;
-  const users = { owner: `${run}-owner`, member: `${run}-member` };
+  let workspace: Workspace;
+  const people = () => workspace.people;
+  const viewer = (name: 'owner' | 'admin' | 'member') => ({
+    userId: people()[name].userId,
+    organizationId: workspace.organizationId,
+    workspaceRole: name,
+  });
+  const roleOf = (name: keyof Workspace['people']) =>
+    repository.findRole(workspace.organizationId, people()[name].userId);
 
   beforeAll(async () => {
-    await prisma.user.createMany({
-      data: Object.entries(users).map(([role, id]) => ({
-        id,
-        name: role,
-        email: `${id}@test.local`,
-      })),
-    });
-    await prisma.organization.create({
-      data: {
-        id: organizationId,
-        name: 'Acme',
-        slug: `acme-${run}`,
-        createdAt: new Date(),
-      },
-    });
-    await prisma.member.createMany({
-      data: Object.entries(users).map(([role, userId]) => ({
-        id: `${userId}-m`,
-        organizationId,
-        userId,
-        role,
-        createdAt: new Date(),
-      })),
-    });
+    workspace = await createWorkspace();
   });
 
-  afterAll(async () => {
-    await prisma.organization.delete({ where: { id: organizationId } });
-    await prisma.user.deleteMany({
-      where: { id: { in: Object.values(users) } },
-    });
-  });
+  afterAll(() => workspace.cleanup());
 
   it('lists every member with their user details', async () => {
-    const members = await service.list(organizationId);
+    const members = await service.list(workspace.organizationId);
 
     expect(
-      members.map(({ memberId, name, email, role, status }) => ({
-        memberId,
+      members.map(({ userId, name, role, status }) => ({
+        userId,
         name,
-        email,
         role,
         status,
       }))
     ).toEqual(
       expect.arrayContaining([
         {
-          memberId: `${users.owner}-m`,
+          userId: people().owner.userId,
           name: 'owner',
-          email: `${users.owner}@test.local`,
           role: 'owner',
           status: 'active',
         },
         {
-          memberId: `${users.member}-m`,
+          userId: people().member.userId,
           name: 'member',
-          email: `${users.member}@test.local`,
           role: 'member',
           status: 'active',
         },
       ])
     );
-    expect(members).toHaveLength(2);
+    expect(members).toHaveLength(4);
+  });
+
+  it('refuses a plain member, and an admin acting on an owner', async () => {
+    await expect(
+      service.deactivate(viewer('member'), people().other.memberId)
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(
+      service.deactivate(viewer('admin'), people().owner.memberId)
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
+  it('deactivates a member, and reactivation restores their access', async () => {
+    await service.deactivate(viewer('admin'), people().other.memberId);
+
+    expect(await roleOf('other')).toBeNull();
+    expect(
+      await repository.isDeactivated(
+        workspace.organizationId,
+        people().other.userId
+      )
+    ).toBe(true);
+    expect(
+      (await service.list(workspace.organizationId)).find(
+        (member) => member.userId === people().other.userId
+      )?.status
+    ).toBe('deactivated');
+    // Deactivation keeps the channel memberships.
+    expect(
+      await prisma.channelMember.count({
+        where: { userId: people().other.userId },
+      })
+    ).toBeGreaterThan(0);
+
+    await service.reactivate(viewer('admin'), people().other.memberId);
+
+    expect(await roleOf('other')).toBe('member');
+  });
+
+  it('deletes the deactivation row when the member is removed', async () => {
+    await service.deactivate(viewer('admin'), people().other.memberId);
+    const rows = () =>
+      prisma.memberDeactivation.count({
+        where: { memberId: people().other.memberId },
+      });
+    expect(await rows()).toBe(1);
+
+    await auth.api.removeMember({
+      body: {
+        organizationId: workspace.organizationId,
+        memberIdOrEmail: people().other.memberId,
+      },
+      headers: people().owner.headers,
+    });
+
+    expect(await rows()).toBe(0);
+  });
+
+  it('refuses Better Auth organization routes to a deactivated admin', async () => {
+    const admin = people().admin;
+    const invite = () =>
+      auth.api.createInvitation({
+        body: {
+          email: `invitee-${crypto.randomUUID()}@test.local`,
+          role: 'member',
+          organizationId: workspace.organizationId,
+        },
+        headers: admin.headers,
+      });
+
+    await expect(invite()).resolves.toBeDefined();
+
+    await service.deactivate(viewer('owner'), admin.memberId);
+
+    await expect(invite()).rejects.toMatchObject({ status: 'FORBIDDEN' });
+    await expect(
+      auth.api.setActiveOrganization({
+        body: { organizationId: workspace.organizationId },
+        headers: admin.headers,
+      })
+    ).rejects.toMatchObject({ status: 'FORBIDDEN' });
   });
 });
