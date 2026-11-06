@@ -2,6 +2,7 @@ import type { Invitation } from '@conduit/contract';
 import { describe, expect, it } from 'vitest';
 
 import type { InvitationsRepository } from '@/organizations/domain/invitations.repository';
+import type { JoinAccessRepository } from '@/organizations/domain/join-access.repository';
 import type { OrganizationsGateway } from '@/organizations/domain/organizations.gateway';
 import type { WorkspaceMembersRepository } from '@/workspaces/domain/workspace-members.repository';
 
@@ -28,7 +29,8 @@ describe('OrganizationsService.listInvitations', () => {
     const invitations = await new OrganizationsService(
       gateway,
       {} as WorkspaceMembersRepository,
-      {} as InvitationsRepository
+      {} as InvitationsRepository,
+      {} as JoinAccessRepository
     ).listInvitations(new Headers());
 
     expect(invitations.map((i) => i.id)).toEqual(['live']);

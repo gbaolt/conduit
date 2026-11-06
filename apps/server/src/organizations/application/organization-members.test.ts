@@ -6,6 +6,7 @@ import { type Auth, auth } from '@/infrastructure/auth/auth.config';
 import { prisma } from '@/infrastructure/database/prisma.service';
 import { BetterAuthOrganizationsGateway } from '@/organizations/infrastructure/better-auth-organizations.gateway';
 import { PrismaInvitationsRepository } from '@/organizations/infrastructure/prisma-invitations.repository';
+import { PrismaJoinAccessRepository } from '@/organizations/infrastructure/prisma-join-access.repository';
 import {
   createWorkspace,
   type Workspace,
@@ -21,7 +22,8 @@ describe.skipIf(!connectionString)('OrganizationsService members', () => {
   const service = new OrganizationsService(
     new BetterAuthOrganizationsGateway({ api: auth.api } as AuthService<Auth>),
     members,
-    new PrismaInvitationsRepository(prisma)
+    new PrismaInvitationsRepository(prisma),
+    new PrismaJoinAccessRepository(prisma)
   );
   let workspace: Workspace;
   const people = () => workspace.people;

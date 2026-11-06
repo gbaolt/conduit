@@ -100,3 +100,15 @@ export const InvitationPreviewSchema = z.object({
 });
 export type InvitationPreview = z.infer<typeof InvitationPreviewSchema>;
 export type InviteRole = z.infer<typeof InviteRoleSchema>;
+
+export const JoinLinkSchema = z.object({ token: z.string() });
+
+export const JoinLinkTokenInputSchema = z.object({ token: z.string().min(1) });
+
+/** What the join page shows before the visitor signs in. Nothing about members. */
+export const JoinLinkPreviewSchema = z.object({
+  organizationName: z.string(),
+  logo: z.string().nullable(),
+});
+
+export const JoinedWorkspaceSchema = z.object({ organizationId: z.string() });

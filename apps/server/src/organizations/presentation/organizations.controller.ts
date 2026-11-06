@@ -2,6 +2,7 @@ import { contract } from '@conduit/contract';
 import { Controller, Inject } from '@nestjs/common';
 import { Implement } from '@orpc/nest';
 import { implement } from '@orpc/server';
+import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
 
 import { authorized } from '@/infrastructure/orpc/authorized';
 import { workspaceMember } from '@/infrastructure/orpc/workspace-member';
@@ -150,6 +151,53 @@ export class OrganizationsController {
           context.headers,
           viewerOf(context),
           input.memberId
+        )
+      );
+  }
+
+  @Implement(contract.joinLink.get)
+  getJoinLink() {
+    return implement(contract.joinLink.get)
+      .use(authorized)
+      .use(arcjet.read)
+      .use(workspaceMember)
+      .handler(({ context }) =>
+        this.organizationsService.getJoinLink(viewerOf(context))
+      );
+  }
+
+  @Implement(contract.joinLink.reset)
+  resetJoinLink() {
+    return implement(contract.joinLink.reset)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context }) =>
+        this.organizationsService.resetJoinLink(viewerOf(context))
+      );
+  }
+
+  // Signed out on purpose: the join page names the workspace before the visitor signs in.
+  @AllowAnonymous()
+  @Implement(contract.joinLink.preview)
+  previewJoinLink() {
+    return implement(contract.joinLink.preview)
+      .use(arcjet.readAnonymous)
+      .handler(({ input }) =>
+        this.organizationsService.previewJoinLink(input.token)
+      );
+  }
+
+  @Implement(contract.joinLink.join)
+  joinWithLink() {
+    return implement(contract.joinLink.join)
+      .use(authorized)
+      .use(arcjet.heavyWrite)
+      .handler(({ context, input }) =>
+        this.organizationsService.joinWithLink(
+          context.headers,
+          context.user.id,
+          input.token
         )
       );
   }

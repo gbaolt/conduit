@@ -59,6 +59,8 @@ model Organization {
   invitations     Invitation[]
   channels        Channel[]
   channelSections ChannelSection[]
+  joinLink        WorkspaceJoinLink?
+  allowedDomains  AllowedDomain[]
 }
 
 model Member {
@@ -81,6 +83,25 @@ model MemberDeactivation {
   member          Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
   deactivatedAt   DateTime @default(now())
   deactivatedById String
+}
+
+/// App-owned. The workspace's shareable join link; resetting replaces the token.
+model WorkspaceJoinLink {
+  organizationId String       @id
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  token          String       @unique
+  createdById    String
+  createdAt      DateTime     @default(now())
+}
+
+/// App-owned. A verified email on this domain may join the workspace without an invitation.
+model AllowedDomain {
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  domain         String
+
+  @@id([organizationId, domain])
+  @@index([domain])
 }
 
 model Invitation {

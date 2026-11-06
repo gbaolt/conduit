@@ -51,4 +51,9 @@ export abstract class OrganizationsGateway {
     organizationId: string,
     memberId: string
   ): Promise<void>;
+
+  /** Adds the user as a member. Does nothing when they already are one. */
+  abstract addMember(userId: string, organizationId: string): Promise<void>;
+
+  abstract setActive(headers: Headers, organizationId: string): Promise<void>;
 }

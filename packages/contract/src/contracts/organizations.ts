@@ -9,6 +9,10 @@ import {
   InvitationIdInputSchema,
   InvitationPreviewSchema,
   InvitationSchema,
+  JoinedWorkspaceSchema,
+  JoinLinkPreviewSchema,
+  JoinLinkSchema,
+  JoinLinkTokenInputSchema,
   MemberIdInputSchema,
   OrganizationSchema,
   UpdateMemberRoleInputSchema,
@@ -28,10 +32,25 @@ export const organizationErrors = {
     status: 404,
     message: 'This invitation is no longer valid.',
   },
+  JOIN_LINK_INVALID: {
+    status: 404,
+    message: 'This link is no longer valid.',
+  },
+  DEACTIVATED: {
+    status: 403,
+    message: 'Your access to this workspace is deactivated.',
+  },
 } as const;
 
-const { SLUG_TAKEN, NOT_FOUND, FORBIDDEN, LAST_OWNER, INVITATION_NOT_FOUND } =
-  organizationErrors;
+const {
+  SLUG_TAKEN,
+  NOT_FOUND,
+  FORBIDDEN,
+  LAST_OWNER,
+  INVITATION_NOT_FOUND,
+  JOIN_LINK_INVALID,
+  DEACTIVATED,
+} = organizationErrors;
 
 export const listOrganizationsContract = oc
   .meta(openapi({ method: 'GET', path: '/organizations' }))
@@ -105,3 +124,25 @@ export const reactivateMemberContract = oc
   .errors({ NOT_FOUND, FORBIDDEN })
   .input(MemberIdInputSchema)
   .output(z.void());
+
+export const getJoinLinkContract = oc
+  .meta(openapi({ method: 'GET', path: '/join-link' }))
+  .errors({ FORBIDDEN })
+  .output(JoinLinkSchema);
+
+export const resetJoinLinkContract = oc
+  .meta(openapi({ method: 'POST', path: '/join-link/reset' }))
+  .errors({ FORBIDDEN })
+  .output(JoinLinkSchema);
+
+export const previewJoinLinkContract = oc
+  .meta(openapi({ method: 'GET', path: '/join-link/{token}/preview' }))
+  .errors({ JOIN_LINK_INVALID })
+  .input(JoinLinkTokenInputSchema)
+  .output(JoinLinkPreviewSchema);
+
+export const joinWithLinkContract = oc
+  .meta(openapi({ method: 'POST', path: '/join-link/{token}/join' }))
+  .errors({ JOIN_LINK_INVALID, DEACTIVATED })
+  .input(JoinLinkTokenInputSchema)
+  .output(JoinedWorkspaceSchema);

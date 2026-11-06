@@ -6,7 +6,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { orpc } from '@/lib/orpc';
 import { authClient } from '@/services/auth/client';
 
-import { membersQuery, workspaceInvitationsQuery } from './queries';
+import {
+  joinLinkQuery,
+  membersQuery,
+  workspaceInvitationsQuery,
+} from './queries';
 
 // Every change to memberships or the active workspace must refresh the same things.
 function useActiveWorkspaceChanged() {
@@ -145,5 +149,28 @@ export function useRevokeInvitation() {
 
   return useMutation(
     orpc.invitations.revoke.mutationOptions({ onSuccess: invalidate })
+  );
+}
+
+export function useJoinLink() {
+  return useQuery(joinLinkQuery);
+}
+
+export function useResetJoinLink() {
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    orpc.joinLink.reset.mutationOptions({
+      onSuccess: (link) =>
+        queryClient.setQueryData(joinLinkQuery.queryKey, link),
+    })
+  );
+}
+
+export function useJoinWithLink() {
+  const onChanged = useActiveWorkspaceChanged();
+
+  return useMutation(
+    orpc.joinLink.join.mutationOptions({ onSuccess: onChanged })
   );
 }

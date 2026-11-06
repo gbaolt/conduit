@@ -1,6 +1,10 @@
 'use client';
 
-import type { CreateInvitationsResult, InviteRole } from '@conduit/contract';
+import {
+  canWorkspace,
+  type CreateInvitationsResult,
+  type InviteRole,
+} from '@conduit/contract';
 import { Button } from '@conduit/ui/components/button';
 import {
   Dialog,
@@ -24,7 +28,12 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 
 import { StatusButton } from '@/components/async/status-button';
-import { useCreateInvitations } from '@/services/workspaces/hooks';
+import {
+  useCreateInvitations,
+  useWorkspaceRole,
+} from '@/services/workspaces/hooks';
+
+import { JoinLinkSection } from './join-link-section';
 
 const ROLE_LABELS = { member: 'Member', admin: 'Admin' } as const;
 const MAX_EMAILS = 20;
@@ -69,7 +78,7 @@ function InviteResult({ result }: { result: CreateInvitationsResult }) {
   );
 }
 
-/** Invites by email. A later invite path, such as the join link, adds its section here. */
+/** Invites by email, and for an admin shares the join link. */
 export function InviteDialog({
   workspaceName,
   open,
@@ -80,6 +89,7 @@ export function InviteDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const createInvitations = useCreateInvitations();
+  const canShareLink = canWorkspace('manageJoinLink', useWorkspaceRole());
   const [text, setText] = useState('');
   const [role, setRole] = useState<InviteRole>('member');
   const [result, setResult] = useState<CreateInvitationsResult | null>(null);
@@ -194,6 +204,17 @@ export function InviteDialog({
             </DialogFooter>
           </form>
         )}
+        {canShareLink ? (
+          <section
+            aria-labelledby="join-link-heading"
+            className="flex flex-col gap-2 border-t pt-4"
+          >
+            <h3 id="join-link-heading" className="text-sm font-medium">
+              Or share a join link
+            </h3>
+            <JoinLinkSection />
+          </section>
+        ) : null}
       </DialogContent>
     </Dialog>
   );
