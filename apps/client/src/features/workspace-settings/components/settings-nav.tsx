@@ -3,6 +3,7 @@
 import { cn } from '@conduit/ui/lib/utils';
 import {
   IconKey,
+  IconLock,
   IconMailPlus,
   IconSettings,
   IconUsers,
@@ -16,6 +17,7 @@ const SECTIONS: { href: Route; label: string; icon: typeof IconUsers }[] = [
   { href: '/settings/members', label: 'Members', icon: IconUsers },
   { href: '/settings/invitations', label: 'Invitations', icon: IconMailPlus },
   { href: '/settings/access', label: 'Access', icon: IconKey },
+  { href: '/settings/permissions', label: 'Permissions', icon: IconLock },
 ];
 
 export function SettingsNav() {

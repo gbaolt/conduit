@@ -11,6 +11,7 @@ import {
   joinLinkQuery,
   membersQuery,
   workspaceInvitationsQuery,
+  workspaceSettingsQuery,
 } from './queries';
 
 // Every change to memberships or the active workspace must refresh the same things.
@@ -114,6 +115,23 @@ export function useSwitchWorkspace() {
     },
     onSuccess: onChanged,
   });
+}
+
+export function useWorkspaceSettings() {
+  return useQuery(workspaceSettingsQuery);
+}
+
+export function useUpdateWorkspaceSettings() {
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    orpc.workspaceSettings.update.mutationOptions({
+      onSuccess: () =>
+        queryClient.invalidateQueries({
+          queryKey: orpc.workspaceSettings.key(),
+        }),
+    })
+  );
 }
 
 export function useWorkspaceMembers() {

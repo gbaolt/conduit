@@ -5,6 +5,7 @@ import { PrismaChannelSectionsRepository } from '@/channels/infrastructure/prism
 import { PrismaChannelsRepository } from '@/channels/infrastructure/prisma-channels.repository';
 import { prisma } from '@/infrastructure/database/prisma.service';
 import { PrismaWorkspaceMembersRepository } from '@/workspaces/infrastructure/prisma-workspace-members.repository';
+import { PrismaWorkspaceSettingsRepository } from '@/workspaces/infrastructure/prisma-workspace-settings.repository';
 
 import {
   ChannelSectionsService,
@@ -23,10 +24,12 @@ const connectionString = process.env.TEST_DATABASE_URL;
 
 describe.skipIf(!connectionString)('star and sections', () => {
   const sectionsRepository = new PrismaChannelSectionsRepository(prisma);
+  const settings = new PrismaWorkspaceSettingsRepository(prisma);
   const channels = new ChannelsService(
     new PrismaChannelsRepository(prisma),
     sectionsRepository,
-    new PrismaWorkspaceMembersRepository(prisma)
+    new PrismaWorkspaceMembersRepository(prisma),
+    settings
   );
   const sections = new ChannelSectionsService(sectionsRepository);
   const run = crypto.randomUUID();

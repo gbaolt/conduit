@@ -52,6 +52,10 @@ import {
   updateOrganizationContract,
 } from './contracts/organizations';
 import { getSessionContract } from './contracts/users';
+import {
+  getWorkspaceSettingsContract,
+  updateWorkspaceSettingsContract,
+} from './contracts/workspace-settings';
 
 export const contract = {
   health: {
@@ -84,6 +88,10 @@ export const contract = {
     remove: removeMemberContract,
     deactivate: deactivateMemberContract,
     reactivate: reactivateMemberContract,
+  },
+  workspaceSettings: {
+    get: getWorkspaceSettingsContract,
+    update: updateWorkspaceSettingsContract,
   },
   invitations: {
     list: listInvitationsContract,

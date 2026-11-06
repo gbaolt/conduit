@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import type { WorkspaceRole } from '@/schemas/organizations';
+import type { WorkspaceSettings } from '@/schemas/workspace-settings';
 
 import {
   type ChannelAction,
+  canCreateChannel,
   channelPolicy,
   checkChannel,
   type PolicyChannel,
@@ -38,7 +40,6 @@ const channel = (overrides: Partial<PolicyChannel> = {}): PolicyChannel => ({
 const table: [ChannelAction, string, Partial<PolicyChannel>?][] = [
   ['view', 'yyyyy'],
   ['view', 'nyyyn', { visibility: 'private' }],
-  ['create', 'yyyyy'],
   ['rename', 'yyynn'],
   ['editDetails', 'yyyyn'],
   ['addMembers', 'nyyyn'],
@@ -125,7 +126,6 @@ describe('channelPolicy', () => {
 
   const openWhenArchived: ChannelAction[] = [
     'view',
-    'create',
     'unarchive',
     'delete',
     'leave',
@@ -141,6 +141,35 @@ describe('channelPolicy', () => {
         expect(decide(action, manager, archived)).not.toBe('CHANNEL_ARCHIVED');
       } else {
         expect(decide(action, manager, archived)).toBe('CHANNEL_ARCHIVED');
+      }
+    }
+  );
+});
+
+describe('canCreateChannel', () => {
+  const settings = (
+    channelCreators: WorkspaceSettings['channelCreators'],
+    publicChannelCreators: WorkspaceSettings['publicChannelCreators']
+  ): WorkspaceSettings => ({ channelCreators, publicChannelCreators });
+
+  // [channelCreators, publicChannelCreators, member public, member private]
+  const combos = [
+    ['everyone', 'everyone', true, true],
+    ['everyone', 'admins', false, true],
+    ['admins', 'everyone', false, false],
+    ['admins', 'admins', false, false],
+  ] as const;
+
+  it.each(combos)(
+    'channelCreators %s, publicChannelCreators %s',
+    (creators, publicCreators, memberPublic, memberPrivate) => {
+      const s = settings(creators, publicCreators);
+
+      expect(canCreateChannel('member', 'public', s)).toBe(memberPublic);
+      expect(canCreateChannel('member', 'private', s)).toBe(memberPrivate);
+      for (const role of ['admin', 'owner'] as const) {
+        expect(canCreateChannel(role, 'public', s)).toBe(true);
+        expect(canCreateChannel(role, 'private', s)).toBe(true);
       }
     }
   );

@@ -1,5 +1,6 @@
 import type { WorkspaceRole } from '@/schemas/organizations';
 import type { Channel } from '@/schemas/channels';
+import type { WorkspaceSettings } from '@/schemas/workspace-settings';
 
 export type PolicyChannel = Pick<
   Channel,
@@ -29,7 +30,6 @@ export const channelPolicy = {
     allow: (_role, channel) => channel.visibility === 'public' || isIn(channel),
     openWhenArchived: true,
   },
-  create: { allow: () => true, openWhenArchived: true },
   rename: { allow: adminOrManager },
   editDetails: { allow: (role, channel) => isAdmin(role) || isIn(channel) },
   addMembers: { allow: anyMember, lockedOnDefault: true },
@@ -90,4 +90,18 @@ export function canChannel(
   channel: PolicyChannel
 ) {
   return checkChannel(action, workspaceRole, channel) === null;
+}
+
+/** Creating a channel has no channel yet, so it is decided by the workspace settings rather than `channelPolicy`. */
+export function canCreateChannel(
+  workspaceRole: WorkspaceRole,
+  visibility: Channel['visibility'],
+  settings: WorkspaceSettings
+) {
+  if (isAdmin(workspaceRole)) return true;
+
+  return (
+    settings.channelCreators === 'everyone' &&
+    (visibility === 'private' || settings.publicChannelCreators === 'everyone')
+  );
 }

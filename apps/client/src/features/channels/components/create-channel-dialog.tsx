@@ -23,6 +23,7 @@ import { useCreateChannel } from '@/services/channels/hooks';
 
 import { useChannelDialogs } from '../context/channel-dialogs-provider';
 import { ChannelNameInputSchema } from '../lib/channel-name-input';
+import { useCanCreateChannel } from '../lib/use-can-create-channel';
 import { ChannelNameField } from './channel-name-field';
 
 const CreateChannelFormSchema = z.object({
@@ -36,6 +37,8 @@ export function CreateChannelDialog() {
   const router = useRouter();
   const { close } = useChannelDialogs();
   const createChannel = useCreateChannel();
+  // A member who cannot create public channels can only make private ones.
+  const canCreatePublic = useCanCreateChannel('public');
 
   const { control, handleSubmit, formState, setError } = useForm<
     CreateChannelInput,
@@ -44,7 +47,7 @@ export function CreateChannelDialog() {
   >({
     resolver: standardSchemaResolver(CreateChannelFormSchema),
     mode: 'onChange',
-    defaultValues: { name: '', isPrivate: false },
+    defaultValues: { name: '', isPrivate: !canCreatePublic },
   });
 
   const onSubmit = handleSubmit(({ name, isPrivate }) => {
@@ -78,12 +81,19 @@ export function CreateChannelDialog() {
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
           <FieldGroup>
             <ChannelNameField control={control} name="name" />
-            <FormCheckbox
-              control={control}
-              name="isPrivate"
-              label="Make private"
-              description="Only people you add can find and read it."
-            />
+            {canCreatePublic ? (
+              <FormCheckbox
+                control={control}
+                name="isPrivate"
+                label="Make private"
+                description="Only people you add can find and read it."
+              />
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                Only admins can create public channels, so this channel will be
+                private.
+              </p>
+            )}
           </FieldGroup>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
