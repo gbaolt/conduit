@@ -3,11 +3,16 @@ import { openapi } from '@orpc/openapi';
 import { z } from 'zod';
 
 import {
+  CreateInvitationsInputSchema,
+  CreateInvitationsResultSchema,
   CreateOrganizationInputSchema,
+  InvitationIdInputSchema,
+  InvitationPreviewSchema,
   InvitationSchema,
   MemberIdInputSchema,
   OrganizationSchema,
   UpdateMemberRoleInputSchema,
+  WorkspaceInvitationSchema,
   WorkspaceMemberSchema,
 } from '@/schemas/organizations';
 
@@ -19,9 +24,14 @@ export const organizationErrors = {
     message: 'You do not have permission to do that in this workspace.',
   },
   LAST_OWNER: { status: 409, message: 'A workspace needs at least one owner.' },
+  INVITATION_NOT_FOUND: {
+    status: 404,
+    message: 'This invitation is no longer valid.',
+  },
 } as const;
 
-const { SLUG_TAKEN, NOT_FOUND, FORBIDDEN, LAST_OWNER } = organizationErrors;
+const { SLUG_TAKEN, NOT_FOUND, FORBIDDEN, LAST_OWNER, INVITATION_NOT_FOUND } =
+  organizationErrors;
 
 export const listOrganizationsContract = oc
   .meta(openapi({ method: 'GET', path: '/organizations' }))
@@ -41,6 +51,31 @@ export const acceptInvitationContract = oc
   .meta(openapi({ method: 'POST', path: '/invitations/{invitationId}/accept' }))
   .input(z.object({ invitationId: z.string() }))
   .output(z.object({ organizationId: z.string() }));
+
+export const getInvitationContract = oc
+  .meta(openapi({ method: 'GET', path: '/invitations/{invitationId}' }))
+  .errors({ INVITATION_NOT_FOUND })
+  .input(InvitationIdInputSchema)
+  .output(InvitationPreviewSchema);
+
+export const createInvitationsContract = oc
+  .meta(openapi({ method: 'POST', path: '/workspace-invitations' }))
+  .errors({ FORBIDDEN })
+  .input(CreateInvitationsInputSchema)
+  .output(CreateInvitationsResultSchema);
+
+export const listWorkspaceInvitationsContract = oc
+  .meta(openapi({ method: 'GET', path: '/workspace-invitations' }))
+  .errors({ FORBIDDEN })
+  .output(z.array(WorkspaceInvitationSchema));
+
+export const revokeInvitationContract = oc
+  .meta(
+    openapi({ method: 'DELETE', path: '/workspace-invitations/{invitationId}' })
+  )
+  .errors({ FORBIDDEN, INVITATION_NOT_FOUND })
+  .input(InvitationIdInputSchema)
+  .output(z.void());
 
 export const listMembersContract = oc
   .meta(openapi({ method: 'GET', path: '/members' }))

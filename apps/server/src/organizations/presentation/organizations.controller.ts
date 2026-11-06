@@ -71,6 +71,58 @@ export class OrganizationsController {
       );
   }
 
+  @Implement(contract.invitations.get)
+  getInvitation() {
+    return implement(contract.invitations.get)
+      .use(authorized)
+      .use(arcjet.read)
+      .handler(({ input }) =>
+        this.organizationsService.previewInvitation(input.invitationId)
+      );
+  }
+
+  @Implement(contract.invitations.create)
+  createInvitations() {
+    return implement(contract.invitations.create)
+      .use(authorized)
+      .use(arcjet.heavyWrite)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.organizationsService.inviteToWorkspace(
+          context.headers,
+          viewerOf(context),
+          input.emails,
+          input.role
+        )
+      );
+  }
+
+  @Implement(contract.invitations.listForWorkspace)
+  listWorkspaceInvitations() {
+    return implement(contract.invitations.listForWorkspace)
+      .use(authorized)
+      .use(arcjet.read)
+      .use(workspaceMember)
+      .handler(({ context }) =>
+        this.organizationsService.listWorkspaceInvitations(viewerOf(context))
+      );
+  }
+
+  @Implement(contract.invitations.revoke)
+  revokeInvitation() {
+    return implement(contract.invitations.revoke)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.organizationsService.revokeInvitation(
+          context.headers,
+          viewerOf(context),
+          input.invitationId
+        )
+      );
+  }
+
   @Implement(contract.members.updateRole)
   updateMemberRole() {
     return implement(contract.members.updateRole)

@@ -6,7 +6,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { orpc } from '@/lib/orpc';
 import { authClient } from '@/services/auth/client';
 
-import { membersQuery } from './queries';
+import { membersQuery, workspaceInvitationsQuery } from './queries';
 
 // Every change to memberships or the active workspace must refresh the same things.
 function useActiveWorkspaceChanged() {
@@ -17,6 +17,7 @@ function useActiveWorkspaceChanged() {
     void queryClient.invalidateQueries({ queryKey: orpc.users.key() });
     void queryClient.invalidateQueries({ queryKey: orpc.channels.key() });
     void queryClient.invalidateQueries({ queryKey: orpc.members.key() });
+    void queryClient.invalidateQueries({ queryKey: orpc.invitations.key() });
 
     // Better Auth's own atoms don't see changes made through oRPC.
     authClient.$store.notify('$activeOrgSignal');
@@ -115,5 +116,34 @@ export function useReactivateMember() {
 
   return useMutation(
     orpc.members.reactivate.mutationOptions({ onSuccess: invalidate })
+  );
+}
+
+export function useWorkspaceInvitations() {
+  return useQuery(workspaceInvitationsQuery);
+}
+
+function useInvalidateInvitations() {
+  const queryClient = useQueryClient();
+
+  return () =>
+    queryClient.invalidateQueries({
+      queryKey: workspaceInvitationsQuery.queryKey,
+    });
+}
+
+export function useCreateInvitations() {
+  const invalidate = useInvalidateInvitations();
+
+  return useMutation(
+    orpc.invitations.create.mutationOptions({ onSuccess: invalidate })
+  );
+}
+
+export function useRevokeInvitation() {
+  const invalidate = useInvalidateInvitations();
+
+  return useMutation(
+    orpc.invitations.revoke.mutationOptions({ onSuccess: invalidate })
   );
 }

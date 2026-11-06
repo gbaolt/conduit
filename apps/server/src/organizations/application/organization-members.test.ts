@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { type Auth, auth } from '@/infrastructure/auth/auth.config';
 import { prisma } from '@/infrastructure/database/prisma.service';
 import { BetterAuthOrganizationsGateway } from '@/organizations/infrastructure/better-auth-organizations.gateway';
+import { PrismaInvitationsRepository } from '@/organizations/infrastructure/prisma-invitations.repository';
 import {
   createWorkspace,
   type Workspace,
@@ -19,7 +20,8 @@ describe.skipIf(!connectionString)('OrganizationsService members', () => {
   const members = new PrismaWorkspaceMembersRepository(prisma);
   const service = new OrganizationsService(
     new BetterAuthOrganizationsGateway({ api: auth.api } as AuthService<Auth>),
-    members
+    members,
+    new PrismaInvitationsRepository(prisma)
   );
   let workspace: Workspace;
   const people = () => workspace.people;

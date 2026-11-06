@@ -1,6 +1,7 @@
 import type {
   CreateOrganizationInput,
   Invitation,
+  InviteRole,
   Organization,
   WorkspaceRole,
 } from '@conduit/contract';
@@ -22,6 +23,19 @@ export abstract class OrganizationsGateway {
     headers: Headers,
     invitationId: string
   ): Promise<{ organizationId: string }>;
+
+  /** Sends one invitation. Reports an address that is already a member or already invited instead of throwing. */
+  abstract invite(
+    headers: Headers,
+    organizationId: string,
+    email: string,
+    role: InviteRole
+  ): Promise<'sent' | 'member' | 'invited'>;
+
+  abstract cancelInvitation(
+    headers: Headers,
+    invitationId: string
+  ): Promise<void>;
 
   /** Throws `NOT_FOUND`, `FORBIDDEN`, or `LAST_OWNER`. */
   abstract updateMemberRole(

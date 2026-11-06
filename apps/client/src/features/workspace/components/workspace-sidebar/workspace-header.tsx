@@ -36,6 +36,7 @@ import { useState } from 'react';
 
 import { useChannelDialogs } from '@/features/channels/context/channel-dialogs-provider';
 import { useWorkspace } from '@/features/workspace/context/workspace-provider';
+import { InviteDialog } from '@/features/workspace-settings/components/invite-dialog';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
 const FILTERS = [
@@ -61,47 +62,63 @@ function WorkspaceMenu() {
   const role = useWorkspaceRole();
   const name = activeWorkspace?.name ?? 'Workspace';
 
+  const canInvite = canWorkspace('invite', role);
+  const [inviting, setInviting] = useState(false);
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button size="sm" variant="ghost" className="text-lg font-bold" />
-        }
-      >
-        <span className="truncate">{name}</span>
-        <IconChevronDown data-icon="inline-end" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-64">
-        <DropdownMenuItem>
-          <IconUsersPlus data-slot="icon" aria-hidden />
-          Invite people to {name}
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        {canWorkspace('viewSettings', role) ? (
-          <DropdownMenuItem render={<Link href="/settings/members" />}>
-            <IconSettings data-slot="icon" aria-hidden />
-            Workspace settings
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button size="sm" variant="ghost" className="text-lg font-bold" />
+          }
+        >
+          <span className="truncate">{name}</span>
+          <IconChevronDown data-icon="inline-end" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-64">
+          {canInvite ? (
+            <>
+              <DropdownMenuItem onClick={() => setInviting(true)}>
+                <IconUsersPlus data-slot="icon" aria-hidden />
+                Invite people to {name}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          ) : null}
+          {canWorkspace('viewSettings', role) ? (
+            <DropdownMenuItem render={<Link href="/settings/members" />}>
+              <IconSettings data-slot="icon" aria-hidden />
+              Workspace settings
+            </DropdownMenuItem>
+          ) : null}
+          <DropdownMenuItem>
+            <IconSettings2 data-slot="icon" aria-hidden />
+            Preferences
           </DropdownMenuItem>
-        ) : null}
-        <DropdownMenuItem>
-          <IconSettings2 data-slot="icon" aria-hidden />
-          Preferences
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <IconArrowsSplit2 data-slot="icon" aria-hidden />
-          Workflow builder
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <IconDashboard data-slot="icon" aria-hidden />
-          Admin tools
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem render={<Link href="/onboarding" />}>
-          <IconLogout data-slot="icon" aria-hidden />
-          Sign out
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          <DropdownMenuItem>
+            <IconArrowsSplit2 data-slot="icon" aria-hidden />
+            Workflow builder
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <IconDashboard data-slot="icon" aria-hidden />
+            Admin tools
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem render={<Link href="/onboarding" />}>
+            <IconLogout data-slot="icon" aria-hidden />
+            Sign out
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {canInvite ? (
+        <InviteDialog
+          workspaceName={name}
+          open={inviting}
+          onOpenChange={setInviting}
+        />
+      ) : null}
+    </>
   );
 }
 
