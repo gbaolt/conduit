@@ -72,6 +72,22 @@ _Avoid_: Post, chat
 The replies to one root, where the root is a message or a task. A reply stays in the thread unless its author also sends it to the channel.
 _Avoid_: Reply chain, comments (for a thread on a task)
 
+**Draft**:
+The half-written message a Member has left in a conversation or a thread. It is saved to their account, so it is there after a reload and on another device, and sending the message deletes it.
+_Avoid_: Unsent message, autosave
+
+**Online**:
+A Member is online while a Conduit tab in front of them has checked in within the last 2 minutes.
+_Avoid_: Active, available, present
+
+**Away**:
+A Member who is not online: their tabs are hidden or closed, or they have not checked in for 2 minutes. Conduit does not tell offline from away, and a Member cannot set a status by hand.
+_Avoid_: Offline, idle
+
+**Unread marker**:
+The line labelled "New" above the first message a Member has not read, shown when they open a conversation and kept until they leave it. A conversation with messages the Member has not read is also bold in the sidebar.
+_Avoid_: Unread badge (a badge is a count, and plain unread has none), read receipt (nobody else sees where a Member stopped)
+
 ### Work
 
 **Canvas**:
