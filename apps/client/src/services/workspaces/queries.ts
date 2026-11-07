@@ -8,3 +8,11 @@ export const workspaceInvitationsQuery =
 
 export const invitationPreviewQuery = (invitationId: string) =>
   orpc.invitations.get.queryOptions({ input: { invitationId }, retry: false });
+
+export const joinLinkQuery = orpc.joinLink.get.queryOptions();
+export const allowedDomainsQuery = orpc.allowedDomains.list.queryOptions();
+export const joinableWorkspacesQuery =
+  orpc.organizations.joinable.queryOptions();
+
+export const joinLinkPreviewQuery = (token: string) =>
+  orpc.joinLink.preview.queryOptions({ input: { token }, retry: false });

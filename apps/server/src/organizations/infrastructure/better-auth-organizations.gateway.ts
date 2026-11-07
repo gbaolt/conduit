@@ -126,4 +126,22 @@ export class BetterAuthOrganizationsGateway implements OrganizationsGateway {
     });
     return { organizationId: result.member.organizationId };
   }
+
+  async addMember(userId: string, organizationId: string) {
+    try {
+      await this.authService.api.addMember({
+        body: { userId, organizationId, role: 'member' },
+      });
+    } catch (error) {
+      const code = isAPIError(error) ? error.body?.code : undefined;
+      if (code !== 'USER_IS_ALREADY_A_MEMBER_OF_THIS_ORGANIZATION') throw error;
+    }
+  }
+
+  async setActive(headers: Headers, organizationId: string) {
+    await this.authService.api.setActiveOrganization({
+      body: { organizationId },
+      headers,
+    });
+  }
 }
