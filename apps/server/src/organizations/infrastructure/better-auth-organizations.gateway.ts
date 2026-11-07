@@ -1,4 +1,8 @@
-import type { CreateOrganizationInput } from '@conduit/contract';
+import type {
+  CreateOrganizationInput,
+  organizationErrors,
+  WorkspaceRole,
+} from '@conduit/contract';
 import { Inject, Injectable } from '@nestjs/common';
 import { AuthService } from '@thallesp/nestjs-better-auth';
 import { isAPIError } from 'better-auth/api';
@@ -6,6 +10,20 @@ import { isAPIError } from 'better-auth/api';
 import type { Auth } from '@/infrastructure/auth/auth.config';
 import { organizationError } from '@/organizations/domain/organization-errors';
 import type { OrganizationsGateway } from '@/organizations/domain/organizations.gateway';
+
+const MEMBER_ERROR_CODES: Record<string, keyof typeof organizationErrors> = {
+  MEMBER_NOT_FOUND: 'NOT_FOUND',
+  YOU_ARE_NOT_ALLOWED_TO_UPDATE_THIS_MEMBER: 'FORBIDDEN',
+  YOU_ARE_NOT_ALLOWED_TO_DELETE_THIS_MEMBER: 'FORBIDDEN',
+  YOU_CANNOT_LEAVE_THE_ORGANIZATION_WITHOUT_AN_OWNER: 'LAST_OWNER',
+  YOU_CANNOT_LEAVE_THE_ORGANIZATION_AS_THE_ONLY_OWNER: 'LAST_OWNER',
+};
+
+function toMemberError(error: unknown) {
+  const code = isAPIError(error) ? error.body?.code : undefined;
+  const mapped = code ? MEMBER_ERROR_CODES[code] : undefined;
+  return mapped ? organizationError(mapped) : error;
+}
 
 @Injectable()
 export class BetterAuthOrganizationsGateway implements OrganizationsGateway {
@@ -36,6 +54,37 @@ export class BetterAuthOrganizationsGateway implements OrganizationsGateway {
 
   listInvitations(headers: Headers) {
     return this.authService.api.listUserInvitations({ headers });
+  }
+
+  async updateMemberRole(
+    headers: Headers,
+    organizationId: string,
+    memberId: string,
+    role: WorkspaceRole
+  ) {
+    try {
+      await this.authService.api.updateMemberRole({
+        body: { organizationId, memberId, role },
+        headers,
+      });
+    } catch (error) {
+      throw toMemberError(error);
+    }
+  }
+
+  async removeMember(
+    headers: Headers,
+    organizationId: string,
+    memberId: string
+  ) {
+    try {
+      await this.authService.api.removeMember({
+        body: { organizationId, memberIdOrEmail: memberId },
+        headers,
+      });
+    } catch (error) {
+      throw toMemberError(error);
+    }
   }
 
   async acceptInvitation(headers: Headers, invitationId: string) {

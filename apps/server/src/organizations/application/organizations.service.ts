@@ -1,17 +1,30 @@
-import type { CreateOrganizationInput } from '@conduit/contract';
+import {
+  canWorkspace,
+  type CreateOrganizationInput,
+  type WorkspaceRole,
+} from '@conduit/contract';
 import { Inject, Injectable } from '@nestjs/common';
 
+import { organizationError } from '@/organizations/domain/organization-errors';
 import { OrganizationsGateway } from '@/organizations/domain/organizations.gateway';
+import { WorkspaceMembersRepository } from '@/workspaces/domain/workspace-members.repository';
+import type { WorkspaceViewer } from '@/workspaces/domain/workspace-viewer';
 
 @Injectable()
 export class OrganizationsService {
   constructor(
     @Inject(OrganizationsGateway)
-    private readonly organizations: OrganizationsGateway
+    private readonly organizations: OrganizationsGateway,
+    @Inject(WorkspaceMembersRepository)
+    private readonly members: WorkspaceMembersRepository
   ) {}
 
-  list(headers: Headers) {
-    return this.organizations.list(headers);
+  async list(headers: Headers, userId: string) {
+    const [organizations, deactivated] = await Promise.all([
+      this.organizations.list(headers),
+      this.members.deactivatedOrganizationIds(userId),
+    ]);
+    return organizations.filter(({ id }) => !deactivated.includes(id));
   }
 
   create(headers: Headers, input: CreateOrganizationInput) {
@@ -28,5 +41,63 @@ export class OrganizationsService {
 
   acceptInvitation(headers: Headers, invitationId: string) {
     return this.organizations.acceptInvitation(headers, invitationId);
+  }
+
+  async updateMemberRole(
+    headers: Headers,
+    viewer: WorkspaceViewer,
+    memberId: string,
+    role: WorkspaceRole
+  ) {
+    const target = await this.findTarget(viewer, memberId);
+
+    if (
+      !canWorkspace('changeRole', viewer.workspaceRole, {
+        role: target.role,
+        newRole: role,
+        isSelf: target.userId === viewer.userId,
+      })
+    ) {
+      throw organizationError('FORBIDDEN');
+    }
+
+    await this.organizations.updateMemberRole(
+      headers,
+      viewer.organizationId,
+      memberId,
+      role
+    );
+  }
+
+  async removeMember(
+    headers: Headers,
+    viewer: WorkspaceViewer,
+    memberId: string
+  ) {
+    const target = await this.findTarget(viewer, memberId);
+
+    if (
+      !canWorkspace('removeMember', viewer.workspaceRole, {
+        role: target.role,
+        isSelf: target.userId === viewer.userId,
+      })
+    ) {
+      throw organizationError('FORBIDDEN');
+    }
+
+    await this.organizations.removeMember(
+      headers,
+      viewer.organizationId,
+      memberId
+    );
+  }
+
+  private async findTarget(viewer: WorkspaceViewer, memberId: string) {
+    const target = await this.members.findMember(
+      viewer.organizationId,
+      memberId
+    );
+    if (!target) throw organizationError('NOT_FOUND');
+    return target;
   }
 }

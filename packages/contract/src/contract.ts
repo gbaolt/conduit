@@ -29,8 +29,13 @@ import { healthCheckContract } from './contracts/health';
 import {
   acceptInvitationContract,
   createOrganizationContract,
+  deactivateMemberContract,
   listInvitationsContract,
+  listMembersContract,
   listOrganizationsContract,
+  reactivateMemberContract,
+  removeMemberContract,
+  updateMemberRoleContract,
 } from './contracts/organizations';
 import { getSessionContract } from './contracts/users';
 
@@ -44,6 +49,13 @@ export const contract = {
   organizations: {
     list: listOrganizationsContract,
     create: createOrganizationContract,
+  },
+  members: {
+    list: listMembersContract,
+    updateRole: updateMemberRoleContract,
+    remove: removeMemberContract,
+    deactivate: deactivateMemberContract,
+    reactivate: reactivateMemberContract,
   },
   invitations: {
     list: listInvitationsContract,

@@ -39,3 +39,25 @@ export type Invitation = z.infer<typeof InvitationSchema>;
 
 export const WorkspaceRoleSchema = z.enum(['owner', 'admin', 'member']);
 export type WorkspaceRole = z.infer<typeof WorkspaceRoleSchema>;
+
+export const WorkspaceMemberStatusSchema = z.enum(['active', 'deactivated']);
+export type WorkspaceMemberStatus = z.infer<typeof WorkspaceMemberStatusSchema>;
+
+export const WorkspaceMemberSchema = z.object({
+  memberId: z.string(),
+  userId: z.string(),
+  name: z.string(),
+  email: z.string(),
+  image: z.string().nullable(),
+  role: WorkspaceRoleSchema,
+  status: WorkspaceMemberStatusSchema,
+  joinedAt: z.coerce.date(),
+});
+export type WorkspaceMember = z.infer<typeof WorkspaceMemberSchema>;
+
+export const MemberIdInputSchema = z.object({ memberId: z.string() });
+
+export const UpdateMemberRoleInputSchema = z.object({
+  memberId: z.string(),
+  role: WorkspaceRoleSchema,
+});
