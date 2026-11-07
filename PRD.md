@@ -147,27 +147,27 @@ A team can't try messaging until more than one person can get in. Today a member
 
 Every other feature reads or writes messages, so messaging comes first.
 
-| ID    | Sub-feature                                                                             | Status      | PR                                                             |
-| ----- | --------------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------- |
-| M1.1  | Deliver messages in realtime to every open client                                       | Shipped     | [#PR_NUMBER](https://github.com/gbaolt/conduit/pull/PR_NUMBER) |
-| M1.2  | Send, edit, and delete messages                                                         | Shipped     | [#PR_NUMBER](https://github.com/gbaolt/conduit/pull/PR_NUMBER) |
-| M1.3  | Rich text with Markdown shortcuts, built on the Lexical kit                             | Shipped     | [#PR_NUMBER](https://github.com/gbaolt/conduit/pull/PR_NUMBER) |
-| M1.4  | Mention a person, `@channel`, or `@here`                                                | Not started |                                                                |
-| M1.5  | Emoji reactions                                                                         | Not started |                                                                |
-| M1.6  | Threads, with **Also send to channel**                                                  | Not started |                                                                |
-| M1.7  | Unread markers, and remembering where each member stopped reading                       | Not started |                                                                |
-| M1.8  | Typing indicators                                                                       | Not started |                                                                |
-| M1.9  | Online and away status                                                                  | Not started |                                                                |
-| M1.10 | Keep a saved draft for each conversation                                                | Not started |                                                                |
-| M1.11 | Pin messages to a conversation                                                          | Not started |                                                                |
-| M1.12 | **Save for later** on any message                                                       | Not started |                                                                |
-| M1.13 | Link previews                                                                           | Not started |                                                                |
-| M1.14 | One-on-one DMs                                                                          | Not started |                                                                |
-| M1.15 | Group DMs of up to 10 people, including you                                             | Not started |                                                                |
-| M1.16 | **Turn into a private channel**, offered when someone adds an 11th person to a group DM | Not started |                                                                |
-| M1.17 | A DM with yourself, for notes                                                           | Not started |                                                                |
-| M1.18 | AI: summarize a thread, or a channel over a time range                                  | Not started |                                                                |
-| M1.19 | AI admin control: turn AI on or off for the workspace                                   | Not started |                                                                |
+| ID    | Sub-feature                                                                             | Status      | PR                                               |
+| ----- | --------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------ |
+| M1.1  | Deliver messages in realtime to every open client                                       | Shipped     | [#59](https://github.com/gbaolt/conduit/pull/59) |
+| M1.2  | Send, edit, and delete messages                                                         | Shipped     | [#59](https://github.com/gbaolt/conduit/pull/59) |
+| M1.3  | Rich text with Markdown shortcuts, built on the Lexical kit                             | Shipped     | [#59](https://github.com/gbaolt/conduit/pull/59) |
+| M1.4  | Mention a person, `@channel`, or `@here`                                                | Not started |                                                  |
+| M1.5  | Emoji reactions                                                                         | Not started |                                                  |
+| M1.6  | Threads, with **Also send to channel**                                                  | Not started |                                                  |
+| M1.7  | Unread markers, and remembering where each member stopped reading                       | Not started |                                                  |
+| M1.8  | Typing indicators                                                                       | Not started |                                                  |
+| M1.9  | Online and away status                                                                  | Not started |                                                  |
+| M1.10 | Keep a saved draft for each conversation                                                | Not started |                                                  |
+| M1.11 | Pin messages to a conversation                                                          | Not started |                                                  |
+| M1.12 | **Save for later** on any message                                                       | Not started |                                                  |
+| M1.13 | Link previews                                                                           | Not started |                                                  |
+| M1.14 | One-on-one DMs                                                                          | Not started |                                                  |
+| M1.15 | Group DMs of up to 10 people, including you                                             | Not started |                                                  |
+| M1.16 | **Turn into a private channel**, offered when someone adds an 11th person to a group DM | Not started |                                                  |
+| M1.17 | A DM with yourself, for notes                                                           | Not started |                                                  |
+| M1.18 | AI: summarize a thread, or a channel over a time range                                  | Not started |                                                  |
+| M1.19 | AI admin control: turn AI on or off for the workspace                                   | Not started |                                                  |
 
 File attachments ship in M3, together with file storage.
 
