@@ -136,6 +136,18 @@ export class MessagesService {
       : message;
   }
 
+  /** Only the author removes a preview from their message. */
+  async removeLinkPreview(viewer: MessageViewer, messageId: string) {
+    const { message, channel } = await this.findLive(viewer, messageId);
+    if (message.authorId !== viewer.userId) {
+      throw messageError('FORBIDDEN', 'Only the author can remove a preview.');
+    }
+    this.authorize(viewer, channel, 'post');
+
+    if (!message.linkPreview) return message;
+    return (await this.messages.setLinkPreview(message.id, null)) ?? message;
+  }
+
   async listPinned(viewer: MessageViewer, channelId: string) {
     await this.find(viewer, channelId);
     return this.messages.listPinned(channelId);

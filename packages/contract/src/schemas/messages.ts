@@ -6,6 +6,17 @@ import { MessageBodySchema } from '@/lib/message-body';
 export const ReactionSummarySchema = z.record(z.string(), z.array(z.string()));
 export type ReactionSummary = z.infer<typeof ReactionSummarySchema>;
 
+/** What the page behind the first link in a message says about itself, fetched after the message is sent. */
+export const LinkPreviewSchema = z.object({
+  url: z.string(),
+  siteName: z.string().nullable(),
+  title: z.string(),
+  description: z.string().nullable(),
+  /** An absolute http or https URL. */
+  image: z.string().nullable(),
+});
+export type LinkPreview = z.infer<typeof LinkPreviewSchema>;
+
 export const MessageSchema = z.object({
   id: z.string(),
   channelId: z.string(),
@@ -20,7 +31,7 @@ export const MessageSchema = z.object({
   reactions: ReactionSummarySchema,
   replyCount: z.number().int(),
   lastReplyAt: z.coerce.date().nullable(),
-  linkPreview: z.unknown().nullable(),
+  linkPreview: LinkPreviewSchema.nullable(),
   pinnedAt: z.coerce.date().nullable(),
   pinnedById: z.string().nullable(),
   editedAt: z.coerce.date().nullable(),

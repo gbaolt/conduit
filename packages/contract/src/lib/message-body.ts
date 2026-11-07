@@ -15,6 +15,13 @@ export type ParsedMentions = {
 };
 
 const MENTION = /<@([\w-]+)>/g;
+const LINK = /https?:\/\/[^\s<>()[\]"'`]+/i;
+
+/** The first http or https link in the text, without trailing punctuation. */
+export function firstLink(body: string) {
+  const match = LINK.exec(body);
+  return match ? match[0].replace(/[.,;:!?*_~]+$/, '') : null;
+}
 
 /** Reads `<@userId>`, `<@channel>`, and `<@here>`. Each user id appears once, in order. */
 export function parseMentions(body: string): ParsedMentions {

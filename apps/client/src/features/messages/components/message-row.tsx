@@ -1,16 +1,21 @@
 'use client';
 
-import type { Message } from '@conduit/contract';
+import type { LinkPreview, Message } from '@conduit/contract';
 import { Button } from '@conduit/ui/components/button';
 import { cn } from '@conduit/ui/lib/utils';
 import { IconPin } from '@tabler/icons-react';
 import { type ReactNode, useEffect, useState } from 'react';
 
 import { UserAvatar } from '@/components/nav-user';
-import { type PendingMessage, useEditMessage } from '@/services/messages/hooks';
+import {
+  type PendingMessage,
+  useEditMessage,
+  useRemoveLinkPreview,
+} from '@/services/messages/hooks';
 
 import { MessageMarkdown } from '../lib/markdown/message-markdown';
 import { Composer } from './composer';
+import { LinkPreviewCard } from './link-preview-card';
 import { MessageActions } from './message-actions';
 import { ReactionBar } from './reaction-bar';
 
@@ -105,6 +110,27 @@ function RowFrame({
   );
 }
 
+function MessagePreview({
+  messageId,
+  channelId,
+  preview,
+  canRemove,
+}: {
+  messageId: string;
+  channelId: string;
+  preview: LinkPreview;
+  canRemove: boolean;
+}) {
+  const remove = useRemoveLinkPreview(channelId);
+
+  return (
+    <LinkPreviewCard
+      preview={preview}
+      onRemove={canRemove ? () => remove.mutate({ messageId }) : undefined}
+    />
+  );
+}
+
 function EditedMark() {
   return <span className="text-muted-foreground text-xs">(edited)</span>;
 }
@@ -181,6 +207,14 @@ export function MessageRow({
             />
             {message.editedAt && <EditedMark />}
           </div>
+          {message.linkPreview && (
+            <MessagePreview
+              messageId={message.id}
+              channelId={message.channelId}
+              preview={message.linkPreview}
+              canRemove={isAuthor && canPost}
+            />
+          )}
           <ReactionBar
             message={message}
             viewerId={viewerId}

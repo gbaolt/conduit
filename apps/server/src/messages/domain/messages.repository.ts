@@ -1,4 +1,5 @@
 import type {
+  LinkPreview,
   Message,
   ParsedMentions,
   ReactionSummary,
@@ -60,4 +61,14 @@ export abstract class MessagesRepository {
 
   /** Messages of the channel that are pinned, newest pin first. */
   abstract listPinned(channelId: string): Promise<Message[]>;
+
+  /**
+   * Stores the preview, or clears it when null. With `onlyIfBody`, a message that was edited or deleted
+   * meanwhile is left alone. Returns null when no message matched.
+   */
+  abstract setLinkPreview(
+    messageId: string,
+    preview: LinkPreview | null,
+    onlyIfBody?: string
+  ): Promise<Message | null>;
 }

@@ -94,6 +94,14 @@ export const listPinnedMessagesContract = oc
   .input(ListPinnedInputSchema)
   .output(ListPinnedOutputSchema);
 
+export const removeLinkPreviewContract = oc
+  .meta(
+    openapi({ method: 'DELETE', path: '/messages/{messageId}/link-preview' })
+  )
+  .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED })
+  .input(MessageIdInputSchema)
+  .output(MessageSchema);
+
 export const saveMessageContract = oc
   .meta(openapi({ method: 'PUT', path: '/saved-messages/{messageId}' }))
   .errors({ NOT_FOUND })

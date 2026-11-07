@@ -34,6 +34,7 @@ import {
   listSavedMessagesContract,
   pinMessageContract,
   reactMessageContract,
+  removeLinkPreviewContract,
   saveMessageContract,
   sendMessageContract,
   unpinMessageContract,
@@ -148,6 +149,7 @@ export const contract = {
     pin: pinMessageContract,
     unpin: unpinMessageContract,
     listPinned: listPinnedMessagesContract,
+    removeLinkPreview: removeLinkPreviewContract,
   },
   saved: {
     add: saveMessageContract,

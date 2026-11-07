@@ -1,4 +1,4 @@
-import type { Message, ReactionSummary } from '@conduit/contract';
+import type { LinkPreview, Message, ReactionSummary } from '@conduit/contract';
 import { Prisma } from '@generated/prisma/client';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -25,7 +25,7 @@ export function toMessage(row: MessageRow): Message {
     reactions: row.reactions as ReactionSummary,
     replyCount: row.replyCount,
     lastReplyAt: row.lastReplyAt,
-    linkPreview: row.linkPreview,
+    linkPreview: row.linkPreview as LinkPreview | null,
     pinnedAt: row.pinnedAt,
     pinnedById: row.pinnedById,
     editedAt: row.editedAt,
@@ -186,6 +186,18 @@ export class PrismaMessagesRepository implements MessagesRepository {
         : { pinnedAt: null, pinnedById: null },
     });
     return toMessage(row);
+  }
+
+  async setLinkPreview(
+    messageId: string,
+    preview: LinkPreview | null,
+    onlyIfBody?: string
+  ) {
+    const { count } = await this.db.message.updateMany({
+      where: { id: messageId, deletedAt: null, body: onlyIfBody },
+      data: { linkPreview: preview ?? Prisma.DbNull },
+    });
+    return count === 0 ? null : this.find(messageId);
   }
 
   async listPinned(channelId: string) {

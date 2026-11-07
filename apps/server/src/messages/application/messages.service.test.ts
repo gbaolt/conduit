@@ -89,6 +89,11 @@ function setup(
       stored.set(id, next);
       return next;
     },
+    setLinkPreview: async (id, linkPreview) => {
+      const next = { ...stored.get(id)!, linkPreview };
+      stored.set(id, next);
+      return next;
+    },
     setPinned: async (id, pinnedById) => {
       const next = {
         ...stored.get(id)!,
@@ -376,6 +381,37 @@ describe('MessagesService pins', () => {
     await expect(service.pin(outsider, message.id)).rejects.toMatchObject({
       code: 'FORBIDDEN',
     });
+  });
+});
+
+describe('MessagesService.removeLinkPreview', () => {
+  const views = { author: channelFor('member'), other: channelFor('member') };
+  const linkPreview = {
+    url: 'https://example.com',
+    siteName: null,
+    title: 'Example',
+    description: null,
+    image: null,
+  };
+
+  it('lets the author remove the preview', async () => {
+    const { service, stored } = setup(views);
+    const { message } = await sendAs(service, author);
+    stored.set(message.id, { ...message, linkPreview });
+
+    await expect(
+      service.removeLinkPreview(author, message.id)
+    ).resolves.toMatchObject({ linkPreview: null });
+  });
+
+  it('refuses everyone else', async () => {
+    const { service, stored } = setup(views);
+    const { message } = await sendAs(service, author);
+    stored.set(message.id, { ...message, linkPreview });
+
+    await expect(
+      service.removeLinkPreview(other, message.id)
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 });
 

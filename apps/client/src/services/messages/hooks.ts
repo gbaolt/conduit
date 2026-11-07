@@ -202,6 +202,21 @@ export function useToggleReaction(channelId: string) {
   );
 }
 
+export function useRemoveLinkPreview(channelId: string) {
+  const queryClient = useQueryClient();
+  const queryKey = messagesQuery(channelId).queryKey;
+
+  return useMutation(
+    orpc.messages.removeLinkPreview.mutationOptions({
+      onSuccess: (message) =>
+        queryClient.setQueryData(queryKey, (data) =>
+          upsertMessages(data, [message])
+        ),
+      onError: (error) => toast.error(error.message),
+    })
+  );
+}
+
 /** Pins an unpinned message and unpins a pinned one. */
 export function useTogglePin(channelId: string) {
   const queryClient = useQueryClient();
