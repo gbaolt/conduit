@@ -58,6 +58,8 @@ export const channelPolicy = {
   },
   leave: { allow: anyMember, lockedOnDefault: true, openWhenArchived: true },
   star: { allow: anyMember, openWhenArchived: true },
+  post: { allow: anyMember },
+  deleteOthersMessages: { allow: adminOrManager },
   moveToSection: { allow: anyMember },
 } satisfies Record<string, Rule>;
 

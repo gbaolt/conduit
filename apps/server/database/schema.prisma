@@ -31,6 +31,7 @@ model User {
   channelsArchived   Channel[]        @relation("ChannelArchivedBy")
   channelMemberships ChannelMember[]
   channelSections    ChannelSection[]
+  messages           Message[]
 }
 
 model Session {
@@ -176,6 +177,11 @@ enum ChannelRole {
   MEMBER
 }
 
+enum ChannelKind {
+  CHANNEL
+  DM
+}
+
 model Channel {
   id                       String            @id @default(cuid())
   organizationId           String
@@ -183,6 +189,9 @@ model Channel {
   name                     String // toChannelName output, shown with a # prefix
   topic                    String?
   description              String?
+  kind                     ChannelKind       @default(CHANNEL)
+  dmKey                    String?           @unique // `<organizationId>:<sorted user ids>`, set only on a DM
+  lastMessageAt            DateTime?
   visibility               ChannelVisibility @default(PUBLIC)
   defaultForOrganizationId String?           @unique // set only on the workspace's default channel
   createdById              String?
@@ -193,6 +202,7 @@ model Channel {
   createdAt                DateTime          @default(now())
   updatedAt                DateTime          @updatedAt
   members                  ChannelMember[]
+  messages                 Message[]
 
   @@unique([organizationId, name])
 }
@@ -224,4 +234,39 @@ model ChannelSection {
   channels       ChannelMember[]
 
   @@unique([userId, organizationId, name])
+}
+
+/// App-owned. The live query reads `updatedAt`, so every change to a row must bump it.
+model Message {
+  id                String    @id @default(cuid())
+  channelId         String
+  channel           Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  authorId          String
+  author            User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  /// Chosen by the sender's client, so a retried send is one row.
+  clientId          String
+  parentId          String?
+  parent            Message?  @relation("MessageReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies           Message[] @relation("MessageReplies")
+  alsoSentToChannel Boolean   @default(false)
+  /// Markdown text, at most 4,000 characters. Cleared when the message is deleted.
+  body              String
+  mentionedUserIds  String[]
+  mentionsChannel   Boolean   @default(false)
+  mentionsHere      Boolean   @default(false)
+  /// `Record<emoji, userId[]>`.
+  reactions         Json      @default("{}")
+  replyCount        Int       @default(0)
+  lastReplyAt       DateTime?
+  linkPreview       Json?
+  pinnedAt          DateTime?
+  pinnedById        String?
+  editedAt          DateTime?
+  deletedAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([authorId, clientId])
+  @@index([channelId, parentId, createdAt, id])
+  @@index([channelId, updatedAt])
 }

@@ -54,6 +54,8 @@ const table: [ChannelAction, string, Partial<PolicyChannel>?][] = [
   ['leave', 'nyyyn'],
   ['star', 'nyyyn'],
   ['moveToSection', 'nyyyn'],
+  ['post', 'nyyyn'],
+  ['deleteOthersMessages', 'yyynn'],
 ];
 
 const decide = (action: ChannelAction, persona: Persona, c: PolicyChannel) =>
