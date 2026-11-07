@@ -16,6 +16,8 @@ export type LogEntry = (
   grouped: boolean;
   /** The first row of a calendar day in the viewer's time zone. */
   startsDay: boolean;
+  /** The row the New marker sits above. */
+  startsNew: boolean;
 };
 
 const dayKey = (date: Date) =>
@@ -23,12 +25,14 @@ const dayKey = (date: Date) =>
 
 /**
  * Lays messages out oldest first and appends pending ones. A pending message whose `clientId` the server
- * has already returned is dropped, since the stored message replaces it.
+ * has already returned is dropped, since the stored message replaces it. The message `newMarkerId` names
+ * starts a group, since the New marker sits above it.
  */
 export function buildLog(
   messages: readonly Message[],
   pending: readonly PendingMessage[],
-  authorId: string
+  authorId: string,
+  newMarkerId: string | null = null
 ): LogEntry[] {
   const stored = new Set(messages.map((message) => message.clientId));
   const rows = [
@@ -56,14 +60,16 @@ export function buildLog(
     const previous = rows[index - 1];
     const startsDay =
       !previous || dayKey(previous.createdAt) !== dayKey(row.createdAt);
+    const startsNew = row.key === newMarkerId;
     const grouped =
       !startsDay &&
+      !startsNew &&
       !deleted &&
       !previous?.deleted &&
       previous?.authorId === row.authorId &&
       row.createdAt.getTime() - previous.createdAt.getTime() < GROUP_WINDOW_MS;
 
-    return { ...row, grouped, startsDay };
+    return { ...row, grouped, startsDay, startsNew };
   });
 }
 

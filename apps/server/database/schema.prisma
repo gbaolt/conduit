@@ -31,6 +31,10 @@ model User {
   channelsArchived   Channel[]        @relation("ChannelArchivedBy")
   channelMemberships ChannelMember[]
   channelSections    ChannelSection[]
+  readStates         ReadState[]
+  drafts             Draft[]
+  typingStates       TypingState[]
+  presences          Presence[]
   messages           Message[]
 }
 
@@ -63,6 +67,7 @@ model Organization {
   joinLink        WorkspaceJoinLink?
   allowedDomains  AllowedDomain[]
   settings        WorkspaceSettings?
+  presences       Presence[]
 }
 
 model Member {
@@ -202,6 +207,9 @@ model Channel {
   createdAt                DateTime          @default(now())
   updatedAt                DateTime          @updatedAt
   members                  ChannelMember[]
+  readStates               ReadState[]
+  drafts                   Draft[]
+  typingStates             TypingState[]
   messages                 Message[]
 
   @@unique([organizationId, name])
@@ -269,4 +277,58 @@ model Message {
   @@unique([authorId, clientId])
   @@index([channelId, parentId, createdAt, id])
   @@index([channelId, updatedAt])
+}
+
+/// App-owned. How far a member has read a conversation. The sidebar compares it with `Channel.lastMessageAt`.
+model ReadState {
+  channelId         String
+  channel           Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// The `createdAt` of `lastReadMessageId`. Moves forward only.
+  lastReadAt        DateTime
+  lastReadMessageId String?
+
+  @@id([channelId, userId])
+  @@index([userId])
+}
+
+/// App-owned. One unsent message per member per conversation. A thread's draft sets `parentId`.
+model Draft {
+  channelId String
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// The thread root, or an empty string for the channel itself. Part of the key, so it cannot be null.
+  parentId  String   @default("")
+  body      String
+  updatedAt DateTime @updatedAt
+
+  @@id([channelId, userId, parentId])
+  @@index([userId])
+}
+
+/// App-owned. A member is typing until `until`. Clients hide rows that have passed it.
+model TypingState {
+  channelId String
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// The thread root, or an empty string for the channel itself.
+  parentId  String   @default("")
+  until     DateTime
+
+  @@id([channelId, userId, parentId])
+}
+
+/// App-owned. A member is online when `lastActiveAt` is under 2 minutes old and `away` is false.
+model Presence {
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastActiveAt   DateTime
+  away           Boolean      @default(false)
+
+  @@id([organizationId, userId])
 }

@@ -23,6 +23,7 @@ import {
 
 import { MentionNames } from '../context/mention-names';
 import { useIsClient } from '../lib/use-is-client';
+import { useNewMarker } from '../lib/use-new-marker';
 import { Composer } from './composer';
 import { MessageList } from './message-list';
 import type { Author } from './message-row';
@@ -86,6 +87,13 @@ export function Conversation({
 
   const messages = useMemo(() => flattenMessages(history.data), [history.data]);
   const viewerId = session?.user.id ?? null;
+  const { markerId, markRead } = useNewMarker({
+    channelId,
+    messages,
+    viewerId,
+    ready: history.isSuccess,
+    hasOlder: history.hasNextPage,
+  });
 
   const authors = useMemo(() => {
     const byId = new Map<string, Author>();
@@ -133,6 +141,8 @@ export function Conversation({
             }
             retry={retry}
             discard={discard}
+            newMarkerId={markerId}
+            onRead={markRead}
           />
         ) : (
           <ConversationSkeleton />

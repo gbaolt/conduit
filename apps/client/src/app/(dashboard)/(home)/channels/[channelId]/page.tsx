@@ -40,6 +40,7 @@ async function Channel({
       <div className="flex h-full min-h-0 flex-col">
         <ChannelHeader channelId={channelId} />
         <Conversation
+          key={channelId}
           channelId={channelId}
           start={<ChannelIntro channelId={channelId} />}
         />

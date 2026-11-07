@@ -72,6 +72,10 @@ _Avoid_: Post, chat
 The replies to one root, where the root is a message or a task. A reply stays in the thread unless its author also sends it to the channel.
 _Avoid_: Reply chain, comments (for a thread on a task)
 
+**Unread marker**:
+The line labelled "New" above the first message a Member has not read, shown when they open a conversation and kept until they leave it. A conversation with messages the Member has not read is also bold in the sidebar.
+_Avoid_: Unread badge (a badge is a count, and plain unread has none), read receipt (nobody else sees where a Member stopped)
+
 ### Work
 
 **Canvas**:
