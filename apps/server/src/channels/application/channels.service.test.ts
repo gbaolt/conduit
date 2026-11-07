@@ -5,6 +5,7 @@ import { PrismaChannelSectionsRepository } from '@/channels/infrastructure/prism
 import { PrismaChannelsRepository } from '@/channels/infrastructure/prisma-channels.repository';
 import { prisma } from '@/infrastructure/database/prisma.service';
 import { PrismaWorkspaceMembersRepository } from '@/workspaces/infrastructure/prisma-workspace-members.repository';
+import { PrismaWorkspaceSettingsRepository } from '@/workspaces/infrastructure/prisma-workspace-settings.repository';
 
 import { ChannelsService, type ChannelViewer } from './channels.service';
 
@@ -18,10 +19,12 @@ vi.hoisted(() => {
 const connectionString = process.env.TEST_DATABASE_URL;
 
 describe.skipIf(!connectionString)('ChannelsService', () => {
+  const settings = new PrismaWorkspaceSettingsRepository(prisma);
   const service = new ChannelsService(
     new PrismaChannelsRepository(prisma),
     new PrismaChannelSectionsRepository(prisma),
-    new PrismaWorkspaceMembersRepository(prisma)
+    new PrismaWorkspaceMembersRepository(prisma),
+    settings
   );
   const run = crypto.randomUUID();
   const organization = { id: run, name: 'Acme', slug: `acme-${run}` };
@@ -436,5 +439,53 @@ describe.skipIf(!connectionString)('ChannelsService', () => {
     await expect(
       service.setVisibility(owner, defaultChannelId, 'private')
     ).rejects.toMatchObject({ code: 'DEFAULT_CHANNEL_LOCKED' });
+  });
+
+  describe('who can create channels', () => {
+    afterAll(() =>
+      prisma.workspaceSettings.deleteMany({
+        where: { organizationId: organization.id },
+      })
+    );
+
+    it('refuses a member a public channel when public creation is admins only', async () => {
+      await settings.update(organization.id, {
+        publicChannelCreators: 'admins',
+      });
+
+      await expect(
+        service.create(member, { name: 'forced-public', visibility: 'public' })
+      ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+      const priv = await service.create(member, {
+        name: 'quiet-private',
+        visibility: 'private',
+      });
+      expect(priv.visibility).toBe('private');
+      await expect(
+        service.create(admin, { name: 'admin-public', visibility: 'public' })
+      ).resolves.toBeDefined();
+    });
+
+    it('refuses a member every channel when creation is admins only', async () => {
+      await settings.update(organization.id, {
+        channelCreators: 'admins',
+        publicChannelCreators: 'everyone',
+      });
+
+      await expect(
+        service.create(member, { name: 'nope', visibility: 'private' })
+      ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    });
+
+    it('lets everyone create again once the settings are reset', async () => {
+      await settings.update(organization.id, {
+        channelCreators: 'everyone',
+        publicChannelCreators: 'everyone',
+      });
+
+      await expect(
+        service.create(member, { name: 'open-again', visibility: 'public' })
+      ).resolves.toBeDefined();
+    });
   });
 });

@@ -20,11 +20,13 @@ import {
 
 import { useChannelDialogs } from '../context/channel-dialogs-provider';
 import { CHANNELS_GROUP_ID, groupSidebar } from '../lib/group-sidebar';
+import { useCanCreateChannel } from '../lib/use-can-create-channel';
 import { useCollapsedGroups } from '../lib/use-collapsed-groups';
 import { SectionMenu, SidebarSection } from './sidebar-section';
 
 function AddChannelsMenu() {
   const { open } = useChannelDialogs();
+  const canCreate = useCanCreateChannel('private');
 
   return (
     <DropdownMenu>
@@ -34,10 +36,12 @@ function AddChannelsMenu() {
         <IconPlus />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuItem onClick={() => open({ kind: 'create' })}>
-          <IconPlus />
-          Create a new channel
-        </DropdownMenuItem>
+        {canCreate ? (
+          <DropdownMenuItem onClick={() => open({ kind: 'create' })}>
+            <IconPlus />
+            Create a new channel
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem onClick={() => open({ kind: 'browse' })}>
           <IconListSearch />
           Browse channels

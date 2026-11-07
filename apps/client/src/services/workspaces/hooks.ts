@@ -3,7 +3,7 @@
 import type { WorkspaceRole } from '@conduit/contract';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { orpc } from '@/lib/orpc';
+import { client, orpc } from '@/lib/orpc';
 import { authClient } from '@/services/auth/client';
 
 import {
@@ -11,6 +11,7 @@ import {
   joinLinkQuery,
   membersQuery,
   workspaceInvitationsQuery,
+  workspaceSettingsQuery,
 } from './queries';
 
 // Every change to memberships or the active workspace must refresh the same things.
@@ -57,6 +58,40 @@ export function useCreateWorkspace() {
   );
 }
 
+export function useUpdateWorkspace() {
+  const onChanged = useActiveWorkspaceChanged();
+
+  return useMutation(
+    orpc.organizations.update.mutationOptions({ onSuccess: onChanged })
+  );
+}
+
+/** Uploads the file to storage, then saves its public URL as the workspace logo. */
+export function useUploadWorkspaceIcon() {
+  const onChanged = useActiveWorkspaceChanged();
+
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const { uploadUrl, publicUrl } = await client.organizations.iconUploadUrl(
+        {
+          contentType: file.type,
+          size: file.size,
+        }
+      );
+      const response = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+
+      if (!response.ok) throw new Error('The upload failed. Try again.');
+
+      return client.organizations.update({ logo: publicUrl });
+    },
+    onSuccess: onChanged,
+  });
+}
+
 export function useAcceptInvitation() {
   const onChanged = useActiveWorkspaceChanged();
 
@@ -80,6 +115,23 @@ export function useSwitchWorkspace() {
     },
     onSuccess: onChanged,
   });
+}
+
+export function useWorkspaceSettings() {
+  return useQuery(workspaceSettingsQuery);
+}
+
+export function useUpdateWorkspaceSettings() {
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    orpc.workspaceSettings.update.mutationOptions({
+      onSuccess: () =>
+        queryClient.invalidateQueries({
+          queryKey: orpc.workspaceSettings.key(),
+        }),
+    })
+  );
 }
 
 export function useWorkspaceMembers() {

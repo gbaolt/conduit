@@ -49,9 +49,9 @@ model Session {
 }
 
 model Organization {
-  id              String           @id @default(cuid())
+  id              String             @id @default(cuid())
   name            String
-  slug            String           @unique
+  slug            String             @unique
   logo            String?
   createdAt       DateTime
   metadata        String?
@@ -61,14 +61,15 @@ model Organization {
   channelSections ChannelSection[]
   joinLink        WorkspaceJoinLink?
   allowedDomains  AllowedDomain[]
+  settings        WorkspaceSettings?
 }
 
 model Member {
-  id             String       @id @default(cuid())
+  id             String              @id @default(cuid())
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   userId         String
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   role           String
   createdAt      DateTime
   deactivation   MemberDeactivation?
@@ -102,6 +103,19 @@ model AllowedDomain {
 
   @@id([organizationId, domain])
   @@index([domain])
+}
+
+enum ChannelCreators {
+  EVERYONE
+  ADMINS
+}
+
+/// App-owned. No row means every setting is at its default, so there is no backfill.
+model WorkspaceSettings {
+  organizationId        String          @id
+  organization          Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  channelCreators       ChannelCreators @default(EVERYONE)
+  publicChannelCreators ChannelCreators @default(EVERYONE)
 }
 
 model Invitation {

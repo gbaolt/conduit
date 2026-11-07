@@ -3,6 +3,7 @@ import type {
   Invitation,
   InviteRole,
   Organization,
+  UpdateOrganizationInput,
   WorkspaceRole,
 } from '@conduit/contract';
 
@@ -14,6 +15,13 @@ export abstract class OrganizationsGateway {
   abstract create(
     headers: Headers,
     input: CreateOrganizationInput
+  ): Promise<Organization>;
+
+  /** Throws `SLUG_TAKEN` or `FORBIDDEN`. */
+  abstract update(
+    headers: Headers,
+    organizationId: string,
+    input: UpdateOrganizationInput
   ): Promise<Organization>;
 
   /** Every pending invitation, expired ones included. */

@@ -49,6 +49,32 @@ export class OrganizationsController {
       );
   }
 
+  @Implement(contract.organizations.update)
+  update() {
+    return implement(contract.organizations.update)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.organizationsService.update(
+          context.headers,
+          viewerOf(context),
+          input
+        )
+      );
+  }
+
+  @Implement(contract.organizations.iconUploadUrl)
+  iconUploadUrl() {
+    return implement(contract.organizations.iconUploadUrl)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.organizationsService.iconUploadUrl(viewerOf(context), input)
+      );
+  }
+
   @Implement(contract.invitations.list)
   listInvitations() {
     return implement(contract.invitations.list)

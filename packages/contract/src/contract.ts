@@ -39,6 +39,7 @@ import {
   listInvitationsContract,
   listJoinableOrganizationsContract,
   listMembersContract,
+  organizationIconUploadUrlContract,
   listOrganizationsContract,
   listWorkspaceInvitationsContract,
   previewJoinLinkContract,
@@ -48,8 +49,13 @@ import {
   revokeInvitationContract,
   setAllowedDomainsContract,
   updateMemberRoleContract,
+  updateOrganizationContract,
 } from './contracts/organizations';
 import { getSessionContract } from './contracts/users';
+import {
+  getWorkspaceSettingsContract,
+  updateWorkspaceSettingsContract,
+} from './contracts/workspace-settings';
 
 export const contract = {
   health: {
@@ -63,6 +69,8 @@ export const contract = {
     create: createOrganizationContract,
     joinable: listJoinableOrganizationsContract,
     join: joinOrganizationContract,
+    update: updateOrganizationContract,
+    iconUploadUrl: organizationIconUploadUrlContract,
   },
   joinLink: {
     get: getJoinLinkContract,
@@ -80,6 +88,10 @@ export const contract = {
     remove: removeMemberContract,
     deactivate: deactivateMemberContract,
     reactivate: reactivateMemberContract,
+  },
+  workspaceSettings: {
+    get: getWorkspaceSettingsContract,
+    update: updateWorkspaceSettingsContract,
   },
   invitations: {
     list: listInvitationsContract,

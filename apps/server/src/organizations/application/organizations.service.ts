@@ -4,7 +4,11 @@ import {
   canWorkspace,
   type CreateInvitationsResult,
   type CreateOrganizationInput,
+  ICON_CONTENT_TYPES,
+  ICON_MAX_BYTES,
+  type IconUploadInput,
   type InviteRole,
+  type UpdateOrganizationInput,
   type WorkspaceRole,
 } from '@conduit/contract';
 import { Inject, Injectable } from '@nestjs/common';
@@ -14,6 +18,7 @@ import { JoinAccessRepository } from '@/organizations/domain/join-access.reposit
 import { organizationError } from '@/organizations/domain/organization-errors';
 import { OrganizationsGateway } from '@/organizations/domain/organizations.gateway';
 import { PUBLIC_MAIL_DOMAINS } from '@/organizations/domain/public-mail-domains';
+import { ObjectStorage } from '@/storage/domain/object-storage';
 import { WorkspaceMembersRepository } from '@/workspaces/domain/workspace-members.repository';
 import type { WorkspaceViewer } from '@/workspaces/domain/workspace-viewer';
 
@@ -22,6 +27,9 @@ type Joiner = { id: string; email: string; emailVerified: boolean };
 const newToken = () => randomBytes(32).toString('base64url');
 const domainOf = (email: string) =>
   email.slice(email.lastIndexOf('@') + 1).toLowerCase();
+
+const iconPrefix = (viewer: WorkspaceViewer) =>
+  `workspaces/${viewer.organizationId}/icons/`;
 
 @Injectable()
 export class OrganizationsService {
@@ -33,7 +41,8 @@ export class OrganizationsService {
     @Inject(InvitationsRepository)
     private readonly invitations: InvitationsRepository,
     @Inject(JoinAccessRepository)
-    private readonly joinAccess: JoinAccessRepository
+    private readonly joinAccess: JoinAccessRepository,
+    @Inject(ObjectStorage) private readonly storage: ObjectStorage
   ) {}
 
   async list(headers: Headers, userId: string) {
@@ -46,6 +55,48 @@ export class OrganizationsService {
 
   create(headers: Headers, input: CreateOrganizationInput) {
     return this.organizations.create(headers, input);
+  }
+
+  async update(
+    headers: Headers,
+    viewer: WorkspaceViewer,
+    input: UpdateOrganizationInput
+  ) {
+    if (!canWorkspace('editWorkspace', viewer.workspaceRole)) {
+      throw organizationError('FORBIDDEN');
+    }
+    // A logo must be a file this workspace uploaded, not any URL the caller sends.
+    if (
+      input.logo &&
+      !input.logo.startsWith(this.storage.publicUrl(iconPrefix(viewer)))
+    ) {
+      throw organizationError('INVALID_ICON');
+    }
+    return this.organizations.update(headers, viewer.organizationId, input);
+  }
+
+  async iconUploadUrl(
+    viewer: WorkspaceViewer,
+    { contentType, size }: IconUploadInput
+  ) {
+    if (!canWorkspace('editWorkspace', viewer.workspaceRole)) {
+      throw organizationError('FORBIDDEN');
+    }
+    if (
+      !Object.hasOwn(ICON_CONTENT_TYPES, contentType) ||
+      size > ICON_MAX_BYTES
+    ) {
+      throw organizationError('INVALID_ICON');
+    }
+    const extension =
+      ICON_CONTENT_TYPES[contentType as keyof typeof ICON_CONTENT_TYPES];
+
+    // The random segment makes the object unguessable and a fresh URL defeats caches.
+    return this.storage.presignUpload({
+      key: `${iconPrefix(viewer)}${crypto.randomUUID()}.${extension}`,
+      contentType,
+      size,
+    });
   }
 
   async listInvitations(headers: Headers) {

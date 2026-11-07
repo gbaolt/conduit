@@ -10,6 +10,7 @@ import {
   createWorkspace,
   type Workspace,
 } from '@/shared/testing/workspace-fixture';
+import { fakeStorage } from '@/storage/testing/fake-object-storage';
 import { PrismaWorkspaceMembersRepository } from '@/workspaces/infrastructure/prisma-workspace-members.repository';
 
 import { OrganizationsService } from './organizations.service';
@@ -21,7 +22,8 @@ describe.skipIf(!connectionString)('OrganizationsService invitations', () => {
     new BetterAuthOrganizationsGateway({ api: auth.api } as AuthService<Auth>),
     new PrismaWorkspaceMembersRepository(prisma),
     new PrismaInvitationsRepository(prisma),
-    new PrismaJoinAccessRepository(prisma)
+    new PrismaJoinAccessRepository(prisma),
+    fakeStorage
   );
   let workspace: Workspace;
   const admin = () => ({

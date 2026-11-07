@@ -35,6 +35,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 import { useChannelDialogs } from '@/features/channels/context/channel-dialogs-provider';
+import { WorkspaceIcon } from '@/features/workspace/components/workspace-icon';
 import { useWorkspace } from '@/features/workspace/context/workspace-provider';
 import { InviteDialog } from '@/features/workspace-settings/components/invite-dialog';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
@@ -73,6 +74,13 @@ function WorkspaceMenu() {
             <Button size="sm" variant="ghost" className="text-lg font-bold" />
           }
         >
+          {activeWorkspace?.logo ? (
+            <WorkspaceIcon
+              logo={activeWorkspace.logo}
+              size={20}
+              className="size-5 rounded-sm"
+            />
+          ) : null}
           <span className="truncate">{name}</span>
           <IconChevronDown data-icon="inline-end" />
         </DropdownMenuTrigger>

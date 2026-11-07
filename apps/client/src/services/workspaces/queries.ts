@@ -16,3 +16,4 @@ export const joinableWorkspacesQuery =
 
 export const joinLinkPreviewQuery = (token: string) =>
   orpc.joinLink.preview.queryOptions({ input: { token }, retry: false });
+export const workspaceSettingsQuery = orpc.workspaceSettings.get.queryOptions();
