@@ -24,9 +24,10 @@ import {
 import { MentionNames } from '../context/mention-names';
 import { useIsClient } from '../lib/use-is-client';
 import { useNewMarker } from '../lib/use-new-marker';
-import { Composer } from './composer';
+import { ConversationComposer } from './conversation-composer';
 import { MessageList } from './message-list';
 import type { Author } from './message-row';
+import { TypingLine } from './typing-line';
 
 const OFFLINE_AFTER_MS = 10_000;
 // A normal connect takes a moment, so the line waits before it appears.
@@ -150,11 +151,17 @@ export function Conversation({
         <div ref={composerRef} className="px-4 pb-4 sm:px-5">
           <ConnectionLine status={liveStatus} />
           {channel.archivedAt ? null : canPost ? (
-            <Composer
-              placeholder={`Message #${channel.name}`}
-              onSubmit={send}
-              onEditLast={lastOwn ? () => setEditingId(lastOwn.id) : undefined}
-            />
+            <>
+              <ConversationComposer
+                channelId={channelId}
+                placeholder={`Message #${channel.name}`}
+                onSubmit={send}
+                onEditLast={
+                  lastOwn ? () => setEditingId(lastOwn.id) : undefined
+                }
+              />
+              <TypingLine channelId={channelId} />
+            </>
           ) : (
             <div className="border-input flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
               <p className="text-muted-foreground text-sm">

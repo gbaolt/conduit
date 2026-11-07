@@ -78,3 +78,35 @@ export function createTrailingWriter<T>(
     },
   };
 }
+
+/**
+ * What a composer does as the viewer types: saves the draft after a pause, and pings that they are typing
+ * at most every 3 s. `saved` is the draft the composer started from, so loading it does not count as a change.
+ * Call `flush` when the composer closes.
+ */
+export function createComposerActivity({
+  saved,
+  saveDraft,
+  ping,
+}: {
+  saved: string;
+  saveDraft: (body: string) => void;
+  ping: () => void;
+}) {
+  let last = saved;
+  const mayPing = createLeadingGate(TYPING_PING_INTERVAL_MS);
+  const drafts = createTrailingWriter(saveDraft, {
+    debounceMs: DRAFT_DEBOUNCE_MS,
+    minIntervalMs: DRAFT_MIN_INTERVAL_MS,
+  });
+
+  return {
+    change(markdown: string) {
+      if (markdown === last) return;
+      last = markdown;
+      drafts.push(markdown);
+      if (markdown.trim() && mayPing()) ping();
+    },
+    flush: drafts.flush,
+  };
+}

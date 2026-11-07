@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   activeTypers,
+  createComposerActivity,
   createLeadingGate,
   createTrailingWriter,
   ONLINE_WINDOW_MS,
@@ -105,5 +106,60 @@ describe('activeTypers', () => {
     ];
 
     expect(activeTypers(rows, now).map((row) => row.userId)).toEqual(['a']);
+  });
+});
+
+describe('createComposerActivity', () => {
+  const setup = (saved = '') => {
+    const saveDraft = vi.fn<(body: string) => void>();
+    const ping = vi.fn<() => void>();
+    return {
+      saveDraft,
+      ping,
+      activity: createComposerActivity({ saved, saveDraft, ping }),
+    };
+  };
+
+  it('pings once per 3 s and saves once after the pause', () => {
+    const { activity, ping, saveDraft } = setup();
+
+    for (let key = 1; key <= 20; key++) {
+      activity.change('x'.repeat(key));
+      vi.advanceTimersByTime(200);
+    }
+    expect(ping).toHaveBeenCalledTimes(2);
+    expect(saveDraft).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(1000);
+    expect(saveDraft).toHaveBeenCalledExactlyOnceWith('x'.repeat(20));
+  });
+
+  it('does not treat the draft it started from as a change', () => {
+    const { activity, ping, saveDraft } = setup('half a thought');
+
+    activity.change('half a thought');
+    vi.advanceTimersByTime(10_000);
+
+    expect(ping).not.toHaveBeenCalled();
+    expect(saveDraft).not.toHaveBeenCalled();
+  });
+
+  it('saves an empty draft after a send clears the composer, without a typing ping', () => {
+    const { activity, ping, saveDraft } = setup('hello');
+
+    activity.change('');
+    vi.advanceTimersByTime(1000);
+
+    expect(saveDraft).toHaveBeenCalledExactlyOnceWith('');
+    expect(ping).not.toHaveBeenCalled();
+  });
+
+  it('saves a pending draft when the composer closes', () => {
+    const { activity, saveDraft } = setup();
+
+    activity.change('unsent');
+    activity.flush();
+
+    expect(saveDraft).toHaveBeenCalledExactlyOnceWith('unsent');
   });
 });

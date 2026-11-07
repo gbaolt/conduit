@@ -155,10 +155,10 @@ Every other feature reads or writes messages, so messaging comes first.
 | M1.4  | Mention a person, `@channel`, or `@here`                                                | Not started |                                                  |
 | M1.5  | Emoji reactions                                                                         | Not started |                                                  |
 | M1.6  | Threads, with **Also send to channel**                                                  | Not started |                                                  |
-| M1.7  | Unread markers, and remembering where each member stopped reading                       | Not started |                                                  |
-| M1.8  | Typing indicators                                                                       | Not started |                                                  |
-| M1.9  | Online and away status                                                                  | Not started |                                                  |
-| M1.10 | Keep a saved draft for each conversation                                                | Not started |                                                  |
+| M1.7  | Unread markers, and remembering where each member stopped reading                       | Shipped     |                                                  |
+| M1.8  | Typing indicators                                                                       | Shipped     |                                                  |
+| M1.9  | Online and away status                                                                  | Shipped     |                                                  |
+| M1.10 | Keep a saved draft for each conversation                                                | Shipped     |                                                  |
 | M1.11 | Pin messages to a conversation                                                          | Not started |                                                  |
 | M1.12 | **Save for later** on any message                                                       | Not started |                                                  |
 | M1.13 | Link previews                                                                           | Not started |                                                  |
