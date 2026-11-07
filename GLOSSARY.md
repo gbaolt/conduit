@@ -64,6 +64,10 @@ _Avoid_: Folder, category
 A conversation between specific Members with no name: one-on-one, a group DM of up to 10 people, or a Member alone.
 _Avoid_: Direct chat, private message
 
+**Message**:
+One post in a conversation, written in Markdown text. Its author can edit it, and its author, a channel manager, or a workspace admin can delete it.
+_Avoid_: Post, chat
+
 **Thread**:
 The replies to one root, where the root is a message or a task. A reply stays in the thread unless its author also sends it to the channel.
 _Avoid_: Reply chain, comments (for a thread on a task)

@@ -27,6 +27,12 @@ import {
 } from './contracts/channels';
 import { healthCheckContract } from './contracts/health';
 import {
+  deleteMessageContract,
+  editMessageContract,
+  listMessagesContract,
+  sendMessageContract,
+} from './contracts/messages';
+import {
   acceptInvitationContract,
   createInvitationsContract,
   createOrganizationContract,
@@ -51,6 +57,7 @@ import {
   updateMemberRoleContract,
   updateOrganizationContract,
 } from './contracts/organizations';
+import { sealStreamContract } from './contracts/realtime';
 import { getSessionContract } from './contracts/users';
 import {
   getWorkspaceSettingsContract,
@@ -122,6 +129,15 @@ export const contract = {
     star: starChannelContract,
     unstar: unstarChannelContract,
     moveToSection: moveChannelToSectionContract,
+  },
+  messages: {
+    list: listMessagesContract,
+    send: sendMessageContract,
+    edit: editMessageContract,
+    delete: deleteMessageContract,
+  },
+  realtime: {
+    seal: sealStreamContract,
   },
   channelSections: {
     list: listChannelSectionsContract,
