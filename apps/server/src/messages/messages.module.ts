@@ -4,7 +4,9 @@ import { ChannelsModule } from '@/channels/channels.module';
 
 import { MessagesService } from './application/messages.service';
 import { MessagesRepository } from './domain/messages.repository';
+import { SavedMessagesRepository } from './domain/saved-messages.repository';
 import { PrismaMessagesRepository } from './infrastructure/prisma-messages.repository';
+import { PrismaSavedMessagesRepository } from './infrastructure/prisma-saved-messages.repository';
 import { MessagesController } from './presentation/messages.controller';
 
 @Module({
@@ -13,6 +15,10 @@ import { MessagesController } from './presentation/messages.controller';
   providers: [
     MessagesService,
     { provide: MessagesRepository, useClass: PrismaMessagesRepository },
+    {
+      provide: SavedMessagesRepository,
+      useClass: PrismaSavedMessagesRepository,
+    },
   ],
 })
 export class MessagesModule {}

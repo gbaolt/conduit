@@ -32,6 +32,7 @@ model User {
   channelMemberships ChannelMember[]
   channelSections    ChannelSection[]
   messages           Message[]
+  savedMessages      SavedMessage[]
 }
 
 model Session {
@@ -238,35 +239,48 @@ model ChannelSection {
 
 /// App-owned. The live query reads `updatedAt`, so every change to a row must bump it.
 model Message {
-  id                String    @id @default(cuid())
+  id                String         @id @default(cuid())
   channelId         String
-  channel           Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  channel           Channel        @relation(fields: [channelId], references: [id], onDelete: Cascade)
   authorId          String
-  author            User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author            User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
   /// Chosen by the sender's client, so a retried send is one row.
   clientId          String
   parentId          String?
-  parent            Message?  @relation("MessageReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies           Message[] @relation("MessageReplies")
-  alsoSentToChannel Boolean   @default(false)
+  parent            Message?       @relation("MessageReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies           Message[]      @relation("MessageReplies")
+  savedBy           SavedMessage[]
+  alsoSentToChannel Boolean        @default(false)
   /// Markdown text, at most 4,000 characters. Cleared when the message is deleted.
   body              String
   mentionedUserIds  String[]
-  mentionsChannel   Boolean   @default(false)
-  mentionsHere      Boolean   @default(false)
+  mentionsChannel   Boolean        @default(false)
+  mentionsHere      Boolean        @default(false)
   /// `Record<emoji, userId[]>`.
-  reactions         Json      @default("{}")
-  replyCount        Int       @default(0)
+  reactions         Json           @default("{}")
+  replyCount        Int            @default(0)
   lastReplyAt       DateTime?
   linkPreview       Json?
   pinnedAt          DateTime?
   pinnedById        String?
   editedAt          DateTime?
   deletedAt         DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
   @@unique([authorId, clientId])
   @@index([channelId, parentId, createdAt, id])
   @@index([channelId, updatedAt])
+}
+
+/// App-owned. A member's private bookmark on a message.
+model SavedMessage {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  savedAt   DateTime @default(now())
+
+  @@id([userId, messageId])
+  @@index([userId, savedAt])
 }

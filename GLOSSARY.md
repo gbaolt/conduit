@@ -72,6 +72,18 @@ _Avoid_: Post, chat
 A message that names a Member, `@channel`, or `@here`. It stores the Member's id, so a rename does not break it. A mention of someone outside the conversation stays plain text.
 _Avoid_: Tag, ping
 
+**Reaction**:
+An emoji a Member puts on a message. A message holds at most 50 different emoji, and each Member reacts with an emoji once.
+_Avoid_: Emoji response, like
+
+**Pin**:
+A message kept in a conversation's pinned list. Any Member who can post in the conversation can pin and unpin.
+_Avoid_: Star, bookmark (for a message)
+
+**Saved message**:
+A message a Member kept for themselves with **Save for later**. Only that Member sees it, on the Saved page.
+_Avoid_: Bookmark, favorite
+
 **Thread**:
 The replies to one root, where the root is a message or a task. A reply stays in the thread unless its author also sends it to the channel.
 _Avoid_: Reply chain, comments (for a thread on a task)

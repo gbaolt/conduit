@@ -1,8 +1,15 @@
-import type { Channel, ChannelMember, Message } from '@conduit/contract';
+import {
+  type Channel,
+  type ChannelMember,
+  type Message,
+  REACTION_EMOJI_MAX,
+  type SavedMessage,
+} from '@conduit/contract';
 import { describe, expect, it } from 'vitest';
 
 import type { ChannelsRepository } from '@/channels/domain/channels.repository';
 import type { MessagesRepository } from '@/messages/domain/messages.repository';
+import type { SavedMessagesRepository } from '@/messages/domain/saved-messages.repository';
 
 import { MessagesService, type MessageViewer } from './messages.service';
 
@@ -58,8 +65,11 @@ function setup(
         clientId: input.clientId,
         body: input.body,
         mentionedUserIds: input.mentions.userIds,
+        reactions: {},
+        pinnedAt: null,
+        pinnedById: null,
         deletedAt: null,
-      } as Message;
+      } as unknown as Message;
       stored.set(message.id, message);
       return { message, txid: '1' };
     },
@@ -71,10 +81,53 @@ function setup(
     markDeleted: async (id) => {
       stored.set(id, { ...stored.get(id)!, body: '', deletedAt: new Date() });
     },
+    updateReactions: async (id, update) => {
+      const message = stored.get(id)!;
+      const reactions = update(message.reactions);
+      if (!reactions) return null;
+      const next = { ...message, reactions };
+      stored.set(id, next);
+      return next;
+    },
+    setPinned: async (id, pinnedById) => {
+      const next = {
+        ...stored.get(id)!,
+        pinnedAt: pinnedById ? new Date() : null,
+        pinnedById,
+      };
+      stored.set(id, next);
+      return next;
+    },
   } as Partial<MessagesRepository> as MessagesRepository;
+
+  const bookmarks = new Map<string, Set<string>>();
+  const saved = {
+    add: async (userId, messageId) => {
+      bookmarks.set(
+        userId,
+        (bookmarks.get(userId) ?? new Set()).add(messageId)
+      );
+    },
+    remove: async (userId, messageId) => {
+      bookmarks.get(userId)?.delete(messageId);
+    },
+    list: async (userId, channelIds): Promise<SavedMessage[]> =>
+      [...(bookmarks.get(userId) ?? [])]
+        .map((id) => stored.get(id)!)
+        .filter((message) => channelIds.includes(message.channelId))
+        .map((message) => ({
+          message,
+          channelName: 'design',
+          savedAt: new Date(0),
+        })),
+  } as Partial<SavedMessagesRepository> as SavedMessagesRepository;
 
   const channels = {
     find: async (scope: { userId: string }) => views[scope.userId] ?? null,
+    list: async (scope: { userId: string }, archived: boolean) => {
+      const view = views[scope.userId];
+      return view && Boolean(view.archivedAt) === archived ? [view] : [];
+    },
     listMembers: async () =>
       memberIds.map(
         (userId): ChannelMember => ({
@@ -87,7 +140,11 @@ function setup(
       ),
   } as Partial<ChannelsRepository> as ChannelsRepository;
 
-  return { service: new MessagesService(messages, channels), stored, sent };
+  return {
+    service: new MessagesService(messages, channels, saved),
+    stored,
+    sent,
+  };
 }
 
 const sendAs = (
@@ -230,5 +287,145 @@ describe('MessagesService.delete', () => {
     await service.delete(author, message.id);
 
     await expect(service.delete(author, message.id)).resolves.toBeUndefined();
+  });
+});
+
+describe('MessagesService reactions', () => {
+  const views = { author: channelFor('member'), other: channelFor('member') };
+
+  it('adds and removes a reaction', async () => {
+    const { service } = setup(views);
+    const { message } = await sendAs(service, author);
+
+    const reacted = await service.react(other, message.id, '👍');
+    expect(reacted.reactions).toEqual({ '👍': ['other'] });
+
+    const removed = await service.unreact(other, message.id, '👍');
+    expect(removed.reactions).toEqual({});
+  });
+
+  it('refuses a new emoji past the cap with REACTION_LIMIT', async () => {
+    const { service, stored } = setup(views);
+    const { message } = await sendAs(service, author);
+    stored.set(message.id, {
+      ...message,
+      reactions: Object.fromEntries(
+        Array.from({ length: REACTION_EMOJI_MAX }, (_, i) => [`e${i}`, ['x']])
+      ),
+    });
+
+    await expect(service.react(other, message.id, '🎉')).rejects.toMatchObject({
+      code: 'REACTION_LIMIT',
+    });
+  });
+
+  it('refuses someone who has not joined the channel', async () => {
+    const { service } = setup({ ...views, outsider: channelFor(null) });
+    const { message } = await sendAs(service, author);
+
+    await expect(
+      service.react(outsider, message.id, '👍')
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
+  it('refuses a reaction in an archived channel', async () => {
+    const { service } = setup({
+      ...views,
+      other: channelFor('member', { archivedAt: new Date() }),
+    });
+    const { message } = await sendAs(service, author);
+
+    await expect(service.react(other, message.id, '👍')).rejects.toMatchObject({
+      code: 'CHANNEL_ARCHIVED',
+    });
+  });
+});
+
+describe('MessagesService pins', () => {
+  const views = { author: channelFor('member'), other: channelFor('member') };
+
+  it('lets any member who can post pin and unpin', async () => {
+    const { service } = setup(views);
+    const { message } = await sendAs(service, author);
+
+    const pinned = await service.pin(other, message.id);
+    expect(pinned).toMatchObject({ pinnedById: 'other' });
+    expect(pinned.pinnedAt).toBeInstanceOf(Date);
+
+    await expect(service.unpin(author, message.id)).resolves.toMatchObject({
+      pinnedAt: null,
+      pinnedById: null,
+    });
+  });
+
+  it('keeps the first pin when a pinned message is pinned again', async () => {
+    const { service } = setup(views);
+    const { message } = await sendAs(service, author);
+    const first = await service.pin(author, message.id);
+
+    const again = await service.pin(other, message.id);
+
+    expect(again.pinnedById).toBe('author');
+    expect(again.pinnedAt).toEqual(first.pinnedAt);
+  });
+
+  it('refuses someone who has not joined the channel', async () => {
+    const { service } = setup({ ...views, outsider: channelFor(null) });
+    const { message } = await sendAs(service, author);
+
+    await expect(service.pin(outsider, message.id)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+  });
+});
+
+describe('MessagesService saved messages', () => {
+  it("lists a member's saves and no one else's", async () => {
+    const { service } = setup({
+      author: channelFor('member'),
+      other: channelFor('member'),
+    });
+    const { message } = await sendAs(service, author);
+
+    await service.save(other, message.id);
+
+    expect(await service.listSaved(other)).toHaveLength(1);
+    expect(await service.listSaved(author)).toHaveLength(0);
+  });
+
+  it('refuses to save a message in a private channel the viewer cannot see', async () => {
+    const { service } = setup({
+      author: channelFor('member', { visibility: 'private' }),
+      outsider: null,
+    });
+    const { message } = await sendAs(service, author);
+
+    await expect(service.save(outsider, message.id)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
+
+  it('hides a save once the viewer loses access to its channel', async () => {
+    const views: Record<string, Channel | null> = {
+      author: channelFor('member'),
+      other: channelFor('member', { visibility: 'private' }),
+    };
+    const { service } = setup(views);
+    const { message } = await sendAs(service, author);
+    await service.save(other, message.id);
+
+    views.other = null;
+
+    expect(await service.listSaved(other)).toHaveLength(0);
+  });
+
+  it('removes a save', async () => {
+    const { service } = setup({ author: channelFor('member') });
+    const { message } = await sendAs(service, author);
+    await service.save(author, message.id);
+
+    await service.unsave(author, message.id);
+
+    expect(await service.listSaved(author)).toHaveLength(0);
   });
 });

@@ -30,7 +30,15 @@ import {
   deleteMessageContract,
   editMessageContract,
   listMessagesContract,
+  listPinnedMessagesContract,
+  listSavedMessagesContract,
+  pinMessageContract,
+  reactMessageContract,
+  saveMessageContract,
   sendMessageContract,
+  unpinMessageContract,
+  unreactMessageContract,
+  unsaveMessageContract,
 } from './contracts/messages';
 import {
   acceptInvitationContract,
@@ -135,6 +143,16 @@ export const contract = {
     send: sendMessageContract,
     edit: editMessageContract,
     delete: deleteMessageContract,
+    react: reactMessageContract,
+    unreact: unreactMessageContract,
+    pin: pinMessageContract,
+    unpin: unpinMessageContract,
+    listPinned: listPinnedMessagesContract,
+  },
+  saved: {
+    add: saveMessageContract,
+    remove: unsaveMessageContract,
+    list: listSavedMessagesContract,
   },
   realtime: {
     seal: sealStreamContract,

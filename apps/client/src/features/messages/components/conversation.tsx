@@ -16,16 +16,13 @@ import { channelMembersQuery, channelQuery } from '@/services/channels/queries';
 import { useSendMessage } from '@/services/messages/hooks';
 import { type LiveStatus, useLiveStream } from '@/services/messages/live';
 import { flattenMessages, messagesQuery } from '@/services/messages/queries';
-import {
-  useWorkspaceMembers,
-  useWorkspaceRole,
-} from '@/services/workspaces/hooks';
+import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
 import { MentionNames, MentionSuggestions } from '../context/mention-names';
+import { useAuthors } from '../lib/use-authors';
 import { useIsClient } from '../lib/use-is-client';
 import { Composer } from './composer';
 import { MessageList } from './message-list';
-import type { Author } from './message-row';
 
 const OFFLINE_AFTER_MS = 10_000;
 // A normal connect takes a moment, so the line waits before it appears.
@@ -75,7 +72,6 @@ export function Conversation({
   const isClient = useIsClient();
   const { data: channel } = useSuspenseQuery(channelQuery(channelId));
   const { data: session } = useQuery(sessionQuery);
-  const { data: members } = useWorkspaceMembers();
   const { data: channelMembers } = useQuery(channelMembersQuery(channelId));
   const workspaceRole = useWorkspaceRole();
   const joinChannel = useJoinChannel();
@@ -88,17 +84,7 @@ export function Conversation({
   const messages = useMemo(() => flattenMessages(history.data), [history.data]);
   const viewerId = session?.user.id ?? null;
 
-  const authors = useMemo(() => {
-    const byId = new Map<string, Author>();
-    for (const member of members ?? []) {
-      byId.set(member.userId, { name: member.name, image: member.image });
-    }
-    return byId;
-  }, [members]);
-  const names = useMemo(
-    () => new Map([...authors].map(([id, author]) => [id, author.name])),
-    [authors]
-  );
+  const { authors, names } = useAuthors();
 
   const suggestions = useMemo(
     () => [
@@ -127,6 +113,7 @@ export function Conversation({
               messages={messages}
               authors={authors}
               viewerId={viewerId}
+              canPost={canPost}
               canModerate={canChannel(
                 'deleteOthersMessages',
                 workspaceRole,

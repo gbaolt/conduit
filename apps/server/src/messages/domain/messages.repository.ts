@@ -1,4 +1,8 @@
-import type { Message, ParsedMentions } from '@conduit/contract';
+import type {
+  Message,
+  ParsedMentions,
+  ReactionSummary,
+} from '@conduit/contract';
 
 export type MessageMentions = Pick<ParsedMentions, 'channel' | 'here'> & {
   userIds: string[];
@@ -38,4 +42,22 @@ export abstract class MessagesRepository {
 
   /** Keeps the row so replies keep their place, and clears everything a reader could see. */
   abstract markDeleted(messageId: string): Promise<void>;
+
+  /**
+   * Locks the row, hands `update` its reactions, and stores the result, so two members reacting at once both land.
+   * An `update` that returns null refuses the change, and this returns null without writing.
+   */
+  abstract updateReactions(
+    messageId: string,
+    update: (current: ReactionSummary) => ReactionSummary | null
+  ): Promise<Message | null>;
+
+  /** Pins as `pinnedById`, or unpins when it is null. */
+  abstract setPinned(
+    messageId: string,
+    pinnedById: string | null
+  ): Promise<Message>;
+
+  /** Messages of the channel that are pinned, newest pin first. */
+  abstract listPinned(channelId: string): Promise<Message[]>;
 }

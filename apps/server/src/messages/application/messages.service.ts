@@ -1,10 +1,13 @@
 import {
+  addReaction,
   type Channel,
   type ChannelAction,
   checkChannel,
   type Message,
   MESSAGE_PAGE_DEFAULT,
   parseMentions,
+  removeReaction,
+  SAVED_MESSAGES_MAX,
   type WorkspaceRole,
 } from '@conduit/contract';
 import { Inject, Injectable } from '@nestjs/common';
@@ -12,6 +15,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ChannelsRepository } from '@/channels/domain/channels.repository';
 import { messageError } from '@/messages/domain/message-errors';
 import { MessagesRepository } from '@/messages/domain/messages.repository';
+import { SavedMessagesRepository } from '@/messages/domain/saved-messages.repository';
 
 export type MessageViewer = {
   userId: string;
@@ -23,7 +27,9 @@ export type MessageViewer = {
 export class MessagesService {
   constructor(
     @Inject(MessagesRepository) private readonly messages: MessagesRepository,
-    @Inject(ChannelsRepository) private readonly channels: ChannelsRepository
+    @Inject(ChannelsRepository) private readonly channels: ChannelsRepository,
+    @Inject(SavedMessagesRepository)
+    private readonly saved: SavedMessagesRepository
   ) {}
 
   async list(
@@ -59,11 +65,10 @@ export class MessagesService {
   }
 
   async edit(viewer: MessageViewer, messageId: string, body: string) {
-    const message = await this.findLive(viewer, messageId);
+    const { message, channel } = await this.findLive(viewer, messageId);
     if (message.authorId !== viewer.userId) {
       throw messageError('FORBIDDEN', 'Only the author can edit a message.');
     }
-    const channel = await this.find(viewer, message.channelId);
     this.authorize(viewer, channel, 'post');
 
     const trimmed = body.trim();
@@ -89,6 +94,74 @@ export class MessagesService {
       message.authorId === viewer.userId ? 'post' : 'deleteOthersMessages'
     );
     await this.messages.markDeleted(message.id);
+  }
+
+  async react(viewer: MessageViewer, messageId: string, emoji: string) {
+    const { message, channel } = await this.findLive(viewer, messageId);
+    this.authorize(viewer, channel, 'post');
+
+    const updated = await this.messages.updateReactions(message.id, (current) =>
+      addReaction(current, emoji, viewer.userId)
+    );
+    if (!updated) {
+      throw messageError('REACTION_LIMIT');
+    }
+    return updated;
+  }
+
+  async unreact(viewer: MessageViewer, messageId: string, emoji: string) {
+    const { message, channel } = await this.findLive(viewer, messageId);
+    this.authorize(viewer, channel, 'post');
+
+    const updated = await this.messages.updateReactions(message.id, (current) =>
+      removeReaction(current, emoji, viewer.userId)
+    );
+    return updated ?? message;
+  }
+
+  /** Any member who can post can pin or unpin. Pinning a pinned message keeps its first pin. */
+  async pin(viewer: MessageViewer, messageId: string) {
+    const { message, channel } = await this.findLive(viewer, messageId);
+    this.authorize(viewer, channel, 'post');
+    return message.pinnedAt
+      ? message
+      : this.messages.setPinned(message.id, viewer.userId);
+  }
+
+  async unpin(viewer: MessageViewer, messageId: string) {
+    const { message, channel } = await this.findLive(viewer, messageId);
+    this.authorize(viewer, channel, 'post');
+    return message.pinnedAt
+      ? this.messages.setPinned(message.id, null)
+      : message;
+  }
+
+  async listPinned(viewer: MessageViewer, channelId: string) {
+    await this.find(viewer, channelId);
+    return this.messages.listPinned(channelId);
+  }
+
+  /** Saving needs only read access, so an archived channel's messages can be saved. */
+  async save(viewer: MessageViewer, messageId: string) {
+    await this.findLive(viewer, messageId);
+    await this.saved.add(viewer.userId, messageId);
+  }
+
+  async unsave(viewer: MessageViewer, messageId: string) {
+    await this.saved.remove(viewer.userId, messageId);
+  }
+
+  /** Only messages in conversations the viewer can still read, so leaving a private channel hides its saves. */
+  async listSaved(viewer: MessageViewer) {
+    const [active, archived] = await Promise.all([
+      this.channels.list(viewer, false),
+      this.channels.list(viewer, true),
+    ]);
+    return this.saved.list(
+      viewer.userId,
+      [...active, ...archived].map((channel) => channel.id),
+      SAVED_MESSAGES_MAX
+    );
   }
 
   /** The body's mentions, with a user mention kept only for a member of the channel. */
@@ -122,13 +195,12 @@ export class MessagesService {
   private async findLive(
     viewer: MessageViewer,
     messageId: string
-  ): Promise<Message> {
+  ): Promise<{ message: Message; channel: Channel }> {
     const message = await this.messages.find(messageId);
     if (!message || message.deletedAt) {
       throw messageError('NOT_FOUND');
     }
-    await this.find(viewer, message.channelId);
-    return message;
+    return { message, channel: await this.find(viewer, message.channelId) };
   }
 
   private authorize(

@@ -14,7 +14,12 @@ import { useEffect, useState } from 'react';
 
 import { client } from '@/lib/orpc';
 
-import { messagesQuery, upsertMessages } from './queries';
+import {
+  messagesQuery,
+  pinnedIsStale,
+  pinnedQuery,
+  upsertMessages,
+} from './queries';
 
 type LiveRow = Record<string, unknown>;
 type LiveSubscription = MaterializedLiveQuerySubscription<LiveRow>;
@@ -132,6 +137,10 @@ export function useLiveStream(channelId: string): LiveStatus {
           queryClient.setQueryData(queryKey, (data) =>
             upsertMessages(data, messages)
           );
+          const pinnedKey = pinnedQuery(channelId).queryKey;
+          if (pinnedIsStale(queryClient.getQueryData(pinnedKey), messages)) {
+            void queryClient.invalidateQueries({ queryKey: pinnedKey });
+          }
         }
       });
 

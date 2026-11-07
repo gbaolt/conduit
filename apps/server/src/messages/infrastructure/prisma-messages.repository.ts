@@ -10,7 +10,7 @@ import type {
 
 type MessageRow = Prisma.MessageGetPayload<object>;
 
-function toMessage(row: MessageRow): Message {
+export function toMessage(row: MessageRow): Message {
   return {
     id: row.id,
     channelId: row.channelId,
@@ -152,5 +152,47 @@ export class PrismaMessagesRepository implements MessagesRepository {
         linkPreview: Prisma.DbNull,
       },
     });
+  }
+
+  async updateReactions(
+    messageId: string,
+    update: (current: ReactionSummary) => ReactionSummary | null
+  ) {
+    return this.db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "Message" WHERE "id" = ${messageId} FOR UPDATE`;
+      const row = await tx.message.findUniqueOrThrow({
+        where: { id: messageId },
+      });
+
+      const current = row.reactions as ReactionSummary;
+      const next = update(current);
+      if (!next) return null;
+      if (next === current) return toMessage(row);
+
+      return toMessage(
+        await tx.message.update({
+          where: { id: messageId },
+          data: { reactions: next },
+        })
+      );
+    });
+  }
+
+  async setPinned(messageId: string, pinnedById: string | null) {
+    const row = await this.db.message.update({
+      where: { id: messageId },
+      data: pinnedById
+        ? { pinnedAt: new Date(), pinnedById }
+        : { pinnedAt: null, pinnedById: null },
+    });
+    return toMessage(row);
+  }
+
+  async listPinned(channelId: string) {
+    const rows = await this.db.message.findMany({
+      where: { channelId, pinnedAt: { not: null }, deletedAt: null },
+      orderBy: [{ pinnedAt: 'desc' }, { id: 'desc' }],
+    });
+    return rows.map(toMessage);
   }
 }

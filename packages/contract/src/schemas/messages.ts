@@ -67,3 +67,38 @@ export const EditMessageInputSchema = z.object({
 });
 
 export const MessageIdInputSchema = z.object({ messageId: z.string() });
+
+export const ReactionInputSchema = z.object({
+  messageId: z.string(),
+  emoji: z
+    .string()
+    .min(1)
+    .max(32)
+    .refine(
+      (emoji) => /\p{Extended_Pictographic}/u.test(emoji),
+      'Pick an emoji.'
+    ),
+});
+
+export const UnreactInputSchema = z.object({
+  messageId: z.string(),
+  emoji: z.string().min(1).max(32),
+});
+
+export const ListPinnedInputSchema = z.object({ channelId: z.string() });
+
+/** Newest pin first. */
+export const ListPinnedOutputSchema = z.array(MessageSchema);
+
+export const SavedMessageSchema = z.object({
+  message: MessageSchema,
+  /** Null for a conversation with no name, such as a DM. */
+  channelName: z.string().nullable(),
+  savedAt: z.coerce.date(),
+});
+export type SavedMessage = z.infer<typeof SavedMessageSchema>;
+
+export const SAVED_MESSAGES_MAX = 200;
+
+/** Newest saved first, at most `SAVED_MESSAGES_MAX`. */
+export const ListSavedOutputSchema = z.array(SavedMessageSchema);

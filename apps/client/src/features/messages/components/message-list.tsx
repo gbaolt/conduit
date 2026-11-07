@@ -73,6 +73,7 @@ export function MessageList({
   messages,
   authors,
   viewerId,
+  canPost,
   canModerate,
   start,
   hasOlder,
@@ -90,6 +91,7 @@ export function MessageList({
   messages: readonly Message[];
   authors: ReadonlyMap<string, Author>;
   viewerId: string | null;
+  canPost: boolean;
   canModerate: boolean;
   /** The conversation's opening block, shown once nothing older remains. */
   start: ReactNode;
@@ -143,6 +145,7 @@ export function MessageList({
                     author={authors.get(entry.authorId) ?? UNKNOWN_AUTHOR}
                     grouped={entry.grouped}
                     viewerId={viewerId}
+                    canPost={canPost}
                     canModerate={canModerate}
                     fresh={entry.createdAt.getTime() > mountedAt}
                     editing={editingId === entry.message.id}
