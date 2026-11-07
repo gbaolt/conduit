@@ -40,7 +40,8 @@ These are out of scope. Don't start them without a PR that moves them into a mil
 - Shared channels between workspaces.
 - Enterprise features: SAML SSO, retention policies, and eDiscovery.
 - Native mobile apps. The web app works on a phone screen instead.
-- Billing and plans. Every workspace is free, with caps on AI usage and storage.
+- Billing and plans. Every workspace is free, with a cap on storage.
+- A monthly AI usage cap per workspace, and a usage meter. Conduit is not serving real teams yet.
 - UI languages other than English.
 
 ## Quality targets for every feature
@@ -62,7 +63,7 @@ These rules apply to every AI feature, including the ones listed under AI later.
 - Every summary and answer links to the messages it used.
 - A workspace admin can turn AI off for the whole workspace.
 - Conduit never uses workspace data to train a model.
-- Conduit pays for the built-in AI features on its own model account. Each workspace has a monthly AI usage cap.
+- Conduit pays for the built-in AI features on its own model account.
 - AI teammates run on an API key the workspace provides, or on the team's own servers. Anthropic's terms bar third-party apps from using Claude Free, Pro, or Max logins, so members can't connect a consumer subscription.
 
 ## Success metrics
@@ -166,7 +167,7 @@ Every other feature reads or writes messages, so messaging comes first.
 | M1.16 | **Turn into a private channel**, offered when someone adds an 11th person to a group DM | Not started |     |
 | M1.17 | A DM with yourself, for notes                                                           | Not started |     |
 | M1.18 | AI: summarize a thread, or a channel over a time range                                  | Not started |     |
-| M1.19 | AI admin controls: AI on or off, the monthly usage cap, and a usage meter               | Not started |     |
+| M1.19 | AI admin control: turn AI on or off for the workspace                                   | Not started |     |
 
 File attachments ship in M3, together with file storage.
 
@@ -292,7 +293,6 @@ These ideas wait until the must-have AI features ship:
 
 ## Open questions
 
-- The monthly AI usage cap for each workspace has no number yet.
 - The 10 GB storage cap for each workspace is a placeholder.
 - The 4-hour reply window in the success metrics is a placeholder.
 - The 1-hour wait before the email digest is a placeholder.
