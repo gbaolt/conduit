@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { type ReactNode, Suspense } from 'react';
 
+import { ChannelPageSkeleton } from '@/features/channels/components/channel-skeletons';
 import { ChannelDialogsProvider } from '@/features/channels/context/channel-dialogs-provider';
 import {
   ChannelsNav,
@@ -16,7 +17,16 @@ import { channelsQuery } from '@/services/channels/queries';
 export default function HomeLayout({ children }: { children: ReactNode }) {
   return (
     <ChannelDialogsProvider>
-      <Suspense>
+      <Suspense
+        fallback={
+          <WorkspaceSidebar
+            defaultLayout={undefined}
+            sidebar={<ChannelsNav loading />}
+          >
+            <ChannelPageSkeleton />
+          </WorkspaceSidebar>
+        }
+      >
         <ChannelPanel>{children}</ChannelPanel>
       </Suspense>
     </ChannelDialogsProvider>

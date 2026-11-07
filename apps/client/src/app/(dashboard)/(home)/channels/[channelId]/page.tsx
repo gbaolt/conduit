@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { ChannelHeader } from '@/features/channels/components/channel-header';
+import { ChannelPageSkeleton } from '@/features/channels/components/channel-skeletons';
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
 import { channelQuery } from '@/services/channels/queries';
 
@@ -10,7 +11,7 @@ export default function ChannelPage({
   params,
 }: PageProps<'/channels/[channelId]'>) {
   return (
-    <Suspense fallback="Loading...">
+    <Suspense fallback={<ChannelPageSkeleton />}>
       <Channel params={params} />
     </Suspense>
   );

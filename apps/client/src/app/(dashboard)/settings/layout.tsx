@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { type ReactNode, Suspense } from 'react';
 
 import { SettingsNav } from '@/features/workspace/components/workspace-settings/settings-nav';
+import { SettingsPageSkeleton } from '@/features/workspace/components/workspace-settings/settings-skeletons';
 import { WorkspaceSidebar } from '@/features/workspace/components/workspace-sidebar';
 import {
   LAYOUT_COOKIE,
@@ -40,7 +41,15 @@ async function AdminGate({ children }: { children: ReactNode }) {
 
 export default function SettingsLayout({ children }: { children: ReactNode }) {
   return (
-    <Suspense>
+    <Suspense
+      fallback={
+        <WorkspaceSidebar defaultLayout={undefined} sidebar={<SettingsNav />}>
+          <main className="mx-auto max-w-4xl px-4 py-8 md:px-10 md:py-10">
+            <SettingsPageSkeleton />
+          </main>
+        </WorkspaceSidebar>
+      }
+    >
       <AdminGate>{children}</AdminGate>
     </Suspense>
   );

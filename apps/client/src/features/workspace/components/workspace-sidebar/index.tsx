@@ -8,6 +8,7 @@ import {
 import type { ReactNode } from 'react';
 
 import { ChannelList } from '@/features/channels/components/channel-list';
+import { ChannelListSkeleton } from '@/features/channels/components/channel-skeletons';
 
 import {
   type Layout,
@@ -18,8 +19,8 @@ import {
 import { WorkspaceHeader } from './workspace-header';
 import { WorkspaceNav } from './workspace-nav';
 
-/** The channel list and the workspace entries above it. */
-export function ChannelsNav() {
+/** The channel list and the workspace entries above it. `loading` stands in a skeleton for the list. */
+export function ChannelsNav({ loading = false }: { loading?: boolean }) {
   return (
     <nav
       aria-label="Channels"
@@ -27,7 +28,7 @@ export function ChannelsNav() {
     >
       <WorkspaceHeader />
       <WorkspaceNav />
-      <ChannelList />
+      {loading ? <ChannelListSkeleton /> : <ChannelList />}
     </nav>
   );
 }
