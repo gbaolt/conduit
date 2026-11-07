@@ -132,11 +132,10 @@ export function MemberActions({ member }: { member: WorkspaceMember }) {
         >
           <IconDots />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuContent align="end" className="w-36">
           {roleChoices.map((role) => (
             <DropdownMenuItem
               key={role}
-              className="capitalize"
               onClick={() =>
                 updateRole.mutate(
                   { memberId: member.memberId, role },
@@ -144,10 +143,11 @@ export function MemberActions({ member }: { member: WorkspaceMember }) {
                 )
               }
             >
-              Make {role}
+              Assign as {role}
             </DropdownMenuItem>
           ))}
-          {canToggle ? (
+
+          {canToggle && (
             <DropdownMenuItem
               onClick={() =>
                 toggle.mutate(
@@ -158,26 +158,29 @@ export function MemberActions({ member }: { member: WorkspaceMember }) {
             >
               {isDeactivated ? 'Reactivate' : 'Deactivate'}
             </DropdownMenuItem>
-          ) : null}
-          {(roleChoices.length > 0 || canToggle) && canRemove ? (
+          )}
+
+          {(roleChoices.length > 0 || canToggle) && canRemove && (
             <DropdownMenuSeparator />
-          ) : null}
-          {canRemove ? (
+          )}
+
+          {canRemove && (
             <DropdownMenuItem
               variant="destructive"
               onClick={() => setRemoving(true)}
             >
               Remove from workspace
             </DropdownMenuItem>
-          ) : null}
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
-      {removing ? (
+
+      {removing && (
         <RemoveMemberDialog
           member={member}
           onClose={() => setRemoving(false)}
         />
-      ) : null}
+      )}
     </>
   );
 }

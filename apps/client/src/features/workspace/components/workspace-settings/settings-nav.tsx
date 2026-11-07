@@ -22,7 +22,6 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import { WorkspaceIcon } from '@/features/workspace/components/workspace-icon';
 import { useWorkspace } from '@/features/workspace/context/workspace-provider';
 
 type Area = { href: Route; label: string; icon: typeof IconUsers };
@@ -63,25 +62,19 @@ export function SettingsNav() {
       aria-label="Workspace settings"
       className="text-surface-foreground flex flex-col overflow-x-hidden overflow-y-auto"
     >
-      <div className="flex h-12 shrink-0 items-center gap-1 px-2">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Back to workspace"
-          nativeButton={false}
-          render={<Link href="/" />}
-        >
-          <IconArrowLeft />
-        </Button>
-        <WorkspaceIcon
-          logo={activeWorkspace?.logo}
-          size={20}
-          className="size-5 rounded-sm"
-        />
-        <span className="truncate text-sm font-semibold">
+      <Button
+        variant="ghost"
+        size="sm"
+        aria-label="Back to workspace"
+        nativeButton={false}
+        render={<Link href="/" />}
+        className="m-1 ml-2 w-fit"
+      >
+        <IconArrowLeft data-icon="inline-start" />
+        <span className="truncate text-base font-semibold">
           {activeWorkspace?.name ?? 'Workspace'}
         </span>
-      </div>
+      </Button>
       <SidebarSeparator className="mx-0" />
 
       {GROUPS.map((group) => (

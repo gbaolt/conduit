@@ -42,7 +42,7 @@ export function ChannelLink({
           <SidebarMenuAction
             showOnHover
             aria-label={`Actions for #${channel.name}`}
-            className="hover:bg-surface/20 text-primary-foreground! mr-px rounded-sm"
+            className="hover:bg-surface/10 aria-expanded:bg-surface/10 text-primary-foreground! mr-0.5 rounded-sm"
           />
         }
       >

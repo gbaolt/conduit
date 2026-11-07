@@ -35,7 +35,6 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 import { useChannelDialogs } from '@/features/channels/context/channel-dialogs-provider';
-import { WorkspaceIcon } from '@/features/workspace/components/workspace-icon';
 import { InviteDialog } from '@/features/workspace/components/workspace-settings/invite-dialog';
 import { useWorkspace } from '@/features/workspace/context/workspace-provider';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
@@ -74,18 +73,11 @@ function WorkspaceMenu() {
             <Button size="sm" variant="ghost" className="text-lg font-bold" />
           }
         >
-          {activeWorkspace?.logo ? (
-            <WorkspaceIcon
-              logo={activeWorkspace.logo}
-              size={20}
-              className="size-5 rounded-sm"
-            />
-          ) : null}
           <span className="truncate">{name}</span>
           <IconChevronDown data-icon="inline-end" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-64">
-          {canInvite ? (
+          {canInvite && (
             <>
               <DropdownMenuItem onClick={() => setInviting(true)}>
                 <IconUsersPlus data-slot="icon" aria-hidden />
@@ -93,13 +85,15 @@ function WorkspaceMenu() {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
             </>
-          ) : null}
-          {canWorkspace('viewSettings', role) ? (
+          )}
+
+          {canWorkspace('viewSettings', role) && (
             <DropdownMenuItem render={<Link href="/settings/members" />}>
               <IconSettings data-slot="icon" aria-hidden />
               Workspace settings
             </DropdownMenuItem>
-          ) : null}
+          )}
+
           <DropdownMenuItem>
             <IconSettings2 data-slot="icon" aria-hidden />
             Preferences
@@ -119,13 +113,14 @@ function WorkspaceMenu() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      {canInvite ? (
+
+      {canInvite && (
         <InviteDialog
           workspaceName={name}
           open={inviting}
           onOpenChange={setInviting}
         />
-      ) : null}
+      )}
     </>
   );
 }
@@ -154,7 +149,7 @@ function SidebarSettingsMenu() {
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             Filter and sort
-            <span className="text-muted-foreground ml-auto text-xs">
+            <span className="text-muted-foreground mr-5 ml-auto max-w-18 truncate text-xs">
               {filterLabel}
             </span>
           </DropdownMenuSubTrigger>
@@ -169,11 +164,11 @@ function SidebarSettingsMenu() {
                   >
                     <span className="flex flex-col">
                       {option.label}
-                      {option.hint ? (
+                      {option.hint && (
                         <span className="text-muted-foreground text-xs">
                           {option.hint}
                         </span>
-                      ) : null}
+                      )}
                     </span>
                   </DropdownMenuRadioItem>
                 ))}

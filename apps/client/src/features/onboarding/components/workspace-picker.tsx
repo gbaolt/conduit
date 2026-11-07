@@ -102,7 +102,7 @@ function ErrorLine({ children }: { children: ReactNode }) {
   );
 }
 
-export function WorkspaceChooser({ onCreate }: { onCreate: () => void }) {
+export function WorkspacePicker({ onCreate }: { onCreate: () => void }) {
   const router = useRouter();
   const goHome = () => router.push('/');
   const workspaces = useQuery(workspacesQuery);

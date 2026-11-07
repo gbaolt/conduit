@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isSafeInternalPath, withCallbackURL } from './callback-url';
+import { isSafeInternalPath, withCallbackURL } from '../callback-url';
 
 describe('isSafeInternalPath', () => {
   it('accepts a path inside the app', () => {

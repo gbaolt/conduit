@@ -11,7 +11,7 @@ import {
 } from '@/services/workspaces/queries';
 
 import { CreateWorkspaceForm } from './create-workspace-form';
-import { WorkspaceChooser } from './workspace-chooser';
+import { WorkspacePicker } from './workspace-picker';
 
 const steps = ['create'] as const;
 
@@ -59,7 +59,7 @@ export function OnboardingWizard({ email }: { email: string }) {
           Signed in as <span className="text-foreground">{email}</span>
         </p>
       </div>
-      <WorkspaceChooser onCreate={() => void setStep('create')} />
+      <WorkspacePicker onCreate={() => void setStep('create')} />
     </div>
   );
 }

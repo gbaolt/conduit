@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseLayout } from './layout-cookie';
+import { parseLayout } from '../layout-cookie';
 
 describe('parseLayout', () => {
   it('returns undefined for a missing cookie', () => {
