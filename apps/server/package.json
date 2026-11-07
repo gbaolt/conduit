@@ -20,6 +20,7 @@
     "db:migrate": "npx prisma migrate dev",
     "db:migrate-deploy": "npx prisma migrate deploy",
     "db:backfill-default-channels": "tsx scripts/backfill-default-channels.ts",
+    "measure:delivery": "tsx scripts/measure-delivery.ts",
     "upgrade:nest": "npx npm-check-updates \"/^@nestjs/\" -u"
   },
   "dependencies": {

@@ -5,6 +5,8 @@ import {
 } from '@conduit/ui/components/sidebar';
 import { Skeleton } from '@conduit/ui/components/skeleton';
 
+import { ConversationSkeleton } from '@/components/conversation-skeleton';
+
 // Fixed widths: a random width would differ between the server and the client render.
 const CHANNEL_WIDTHS = ['w-24', 'w-28', 'w-20'];
 
@@ -31,20 +33,29 @@ export function ChannelListSkeleton() {
   );
 }
 
-/** Stands in for `ChannelHeader`: the 48px header and the intro line under it. */
+/** Stands in for the `ChannelHeader` bar: the 48px header. */
+export function ChannelHeaderSkeleton() {
+  return (
+    <div className="flex min-h-12 shrink-0 items-center gap-1.5 border-b px-4 py-1.5">
+      <div className="min-w-0 flex-1">
+        <Skeleton className="h-7 w-24 rounded-md" />
+      </div>
+      <Skeleton className="h-7 w-10 rounded-md" />
+      <Skeleton className="size-7 rounded-md" />
+    </div>
+  );
+}
+
+/** Stands in for the whole channel page while its sidebar loads: the header and the log. */
 export function ChannelPageSkeleton() {
   return (
-    <div role="status" aria-label="Loading channel">
-      <div className="flex min-h-12 items-center gap-1.5 border-b px-4 py-1.5">
-        <div className="min-w-0 flex-1">
-          <Skeleton className="h-7 w-24 rounded-md" />
-        </div>
-        <Skeleton className="h-7 w-10 rounded-md" />
-        <Skeleton className="size-7 rounded-md" />
-      </div>
-      <div className="flex h-13 items-center px-4">
-        <Skeleton className="h-4 w-64" />
-      </div>
+    <div
+      role="status"
+      aria-label="Loading channel"
+      className="flex h-full flex-col"
+    >
+      <ChannelHeaderSkeleton />
+      <ConversationSkeleton />
     </div>
   );
 }

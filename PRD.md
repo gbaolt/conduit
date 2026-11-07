@@ -88,7 +88,7 @@ Targets get set once M2 ships and there is a baseline to measure against.
 - `packages/ui` holds the shared components, including `Message` and `MessageScroller`. A Lexical editor kit lives in `apps/client/src/components/editor/`.
 - Files will be stored in S3.
 
-Nothing yet handles realtime delivery, messages, file storage, search, or AI calls.
+Nothing yet handles file storage, search, or AI calls. Messages are stored in Postgres and delivered live through Neon Realtime.
 
 ## Milestones
 
@@ -98,7 +98,7 @@ Each milestone ships its core features first, then the AI feature that depends o
 | ------------------------------------------ | ---------------------------------------- | --------------------------- | ----------- |
 | [Foundations](#foundations)                | Sign-in, workspaces, channels, sections  | None                        | Shipped     |
 | [M0](#m0-workspace-admin)                  | Invitations, member management, settings | None                        | In progress |
-| [M1](#m1-messaging)                        | Messages, threads, DMs, realtime         | Summaries                   | Not started |
+| [M1](#m1-messaging)                        | Messages, threads, DMs, realtime         | Summaries                   | In progress |
 | [M2](#m2-activity-and-notifications)       | Activity feed, notifications             | Smart Activity, Catch me up | Not started |
 | [M3](#m3-files-and-search)                 | Files, search, quick switcher            | Ask Conduit                 | Not started |
 | [M4](#m4-canvas)                           | Canvas                                   | Thread to canvas            | Not started |
@@ -147,27 +147,27 @@ A team can't try messaging until more than one person can get in. Today a member
 
 Every other feature reads or writes messages, so messaging comes first.
 
-| ID    | Sub-feature                                                                             | Status      | PR  |
-| ----- | --------------------------------------------------------------------------------------- | ----------- | --- |
-| M1.1  | Deliver messages in realtime to every open client                                       | Not started |     |
-| M1.2  | Send, edit, and delete messages                                                         | Not started |     |
-| M1.3  | Rich text with Markdown shortcuts, built on the Lexical kit                             | Not started |     |
-| M1.4  | Mention a person, `@channel`, or `@here`                                                | Not started |     |
-| M1.5  | Emoji reactions                                                                         | Not started |     |
-| M1.6  | Threads, with **Also send to channel**                                                  | Not started |     |
-| M1.7  | Unread markers, and remembering where each member stopped reading                       | Not started |     |
-| M1.8  | Typing indicators                                                                       | Not started |     |
-| M1.9  | Online and away status                                                                  | Not started |     |
-| M1.10 | Keep a saved draft for each conversation                                                | Not started |     |
-| M1.11 | Pin messages to a conversation                                                          | Not started |     |
-| M1.12 | **Save for later** on any message                                                       | Not started |     |
-| M1.13 | Link previews                                                                           | Not started |     |
-| M1.14 | One-on-one DMs                                                                          | Not started |     |
-| M1.15 | Group DMs of up to 10 people, including you                                             | Not started |     |
-| M1.16 | **Turn into a private channel**, offered when someone adds an 11th person to a group DM | Not started |     |
-| M1.17 | A DM with yourself, for notes                                                           | Not started |     |
-| M1.18 | AI: summarize a thread, or a channel over a time range                                  | Not started |     |
-| M1.19 | AI admin control: turn AI on or off for the workspace                                   | Not started |     |
+| ID    | Sub-feature                                                                             | Status      | PR                                                             |
+| ----- | --------------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------- |
+| M1.1  | Deliver messages in realtime to every open client                                       | Shipped     | [#PR_NUMBER](https://github.com/gbaolt/conduit/pull/PR_NUMBER) |
+| M1.2  | Send, edit, and delete messages                                                         | Shipped     | [#PR_NUMBER](https://github.com/gbaolt/conduit/pull/PR_NUMBER) |
+| M1.3  | Rich text with Markdown shortcuts, built on the Lexical kit                             | Shipped     | [#PR_NUMBER](https://github.com/gbaolt/conduit/pull/PR_NUMBER) |
+| M1.4  | Mention a person, `@channel`, or `@here`                                                | Not started |                                                                |
+| M1.5  | Emoji reactions                                                                         | Not started |                                                                |
+| M1.6  | Threads, with **Also send to channel**                                                  | Not started |                                                                |
+| M1.7  | Unread markers, and remembering where each member stopped reading                       | Not started |                                                                |
+| M1.8  | Typing indicators                                                                       | Not started |                                                                |
+| M1.9  | Online and away status                                                                  | Not started |                                                                |
+| M1.10 | Keep a saved draft for each conversation                                                | Not started |                                                                |
+| M1.11 | Pin messages to a conversation                                                          | Not started |                                                                |
+| M1.12 | **Save for later** on any message                                                       | Not started |                                                                |
+| M1.13 | Link previews                                                                           | Not started |                                                                |
+| M1.14 | One-on-one DMs                                                                          | Not started |                                                                |
+| M1.15 | Group DMs of up to 10 people, including you                                             | Not started |                                                                |
+| M1.16 | **Turn into a private channel**, offered when someone adds an 11th person to a group DM | Not started |                                                                |
+| M1.17 | A DM with yourself, for notes                                                           | Not started |                                                                |
+| M1.18 | AI: summarize a thread, or a channel over a time range                                  | Not started |                                                                |
+| M1.19 | AI admin control: turn AI on or off for the workspace                                   | Not started |                                                                |
 
 File attachments ship in M3, together with file storage.
 

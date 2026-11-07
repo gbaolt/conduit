@@ -2,5 +2,7 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   resolve: { tsconfigPaths: true },
-  test: { include: ['src/**/*.test.ts'] },
+  // tsconfig keeps JSX as-is for Next, so tests transform it here.
+  oxc: { jsx: { runtime: 'automatic' } },
+  test: { include: ['src/**/*.test.{ts,tsx}'] },
 });
