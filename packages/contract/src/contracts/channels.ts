@@ -58,7 +58,7 @@ export const getChannelContract = oc
 
 export const createChannelContract = oc
   .meta(openapi({ method: 'POST', path: '/channels' }))
-  .errors({ NAME_TAKEN })
+  .errors({ NAME_TAKEN, FORBIDDEN })
   .input(CreateChannelInputSchema)
   .output(ChannelSchema);
 

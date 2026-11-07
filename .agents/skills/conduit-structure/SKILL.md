@@ -62,20 +62,22 @@ Import rules. `apps/server/eslint.config.js` enforces the first three, so lint f
 
 ## `apps/client/src`
 
-| Path                                 | Holds                                                                                                                     |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| `app/`                               | routes: pages, layouts, and route-level loading and error files. They compose features and hold no feature logic          |
-| `features/<domain>/components/`      | components that one feature uses                                                                                          |
-| `features/<domain>/context/`, `lib/` | that feature's providers, hooks, and pure helpers                                                                         |
-| `features/workspace/`                | the shell around the whole workspace: `WorkspaceSidebar`, the switcher, the sidebar header and nav, and the layout cookie |
-| `components/`                        | components that two or more features use, such as `app-shell.tsx`, `form/`, and `async/`                                  |
-| `services/<domain>/queries.ts`       | query options and keys. The server prefetch and the client `useQuery` both import them, so the cache keys match           |
-| `services/<domain>/server.ts`        | `'server-only'` helpers for server components, such as `requireWorkspaces()`                                              |
-| `services/<domain>/hooks.ts`         | client hooks: mutations and their cache invalidation                                                                      |
-| `services/auth/client.ts`            | `authClient`                                                                                                              |
-| `lib/orpc.ts`                        | the one oRPC client. It forwards cookies on the server and uses the browser link in the browser                           |
-| `lib/query/hydration.tsx`            | `getQueryClient` and `HydrateClient`                                                                                      |
-| `@conduit/ui/components/*`           | shadcn primitives from `packages/ui`. Compose them and leave their files unchanged                                        |
+| Path                                 | Holds                                                                                                                                                                               |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app/`                               | routes: pages, layouts, and route-level loading and error files. They compose features and hold no feature logic                                                                    |
+| `features/<domain>/components/`      | components that one feature uses. An area of the domain gets a subfolder, as `workspace/components/workspace-settings/`                                                             |
+| `features/<domain>/context/`, `lib/` | that feature's providers, hooks, and pure helpers                                                                                                                                   |
+| `features/workspace/`                | the workspace domain: the shell (`WorkspaceSidebar`, the switcher, the sidebar header and nav, the layout cookie) and its settings                                                  |
+| `components/`                        | components that two or more features use, such as `app-shell.tsx`, `form/`, and `async/`                                                                                            |
+| `services/<domain>/queries.ts`       | query options and keys. The server prefetch and the client `useQuery` both import them, so the cache keys match                                                                     |
+| `services/<domain>/server.ts`        | `'server-only'` helpers for server components, such as `requireWorkspaces()`                                                                                                        |
+| `services/<domain>/hooks.ts`         | client hooks: mutations and their cache invalidation                                                                                                                                |
+| `services/auth/client.ts`            | `authClient`                                                                                                                                                                        |
+| `lib/orpc.ts`                        | the one oRPC client. It forwards cookies on the server and uses the browser link in the browser                                                                                     |
+| `lib/query/hydration.tsx`            | `getQueryClient` and `HydrateClient`                                                                                                                                                |
+| `@conduit/ui/components/*`           | shadcn primitives from `packages/ui`. Build every control and table from them; when one is missing, add the shadcn component to `packages/ui` first. Leave existing files unchanged |
+
+A feature folder is a domain, not a screen. The domains are `workspace`, `channels`, `auth`, and `onboarding`. Before you add a folder under `features/`, name the domain whose data the new code shows. When that domain already has a folder, the code goes inside it: settings, dialogs, and pages of the workspace live in `features/workspace/components/<area>/`. A new top-level feature folder is a new domain, with its own `services/<domain>/` or its own flow.
 
 Import rules:
 

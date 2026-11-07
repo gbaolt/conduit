@@ -28,11 +28,34 @@ import {
 import { healthCheckContract } from './contracts/health';
 import {
   acceptInvitationContract,
+  createInvitationsContract,
   createOrganizationContract,
+  deactivateMemberContract,
+  getInvitationContract,
+  getJoinLinkContract,
+  joinOrganizationContract,
+  joinWithLinkContract,
+  listAllowedDomainsContract,
   listInvitationsContract,
+  listJoinableOrganizationsContract,
+  listMembersContract,
+  organizationIconUploadUrlContract,
   listOrganizationsContract,
+  listWorkspaceInvitationsContract,
+  previewJoinLinkContract,
+  reactivateMemberContract,
+  removeMemberContract,
+  resetJoinLinkContract,
+  revokeInvitationContract,
+  setAllowedDomainsContract,
+  updateMemberRoleContract,
+  updateOrganizationContract,
 } from './contracts/organizations';
 import { getSessionContract } from './contracts/users';
+import {
+  getWorkspaceSettingsContract,
+  updateWorkspaceSettingsContract,
+} from './contracts/workspace-settings';
 
 export const contract = {
   health: {
@@ -44,10 +67,39 @@ export const contract = {
   organizations: {
     list: listOrganizationsContract,
     create: createOrganizationContract,
+    joinable: listJoinableOrganizationsContract,
+    join: joinOrganizationContract,
+    update: updateOrganizationContract,
+    iconUploadUrl: organizationIconUploadUrlContract,
+  },
+  joinLink: {
+    get: getJoinLinkContract,
+    reset: resetJoinLinkContract,
+    preview: previewJoinLinkContract,
+    join: joinWithLinkContract,
+  },
+  allowedDomains: {
+    list: listAllowedDomainsContract,
+    set: setAllowedDomainsContract,
+  },
+  members: {
+    list: listMembersContract,
+    updateRole: updateMemberRoleContract,
+    remove: removeMemberContract,
+    deactivate: deactivateMemberContract,
+    reactivate: reactivateMemberContract,
+  },
+  workspaceSettings: {
+    get: getWorkspaceSettingsContract,
+    update: updateWorkspaceSettingsContract,
   },
   invitations: {
     list: listInvitationsContract,
     accept: acceptInvitationContract,
+    get: getInvitationContract,
+    create: createInvitationsContract,
+    listForWorkspace: listWorkspaceInvitationsContract,
+    revoke: revokeInvitationContract,
   },
   channels: {
     list: listChannelsContract,

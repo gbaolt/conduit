@@ -67,7 +67,6 @@ Before you write code, load every skill whose row matches the task. Load them yo
 
 - Open every PR against `staging`. A finished project lands on `main` through one final PR from `staging`.
 - Write commit messages as conventional commits. commitlint rejects a body line of 100 characters or more.
-- Run a subagent on the same or a weaker model than its parent, at the same or a lower effort.
 - End your reply with the checks you ran and the checks you skipped. Signed-in flows need a session that agent browsers lack, so ask the user to check those.
 
 ---

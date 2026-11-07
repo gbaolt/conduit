@@ -9,7 +9,9 @@ import { WorkspaceMembershipService } from '@/channels/application/workspace-mem
 import { PrismaWorkspaceMembershipRepository } from '@/channels/infrastructure/prisma-workspace-membership.repository';
 import { prisma } from '@/infrastructure/database/prisma.service';
 import { isWorker } from '@/infrastructure/runtime';
+import { PrismaWorkspaceMembersRepository } from '@/workspaces/infrastructure/prisma-workspace-members.repository';
 
+import { refuseDeactivatedMember } from './deactivated-guard';
 import { PasswordSchema } from './password-policy';
 import { resend } from './resend';
 import { getTrustedOrigins } from './trusted-origins';
@@ -38,8 +40,15 @@ function getCookieAdvanced(baseURL: string) {
   };
 }
 
-const passwordHooks: BetterAuthOptions['hooks'] = {
+// Built by hand for the same reason as `workspaceMembership` below.
+const refuseDeactivated = refuseDeactivatedMember(
+  new PrismaWorkspaceMembersRepository(prisma)
+);
+
+const authHooks: BetterAuthOptions['hooks'] = {
   before: createAuthMiddleware(async (ctx) => {
+    await refuseDeactivated(ctx);
+
     if (
       ctx.path === '/sign-up/email' ||
       ctx.path === '/reset-password' ||
@@ -121,7 +130,7 @@ export const auth = betterAuth({
       },
     },
   },
-  hooks: passwordHooks,
+  hooks: authHooks,
   advanced: getCookieAdvanced(baseURL),
   plugins: [
     emailOTP({

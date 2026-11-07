@@ -24,6 +24,8 @@
   },
   "dependencies": {
     "@arcjet/nest": "^1.14.1",
+    "@aws-sdk/client-s3": "^3.1162.0",
+    "@aws-sdk/s3-request-presigner": "^3.1162.0",
     "@conduit/contract": "workspace:*",
     "@neondatabase/serverless": "^1.0.1",
     "@nestjs/common": "^11.1.6",

@@ -3,8 +3,16 @@
 import type { WorkspaceRole } from '@conduit/contract';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { orpc } from '@/lib/orpc';
+import { client, orpc } from '@/lib/orpc';
 import { authClient } from '@/services/auth/client';
+
+import {
+  allowedDomainsQuery,
+  joinLinkQuery,
+  membersQuery,
+  workspaceInvitationsQuery,
+  workspaceSettingsQuery,
+} from './queries';
 
 // Every change to memberships or the active workspace must refresh the same things.
 function useActiveWorkspaceChanged() {
@@ -14,6 +22,8 @@ function useActiveWorkspaceChanged() {
     void queryClient.invalidateQueries({ queryKey: orpc.organizations.key() });
     void queryClient.invalidateQueries({ queryKey: orpc.users.key() });
     void queryClient.invalidateQueries({ queryKey: orpc.channels.key() });
+    void queryClient.invalidateQueries({ queryKey: orpc.members.key() });
+    void queryClient.invalidateQueries({ queryKey: orpc.invitations.key() });
 
     // Better Auth's own atoms don't see changes made through oRPC.
     authClient.$store.notify('$activeOrgSignal');
@@ -48,6 +58,40 @@ export function useCreateWorkspace() {
   );
 }
 
+export function useUpdateWorkspace() {
+  const onChanged = useActiveWorkspaceChanged();
+
+  return useMutation(
+    orpc.organizations.update.mutationOptions({ onSuccess: onChanged })
+  );
+}
+
+/** Uploads the file to storage, then saves its public URL as the workspace logo. */
+export function useUploadWorkspaceIcon() {
+  const onChanged = useActiveWorkspaceChanged();
+
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const { uploadUrl, publicUrl } = await client.organizations.iconUploadUrl(
+        {
+          contentType: file.type,
+          size: file.size,
+        }
+      );
+      const response = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+
+      if (!response.ok) throw new Error('The upload failed. Try again.');
+
+      return client.organizations.update({ logo: publicUrl });
+    },
+    onSuccess: onChanged,
+  });
+}
+
 export function useAcceptInvitation() {
   const onChanged = useActiveWorkspaceChanged();
 
@@ -73,20 +117,136 @@ export function useSwitchWorkspace() {
   });
 }
 
-// shortcut: Better Auth caps the page at 500 members; page through `offset` if a workspace outgrows it.
-export function useWorkspaceMembers(organizationId: string) {
-  return useQuery({
-    queryKey: ['workspace-members', organizationId],
-    queryFn: async () => {
-      const { data, error } = await authClient.organization.listMembers({
-        query: { organizationId, limit: 500 },
-      });
+export function useWorkspaceSettings() {
+  return useQuery(workspaceSettingsQuery);
+}
 
-      if (error) {
-        throw new Error(error.message ?? 'Could not load workspace members.');
-      }
+export function useUpdateWorkspaceSettings() {
+  const queryClient = useQueryClient();
 
-      return data.members;
-    },
-  });
+  return useMutation(
+    orpc.workspaceSettings.update.mutationOptions({
+      onSuccess: () =>
+        queryClient.invalidateQueries({
+          queryKey: orpc.workspaceSettings.key(),
+        }),
+    })
+  );
+}
+
+export function useWorkspaceMembers() {
+  return useQuery(membersQuery);
+}
+
+function useInvalidateMembers() {
+  const queryClient = useQueryClient();
+
+  return () => queryClient.invalidateQueries({ queryKey: orpc.members.key() });
+}
+
+export function useUpdateMemberRole() {
+  const invalidate = useInvalidateMembers();
+
+  return useMutation(
+    orpc.members.updateRole.mutationOptions({ onSuccess: invalidate })
+  );
+}
+
+export function useRemoveMember() {
+  const invalidate = useInvalidateMembers();
+
+  return useMutation(
+    orpc.members.remove.mutationOptions({ onSuccess: invalidate })
+  );
+}
+
+export function useDeactivateMember() {
+  const invalidate = useInvalidateMembers();
+
+  return useMutation(
+    orpc.members.deactivate.mutationOptions({ onSuccess: invalidate })
+  );
+}
+
+export function useReactivateMember() {
+  const invalidate = useInvalidateMembers();
+
+  return useMutation(
+    orpc.members.reactivate.mutationOptions({ onSuccess: invalidate })
+  );
+}
+
+export function useWorkspaceInvitations() {
+  return useQuery(workspaceInvitationsQuery);
+}
+
+function useInvalidateInvitations() {
+  const queryClient = useQueryClient();
+
+  return () =>
+    queryClient.invalidateQueries({
+      queryKey: workspaceInvitationsQuery.queryKey,
+    });
+}
+
+export function useCreateInvitations() {
+  const invalidate = useInvalidateInvitations();
+
+  return useMutation(
+    orpc.invitations.create.mutationOptions({ onSuccess: invalidate })
+  );
+}
+
+export function useRevokeInvitation() {
+  const invalidate = useInvalidateInvitations();
+
+  return useMutation(
+    orpc.invitations.revoke.mutationOptions({ onSuccess: invalidate })
+  );
+}
+
+export function useJoinLink() {
+  return useQuery(joinLinkQuery);
+}
+
+export function useResetJoinLink() {
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    orpc.joinLink.reset.mutationOptions({
+      onSuccess: (link) =>
+        queryClient.setQueryData(joinLinkQuery.queryKey, link),
+    })
+  );
+}
+
+export function useJoinWithLink() {
+  const onChanged = useActiveWorkspaceChanged();
+
+  return useMutation(
+    orpc.joinLink.join.mutationOptions({ onSuccess: onChanged })
+  );
+}
+
+export function useAllowedDomains() {
+  return useQuery(allowedDomainsQuery);
+}
+
+export function useSetAllowedDomains() {
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    orpc.allowedDomains.set.mutationOptions({
+      onSuccess: (domains) =>
+        queryClient.setQueryData(allowedDomainsQuery.queryKey, domains),
+    })
+  );
+}
+
+export function useJoinOrganization() {
+  const onChanged = useActiveWorkspaceChanged();
+
+  return useMutation(
+    orpc.organizations.join.mutationOptions({ onSuccess: onChanged })
+  );
 }

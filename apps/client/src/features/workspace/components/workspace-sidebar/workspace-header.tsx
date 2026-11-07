@@ -1,5 +1,6 @@
 'use client';
 
+import { canWorkspace } from '@conduit/contract';
 import { Button } from '@conduit/ui/components/button';
 import {
   DropdownMenu,
@@ -34,7 +35,9 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 import { useChannelDialogs } from '@/features/channels/context/channel-dialogs-provider';
+import { InviteDialog } from '@/features/workspace/components/workspace-settings/invite-dialog';
 import { useWorkspace } from '@/features/workspace/context/workspace-provider';
+import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
 const FILTERS = [
   {
@@ -56,43 +59,69 @@ const SORTS = [
 
 function WorkspaceMenu() {
   const { activeWorkspace } = useWorkspace();
+  const role = useWorkspaceRole();
   const name = activeWorkspace?.name ?? 'Workspace';
 
+  const canInvite = canWorkspace('invite', role);
+  const [inviting, setInviting] = useState(false);
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button size="sm" variant="ghost" className="text-lg font-bold" />
-        }
-      >
-        <span className="truncate">{name}</span>
-        <IconChevronDown data-icon="inline-end" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-64">
-        <DropdownMenuItem>
-          <IconUsersPlus data-slot="icon" aria-hidden />
-          Invite people to {name}
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <IconSettings2 data-slot="icon" aria-hidden />
-          Preferences
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <IconArrowsSplit2 data-slot="icon" aria-hidden />
-          Workflow builder
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <IconDashboard data-slot="icon" aria-hidden />
-          Admin tools
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem render={<Link href="/onboarding" />}>
-          <IconLogout data-slot="icon" aria-hidden />
-          Sign out
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button size="sm" variant="ghost" className="text-lg font-bold" />
+          }
+        >
+          <span className="truncate">{name}</span>
+          <IconChevronDown data-icon="inline-end" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-64">
+          {canInvite && (
+            <>
+              <DropdownMenuItem onClick={() => setInviting(true)}>
+                <IconUsersPlus data-slot="icon" aria-hidden />
+                Invite people to {name}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
+
+          {canWorkspace('viewSettings', role) && (
+            <DropdownMenuItem render={<Link href="/settings/members" />}>
+              <IconSettings data-slot="icon" aria-hidden />
+              Workspace settings
+            </DropdownMenuItem>
+          )}
+
+          <DropdownMenuItem>
+            <IconSettings2 data-slot="icon" aria-hidden />
+            Preferences
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <IconArrowsSplit2 data-slot="icon" aria-hidden />
+            Workflow builder
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <IconDashboard data-slot="icon" aria-hidden />
+            Admin tools
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem render={<Link href="/onboarding" />}>
+            <IconLogout data-slot="icon" aria-hidden />
+            Sign out
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {canInvite && (
+        <InviteDialog
+          workspaceName={name}
+          open={inviting}
+          onOpenChange={setInviting}
+        />
+      )}
+    </>
   );
 }
 
@@ -120,7 +149,7 @@ function SidebarSettingsMenu() {
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             Filter and sort
-            <span className="text-muted-foreground ml-auto text-xs">
+            <span className="text-muted-foreground mr-5 ml-auto max-w-18 truncate text-xs">
               {filterLabel}
             </span>
           </DropdownMenuSubTrigger>
@@ -135,11 +164,11 @@ function SidebarSettingsMenu() {
                   >
                     <span className="flex flex-col">
                       {option.label}
-                      {option.hint ? (
+                      {option.hint && (
                         <span className="text-muted-foreground text-xs">
                           {option.hint}
                         </span>
-                      ) : null}
+                      )}
                     </span>
                   </DropdownMenuRadioItem>
                 ))}

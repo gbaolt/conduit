@@ -2,7 +2,9 @@ import { getSessionCookie } from 'better-auth/cookies';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-const protectedRoutes = ['/', '/onboarding'];
+import { isSafeInternalPath } from '@/features/auth/lib/callback-url';
+
+const protectedRoutes = ['/', '/onboarding', '/accept-invitation'];
 const authRoutes = [
   '/sign-in',
   '/sign-up',
@@ -21,21 +23,14 @@ function matchesPath(pathname: string, routes: readonly string[]) {
   });
 }
 
-function isSafeInternalPath(value: string | null): value is string {
-  return (
-    typeof value === 'string' &&
-    value.startsWith('/') &&
-    !value.startsWith('//')
-  );
-}
-
 export function proxy(request: NextRequest) {
   const session = getSessionCookie(request);
   const pathname = request.nextUrl.pathname;
 
   if (matchesPath(pathname, protectedRoutes) && !session) {
     const url = new URL('/sign-in', request.url);
-    url.searchParams.set('callbackURL', pathname);
+    // The query carries the invitation id, so it must survive the sign-in round trip.
+    url.searchParams.set('callbackURL', pathname + request.nextUrl.search);
     return NextResponse.redirect(url);
   }
 

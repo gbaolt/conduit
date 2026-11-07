@@ -1,4 +1,5 @@
 import {
+  canCreateChannel,
   type Channel,
   type ChannelAction,
   type ChannelMember,
@@ -11,6 +12,7 @@ import { channelError, sectionError } from '@/channels/domain/channel-errors';
 import { ChannelSectionsRepository } from '@/channels/domain/channel-sections.repository';
 import { ChannelsRepository } from '@/channels/domain/channels.repository';
 import { WorkspaceMembersRepository } from '@/workspaces/domain/workspace-members.repository';
+import { WorkspaceSettingsRepository } from '@/workspaces/domain/workspace-settings.repository';
 
 export type ChannelViewer = {
   userId: string;
@@ -25,7 +27,9 @@ export class ChannelsService {
     @Inject(ChannelSectionsRepository)
     private readonly sections: ChannelSectionsRepository,
     @Inject(WorkspaceMembersRepository)
-    private readonly workspaceMembers: WorkspaceMembersRepository
+    private readonly workspaceMembers: WorkspaceMembersRepository,
+    @Inject(WorkspaceSettingsRepository)
+    private readonly workspaceSettings: WorkspaceSettingsRepository
   ) {}
 
   /** Active channels, or only the archived ones when asked. */
@@ -45,10 +49,14 @@ export class ChannelsService {
     return this.find({ userId, organizationId, workspaceRole }, channelId);
   }
 
-  create(
+  async create(
     viewer: ChannelViewer,
     input: { name: string; visibility: Channel['visibility'] }
   ) {
+    const settings = await this.workspaceSettings.get(viewer.organizationId);
+    if (!canCreateChannel(viewer.workspaceRole, input.visibility, settings)) {
+      throw channelError('FORBIDDEN');
+    }
     return this.channels.create(viewer, input);
   }
 

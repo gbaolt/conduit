@@ -1,8 +1,12 @@
 import { cookies } from 'next/headers';
 import { type ReactNode, Suspense } from 'react';
 
+import { ChannelPageSkeleton } from '@/features/channels/components/channel-skeletons';
 import { ChannelDialogsProvider } from '@/features/channels/context/channel-dialogs-provider';
-import { WorkspaceSidebar } from '@/features/workspace/components/workspace-sidebar';
+import {
+  ChannelsNav,
+  WorkspaceSidebar,
+} from '@/features/workspace/components/workspace-sidebar';
 import {
   LAYOUT_COOKIE,
   parseLayout,
@@ -13,7 +17,16 @@ import { channelsQuery } from '@/services/channels/queries';
 export default function HomeLayout({ children }: { children: ReactNode }) {
   return (
     <ChannelDialogsProvider>
-      <Suspense>
+      <Suspense
+        fallback={
+          <WorkspaceSidebar
+            defaultLayout={undefined}
+            sidebar={<ChannelsNav loading />}
+          >
+            <ChannelPageSkeleton />
+          </WorkspaceSidebar>
+        }
+      >
         <ChannelPanel>{children}</ChannelPanel>
       </Suspense>
     </ChannelDialogsProvider>
@@ -31,6 +44,7 @@ async function ChannelPanel({ children }: { children: ReactNode }) {
     <HydrateClient client={client}>
       <WorkspaceSidebar
         defaultLayout={parseLayout(cookieStore.get(LAYOUT_COOKIE)?.value)}
+        sidebar={<ChannelsNav />}
       >
         {children}
       </WorkspaceSidebar>

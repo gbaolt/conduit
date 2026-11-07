@@ -9,22 +9,29 @@ const bots = detectBot({
   allow: ['CATEGORY:SEARCH_ENGINE', 'CATEGORY:PREVIEW', 'CATEGORY:MONITOR'],
 });
 
-// One protect() per request: bot detection and the tier's per-user rate limit share a call so neither double-counts.
-function security(maxPerMinute: number) {
+// One protect() per request: bot detection and the tier's rate limit share a call so neither double-counts.
+// An anonymous tier has no user, so it limits by IP.
+function security(maxPerMinute: number, anonymous = false) {
   const rateLimit = slidingWindow({
     mode: 'LIVE',
-    characteristics: ['userId'],
+    characteristics: [anonymous ? 'ip.src' : 'userId'],
     interval: '1m',
     max: maxPerMinute,
   });
 
   return os
-    .$context<{ request: Request; arcjet: ArcjetNest; user: User }>()
+    .$context<{ request: Request; arcjet: ArcjetNest; user?: User }>()
     .middleware(async ({ context, next }) => {
       const decision = await context.arcjet
         .withRule(bots)
         .withRule(rateLimit)
-        .protect(context.request, { userId: context.user.id });
+        .protect(
+          context.request,
+          context.user
+            ? { userId: context.user.id }
+            : // The anonymous tier limits by ip.src and sends no field; the type models only userId.
+              ({} as { userId: string })
+        );
 
       if (decision.isErrored()) {
         console.warn('[arcjet] procedure decision errored', decision.reason);
@@ -46,9 +53,10 @@ function security(maxPerMinute: number) {
     });
 }
 
-/** Chain after `authorized`, which supplies `user`. */
+/** Chain after `authorized`, which supplies `user`. `readAnonymous` is for signed-out procedures. */
 export const arcjet = {
   read: security(180),
   write: security(40),
   heavyWrite: security(5),
+  readAnonymous: security(30, true),
 };

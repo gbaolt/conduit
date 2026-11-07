@@ -18,9 +18,21 @@ _Avoid_: Using this word in UI copy
 A user who belongs to a workspace, with one of owner, admin, or member.
 _Avoid_: User (when you mean workspace membership), teammate
 
+**Deactivated member**:
+A member whose access to one workspace is switched off by an admin. They keep their account, their other workspaces, and their channel memberships here, but cannot open or change anything in this workspace until an admin reactivates them. Removing a member is different: it deletes the membership.
+_Avoid_: Suspended, banned, disabled user
+
 **Invitation**:
 A pending offer for an email address to join a workspace.
 _Avoid_: Invite link (the invitation is the record; the link is how it is delivered)
+
+**Join link**:
+A shareable URL that lets anyone who opens it join one workspace as a member, without an invitation. An admin can reset it, which stops every old URL working. It is not an Invitation record.
+_Avoid_: Invite link, invitation link
+
+**Allowed domain**:
+An email domain an admin lists so that people with a verified address on exactly that domain can join the workspace without an invitation. A subdomain such as `eng.acme.dev` does not match `acme.dev`.
+_Avoid_: Whitelisted domain, company domain
 
 **Agent**:
 An AI teammate added to conversations, where their Members can @mention it and work with it. It is not a Member. It has no workspace role and is not counted as one. An agent is either a **built-in agent** or a **connected agent**.
