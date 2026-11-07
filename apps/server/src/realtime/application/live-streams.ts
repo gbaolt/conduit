@@ -34,8 +34,18 @@ const MESSAGE_COLUMNS = [
  * so one query carries every change to a conversation.
  */
 export function queryFor(stream: LiveStream): LiveQuery {
-  return {
-    sql: `SELECT ${MESSAGE_COLUMNS} FROM "Message" WHERE "channelId" = $1 AND ("parentId" IS NULL OR "alsoSentToChannel") AND "updatedAt" >= $2`,
-    parameters: [stream.channelId, stream.since],
-  };
+  switch (stream.kind) {
+    case 'conversation':
+      return {
+        sql: `SELECT ${MESSAGE_COLUMNS} FROM "Message" WHERE "channelId" = $1 AND ("parentId" IS NULL OR "alsoSentToChannel") AND "updatedAt" >= $2`,
+        parameters: [stream.channelId, stream.since],
+      };
+    case 'thread':
+      // The root rides along so its edits and reactions reach the open panel. `channelId` stays in the
+      // predicate, so a `parentId` from another channel matches nothing.
+      return {
+        sql: `SELECT ${MESSAGE_COLUMNS} FROM "Message" WHERE "channelId" = $1 AND ("parentId" = $2 OR "id" = $2) AND "updatedAt" >= $3`,
+        parameters: [stream.channelId, stream.parentId, stream.since],
+      };
+  }
 }

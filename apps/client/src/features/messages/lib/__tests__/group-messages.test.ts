@@ -104,6 +104,8 @@ describe('buildLog', () => {
     const pending = (clientId: string): PendingMessage => ({
       clientId,
       channelId: 'c1',
+      parentId: null,
+      alsoSentToChannel: false,
       body: clientId,
       createdAt: at(7, 9, 2),
       status: 'sending',

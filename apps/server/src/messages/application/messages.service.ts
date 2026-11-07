@@ -47,12 +47,57 @@ export class MessagesService {
     return page;
   }
 
+  /** A message with its channel, or its thread's root and replies. */
+  async get(viewer: MessageViewer, messageId: string) {
+    const message = await this.messages.find(messageId);
+    if (!message) {
+      throw messageError('NOT_FOUND');
+    }
+    await this.find(viewer, message.channelId);
+    return message;
+  }
+
+  /** A deleted root still lists its replies. */
+  async listReplies(
+    viewer: MessageViewer,
+    input: { messageId: string; before?: string; limit?: number }
+  ) {
+    const root = await this.get(viewer, input.messageId);
+    if (root.parentId) {
+      throw messageError('NOT_FOUND');
+    }
+    const page = await this.messages.listReplies(root.channelId, root.id, {
+      before: input.before,
+      limit: input.limit ?? MESSAGE_PAGE_DEFAULT,
+    });
+    if (!page) {
+      throw messageError('NOT_FOUND');
+    }
+    return page;
+  }
+
   async send(
     viewer: MessageViewer,
-    input: { channelId: string; clientId: string; body: string }
+    input: {
+      channelId: string;
+      clientId: string;
+      body: string;
+      parentId?: string;
+      alsoSentToChannel?: boolean;
+    }
   ) {
     const channel = await this.find(viewer, input.channelId);
     this.authorize(viewer, channel, 'post');
+
+    if (input.parentId) {
+      const root = await this.messages.find(input.parentId);
+      if (!root || root.channelId !== channel.id || root.deletedAt) {
+        throw messageError('NOT_FOUND');
+      }
+      if (root.parentId) {
+        throw messageError('REPLY_TO_REPLY');
+      }
+    }
 
     const body = input.body.trim();
     return this.messages.send({
@@ -61,6 +106,8 @@ export class MessagesService {
       clientId: input.clientId,
       body,
       mentions: await this.mentionsIn(viewer, channel.id, body),
+      parentId: input.parentId,
+      alsoSentToChannel: Boolean(input.parentId && input.alsoSentToChannel),
     });
   }
 

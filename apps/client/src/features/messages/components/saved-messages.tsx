@@ -27,7 +27,11 @@ function SavedItem({ item }: { item: SavedMessage }) {
       author={authors.get(message.authorId) ?? FORMER_MEMBER}
       context={
         <Link
-          href={`/channels/${message.channelId}`}
+          href={
+            message.parentId
+              ? `/channels/${message.channelId}?thread=${message.parentId}`
+              : `/channels/${message.channelId}`
+          }
           className="text-primary mb-0.5 flex w-fit items-center gap-0.5 text-xs hover:underline"
         >
           <IconHash className="size-3.5" aria-hidden />

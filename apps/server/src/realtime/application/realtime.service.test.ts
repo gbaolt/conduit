@@ -55,6 +55,34 @@ describe('RealtimeService.seal', () => {
     expect(sealed[0]?.sql).toContain('FROM "Message" WHERE "channelId" = $1');
   });
 
+  it('seals the thread query for the root and its replies', async () => {
+    const { service, sealed } = setup({});
+
+    await service.seal(viewer, {
+      kind: 'thread',
+      channelId: 'c1',
+      parentId: 'm1',
+      since,
+    });
+
+    expect(sealed[0]?.parameters).toEqual(['c1', 'm1', since]);
+    expect(sealed[0]?.sql).toContain('"parentId" = $2 OR "id" = $2');
+  });
+
+  it('refuses a thread of a private channel the viewer is not in', async () => {
+    const { service, sealed } = setup({ visibility: 'private' });
+
+    await expect(
+      service.seal(viewer, {
+        kind: 'thread',
+        channelId: 'c1',
+        parentId: 'm1',
+        since,
+      })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(sealed).toEqual([]);
+  });
+
   it('refuses a private channel the viewer is not in', async () => {
     const { service, sealed } = setup({ visibility: 'private' });
 

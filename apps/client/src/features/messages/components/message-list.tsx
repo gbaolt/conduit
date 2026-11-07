@@ -30,6 +30,21 @@ function DayDivider({ date }: { date: Date }) {
   );
 }
 
+function ReplyDivider({ count }: { count: number }) {
+  return (
+    <div role="separator" className="flex items-center gap-3 px-5 pt-3 pb-1">
+      <span className="text-muted-foreground text-xs font-medium">
+        {count === 0
+          ? 'No replies yet'
+          : count === 1
+            ? '1 reply'
+            : `${count} replies`}
+      </span>
+      <div className="bg-border h-px flex-1" />
+    </div>
+  );
+}
+
 /** Loads the next older page once the oldest loaded message scrolls into view. */
 function OlderPages({
   oldestId,
@@ -70,6 +85,7 @@ function moveFocus(event: KeyboardEvent<HTMLElement>) {
 
 export function MessageList({
   channelId,
+  parentId,
   messages,
   authors,
   viewerId,
@@ -88,6 +104,8 @@ export function MessageList({
   discard,
 }: {
   channelId: string;
+  /** Set when the list is a thread: `messages` then starts with its root. */
+  parentId?: string;
   messages: readonly Message[];
   authors: ReadonlyMap<string, Author>;
   viewerId: string | null;
@@ -106,8 +124,12 @@ export function MessageList({
   retry: (clientId: string) => void;
   discard: (clientId: string) => void;
 }) {
-  const pending = usePendingMessages(channelId);
-  const entries = buildLog(messages, pending, viewerId ?? '');
+  const pending = usePendingMessages(channelId, parentId);
+  const entries = buildLog(messages, pending, viewerId ?? '').map(
+    (entry, index) =>
+      // The divider after a thread's root ends its group.
+      parentId && index === 1 ? { ...entry, grouped: false } : entry
+  );
   const [mountedAt] = useState(() => Date.now());
   const viewer = authors.get(viewerId ?? '') ?? UNKNOWN_AUTHOR;
 
@@ -151,6 +173,7 @@ export function MessageList({
                     editing={editingId === entry.message.id}
                     onEdit={() => onEdit(entry.message.id)}
                     onStopEditing={onStopEditing}
+                    inThread={Boolean(parentId)}
                   />
                 ) : (
                   <PendingRow
@@ -160,6 +183,9 @@ export function MessageList({
                     onRetry={() => retry(entry.pending.clientId)}
                     onDiscard={() => discard(entry.pending.clientId)}
                   />
+                )}
+                {entry.kind === 'message' && entry.message.id === parentId && (
+                  <ReplyDivider count={entry.message.replyCount} />
                 )}
               </MessageScrollerItem>
             ))}

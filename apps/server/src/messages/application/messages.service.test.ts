@@ -63,6 +63,8 @@ function setup(
         channelId: input.channelId,
         authorId: input.authorId,
         clientId: input.clientId,
+        parentId: input.parentId ?? null,
+        alsoSentToChannel: input.alsoSentToChannel ?? false,
         body: input.body,
         mentionedUserIds: input.mentions.userIds,
         reactions: {},
@@ -72,6 +74,15 @@ function setup(
       } as unknown as Message;
       stored.set(message.id, message);
       return { message, txid: '1' };
+    },
+    listReplies: async (_channelId, parentId, page) => {
+      const replies = [...stored.values()].filter(
+        (message) => message.parentId === parentId
+      );
+      return {
+        messages: replies.slice(0, page.limit),
+        hasMore: replies.length > page.limit,
+      };
     },
     edit: async (id, body) => {
       const message = { ...stored.get(id)!, body, editedAt: new Date() };
@@ -204,6 +215,124 @@ describe('MessagesService.send', () => {
       userIds: ['linh'],
       channel: false,
       here: true,
+    });
+  });
+});
+
+describe('MessagesService threads', () => {
+  const views = { author: channelFor('member'), other: channelFor('member') };
+  const reply = (
+    service: MessagesService,
+    viewer: MessageViewer,
+    parentId: string,
+    extra: { alsoSentToChannel?: boolean } = {}
+  ) =>
+    service.send(viewer, {
+      channelId: 'c1',
+      clientId: crypto.randomUUID(),
+      body: 'reply',
+      parentId,
+      alsoSentToChannel: extra.alsoSentToChannel,
+    });
+
+  it('stores a reply under its root', async () => {
+    const { service, sent } = setup(views);
+    const { message: root } = await sendAs(service, author);
+
+    await reply(service, other, root.id);
+
+    expect(sent[1]).toMatchObject({
+      parentId: root.id,
+      alsoSentToChannel: false,
+    });
+  });
+
+  it('passes also-send-to-channel through for a reply and drops it without a parent', async () => {
+    const { service, sent } = setup(views);
+    const { message: root } = await sendAs(service, author);
+
+    await reply(service, other, root.id, { alsoSentToChannel: true });
+    await service.send(other, {
+      channelId: 'c1',
+      clientId: 'plain',
+      body: 'hi',
+      alsoSentToChannel: true,
+    });
+
+    expect(sent[1]?.alsoSentToChannel).toBe(true);
+    expect(sent[2]?.alsoSentToChannel).toBe(false);
+  });
+
+  it('refuses a reply to a reply', async () => {
+    const { service } = setup(views);
+    const { message: root } = await sendAs(service, author);
+    const { message: first } = await reply(service, other, root.id);
+
+    await expect(reply(service, author, first.id)).rejects.toMatchObject({
+      code: 'REPLY_TO_REPLY',
+    });
+  });
+
+  it('refuses a reply to a deleted or missing root', async () => {
+    const { service } = setup(views);
+    const { message: root } = await sendAs(service, author);
+    await service.delete(author, root.id);
+
+    await expect(reply(service, other, root.id)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+    await expect(reply(service, other, 'ghost')).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
+
+  it('refuses a root that belongs to another channel', async () => {
+    const { service, stored } = setup(views);
+    const { message: root } = await sendAs(service, author);
+    stored.set(root.id, { ...root, channelId: 'c2' });
+
+    await expect(reply(service, other, root.id)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
+
+  it('refuses a reply from someone who cannot post in the channel', async () => {
+    const { service } = setup({ ...views, outsider: channelFor(null) });
+    const { message: root } = await sendAs(service, author);
+
+    await expect(reply(service, outsider, root.id)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+  });
+
+  it('lists the replies of a root, even a deleted one', async () => {
+    const { service } = setup(views);
+    const { message: root } = await sendAs(service, author);
+    await reply(service, other, root.id);
+    await service.delete(author, root.id);
+
+    const page = await service.listReplies(other, { messageId: root.id });
+
+    expect(page.messages).toHaveLength(1);
+  });
+
+  it('lists nothing for a reply, and hides a private channel from an outsider', async () => {
+    const { service } = setup({
+      author: channelFor('member', { visibility: 'private' }),
+      other: channelFor('member', { visibility: 'private' }),
+      outsider: channelFor(null, { visibility: 'private' }),
+    });
+    const { message: root } = await sendAs(service, author);
+    const { message: first } = await reply(service, other, root.id);
+
+    await expect(
+      service.listReplies(other, { messageId: first.id })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(
+      service.listReplies(outsider, { messageId: root.id })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(service.get(outsider, root.id)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
     });
   });
 });

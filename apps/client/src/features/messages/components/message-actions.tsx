@@ -33,7 +33,7 @@ import {
   IconPinnedOff,
   IconTrash,
 } from '@tabler/icons-react';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, use, useState } from 'react';
 
 import { StatusButton } from '@/components/async/status-button';
 import {
@@ -43,6 +43,7 @@ import {
   useToggleReaction,
 } from '@/services/messages/hooks';
 
+import { OpenThread } from '../context/thread';
 import { EmojiPickerButton } from './emoji-picker';
 
 function ActionButton({
@@ -86,6 +87,7 @@ export function MessageActions({
   canPost,
   canEdit,
   canDelete,
+  canReplyInThread,
   onEdit,
 }: {
   message: Pick<Message, 'id' | 'channelId' | 'reactions' | 'pinnedAt'>;
@@ -93,8 +95,11 @@ export function MessageActions({
   canPost: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  /** Only a top-level message starts a thread, and not from inside its own panel. */
+  canReplyInThread: boolean;
   onEdit: () => void;
 }) {
+  const openThread = use(OpenThread);
   const [confirming, setConfirming] = useState(false);
   const deleteMessage = useDeleteMessage(message.channelId);
   const toggleReaction = useToggleReaction(message.channelId);
@@ -115,9 +120,14 @@ export function MessageActions({
           <IconMoodPlus />
         </EmojiPickerButton>
       )}
-      <ActionButton label="Reply in thread (coming soon)" disabled>
-        <IconMessageCircle />
-      </ActionButton>
+      {canReplyInThread && openThread && (
+        <ActionButton
+          label="Reply in thread"
+          onClick={() => openThread(message.id)}
+        >
+          <IconMessageCircle />
+        </ActionButton>
+      )}
       <ActionButton
         label={saved ? 'Remove from saved' : 'Save for later'}
         pressed={saved}

@@ -194,4 +194,129 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
       reacted!.updatedAt.getTime()
     );
   });
+
+  describe('threads', () => {
+    const reply = (
+      parentId: string,
+      clientId: string,
+      alsoSentToChannel = false
+    ) =>
+      repository.send({
+        channelId,
+        authorId: userId,
+        clientId,
+        body: clientId,
+        mentions,
+        parentId,
+        alsoSentToChannel,
+      });
+
+    it('counts every reply sent at the same time', async () => {
+      const { message: root } = await send('thread-root');
+
+      await Promise.all(
+        Array.from({ length: 8 }, (_, i) => reply(root.id, `race-${i}`))
+      );
+
+      const stored = await repository.find(root.id);
+      expect(stored?.replyCount).toBe(8);
+      expect(stored?.lastReplyAt).toBeInstanceOf(Date);
+      expect(stored!.updatedAt.getTime()).toBeGreaterThan(
+        root.updatedAt.getTime()
+      );
+    });
+
+    it('counts a retried reply once', async () => {
+      const { message: root } = await send('retry-root');
+
+      await reply(root.id, 'same');
+      const again = await reply(root.id, 'same');
+
+      expect(again.txid).toBeNull();
+      expect((await repository.find(root.id))?.replyCount).toBe(1);
+    });
+
+    it('keeps a reply out of the channel log unless it is also sent there', async () => {
+      const { message: root } = await send('log-root');
+      const quiet = await reply(root.id, 'quiet');
+      const loud = await reply(root.id, 'loud', true);
+
+      const page = await repository.list(channelId, { limit: 100 });
+      const ids = page!.messages.map((message) => message.id);
+
+      expect(ids).not.toContain(quiet.message.id);
+      expect(ids).toContain(loud.message.id);
+    });
+
+    it('leaves lastMessageAt alone for a reply that stays in the thread', async () => {
+      const { message: root } = await send('quiet-root');
+      const before = await prisma.channel.findUniqueOrThrow({
+        where: { id: channelId },
+      });
+
+      await reply(root.id, 'quiet-reply');
+
+      const after = await prisma.channel.findUniqueOrThrow({
+        where: { id: channelId },
+      });
+      expect(after.lastMessageAt).toEqual(before.lastMessageAt);
+    });
+
+    it('lists replies newest first, pages them, and drops a deleted one', async () => {
+      const { message: root } = await send('page-root');
+      const a = await reply(root.id, 'a');
+      const b = await reply(root.id, 'b');
+      const c = await reply(root.id, 'c');
+      await repository.markDeleted(b.message.id);
+
+      const first = await repository.listReplies(channelId, root.id, {
+        limit: 1,
+      });
+      const second = await repository.listReplies(channelId, root.id, {
+        limit: 1,
+        before: first?.messages.at(-1)?.id,
+      });
+
+      expect(first?.messages.map((m) => m.id)).toEqual([c.message.id]);
+      expect(first?.hasMore).toBe(true);
+      expect(second?.messages.map((m) => m.id)).toEqual([a.message.id]);
+      expect(second?.hasMore).toBe(false);
+    });
+
+    it('refuses a cursor from another thread', async () => {
+      const { message: one } = await send('cursor-one');
+      const { message: two } = await send('cursor-two');
+      const inOne = await reply(one.id, 'in-one');
+
+      await expect(
+        repository.listReplies(channelId, two.id, {
+          limit: 10,
+          before: inOne.message.id,
+        })
+      ).resolves.toBeNull();
+    });
+
+    it('takes a deleted reply off the count once, even when deleted twice at once', async () => {
+      const { message: root } = await send('count-root');
+      const first = await reply(root.id, 'first');
+      await reply(root.id, 'second');
+
+      await Promise.all([
+        repository.markDeleted(first.message.id),
+        repository.markDeleted(first.message.id),
+      ]);
+
+      expect((await repository.find(root.id))?.replyCount).toBe(1);
+    });
+
+    it('keeps a deleted root with replies in the log', async () => {
+      const { message: root } = await send('tomb-root');
+      await reply(root.id, 'tomb-reply');
+      await repository.markDeleted(root.id);
+
+      const page = await repository.list(channelId, { limit: 100 });
+
+      expect(page?.messages.map((m) => m.id)).toContain(root.id);
+    });
+  });
 });

@@ -8,20 +8,21 @@ import { toast } from 'sonner';
 import { client, orpc } from '@/lib/orpc';
 import { sessionQuery } from '@/services/auth/queries';
 
-import { awaitLiveTransaction } from './live';
+import { awaitLiveTransaction, threadStreamKey } from './live';
 import {
-  mapMessage,
-  markDeleted,
-  messagesQuery,
+  cacheMessage,
+  patchCachedMessage,
   pinnedQuery,
   savedQuery,
-  upsertMessages,
 } from './queries';
 
 /** A message the member sent that the server has not stored yet, or could not store. */
 export type PendingMessage = {
   clientId: string;
   channelId: string;
+  /** The root of the thread this reply goes to, or null for a message in the channel. */
+  parentId: string | null;
+  alsoSentToChannel: boolean;
   body: string;
   createdAt: Date;
   status: 'sending' | 'failed';
@@ -41,15 +42,23 @@ const subscribe = (listener: () => void) => {
   return () => void listeners.delete(listener);
 };
 
-export function usePendingMessages(channelId: string) {
+/** The unsent messages of the channel's log, or of one thread when `parentId` is set. */
+export function usePendingMessages(channelId: string, parentId?: string) {
   const all = useSyncExternalStore(
     subscribe,
     () => pending,
     () => pending
   );
   return useMemo(
-    () => all.filter((message) => message.channelId === channelId),
-    [all, channelId]
+    () =>
+      all.filter(
+        (message) =>
+          message.channelId === channelId &&
+          (parentId
+            ? message.parentId === parentId
+            : !message.parentId || message.alsoSentToChannel)
+      ),
+    [all, channelId, parentId]
   );
 }
 
@@ -63,48 +72,61 @@ const patchPending = (clientId: string, patch: Partial<PendingMessage>) =>
 const removePending = (clientId: string) =>
   setPending(pending.filter((message) => message.clientId !== clientId));
 
-/** Sends optimistically: the row shows at once, keyed by `clientId`, and the stored message replaces it. */
-export function useSendMessage(channelId: string) {
+/**
+ * Sends optimistically: the row shows at once, keyed by `clientId`, and the stored message replaces it.
+ * With `parentId` the message is a reply in that thread.
+ */
+export function useSendMessage(channelId: string, parentId?: string) {
   const queryClient = useQueryClient();
-  const queryKey = messagesQuery(channelId).queryKey;
 
   const deliver = useCallback(
-    async (clientId: string, body: string) => {
+    async (message: PendingMessage) => {
+      const { clientId, body, alsoSentToChannel } = message;
       patchPending(clientId, { status: 'sending' });
       try {
-        const { message, txid } = await client.messages.send({
+        const sent = await client.messages.send({
           channelId,
           clientId,
           body,
+          parentId: message.parentId ?? undefined,
+          alsoSentToChannel,
         });
-        if (txid) await awaitLiveTransaction(channelId, txid);
-        queryClient.setQueryData(queryKey, (data) =>
-          upsertMessages(data, [message])
-        );
+        if (sent.txid) {
+          await awaitLiveTransaction(
+            message.parentId ? threadStreamKey(message.parentId) : channelId,
+            sent.txid
+          );
+        }
+        cacheMessage(queryClient, sent.message);
         removePending(clientId);
       } catch {
         patchPending(clientId, { status: 'failed' });
       }
     },
-    [channelId, queryClient, queryKey]
+    [channelId, queryClient]
   );
 
   const send = useCallback(
-    (body: string) => {
-      const clientId = crypto.randomUUID();
-      setPending([
-        ...pending,
-        { clientId, channelId, body, createdAt: new Date(), status: 'sending' },
-      ]);
-      void deliver(clientId, body);
+    (body: string, alsoSentToChannel = false) => {
+      const message: PendingMessage = {
+        clientId: crypto.randomUUID(),
+        channelId,
+        parentId: parentId ?? null,
+        alsoSentToChannel: Boolean(parentId) && alsoSentToChannel,
+        body,
+        createdAt: new Date(),
+        status: 'sending',
+      };
+      setPending([...pending, message]);
+      void deliver(message);
     },
-    [channelId, deliver]
+    [channelId, parentId, deliver]
   );
 
   const retry = useCallback(
     (clientId: string) => {
       const message = pending.find((m) => m.clientId === clientId);
-      if (message) void deliver(clientId, message.body);
+      if (message) void deliver(message);
     },
     [deliver]
   );
@@ -112,30 +134,28 @@ export function useSendMessage(channelId: string) {
   return { send, retry, discard: removePending };
 }
 
-export function useEditMessage(channelId: string) {
+export function useEditMessage() {
   const queryClient = useQueryClient();
-  const queryKey = messagesQuery(channelId).queryKey;
 
   return useMutation(
     orpc.messages.edit.mutationOptions({
-      onSuccess: (message) =>
-        queryClient.setQueryData(queryKey, (data) =>
-          upsertMessages(data, [message])
-        ),
+      onSuccess: (message) => cacheMessage(queryClient, message),
     })
   );
 }
 
 export function useDeleteMessage(channelId: string) {
   const queryClient = useQueryClient();
-  const queryKey = messagesQuery(channelId).queryKey;
 
   return useMutation(
     orpc.messages.delete.mutationOptions({
+      // Clears the row ahead of the live row that confirms it.
       onSuccess: (_, { messageId }) =>
-        queryClient.setQueryData(queryKey, (data) =>
-          markDeleted(data, messageId, new Date())
-        ),
+        patchCachedMessage(queryClient, channelId, messageId, (message) => ({
+          ...message,
+          body: '',
+          deletedAt: new Date(),
+        })),
       onError: (error) => toast.error(error.message),
     })
   );
@@ -148,29 +168,23 @@ export function useToggleReaction(channelId: string) {
   const queryClient = useQueryClient();
   const { data: session } = useQuery(sessionQuery);
   const viewerId = session?.user.id;
-  const queryKey = messagesQuery(channelId).queryKey;
 
   const mutationOptions = (change: ReactionChange) => ({
     onMutate: ({ messageId, emoji }: { messageId: string; emoji: string }) => {
-      const previous = queryClient
-        .getQueryData(queryKey)
-        ?.pages.flatMap((page) => page.messages)
-        .find((message) => message.id === messageId);
+      let previous: Message | undefined;
       if (viewerId) {
-        queryClient.setQueryData(queryKey, (data) =>
-          mapMessage(data, messageId, (message) => ({
+        patchCachedMessage(queryClient, channelId, messageId, (message) => {
+          previous ??= message;
+          return {
             ...message,
             reactions:
               change(message.reactions, emoji, viewerId) ?? message.reactions,
-          }))
-        );
+          };
+        });
       }
       return { previous };
     },
-    onSuccess: (message: Message) =>
-      queryClient.setQueryData(queryKey, (data) =>
-        upsertMessages(data, [message])
-      ),
+    onSuccess: (message: Message) => cacheMessage(queryClient, message),
     onError: (
       error: Error,
       { messageId }: { messageId: string },
@@ -178,9 +192,7 @@ export function useToggleReaction(channelId: string) {
     ) => {
       const previous = context?.previous;
       if (previous) {
-        queryClient.setQueryData(queryKey, (data) =>
-          mapMessage(data, messageId, () => previous)
-        );
+        patchCachedMessage(queryClient, channelId, messageId, () => previous);
       }
       toast.error(error.message);
     },
@@ -202,16 +214,12 @@ export function useToggleReaction(channelId: string) {
   );
 }
 
-export function useRemoveLinkPreview(channelId: string) {
+export function useRemoveLinkPreview() {
   const queryClient = useQueryClient();
-  const queryKey = messagesQuery(channelId).queryKey;
 
   return useMutation(
     orpc.messages.removeLinkPreview.mutationOptions({
-      onSuccess: (message) =>
-        queryClient.setQueryData(queryKey, (data) =>
-          upsertMessages(data, [message])
-        ),
+      onSuccess: (message) => cacheMessage(queryClient, message),
       onError: (error) => toast.error(error.message),
     })
   );
@@ -220,13 +228,10 @@ export function useRemoveLinkPreview(channelId: string) {
 /** Pins an unpinned message and unpins a pinned one. */
 export function useTogglePin(channelId: string) {
   const queryClient = useQueryClient();
-  const queryKey = messagesQuery(channelId).queryKey;
 
   const mutationOptions = {
     onSuccess: (message: Message) => {
-      queryClient.setQueryData(queryKey, (data) =>
-        upsertMessages(data, [message])
-      );
+      cacheMessage(queryClient, message);
       return queryClient.invalidateQueries({
         queryKey: pinnedQuery(channelId).queryKey,
       });

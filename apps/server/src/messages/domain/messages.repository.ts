@@ -20,10 +20,21 @@ export abstract class MessagesRepository {
     page: { before?: string; limit: number }
   ): Promise<{ messages: Message[]; hasMore: boolean } | null>;
 
+  /**
+   * Replies to a top-level message, newest first, ordered by `(createdAt, id)`. A deleted reply leaves the thread.
+   * Returns null when `before` is not a reply in the thread.
+   */
+  abstract listReplies(
+    channelId: string,
+    parentId: string,
+    page: { before?: string; limit: number }
+  ): Promise<{ messages: Message[]; hasMore: boolean } | null>;
+
   abstract find(messageId: string): Promise<Message | null>;
 
   /**
-   * Stores the message and bumps the channel's `lastMessageAt` in one transaction.
+   * Stores the message in one transaction. A message in the channel's log bumps the channel's `lastMessageAt`.
+   * A reply also adds one to its root's `replyCount` and sets its `lastReplyAt`, so the channel's stream updates the root.
    * A `clientId` the author already sent returns the stored row with a null `txid`.
    */
   abstract send(input: {
@@ -32,6 +43,9 @@ export abstract class MessagesRepository {
     clientId: string;
     body: string;
     mentions: MessageMentions;
+    /** A top-level message of the channel. The caller checks it. */
+    parentId?: string;
+    alsoSentToChannel?: boolean;
   }): Promise<{ message: Message; txid: string | null }>;
 
   /** Sets `editedAt`. */
@@ -41,7 +55,10 @@ export abstract class MessagesRepository {
     mentions: MessageMentions
   ): Promise<Message>;
 
-  /** Keeps the row so replies keep their place, and clears everything a reader could see. */
+  /**
+   * Keeps the row so replies keep their place, and clears everything a reader could see.
+   * Deleting a reply takes one off its root's `replyCount`.
+   */
   abstract markDeleted(messageId: string): Promise<void>;
 
   /**

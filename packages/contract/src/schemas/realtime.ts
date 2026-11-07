@@ -8,6 +8,13 @@ export const LiveStreamSchema = z.discriminatedUnion('kind', [
     /** Rows changed at or after this time arrive live. Fixed for a subscription, so a renewal seals the same query. */
     since: z.coerce.date(),
   }),
+  z.object({
+    kind: z.literal('thread'),
+    channelId: z.string(),
+    /** The thread's root. The stream carries the root and its replies. */
+    parentId: z.string(),
+    since: z.coerce.date(),
+  }),
 ]);
 export type LiveStream = z.infer<typeof LiveStreamSchema>;
 

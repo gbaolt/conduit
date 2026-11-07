@@ -29,8 +29,10 @@ import { healthCheckContract } from './contracts/health';
 import {
   deleteMessageContract,
   editMessageContract,
+  getMessageContract,
   listMessagesContract,
   listPinnedMessagesContract,
+  listRepliesContract,
   listSavedMessagesContract,
   pinMessageContract,
   reactMessageContract,
@@ -141,6 +143,8 @@ export const contract = {
   },
   messages: {
     list: listMessagesContract,
+    get: getMessageContract,
+    listReplies: listRepliesContract,
     send: sendMessageContract,
     edit: editMessageContract,
     delete: deleteMessageContract,

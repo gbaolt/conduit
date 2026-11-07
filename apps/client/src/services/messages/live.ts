@@ -14,12 +14,7 @@ import { useEffect, useState } from 'react';
 
 import { client } from '@/lib/orpc';
 
-import {
-  messagesQuery,
-  pinnedIsStale,
-  pinnedQuery,
-  upsertMessages,
-} from './queries';
+import { cacheMessage, pinnedIsStale, pinnedQuery } from './queries';
 
 type LiveRow = Record<string, unknown>;
 type LiveSubscription = MaterializedLiveQuerySubscription<LiveRow>;
@@ -48,11 +43,14 @@ function realtimeClient(url: string) {
   return existing;
 }
 
+/** Open streams by key: a channel's id, or `threadStreamKey` for a thread. */
 const subscriptions = new Map<string, LiveSubscription>();
 
-/** Resolves once the open stream for the channel has applied the transaction. Resolves at once when no stream is live. */
-export async function awaitLiveTransaction(channelId: string, txid: string) {
-  const subscription = subscriptions.get(channelId);
+export const threadStreamKey = (parentId: string) => `thread:${parentId}`;
+
+/** Resolves once the open stream has applied the transaction. Resolves at once when no stream is live. */
+export async function awaitLiveTransaction(streamKey: string, txid: string) {
+  const subscription = subscriptions.get(streamKey);
   if (subscription?.getState().status !== 'live') return;
   await subscription.awaitTxId(txid, AWAIT_TXID_MS).catch(() => undefined);
 }
@@ -69,17 +67,20 @@ function toMessages(rows: readonly LiveRow[]) {
 const retryDelay = (attempt: number) => Math.min(30_000, 1000 * 2 ** attempt);
 
 /**
- * The one place realtime enters the client. Seals the conversation stream, subscribes, renews the
- * capability before it expires, and writes each change into the channel's message pages.
- * Without Realtime configured the status stays `offline`, and history and sending still work.
+ * The one place realtime enters the client. Seals the conversation stream, or the thread stream when
+ * `parentId` is set, subscribes, renews the capability before it expires, and writes each change into the
+ * cached message pages. Without Realtime configured the status stays `offline`, and history and sending still work.
  */
-export function useLiveStream(channelId: string): LiveStatus {
+export function useLiveStream(
+  channelId: string,
+  parentId?: string
+): LiveStatus {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<LiveStatus>('connecting');
 
   useEffect(() => {
     const since = new Date(Date.now() - SINCE_MARGIN_MS);
-    const queryKey = messagesQuery(channelId).queryKey;
+    const streamKey = parentId ? threadStreamKey(parentId) : channelId;
     let stopped = false;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     let teardown: (() => void) | undefined;
@@ -88,7 +89,9 @@ export function useLiveStream(channelId: string): LiveStatus {
       SealedLiveQuery<LiveRow> & { url: string }
     > => {
       const sealed = await client.realtime.seal({
-        stream: { kind: 'conversation', channelId, since },
+        stream: parentId
+          ? { kind: 'thread', channelId, parentId, since }
+          : { kind: 'conversation', channelId, since },
       });
       return sealed;
     };
@@ -124,7 +127,7 @@ export function useLiveStream(channelId: string): LiveStatus {
       });
       controller.setSubscription(subscription);
       controller.start();
-      subscriptions.set(channelId, subscription);
+      subscriptions.set(streamKey, subscription);
 
       const stopListening = subscription.onChange((snapshot) => {
         if (snapshot.status === 'error') {
@@ -134,9 +137,7 @@ export function useLiveStream(channelId: string): LiveStatus {
         setStatus(snapshot.status === 'live' ? 'live' : 'connecting');
         if (snapshot.data) {
           const messages = toMessages(snapshot.data);
-          queryClient.setQueryData(queryKey, (data) =>
-            upsertMessages(data, messages)
-          );
+          for (const message of messages) cacheMessage(queryClient, message);
           const pinnedKey = pinnedQuery(channelId).queryKey;
           if (pinnedIsStale(queryClient.getQueryData(pinnedKey), messages)) {
             void queryClient.invalidateQueries({ queryKey: pinnedKey });
@@ -148,8 +149,8 @@ export function useLiveStream(channelId: string): LiveStatus {
         stopListening();
         controller.stop();
         subscription.unsubscribe();
-        if (subscriptions.get(channelId) === subscription) {
-          subscriptions.delete(channelId);
+        if (subscriptions.get(streamKey) === subscription) {
+          subscriptions.delete(streamKey);
         }
       };
     };
@@ -161,7 +162,7 @@ export function useLiveStream(channelId: string): LiveStatus {
       clearTimeout(retryTimer);
       teardown?.();
     };
-  }, [channelId, queryClient]);
+  }, [channelId, parentId, queryClient]);
 
   return status;
 }

@@ -3,8 +3,8 @@
 import type { LinkPreview, Message } from '@conduit/contract';
 import { Button } from '@conduit/ui/components/button';
 import { cn } from '@conduit/ui/lib/utils';
-import { IconPin } from '@tabler/icons-react';
-import { type ReactNode, useEffect, useState } from 'react';
+import { IconCornerDownRight, IconPin } from '@tabler/icons-react';
+import { type ReactNode, use, useEffect, useState } from 'react';
 
 import { UserAvatar } from '@/components/nav-user';
 import {
@@ -13,6 +13,7 @@ import {
   useRemoveLinkPreview,
 } from '@/services/messages/hooks';
 
+import { OpenThread } from '../context/thread';
 import { MessageMarkdown } from '../lib/markdown/message-markdown';
 import { Composer } from './composer';
 import { LinkPreviewCard } from './link-preview-card';
@@ -112,22 +113,69 @@ function RowFrame({
 
 function MessagePreview({
   messageId,
-  channelId,
   preview,
   canRemove,
 }: {
   messageId: string;
-  channelId: string;
   preview: LinkPreview;
   canRemove: boolean;
 }) {
-  const remove = useRemoveLinkPreview(channelId);
+  const remove = useRemoveLinkPreview();
 
   return (
     <LinkPreviewCard
       preview={preview}
       onRemove={canRemove ? () => remove.mutate({ messageId }) : undefined}
     />
+  );
+}
+
+/** Under a root that has replies: opens its thread. */
+function ThreadLine({
+  rootId,
+  count,
+  lastReplyAt,
+}: {
+  rootId: string;
+  count: number;
+  lastReplyAt: Date | null;
+}) {
+  const openThread = use(OpenThread);
+  const label = count === 1 ? '1 reply' : `${count} replies`;
+
+  return (
+    <button
+      type="button"
+      data-thread-line={rootId}
+      disabled={!openThread}
+      aria-label={`${label}. Open thread`}
+      className="hover:bg-background focus-visible:ring-ring/50 -ml-1 flex w-fit items-baseline gap-2 rounded-md px-1 py-0.5 text-left outline-none focus-visible:ring-3 pointer-coarse:min-h-11"
+      onClick={() => openThread?.(rootId)}
+    >
+      <span className="text-primary text-[13px] font-medium">{label}</span>
+      {lastReplyAt && (
+        <span className="text-muted-foreground text-xs">
+          Last reply <Time date={lastReplyAt} className="text-xs" />
+        </span>
+      )}
+    </button>
+  );
+}
+
+/** Above a reply that was also sent to the channel: opens the thread it belongs to. */
+function RepliedLine({ rootId }: { rootId: string }) {
+  const openThread = use(OpenThread);
+
+  return (
+    <button
+      type="button"
+      disabled={!openThread}
+      className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 flex items-center gap-1 rounded text-xs outline-none focus-visible:ring-3"
+      onClick={() => openThread?.(rootId)}
+    >
+      <IconCornerDownRight className="size-3.5" aria-hidden />
+      Replied to a thread
+    </button>
   );
 }
 
@@ -146,6 +194,7 @@ export function MessageRow({
   editing,
   onEdit,
   onStopEditing,
+  inThread,
 }: {
   message: Message;
   author: Author;
@@ -157,6 +206,8 @@ export function MessageRow({
   editing: boolean;
   onEdit: () => void;
   onStopEditing: () => void;
+  /** Rendered inside the thread panel, which already shows the thread. */
+  inThread: boolean;
 }) {
   const isAuthor = message.authorId === viewerId;
   const mentionsViewer =
@@ -180,6 +231,7 @@ export function MessageRow({
             canPost={canPost}
             canEdit={isAuthor}
             canDelete={isAuthor || canModerate}
+            canReplyInThread={!inThread && !message.parentId}
             onEdit={onEdit}
           />
         )
@@ -199,6 +251,9 @@ export function MessageRow({
               Pinned
             </p>
           )}
+          {message.parentId && !inThread && (
+            <RepliedLine rootId={message.parentId} />
+          )}
           <div className="flex flex-wrap items-baseline gap-x-1.5">
             <MessageMarkdown
               id={message.id}
@@ -210,7 +265,6 @@ export function MessageRow({
           {message.linkPreview && (
             <MessagePreview
               messageId={message.id}
-              channelId={message.channelId}
               preview={message.linkPreview}
               canRemove={isAuthor && canPost}
             />
@@ -220,6 +274,13 @@ export function MessageRow({
             viewerId={viewerId}
             canReact={canPost}
           />
+          {!inThread && message.replyCount > 0 && (
+            <ThreadLine
+              rootId={message.id}
+              count={message.replyCount}
+              lastReplyAt={message.lastReplyAt}
+            />
+          )}
         </>
       )}
     </RowFrame>
@@ -233,7 +294,7 @@ function EditMessage({
   message: Message;
   onDone: () => void;
 }) {
-  const edit = useEditMessage(message.channelId);
+  const edit = useEditMessage();
 
   return (
     <div className="max-w-[72ch] py-1">
