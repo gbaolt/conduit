@@ -27,6 +27,7 @@
     "@aws-sdk/client-s3": "^3.1162.0",
     "@aws-sdk/s3-request-presigner": "^3.1162.0",
     "@conduit/contract": "workspace:*",
+    "@neon/realtime": "^0.2.0",
     "@neondatabase/serverless": "^1.0.1",
     "@nestjs/common": "^11.1.6",
     "@nestjs/core": "^11.1.6",

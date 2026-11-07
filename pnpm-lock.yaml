@@ -198,6 +198,9 @@ importers:
       '@lexical/utils':
         specifier: ^0.49.0
         version: 0.49.0(@typescript/typescript6@6.0.2)
+      '@neon/realtime':
+        specifier: ^0.2.0
+        version: 0.2.0(ws@8.22.0)
       '@orpc/client':
         specifier: 'catalog:'
         version: 2.0.0-beta.47
@@ -346,6 +349,9 @@ importers:
       '@conduit/contract':
         specifier: workspace:*
         version: link:../../packages/contract
+      '@neon/realtime':
+        specifier: ^0.2.0
+        version: 0.2.0(ws@8.21.1)
       '@neondatabase/serverless':
         specifier: ^1.0.1
         version: 1.1.0
@@ -2342,6 +2348,15 @@ packages:
   '@napi-rs/nice@1.1.1':
     resolution: {integrity: sha512-xJIPs+bYuc9ASBl+cvGsKbGrJmS6fAKaSZCnT0lhahT5rhA2VVy9/EcIgd2JhtEuFOJNx7UHNn/qiTPTY4nrQw==}
     engines: {node: '>= 10'}
+
+  '@neon/realtime@0.2.0':
+    resolution: {integrity: sha512-1wfhRbrX8cA67phPRF6LRWv6jvR71l3NwVrWveMa4e+X+/rKoS4eKCnuz5cukvVfuHBSHFxDHgCiO7nCR75AXQ==}
+    engines: {node: '>=20.19.0'}
+    peerDependencies:
+      ws: ^8.21.2
+    peerDependenciesMeta:
+      ws:
+        optional: true
 
   '@neondatabase/serverless@1.1.0':
     resolution: {integrity: sha512-r3ZZhRjEcfEdKIZnoB1RusNgvHuaBRqfCzV4Gi+5A9yUX0S4HTws/ASWqt13wL4y4I+0rqsWGdA2w7EQXHi3+Q==}
@@ -9403,6 +9418,20 @@ snapshots:
       '@napi-rs/nice-win32-ia32-msvc': 1.1.1
       '@napi-rs/nice-win32-x64-msvc': 1.1.1
     optional: true
+
+  '@neon/realtime@0.2.0(ws@8.21.1)':
+    dependencies:
+      base64-js: 1.5.1
+      postgres-array: 3.0.4
+    optionalDependencies:
+      ws: 8.21.1
+
+  '@neon/realtime@0.2.0(ws@8.22.0)':
+    dependencies:
+      base64-js: 1.5.1
+      postgres-array: 3.0.4
+    optionalDependencies:
+      ws: 8.22.0
 
   '@neondatabase/serverless@1.1.0': {}
 
