@@ -1,27 +1,31 @@
-import { AllowedDomainsForm } from '@/features/workspace-settings/components/allowed-domains-form';
-import { JoinLinkSection } from '@/features/workspace-settings/components/join-link-section';
+import { AllowedDomainsForm } from '@/features/workspace/components/workspace-settings/allowed-domains-form';
+import { JoinLinkSection } from '@/features/workspace/components/workspace-settings/join-link-section';
+import {
+  SettingsHeader,
+  SettingsSection,
+} from '@/features/workspace/components/workspace-settings/settings-view';
 
 export default function AccessPage() {
   return (
-    <div className="flex flex-col gap-8">
-      <section
-        aria-labelledby="join-link-heading"
-        className="flex flex-col gap-3"
+    <>
+      <SettingsHeader
+        title="Access"
+        description="Ways to join this workspace without an invitation."
+      />
+      <SettingsSection
+        id="join-link-heading"
+        title="Join link"
+        description="Anyone who has this link can join as a member. Share it in places you trust."
       >
-        <h2 id="join-link-heading" className="text-base font-semibold">
-          Join link
-        </h2>
         <JoinLinkSection />
-      </section>
-      <section
-        aria-labelledby="domains-heading"
-        className="flex flex-col gap-3"
+      </SettingsSection>
+      <SettingsSection
+        id="domains-heading"
+        title="Allowed domains"
+        description="People with a verified email on one of these domains see this workspace when they sign up, and can join it."
       >
-        <h2 id="domains-heading" className="text-base font-semibold">
-          Allowed domains
-        </h2>
         <AllowedDomainsForm />
-      </section>
-    </div>
+      </SettingsSection>
+    </>
   );
 }

@@ -1,15 +1,14 @@
-import { PermissionsForm } from '@/features/workspace-settings/components/permissions-form';
+import { PermissionsForm } from '@/features/workspace/components/workspace-settings/permissions-form';
+import { SettingsHeader } from '@/features/workspace/components/workspace-settings/settings-view';
 
 export default function PermissionsPage() {
   return (
-    <section
-      aria-labelledby="permissions-heading"
-      className="flex flex-col gap-4"
-    >
-      <h2 id="permissions-heading" className="text-base font-semibold">
-        Permissions
-      </h2>
+    <>
+      <SettingsHeader
+        title="Permissions"
+        description="Admins and owners can always start channels. These settings decide what members can do."
+      />
       <PermissionsForm />
-    </section>
+    </>
   );
 }

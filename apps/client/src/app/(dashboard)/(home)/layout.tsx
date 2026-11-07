@@ -2,7 +2,10 @@ import { cookies } from 'next/headers';
 import { type ReactNode, Suspense } from 'react';
 
 import { ChannelDialogsProvider } from '@/features/channels/context/channel-dialogs-provider';
-import { WorkspaceSidebar } from '@/features/workspace/components/workspace-sidebar';
+import {
+  ChannelsNav,
+  WorkspaceSidebar,
+} from '@/features/workspace/components/workspace-sidebar';
 import {
   LAYOUT_COOKIE,
   parseLayout,
@@ -31,6 +34,7 @@ async function ChannelPanel({ children }: { children: ReactNode }) {
     <HydrateClient client={client}>
       <WorkspaceSidebar
         defaultLayout={parseLayout(cookieStore.get(LAYOUT_COOKIE)?.value)}
+        sidebar={<ChannelsNav />}
       >
         {children}
       </WorkspaceSidebar>

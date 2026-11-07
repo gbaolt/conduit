@@ -1,12 +1,14 @@
-import { GeneralSettingsForm } from '@/features/workspace-settings/components/general-settings-form';
+import { GeneralSettingsForm } from '@/features/workspace/components/workspace-settings/general-settings-form';
+import { SettingsHeader } from '@/features/workspace/components/workspace-settings/settings-view';
 
 export default function GeneralSettingsPage() {
   return (
-    <section aria-labelledby="general-heading" className="flex flex-col gap-4">
-      <h2 id="general-heading" className="text-base font-semibold">
-        General
-      </h2>
+    <>
+      <SettingsHeader
+        title="General"
+        description="The workspace's name, icon, and web address."
+      />
       <GeneralSettingsForm />
-    </section>
+    </>
   );
 }

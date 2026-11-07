@@ -18,12 +18,31 @@ import {
 import { WorkspaceHeader } from './workspace-header';
 import { WorkspaceNav } from './workspace-nav';
 
-/** The workspace shell. A resizable sidebar beside the page. */
+/** The channel list and the workspace entries above it. */
+export function ChannelsNav() {
+  return (
+    <nav
+      aria-label="Channels"
+      className="text-surface-foreground flex flex-col overflow-x-hidden overflow-y-auto"
+    >
+      <WorkspaceHeader />
+      <WorkspaceNav />
+      <ChannelList />
+    </nav>
+  );
+}
+
+/**
+ * The workspace shell: a resizable sidebar beside the page. Home puts the channels in the
+ * sidebar and settings puts its menu there, so both share one width and one saved layout.
+ */
 export function WorkspaceSidebar({
   defaultLayout,
+  sidebar,
   children,
 }: {
   defaultLayout: Layout | undefined;
+  sidebar: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -35,19 +54,12 @@ export function WorkspaceSidebar({
     >
       <ResizablePanel
         id={SIDEBAR_PANEL}
-        defaultSize={260}
-        minSize={200}
-        maxSize="40"
+        defaultSize="20"
+        minSize="16"
+        maxSize="24"
         className="bg-surface"
       >
-        <nav
-          aria-label="Channels"
-          className="text-surface-foreground flex flex-col overflow-x-hidden overflow-y-auto"
-        >
-          <WorkspaceHeader />
-          <WorkspaceNav />
-          <ChannelList />
-        </nav>
+        {sidebar}
       </ResizablePanel>
       <ResizableHandle className="bg-sidebar-border focus-visible:ring-sidebar-ring" />
       <ResizablePanel id={MAIN_PANEL}>

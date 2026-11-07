@@ -36,8 +36,8 @@ import { useState } from 'react';
 
 import { useChannelDialogs } from '@/features/channels/context/channel-dialogs-provider';
 import { WorkspaceIcon } from '@/features/workspace/components/workspace-icon';
+import { InviteDialog } from '@/features/workspace/components/workspace-settings/invite-dialog';
 import { useWorkspace } from '@/features/workspace/context/workspace-provider';
-import { InviteDialog } from '@/features/workspace-settings/components/invite-dialog';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
 const FILTERS = [

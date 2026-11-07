@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from '@conduit/ui/components/select';
 import { Textarea } from '@conduit/ui/components/textarea';
+import { IconLink } from '@tabler/icons-react';
 import { type FormEvent, useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -33,7 +34,7 @@ import {
   useWorkspaceRole,
 } from '@/services/workspaces/hooks';
 
-import { JoinLinkSection } from './join-link-section';
+import { useCopyJoinLink } from './join-link-section';
 
 const ROLE_LABELS = { member: 'Member', admin: 'Admin' } as const;
 const MAX_EMAILS = 20;
@@ -50,6 +51,18 @@ function parseEmails(text: string) {
     emails,
     invalid: emails.find((email) => !EmailSchema.safeParse(email).success),
   };
+}
+
+// Resetting the link lives on Settings > Access; the invite dialog only shares it.
+function CopyJoinLinkButton() {
+  const { data: link, copy } = useCopyJoinLink();
+
+  return (
+    <Button type="button" variant="ghost" disabled={!link} onClick={copy}>
+      <IconLink data-icon="inline-start" />
+      Copy join link
+    </Button>
+  );
 }
 
 function InviteResult({ result }: { result: CreateInvitationsResult }) {
@@ -128,13 +141,14 @@ export function InviteDialog({
         if (!next) reset();
       }}
     >
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Invite people to {workspaceName}</DialogTitle>
           <DialogDescription>
             They get an email with a link that is valid for 7 days.
           </DialogDescription>
         </DialogHeader>
+
         {result ? (
           <>
             <InviteResult result={result} />
@@ -156,10 +170,12 @@ export function InviteDialog({
                 value={text}
                 onChange={(event) => setText(event.target.value)}
                 placeholder="name@example.com, another@example.com"
+                className="min-h-24"
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? 'invite-emails-error' : undefined}
                 autoFocus
               />
+
               {error ? (
                 <p
                   id="invite-emails-error"
@@ -170,14 +186,15 @@ export function InviteDialog({
                 </p>
               ) : null}
             </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="invite-role">Role</Label>
+
+            <div className="flex items-center justify-between gap-4">
+              <Label htmlFor="invite-role">Invite as</Label>
               <Select
                 items={ROLE_LABELS}
                 value={role}
                 onValueChange={(value) => setRole(value as InviteRole)}
               >
-                <SelectTrigger id="invite-role" className="w-40">
+                <SelectTrigger id="invite-role" className="w-32">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -186,14 +203,9 @@ export function InviteDialog({
                 </SelectContent>
               </Select>
             </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
-                Cancel
-              </Button>
+
+            <DialogFooter className="sm:justify-between">
+              {canShareLink ? <CopyJoinLinkButton /> : <span />}
               <StatusButton
                 type="submit"
                 disabled={emails.length === 0 || error !== null}
@@ -204,17 +216,6 @@ export function InviteDialog({
             </DialogFooter>
           </form>
         )}
-        {canShareLink ? (
-          <section
-            aria-labelledby="join-link-heading"
-            className="flex flex-col gap-2 border-t pt-4"
-          >
-            <h3 id="join-link-heading" className="text-sm font-medium">
-              Or share a join link
-            </h3>
-            <JoinLinkSection />
-          </section>
-        ) : null}
       </DialogContent>
     </Dialog>
   );

@@ -31,6 +31,8 @@ import {
   useUploadWorkspaceIcon,
 } from '@/services/workspaces/hooks';
 
+import { SettingsSection } from './settings-view';
+
 type Values = z.infer<typeof CreateOrganizationInputSchema>;
 
 function IconPicker({ logo }: { logo?: string | null }) {
@@ -55,9 +57,9 @@ function IconPicker({ logo }: { logo?: string | null }) {
   const error = fileError ?? upload.error?.message;
 
   return (
-    <div className="flex items-center gap-4">
-      <WorkspaceIcon logo={logo} size={56} className="size-14" />
-      <div className="flex flex-col items-start gap-1">
+    <div className="flex items-center gap-5">
+      <WorkspaceIcon logo={logo} size={64} className="size-16 rounded-xl" />
+      <div className="flex flex-col items-start gap-2">
         <input
           ref={input}
           type="file"
@@ -74,13 +76,10 @@ function IconPicker({ logo }: { logo?: string | null }) {
           disabled={upload.isPending}
           onClick={() => input.current?.click()}
         >
-          {upload.isPending ? 'Uploading...' : 'Change icon'}
+          {upload.isPending ? 'Uploading...' : 'Upload image'}
         </Button>
-        <p className="text-muted-foreground text-xs">
-          PNG, JPEG, or WebP, up to 1 MB.
-        </p>
         {error ? (
-          <p role="alert" className="text-destructive text-xs">
+          <p role="alert" className="text-destructive text-sm">
             {error}
           </p>
         ) : null}
@@ -114,8 +113,7 @@ function Form({ workspace }: { workspace: Workspace }) {
       : null;
 
   return (
-    <form className="flex max-w-md flex-col gap-5" onSubmit={onSubmit}>
-      <IconPicker logo={workspace.logo} />
+    <form className="flex flex-col gap-5" onSubmit={onSubmit}>
       <FieldGroup>
         <FormInput
           control={control}
@@ -128,7 +126,7 @@ function Form({ workspace }: { workspace: Workspace }) {
           name="slug"
           autoComplete="off"
           label="URL"
-          description="Lowercase letters, numbers, and hyphens."
+          description="Lowercase letters, numbers, and hyphens. Changing it breaks links people saved."
         />
       </FieldGroup>
 
@@ -145,7 +143,7 @@ function Form({ workspace }: { workspace: Workspace }) {
 
       <StatusButton
         type="submit"
-        className="self-start"
+        className="self-end"
         status={
           update.isPending ? 'loading' : update.isSuccess ? 'success' : 'idle'
         }
@@ -160,8 +158,25 @@ function Form({ workspace }: { workspace: Workspace }) {
 export function GeneralSettingsForm() {
   const { activeWorkspace } = useWorkspace();
 
-  // The form reads its defaults once, so a different workspace remounts it.
-  return activeWorkspace ? (
-    <Form key={activeWorkspace.id} workspace={activeWorkspace} />
-  ) : null;
+  if (!activeWorkspace) return null;
+
+  return (
+    <>
+      <SettingsSection
+        id="icon-heading"
+        title="Icon"
+        description="Shown in the sidebar, the workspace switcher, and on join links. PNG, JPEG, or WebP, up to 1 MB."
+      >
+        <IconPicker logo={activeWorkspace.logo} />
+      </SettingsSection>
+      <SettingsSection
+        id="profile-heading"
+        title="Name and URL"
+        description="How the workspace appears to members and in its web address."
+      >
+        {/* The form reads its defaults once, so a different workspace remounts it. */}
+        <Form key={activeWorkspace.id} workspace={activeWorkspace} />
+      </SettingsSection>
+    </>
+  );
 }

@@ -1,7 +1,6 @@
 'use client';
 
 import { DomainSchema } from '@conduit/contract';
-import { Label } from '@conduit/ui/components/label';
 import { Skeleton } from '@conduit/ui/components/skeleton';
 import { Textarea } from '@conduit/ui/components/textarea';
 import { type FormEvent, useState } from 'react';
@@ -60,12 +59,13 @@ export function AllowedDomainsForm() {
   return (
     <form className="flex flex-col gap-3" onSubmit={submit}>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="allowed-domains">Allowed domains</Label>
         <Textarea
           id="allowed-domains"
+          aria-labelledby="domains-heading"
           value={text}
           onChange={(event) => setDraft(event.target.value)}
-          placeholder="acme.dev"
+          placeholder={'acme.dev\nacme.co.uk'}
+          className="min-h-28"
           aria-invalid={problem ? true : undefined}
           aria-describedby="allowed-domains-hint"
         />
@@ -79,10 +79,10 @@ export function AllowedDomainsForm() {
           }
         >
           {problem ??
-            'One per line. People with a verified email on exactly one of these domains can join without an invitation. A subdomain such as eng.acme.dev does not match acme.dev.'}
+            'One domain per line. A subdomain such as eng.acme.dev does not match acme.dev.'}
         </p>
       </div>
-      <div>
+      <div className="flex justify-end">
         <StatusButton
           type="submit"
           disabled={problem !== null || draft === null}

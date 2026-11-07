@@ -10,6 +10,13 @@ import {
   AlertDialogTitle,
 } from '@conduit/ui/components/alert-dialog';
 import { Button } from '@conduit/ui/components/button';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '@conduit/ui/components/input-group';
+import { Skeleton } from '@conduit/ui/components/skeleton';
 import { IconCopy, IconRefresh } from '@tabler/icons-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -18,50 +25,69 @@ import { StatusButton } from '@/components/async/status-button';
 import { toAbsoluteAppUrl } from '@/features/auth/lib/callback-url';
 import { useJoinLink, useResetJoinLink } from '@/services/workspaces/hooks';
 
-/** Copies the workspace's join link and lets an admin replace it. */
-export function JoinLinkSection() {
-  const { data: link, isError, error } = useJoinLink();
-  const reset = useResetJoinLink();
-  const [confirming, setConfirming] = useState(false);
+/** The workspace's join link as a full URL, and a way to copy it. */
+export function useCopyJoinLink() {
+  const query = useJoinLink();
+  const url = query.data ? toAbsoluteAppUrl(`/join/${query.data.token}`) : null;
 
   const copy = async () => {
-    if (!link) return;
+    if (!url) return;
     try {
-      await navigator.clipboard.writeText(
-        toAbsoluteAppUrl(`/join/${link.token}`)
-      );
+      await navigator.clipboard.writeText(url);
       toast.success('Join link copied.');
     } catch {
       toast.error('Could not copy the link.');
     }
   };
 
-  return (
-    <div className="flex flex-col gap-2">
-      <p className="text-muted-foreground text-sm">
-        Anyone with the join link can join as a member. Reset it to stop the old
-        link working.
+  return { ...query, url, copy };
+}
+
+/** Shows the workspace's join link and lets an admin replace it. */
+export function JoinLinkSection() {
+  const { url, isError, error, copy } = useCopyJoinLink();
+  const reset = useResetJoinLink();
+  const [confirming, setConfirming] = useState(false);
+
+  if (isError) {
+    return (
+      <p role="alert" className="text-destructive text-sm">
+        {error.message}
       </p>
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" disabled={!link} onClick={copy}>
-          <IconCopy data-icon="inline-start" />
-          Copy join link
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={!link}
-          onClick={() => setConfirming(true)}
-        >
-          <IconRefresh data-icon="inline-start" />
-          Reset link
-        </Button>
-      </div>
-      {isError ? (
-        <p role="alert" className="text-destructive text-sm">
-          {error.message}
-        </p>
-      ) : null}
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-start gap-3">
+      {url ? (
+        <InputGroup>
+          <InputGroupInput
+            readOnly
+            value={url}
+            aria-label="Join link"
+            onFocus={(event) => event.currentTarget.select()}
+            className="text-muted-foreground"
+          />
+          <InputGroupAddon align="inline-end">
+            <InputGroupButton onClick={copy}>
+              <IconCopy data-icon="inline-start" />
+              Copy
+            </InputGroupButton>
+          </InputGroupAddon>
+        </InputGroup>
+      ) : (
+        <Skeleton className="h-9 w-full" />
+      )}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={!url}
+        onClick={() => setConfirming(true)}
+      >
+        <IconRefresh data-icon="inline-start" />
+        Reset link
+      </Button>
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent>
           <AlertDialogHeader>

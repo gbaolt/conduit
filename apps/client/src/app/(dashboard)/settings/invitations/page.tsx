@@ -1,7 +1,8 @@
 import { Suspense } from 'react';
 
-import { InvitationsTable } from '@/features/workspace-settings/components/invitations-table';
-import { InvitePeopleButton } from '@/features/workspace-settings/components/invite-people-button';
+import { InvitationsTable } from '@/features/workspace/components/workspace-settings/invitations-table';
+import { InvitePeopleButton } from '@/features/workspace/components/workspace-settings/invite-people-button';
+import { SettingsHeader } from '@/features/workspace/components/workspace-settings/settings-view';
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
 import { workspaceInvitationsQuery } from '@/services/workspaces/queries';
 
@@ -18,19 +19,15 @@ async function InvitationsContent() {
 
 export default function InvitationsPage() {
   return (
-    <section
-      aria-labelledby="invitations-heading"
-      className="flex flex-col gap-4"
-    >
-      <div className="flex items-center justify-between gap-3">
-        <h2 id="invitations-heading" className="text-base font-semibold">
-          Invitations
-        </h2>
-        <InvitePeopleButton />
-      </div>
+    <>
+      <SettingsHeader
+        title="Invitations"
+        description="People you invited who have not joined yet. Each invitation link works for 7 days."
+        action={<InvitePeopleButton />}
+      />
       <Suspense>
         <InvitationsContent />
       </Suspense>
-    </section>
+    </>
   );
 }
