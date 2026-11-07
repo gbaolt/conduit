@@ -68,6 +68,10 @@ _Avoid_: Direct chat, private message
 One post in a conversation, written in Markdown text. Its author can edit it, and its author, a channel manager, or a workspace admin can delete it.
 _Avoid_: Post, chat
 
+**Mention**:
+A message that names a Member, `@channel`, or `@here`. It stores the Member's id, so a rename does not break it. A mention of someone outside the conversation stays plain text.
+_Avoid_: Tag, ping
+
 **Thread**:
 The replies to one root, where the root is a message or a task. A reply stays in the thread unless its author also sends it to the channel.
 _Avoid_: Reply chain, comments (for a thread on a task)

@@ -1,5 +1,8 @@
 import { buildEditorFromExtensions } from '@lexical/extension';
+import { $nodesOfType } from 'lexical';
 import { describe, expect, it } from 'vitest';
+
+import { MentionNode } from '@/components/editor/nodes/mention-node';
 
 import { createComposerExtension, markdownOf } from '../composer-extension';
 
@@ -42,5 +45,41 @@ describe('composer Markdown', () => {
 
   it('starts empty without an initial message', () => {
     expect(roundTrip('')).toBe('');
+  });
+});
+
+describe('composer mentions', () => {
+  const names = new Map([['u1', 'Linh Tran']]);
+
+  function load(markdown: string) {
+    const editor = buildEditorFromExtensions(
+      createComposerExtension(markdown, names)
+    );
+    const result = {
+      markdown: markdownOf(editor),
+      mentions: editor.read(() =>
+        $nodesOfType(MentionNode).map((node) => node.getTextContent())
+      ),
+    };
+    editor.dispose();
+    return result;
+  }
+
+  it('loads a user mention as a named node and writes it back as <@userId>', () => {
+    expect(load('hi <@u1>, see this')).toEqual({
+      markdown: 'hi <@u1>, see this',
+      mentions: ['@Linh Tran'],
+    });
+  });
+
+  it.each(['channel', 'here'])('keeps <@%s>', (target) => {
+    expect(load(`<@${target}> look`)).toEqual({
+      markdown: `<@${target}> look`,
+      mentions: [`@${target}`],
+    });
+  });
+
+  it('labels a mention of an unknown member', () => {
+    expect(load('<@ghost>').mentions).toEqual(['@unknown member']);
   });
 });

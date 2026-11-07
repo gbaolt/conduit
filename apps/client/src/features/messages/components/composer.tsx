@@ -20,6 +20,7 @@ import {
 } from 'lexical';
 import {
   type ReactNode,
+  use,
   useEffect,
   useEffectEvent,
   useMemo,
@@ -28,9 +29,11 @@ import {
 
 import { CodeHighlightPlugin } from '@/components/editor/plugins/code-highlight-plugin';
 import { FloatingLinkEditorPlugin } from '@/components/editor/plugins/floating-link-editor-plugin';
+import { MentionsPlugin } from '@/components/editor/plugins/mentions-plugin';
 import { TabFocusPlugin } from '@/components/editor/plugins/tab-focus-plugin';
 import { sanitizeUrl } from '@/components/editor/utils/url';
 
+import { MentionNames, MentionSuggestions } from '../context/mention-names';
 import { createComposerExtension, markdownOf } from '../lib/composer-extension';
 import { ComposerToolbar } from './composer-toolbar';
 
@@ -75,6 +78,7 @@ function ComposerBehavior({
     setIsLinkEditMode: (editing: boolean) => void;
   }) {
   const [editor] = useLexicalComposerContext();
+  const suggestions = use(MentionSuggestions);
   const [markdown, setMarkdown] = useState(initialMarkdown ?? '');
   const canSend =
     markdown.trim().length > 0 && markdown.length <= MESSAGE_BODY_MAX;
@@ -188,6 +192,7 @@ function ComposerBehavior({
     <>
       <CodeHighlightPlugin />
       <TabFocusPlugin />
+      <MentionsPlugin source={suggestions} />
       <FloatingLinkEditorPlugin
         anchorElem={anchor}
         isLinkEditMode={isLinkEditMode}
@@ -231,9 +236,11 @@ export function Composer({
   children,
   ...behavior
 }: ComposerProps) {
+  // Names only label the mentions in `initialMarkdown`, so a later members refresh must not rebuild the editor.
+  const [namesAtMount] = useState(use(MentionNames));
   const extension = useMemo(
-    () => createComposerExtension(initialMarkdown ?? ''),
-    [initialMarkdown]
+    () => createComposerExtension(initialMarkdown ?? '', namesAtMount),
+    [initialMarkdown, namesAtMount]
   );
   const [anchor, setAnchor] = useState<HTMLDivElement | null>(null);
   const [isLinkEditMode, setIsLinkEditMode] = useState(false);
