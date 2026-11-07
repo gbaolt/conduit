@@ -17,10 +17,14 @@ export class S3ObjectStorage implements ObjectStorage {
     contentType: string;
     size: number;
   }) {
-    const { bucket, region, accessKeyId, secretAccessKey } = this.config();
+    const { bucket, region, endpoint, accessKeyId, secretAccessKey } =
+      this.config();
     this.client ??= new S3Client({
       region,
+      endpoint,
       credentials: { accessKeyId, secretAccessKey },
+      // A browser PUT sends no checksum, so a presigned URL must not require one (R2 rejects it).
+      requestChecksumCalculation: 'WHEN_REQUIRED',
     });
 
     const uploadUrl = await getSignedUrl(
@@ -45,6 +49,8 @@ export class S3ObjectStorage implements ObjectStorage {
     const env = process.env;
     const bucket = env.S3_BUCKET;
     const region = env.S3_REGION;
+    // Unset for AWS; an S3-compatible store such as Cloudflare R2 needs its API URL here.
+    const endpoint = env.S3_ENDPOINT || undefined;
     const accessKeyId = env.S3_ACCESS_KEY_ID;
     const secretAccessKey = env.S3_SECRET_ACCESS_KEY;
     const publicBaseUrl = env.S3_PUBLIC_BASE_URL;
@@ -61,6 +67,13 @@ export class S3ObjectStorage implements ObjectStorage {
         'Set S3_BUCKET, S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, and S3_PUBLIC_BASE_URL to enable image uploads.'
       );
     }
-    return { bucket, region, accessKeyId, secretAccessKey, publicBaseUrl };
+    return {
+      bucket,
+      region,
+      endpoint,
+      accessKeyId,
+      secretAccessKey,
+      publicBaseUrl,
+    };
   }
 }
