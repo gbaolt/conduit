@@ -1,16 +1,23 @@
 'use client';
 
-import type { Message } from '@conduit/contract';
+import type { LinkPreview, Message } from '@conduit/contract';
 import { Button } from '@conduit/ui/components/button';
 import { cn } from '@conduit/ui/lib/utils';
+import { IconPin } from '@tabler/icons-react';
 import { type ReactNode, useEffect, useState } from 'react';
 
 import { UserAvatar } from '@/components/nav-user';
-import { type PendingMessage, useEditMessage } from '@/services/messages/hooks';
+import {
+  type PendingMessage,
+  useEditMessage,
+  useRemoveLinkPreview,
+} from '@/services/messages/hooks';
 
 import { MessageMarkdown } from '../lib/markdown/message-markdown';
 import { Composer } from './composer';
+import { LinkPreviewCard } from './link-preview-card';
 import { MessageActions } from './message-actions';
+import { ReactionBar } from './reaction-bar';
 
 export type Author = { name: string; image: string | null };
 
@@ -103,6 +110,27 @@ function RowFrame({
   );
 }
 
+function MessagePreview({
+  messageId,
+  channelId,
+  preview,
+  canRemove,
+}: {
+  messageId: string;
+  channelId: string;
+  preview: LinkPreview;
+  canRemove: boolean;
+}) {
+  const remove = useRemoveLinkPreview(channelId);
+
+  return (
+    <LinkPreviewCard
+      preview={preview}
+      onRemove={canRemove ? () => remove.mutate({ messageId }) : undefined}
+    />
+  );
+}
+
 function EditedMark() {
   return <span className="text-muted-foreground text-xs">(edited)</span>;
 }
@@ -112,6 +140,7 @@ export function MessageRow({
   author,
   grouped,
   viewerId,
+  canPost,
   canModerate,
   fresh,
   editing,
@@ -122,6 +151,7 @@ export function MessageRow({
   author: Author;
   grouped: boolean;
   viewerId: string | null;
+  canPost: boolean;
   canModerate: boolean;
   fresh: boolean;
   editing: boolean;
@@ -146,8 +176,8 @@ export function MessageRow({
       actions={
         message.deletedAt || editing ? null : (
           <MessageActions
-            channelId={message.channelId}
-            messageId={message.id}
+            message={message}
+            canPost={canPost}
             canEdit={isAuthor}
             canDelete={isAuthor || canModerate}
             onEdit={onEdit}
@@ -162,14 +192,35 @@ export function MessageRow({
       ) : editing ? (
         <EditMessage message={message} onDone={onStopEditing} />
       ) : (
-        <div className="flex flex-wrap items-baseline gap-x-1.5">
-          <MessageMarkdown
-            id={message.id}
-            updatedAt={message.updatedAt}
-            body={message.body}
+        <>
+          {message.pinnedAt && (
+            <p className="text-muted-foreground flex items-center gap-1 text-xs">
+              <IconPin className="size-3.5" aria-hidden />
+              Pinned
+            </p>
+          )}
+          <div className="flex flex-wrap items-baseline gap-x-1.5">
+            <MessageMarkdown
+              id={message.id}
+              updatedAt={message.updatedAt}
+              body={message.body}
+            />
+            {message.editedAt && <EditedMark />}
+          </div>
+          {message.linkPreview && (
+            <MessagePreview
+              messageId={message.id}
+              channelId={message.channelId}
+              preview={message.linkPreview}
+              canRemove={isAuthor && canPost}
+            />
+          )}
+          <ReactionBar
+            message={message}
+            viewerId={viewerId}
+            canReact={canPost}
           />
-          {message.editedAt && <EditedMark />}
-        </div>
+        </>
       )}
     </RowFrame>
   );

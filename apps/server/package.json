@@ -40,6 +40,7 @@
     "@prisma/adapter-neon": "^7.0.0",
     "@prisma/client": "^7.0.0",
     "@thallesp/nestjs-better-auth": "^2.7.0",
+    "@vercel/functions": "^3.11.0",
     "better-auth": "catalog:",
     "dotenv": "^17.4.2",
     "reflect-metadata": "^0.2.2",

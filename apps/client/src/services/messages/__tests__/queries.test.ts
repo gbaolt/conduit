@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
   flattenMessages,
+  mapMessage,
   markDeleted,
   type MessagePages,
+  pinnedIsStale,
   upsertMessages,
 } from '../queries';
 
@@ -147,5 +149,51 @@ describe('markDeleted', () => {
       body: '',
       deletedAt: at,
     });
+  });
+});
+
+describe('pinnedIsStale', () => {
+  const pinned = message({ id: 'p', pinnedAt: new Date(5000) });
+
+  it('is false until the list has loaded', () => {
+    expect(pinnedIsStale(undefined, [pinned])).toBe(false);
+  });
+
+  it('is false when the list already holds the same version', () => {
+    expect(pinnedIsStale([pinned], [pinned])).toBe(false);
+  });
+
+  it('is true for a message pinned that the list lacks', () => {
+    expect(pinnedIsStale([], [pinned])).toBe(true);
+  });
+
+  it('is true for a listed message that was unpinned', () => {
+    const unpinned = {
+      ...pinned,
+      pinnedAt: null,
+      updatedAt: new Date(pinned.updatedAt.getTime() + 1),
+    };
+    expect(pinnedIsStale([pinned], [unpinned])).toBe(true);
+  });
+
+  it('ignores an unpinned message the list never held', () => {
+    expect(pinnedIsStale([pinned], [message({ id: 'x' })])).toBe(false);
+  });
+
+  it('ignores a deleted pinned message the list lacks', () => {
+    const gone = { ...pinned, id: 'gone', deletedAt: new Date(6000) };
+    expect(pinnedIsStale([], [gone])).toBe(false);
+  });
+});
+
+describe('mapMessage', () => {
+  it('changes one message and leaves the rest', () => {
+    const a = message({ id: 'a' });
+    const b = message({ id: 'b' });
+    const data = pages({ messages: [b, a], hasMore: false });
+
+    const result = mapMessage(data, 'a', (m) => ({ ...m, body: 'changed' }));
+
+    expect(bodies(result)).toEqual(['changed', 'b']);
   });
 });

@@ -1,3 +1,4 @@
+import { addReaction, REACTION_EMOJI_MAX } from '@conduit/contract';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { prisma } from '@/infrastructure/database/prisma.service';
@@ -124,5 +125,73 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
     const page = await repository.list(channelId, { limit: 100 });
 
     expect(page?.messages.map((m) => m.id)).not.toContain(message.id);
+  });
+
+  it('keeps every reaction when members react at the same time', async () => {
+    const { message } = await send('reactions');
+    const reactors = ['a', 'b', 'c', 'd', 'e'];
+
+    await Promise.all(
+      reactors.map((id) =>
+        repository.updateReactions(message.id, (current) =>
+          addReaction(current, '👍', id)
+        )
+      )
+    );
+
+    const stored = await repository.find(message.id);
+    expect([...(stored?.reactions['👍'] ?? [])].sort()).toEqual(reactors);
+  });
+
+  it('refuses a new emoji past the cap without writing', async () => {
+    const { message } = await send('cap');
+    for (let i = 0; i < REACTION_EMOJI_MAX; i++) {
+      await repository.updateReactions(message.id, (current) =>
+        addReaction(current, `e${i}`, 'a')
+      );
+    }
+
+    const refused = await repository.updateReactions(message.id, (current) =>
+      addReaction(current, 'extra', 'a')
+    );
+
+    expect(refused).toBeNull();
+    const stored = await repository.find(message.id);
+    expect(Object.keys(stored?.reactions ?? {})).toHaveLength(
+      REACTION_EMOJI_MAX
+    );
+  });
+
+  it('pins, lists newest pin first, and unpins', async () => {
+    const first = await send('pin-1');
+    const second = await send('pin-2');
+    await repository.setPinned(first.message.id, userId);
+    await repository.setPinned(second.message.id, userId);
+
+    const pinned = await repository.listPinned(channelId);
+    expect(pinned.map((m) => m.id)).toEqual([
+      second.message.id,
+      first.message.id,
+    ]);
+
+    await repository.setPinned(second.message.id, null);
+    const after = await repository.listPinned(channelId);
+    expect(after.map((m) => m.id)).toEqual([first.message.id]);
+  });
+
+  it('bumps updatedAt on a reaction and a pin, so the live query carries them', async () => {
+    const { message } = await send('bump');
+
+    const reacted = await repository.updateReactions(message.id, (current) =>
+      addReaction(current, '🎉', 'a')
+    );
+    const pinned = await repository.setPinned(message.id, userId);
+
+    expect(reacted!.updatedAt.getTime()).toBeGreaterThanOrEqual(
+      message.updatedAt.getTime()
+    );
+    expect(pinned.updatedAt.getTime()).toBeGreaterThanOrEqual(
+      reacted!.updatedAt.getTime()
+    );
   });
 });

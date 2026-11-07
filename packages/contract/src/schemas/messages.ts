@@ -6,6 +6,17 @@ import { MessageBodySchema } from '@/lib/message-body';
 export const ReactionSummarySchema = z.record(z.string(), z.array(z.string()));
 export type ReactionSummary = z.infer<typeof ReactionSummarySchema>;
 
+/** What the page behind the first link in a message says about itself, fetched after the message is sent. */
+export const LinkPreviewSchema = z.object({
+  url: z.string(),
+  siteName: z.string().nullable(),
+  title: z.string(),
+  description: z.string().nullable(),
+  /** An absolute http or https URL. */
+  image: z.string().nullable(),
+});
+export type LinkPreview = z.infer<typeof LinkPreviewSchema>;
+
 export const MessageSchema = z.object({
   id: z.string(),
   channelId: z.string(),
@@ -20,7 +31,7 @@ export const MessageSchema = z.object({
   reactions: ReactionSummarySchema,
   replyCount: z.number().int(),
   lastReplyAt: z.coerce.date().nullable(),
-  linkPreview: z.unknown().nullable(),
+  linkPreview: LinkPreviewSchema.nullable(),
   pinnedAt: z.coerce.date().nullable(),
   pinnedById: z.string().nullable(),
   editedAt: z.coerce.date().nullable(),
@@ -67,3 +78,38 @@ export const EditMessageInputSchema = z.object({
 });
 
 export const MessageIdInputSchema = z.object({ messageId: z.string() });
+
+export const ReactionInputSchema = z.object({
+  messageId: z.string(),
+  emoji: z
+    .string()
+    .min(1)
+    .max(32)
+    .refine(
+      (emoji) => /\p{Extended_Pictographic}/u.test(emoji),
+      'Pick an emoji.'
+    ),
+});
+
+export const UnreactInputSchema = z.object({
+  messageId: z.string(),
+  emoji: z.string().min(1).max(32),
+});
+
+export const ListPinnedInputSchema = z.object({ channelId: z.string() });
+
+/** Newest pin first. */
+export const ListPinnedOutputSchema = z.array(MessageSchema);
+
+export const SavedMessageSchema = z.object({
+  message: MessageSchema,
+  /** Null for a conversation with no name, such as a DM. */
+  channelName: z.string().nullable(),
+  savedAt: z.coerce.date(),
+});
+export type SavedMessage = z.infer<typeof SavedMessageSchema>;
+
+export const SAVED_MESSAGES_MAX = 200;
+
+/** Newest saved first, at most `SAVED_MESSAGES_MAX`. */
+export const ListSavedOutputSchema = z.array(SavedMessageSchema);

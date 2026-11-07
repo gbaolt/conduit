@@ -10,6 +10,7 @@ export * from './contracts/workspace-settings';
 export * from './lib/channel-policy';
 export * from './lib/message-body';
 export * from './lib/names';
+export * from './lib/reactions';
 export * from './lib/workspace-policy';
 export * from './schemas/channels';
 export * from './schemas/health';
