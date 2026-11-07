@@ -61,3 +61,42 @@ export const UpdateMemberRoleInputSchema = z.object({
   memberId: z.string(),
   role: WorkspaceRoleSchema,
 });
+
+export const InviteRoleSchema = z.enum(['member', 'admin']);
+
+export const CreateInvitationsInputSchema = z.object({
+  emails: z
+    .array(z.email('Enter a valid email address.'))
+    .min(1, 'Enter at least one email.')
+    .max(20, 'Invite up to 20 people at a time.'),
+  role: InviteRoleSchema,
+});
+
+export const CreateInvitationsResultSchema = z.object({
+  sent: z.array(z.string()),
+  skipped: z.array(
+    z.object({ email: z.string(), reason: z.enum(['member', 'invited']) })
+  ),
+});
+export type CreateInvitationsResult = z.infer<
+  typeof CreateInvitationsResultSchema
+>;
+
+export const WorkspaceInvitationSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  role: z.string(),
+  inviterName: z.string(),
+  expiresAt: z.coerce.date(),
+});
+export type WorkspaceInvitation = z.infer<typeof WorkspaceInvitationSchema>;
+
+export const InvitationIdInputSchema = z.object({ invitationId: z.string() });
+
+/** What the email link shows before the visitor accepts. */
+export const InvitationPreviewSchema = z.object({
+  email: z.string(),
+  organizationName: z.string(),
+});
+export type InvitationPreview = z.infer<typeof InvitationPreviewSchema>;
+export type InviteRole = z.infer<typeof InviteRoleSchema>;

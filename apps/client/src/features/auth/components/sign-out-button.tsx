@@ -5,8 +5,8 @@ import { IconLogout } from '@tabler/icons-react';
 
 import { useSignOut } from '@/services/auth/hooks';
 
-export function SignOutButton() {
-  const signOut = useSignOut();
+export function SignOutButton({ returnTo }: { returnTo?: string }) {
+  const signOut = useSignOut(returnTo);
 
   return (
     <Button

@@ -1,12 +1,16 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
+import { withCallbackURL } from '@/features/auth/lib/callback-url';
+
 import { authClient } from './client';
 
-export function useSignOut() {
+/** `returnTo` is where sign-in sends the visitor back afterwards. */
+export function useSignOut(returnTo?: string) {
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -20,7 +24,7 @@ export function useSignOut() {
     },
     onSuccess: () => {
       queryClient.clear();
-      router.push('/sign-in');
+      router.push(withCallbackURL('/sign-in', returnTo) as Route);
       router.refresh();
     },
     onError: (error) => {

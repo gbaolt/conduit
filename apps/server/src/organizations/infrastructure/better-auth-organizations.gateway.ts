@@ -1,5 +1,6 @@
 import type {
   CreateOrganizationInput,
+  InviteRole,
   organizationErrors,
   WorkspaceRole,
 } from '@conduit/contract';
@@ -85,6 +86,37 @@ export class BetterAuthOrganizationsGateway implements OrganizationsGateway {
     } catch (error) {
       throw toMemberError(error);
     }
+  }
+
+  async invite(
+    headers: Headers,
+    organizationId: string,
+    email: string,
+    role: InviteRole
+  ) {
+    try {
+      await this.authService.api.createInvitation({
+        body: { organizationId, email, role },
+        headers,
+      });
+      return 'sent';
+    } catch (error) {
+      const code = isAPIError(error) ? error.body?.code : undefined;
+      if (code === 'USER_IS_ALREADY_A_MEMBER_OF_THIS_ORGANIZATION') {
+        return 'member';
+      }
+      if (code === 'USER_IS_ALREADY_INVITED_TO_THIS_ORGANIZATION') {
+        return 'invited';
+      }
+      throw error;
+    }
+  }
+
+  async cancelInvitation(headers: Headers, invitationId: string) {
+    await this.authService.api.cancelInvitation({
+      body: { invitationId },
+      headers,
+    });
   }
 
   async acceptInvitation(headers: Headers, invitationId: string) {

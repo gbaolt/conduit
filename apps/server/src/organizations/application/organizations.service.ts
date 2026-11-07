@@ -1,10 +1,13 @@
 import {
   canWorkspace,
+  type CreateInvitationsResult,
   type CreateOrganizationInput,
+  type InviteRole,
   type WorkspaceRole,
 } from '@conduit/contract';
 import { Inject, Injectable } from '@nestjs/common';
 
+import { InvitationsRepository } from '@/organizations/domain/invitations.repository';
 import { organizationError } from '@/organizations/domain/organization-errors';
 import { OrganizationsGateway } from '@/organizations/domain/organizations.gateway';
 import { WorkspaceMembersRepository } from '@/workspaces/domain/workspace-members.repository';
@@ -16,7 +19,9 @@ export class OrganizationsService {
     @Inject(OrganizationsGateway)
     private readonly organizations: OrganizationsGateway,
     @Inject(WorkspaceMembersRepository)
-    private readonly members: WorkspaceMembersRepository
+    private readonly members: WorkspaceMembersRepository,
+    @Inject(InvitationsRepository)
+    private readonly invitations: InvitationsRepository
   ) {}
 
   async list(headers: Headers, userId: string) {
@@ -41,6 +46,65 @@ export class OrganizationsService {
 
   acceptInvitation(headers: Headers, invitationId: string) {
     return this.organizations.acceptInvitation(headers, invitationId);
+  }
+
+  async inviteToWorkspace(
+    headers: Headers,
+    viewer: WorkspaceViewer,
+    emails: string[],
+    role: InviteRole
+  ): Promise<CreateInvitationsResult> {
+    if (!canWorkspace('invite', viewer.workspaceRole)) {
+      throw organizationError('FORBIDDEN');
+    }
+
+    const result: CreateInvitationsResult = { sent: [], skipped: [] };
+    // Sequential: each call sends an email, and a repeated address must see the first invitation.
+    for (const email of new Set(emails.map((e) => e.trim().toLowerCase()))) {
+      const outcome = await this.organizations.invite(
+        headers,
+        viewer.organizationId,
+        email,
+        role
+      );
+      if (outcome === 'sent') result.sent.push(email);
+      else result.skipped.push({ email, reason: outcome });
+    }
+    return result;
+  }
+
+  listWorkspaceInvitations(viewer: WorkspaceViewer) {
+    if (!canWorkspace('invite', viewer.workspaceRole)) {
+      throw organizationError('FORBIDDEN');
+    }
+    return this.invitations.listPending(viewer.organizationId);
+  }
+
+  async revokeInvitation(
+    headers: Headers,
+    viewer: WorkspaceViewer,
+    invitationId: string
+  ) {
+    if (!canWorkspace('revokeInvitation', viewer.workspaceRole)) {
+      throw organizationError('FORBIDDEN');
+    }
+
+    // Better Auth would cancel an invitation of any workspace the caller administers.
+    const invitation = await this.invitations.findPending(invitationId);
+    if (invitation?.organizationId !== viewer.organizationId) {
+      throw organizationError('INVITATION_NOT_FOUND');
+    }
+
+    await this.organizations.cancelInvitation(headers, invitationId);
+  }
+
+  async previewInvitation(invitationId: string) {
+    const invitation = await this.invitations.findPending(invitationId);
+    if (!invitation) throw organizationError('INVITATION_NOT_FOUND');
+    return {
+      email: invitation.email,
+      organizationName: invitation.organizationName,
+    };
   }
 
   async updateMemberRole(

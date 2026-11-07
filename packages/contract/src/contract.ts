@@ -28,13 +28,17 @@ import {
 import { healthCheckContract } from './contracts/health';
 import {
   acceptInvitationContract,
+  createInvitationsContract,
   createOrganizationContract,
   deactivateMemberContract,
+  getInvitationContract,
   listInvitationsContract,
   listMembersContract,
   listOrganizationsContract,
+  listWorkspaceInvitationsContract,
   reactivateMemberContract,
   removeMemberContract,
+  revokeInvitationContract,
   updateMemberRoleContract,
 } from './contracts/organizations';
 import { getSessionContract } from './contracts/users';
@@ -60,6 +64,10 @@ export const contract = {
   invitations: {
     list: listInvitationsContract,
     accept: acceptInvitationContract,
+    get: getInvitationContract,
+    create: createInvitationsContract,
+    listForWorkspace: listWorkspaceInvitationsContract,
+    revoke: revokeInvitationContract,
   },
   channels: {
     list: listChannelsContract,
