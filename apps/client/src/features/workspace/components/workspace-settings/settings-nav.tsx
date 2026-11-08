@@ -16,6 +16,7 @@ import {
   IconKey,
   IconLock,
   IconMailPlus,
+  IconSparkles,
   IconUsers,
 } from '@tabler/icons-react';
 import type { Route } from 'next';
@@ -36,6 +37,7 @@ const GROUPS: { label: string; areas: Area[] }[] = [
         icon: IconAdjustmentsHorizontal,
       },
       { href: '/settings/permissions', label: 'Permissions', icon: IconLock },
+      { href: '/settings/ai', label: 'AI', icon: IconSparkles },
     ],
   },
   {

@@ -1,4 +1,5 @@
 export { contract } from './contract';
+export * from './contracts/ai-settings';
 export * from './contracts/channel-sections';
 export * from './contracts/channels';
 export * from './contracts/dms';
@@ -13,6 +14,7 @@ export * from './lib/message-body';
 export * from './lib/names';
 export * from './lib/reactions';
 export * from './lib/workspace-policy';
+export * from './schemas/ai';
 export * from './schemas/channels';
 export * from './schemas/dms';
 export * from './schemas/health';

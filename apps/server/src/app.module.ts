@@ -4,6 +4,7 @@ import { ORPCModule } from '@orpc/nest';
 import { onError } from '@orpc/server';
 import { AuthModule } from '@thallesp/nestjs-better-auth';
 
+import { AiModule } from '@/ai/ai.module';
 import { ChannelsModule } from '@/channels/channels.module';
 import { HealthController } from '@/health/presentation/health.controller';
 import { auth } from '@/infrastructure/auth/auth.config';
@@ -23,6 +24,7 @@ import { WorkspacesModule } from '@/workspaces/workspaces.module';
     DatabaseModule,
     UsersModule,
     OrganizationsModule,
+    AiModule,
     ChannelsModule,
     MessagesModule,
     RealtimeModule,

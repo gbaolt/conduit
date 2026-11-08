@@ -1,4 +1,8 @@
 import {
+  getAiSettingsContract,
+  updateAiSettingsContract,
+} from './contracts/ai-settings';
+import {
   createChannelSectionContract,
   deleteChannelSectionContract,
   listChannelSectionsContract,
@@ -116,6 +120,10 @@ export const contract = {
   workspaceSettings: {
     get: getWorkspaceSettingsContract,
     update: updateWorkspaceSettingsContract,
+  },
+  aiSettings: {
+    get: getAiSettingsContract,
+    update: updateAiSettingsContract,
   },
   invitations: {
     list: listInvitationsContract,
