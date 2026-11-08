@@ -75,7 +75,7 @@ export function AppShellSkeleton() {
     <div
       role="status"
       aria-label="Loading workspace"
-      className="bg-sidebar flex min-h-svh"
+      className="bg-sidebar flex h-svh"
     >
       <div aria-hidden className="flex h-svh w-16 shrink-0 flex-col">
         <div className="flex flex-col items-center p-2 pt-4 pb-2">
@@ -113,8 +113,9 @@ export function AppShell({
   return (
     <WorkspaceProvider>
       <WorkspaceActivity />
+      {/* A fixed height, not shadcn's min-h-svh, so a long log scrolls inside the page instead of growing it. */}
       <SidebarProvider
-        className="bg-sidebar"
+        className="bg-sidebar h-svh"
         style={
           {
             '--sidebar-width': 'calc(var(--spacing) * 16)',
