@@ -4,7 +4,6 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarInset,
   SidebarProvider,
 } from '@conduit/ui/components/sidebar';
 import { Skeleton } from '@conduit/ui/components/skeleton';
@@ -21,6 +20,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { NavUser, type NavUserInfo } from '@/components/nav-user';
+import { SidePanelLayout } from '@/components/side-panel';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { WorkspaceActivity } from '@/features/workspace/components/workspace-activity';
 import { WorkspaceSwitcher } from '@/features/workspace/components/workspace-switcher';
@@ -140,11 +140,7 @@ export function AppShell({
             <NavUser user={user} />
           </SidebarFooter>
         </Sidebar>
-        <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden py-2 pe-2">
-          <SidebarInset className="border-sidebar-border min-h-0 overflow-hidden rounded-xl border">
-            {children}
-          </SidebarInset>
-        </div>
+        <SidePanelLayout>{children}</SidePanelLayout>
       </SidebarProvider>
     </WorkspaceProvider>
   );
