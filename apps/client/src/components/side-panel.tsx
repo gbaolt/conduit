@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from '@conduit/ui/components/resizable';
@@ -17,6 +16,8 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+
+import { ResizeHandle } from '@/components/resize-handle';
 
 type Dock = {
   owner: string | null;
@@ -52,12 +53,13 @@ export function SidePanelLayout({ children }: { children: ReactNode }) {
         </ResizablePanel>
         {owner && (
           <>
-            <ResizableHandle className="focus-visible:ring-sidebar-ring w-2 bg-transparent" />
+            <ResizeHandle className="w-2 bg-transparent" />
             <ResizablePanel
               id="side"
               defaultSize="380px"
               minSize="320px"
               maxSize="60%"
+              groupResizeBehavior="preserve-pixel-size"
             >
               <aside
                 ref={setTarget}

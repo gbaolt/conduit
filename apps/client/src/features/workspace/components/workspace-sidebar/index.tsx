@@ -1,12 +1,12 @@
 'use client';
 
 import {
-  ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from '@conduit/ui/components/resizable';
 import type { ReactNode } from 'react';
 
+import { ResizeHandle } from '@/components/resize-handle';
 import { ChannelList } from '@/features/channels/components/channel-list';
 import { ChannelListSkeleton } from '@/features/channels/components/channel-skeletons';
 
@@ -55,14 +55,15 @@ export function WorkspaceSidebar({
     >
       <ResizablePanel
         id={SIDEBAR_PANEL}
-        defaultSize="20"
-        minSize="16"
-        maxSize="24"
+        defaultSize={300}
+        minSize={240}
+        maxSize={360}
+        groupResizeBehavior="preserve-pixel-size"
         className="bg-surface"
       >
         {sidebar}
       </ResizablePanel>
-      <ResizableHandle className="bg-sidebar-border focus-visible:ring-sidebar-ring" />
+      <ResizeHandle className="bg-sidebar-border" />
       <ResizablePanel id={MAIN_PANEL}>
         <div className="h-full overflow-y-auto">{children}</div>
       </ResizablePanel>
