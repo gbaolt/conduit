@@ -2,22 +2,22 @@ import { ORPCError } from '@orpc/client';
 import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
-import { ChannelPageSkeleton } from '@/features/channels/components/channel-skeletons';
+import { ChannelIntro } from '@/features/channels/components/channel-intro';
 import { ChannelHeader } from '@/features/channels/components/header/channel-header';
-import { ChannelIntro } from '@/features/channels/components/intro/channel-intro';
 import { Conversation } from '@/features/messages/components/conversation/conversation';
 import { PinnedButton } from '@/features/messages/components/pinned';
 import { SummaryChannelItems } from '@/features/messages/components/summary/summary-menu';
 import { ThreadLayout } from '@/features/messages/components/thread/thread-layout';
+import { RoomPageSkeleton } from '@/features/rooms/components/room-skeletons';
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
-import { roomQuery } from '@/services/channels/queries';
 import { messagesQuery, pinnedQuery } from '@/services/messages/queries';
+import { roomQuery } from '@/services/rooms/queries';
 
 export default function ChannelPage({
   params,
 }: PageProps<'/channels/[roomId]'>) {
   return (
-    <Suspense fallback={<ChannelPageSkeleton />}>
+    <Suspense fallback={<RoomPageSkeleton />}>
       <Room params={params} />
     </Suspense>
   );

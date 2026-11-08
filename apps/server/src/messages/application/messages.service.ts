@@ -13,11 +13,11 @@ import {
 } from '@conduit/contract';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { ChannelsRepository } from '@/channels/domain/channels.repository';
-import { DmsRepository } from '@/channels/domain/dms.repository';
+import { DmsRepository } from '@/dms/domain/dms.repository';
 import { messageError } from '@/messages/domain/message-errors';
 import { MessagesRepository } from '@/messages/domain/messages.repository';
 import { SavedMessagesRepository } from '@/messages/domain/saved-messages.repository';
+import { RoomsRepository } from '@/rooms/domain/rooms.repository';
 
 export type MessageViewer = {
   userId: string;
@@ -29,7 +29,7 @@ export type MessageViewer = {
 export class MessagesService {
   constructor(
     @Inject(MessagesRepository) private readonly messages: MessagesRepository,
-    @Inject(ChannelsRepository) private readonly channels: ChannelsRepository,
+    @Inject(RoomsRepository) private readonly channels: RoomsRepository,
     @Inject(SavedMessagesRepository)
     private readonly saved: SavedMessagesRepository,
     @Inject(DmsRepository) private readonly dms: DmsRepository

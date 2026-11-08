@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 
-import { ChannelsModule } from '@/channels/channels.module';
+import { RoomsModule } from '@/rooms/rooms.module';
 
 import { RealtimeService } from './application/realtime.service';
 import { LiveQueries } from './domain/live-queries.port';
@@ -8,7 +8,7 @@ import { NeonLiveQueries } from './infrastructure/neon-live-queries';
 import { RealtimeController } from './presentation/realtime.controller';
 
 @Module({
-  imports: [ChannelsModule],
+  imports: [RoomsModule],
   controllers: [RealtimeController],
   providers: [
     RealtimeService,

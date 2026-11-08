@@ -1,7 +1,7 @@
 import type { Room } from '@conduit/contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ChannelsRepository } from '@/channels/domain/channels.repository';
+import type { RoomsRepository } from '@/rooms/domain/rooms.repository';
 
 import { InMemoryActivityRepository } from '../testing/in-memory-activity.repository';
 import { ActivityService, type ActivityViewer } from './activity.service';
@@ -29,7 +29,7 @@ function setup(channel: Partial<Room> | null = {}) {
         membership: { role: 'member', starredAt: null, sectionId: null },
         ...channel,
       },
-  } as Partial<ChannelsRepository> as ChannelsRepository;
+  } as Partial<RoomsRepository> as RoomsRepository;
   return { service: new ActivityService(repository, channels), repository };
 }
 

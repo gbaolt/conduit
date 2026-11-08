@@ -21,10 +21,8 @@ import {
   archiveChannelContract,
   createChannelContract,
   deleteChannelContract,
-  getRoomContract,
   joinChannelContract,
   leaveChannelContract,
-  listRoomMembersContract,
   listChannelsContract,
   moveChannelToSectionContract,
   removeChannelMemberContract,
@@ -86,6 +84,7 @@ import {
   updateOrganizationContract,
 } from './contracts/organizations';
 import { sealStreamContract } from './contracts/realtime';
+import { getRoomContract, listRoomMembersContract } from './contracts/rooms';
 import {
   getSummaryContract,
   shareSummaryContract,

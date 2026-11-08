@@ -1,5 +1,5 @@
 import type { WorkspaceRole } from '@/schemas/organizations';
-import type { Room } from '@/schemas/channels';
+import type { Room } from '@/schemas/rooms';
 import type { WorkspaceSettings } from '@/schemas/workspace-settings';
 
 export type PolicyChannel = Pick<

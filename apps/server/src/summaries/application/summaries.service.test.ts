@@ -8,14 +8,14 @@ import type {
   ModelRequest,
   PartialObject,
 } from '@/ai/domain/model.port';
-import type { ChannelsRepository } from '@/channels/domain/channels.repository';
-import type { DmsRepository } from '@/channels/domain/dms.repository';
+import type { DmsRepository } from '@/dms/domain/dms.repository';
 import {
   MessagesService,
   type MessageViewer,
 } from '@/messages/application/messages.service';
 import type { MessagesRepository } from '@/messages/domain/messages.repository';
 import type { SavedMessagesRepository } from '@/messages/domain/saved-messages.repository';
+import type { RoomsRepository } from '@/rooms/domain/rooms.repository';
 import type {
   StoredSummary,
   SummariesRepository,
@@ -116,7 +116,7 @@ function setup({
 
   const channels = {
     find: async (scope: { userId: string }) => views[scope.userId] ?? null,
-  } as Partial<ChannelsRepository> as ChannelsRepository;
+  } as Partial<RoomsRepository> as RoomsRepository;
 
   const rows = new Map<string, StoredSummary>();
   const summaries: SummariesRepository = {

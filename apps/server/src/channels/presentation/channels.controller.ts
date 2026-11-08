@@ -3,19 +3,17 @@ import { Controller, Inject } from '@nestjs/common';
 import { Implement } from '@orpc/nest';
 import { implement } from '@orpc/server';
 
-import {
-  ChannelsService,
-  type ChannelViewer,
-} from '@/channels/application/channels.service';
+import { ChannelsService } from '@/channels/application/channels.service';
 import { authorized } from '@/infrastructure/orpc/authorized';
 import { workspaceMember } from '@/infrastructure/orpc/workspace-member';
 import { arcjet } from '@/infrastructure/security/procedure.middleware';
+import type { RoomViewer } from '@/rooms/application/rooms.service';
 
 function viewerOf(context: {
   user: { id: string };
   organizationId: string;
-  workspaceRole: ChannelViewer['workspaceRole'];
-}): ChannelViewer {
+  workspaceRole: RoomViewer['workspaceRole'];
+}): RoomViewer {
   return {
     userId: context.user.id,
     organizationId: context.organizationId,
@@ -38,16 +36,6 @@ export class ChannelsController {
       .use(workspaceMember)
       .handler(({ context, input }) =>
         this.channelsService.list(viewerOf(context), input?.archived)
-      );
-  }
-
-  @Implement(contract.rooms.get)
-  get() {
-    return implement(contract.rooms.get)
-      .use(authorized)
-      .use(arcjet.read)
-      .handler(({ context, input }) =>
-        this.channelsService.get(context.user.id, input.roomId)
       );
   }
 
@@ -114,17 +102,6 @@ export class ChannelsController {
       .use(workspaceMember)
       .handler(({ context, input: { roomId, ...details } }) =>
         this.channelsService.update(viewerOf(context), roomId, details)
-      );
-  }
-
-  @Implement(contract.rooms.members.list)
-  listMembers() {
-    return implement(contract.rooms.members.list)
-      .use(authorized)
-      .use(arcjet.read)
-      .use(workspaceMember)
-      .handler(({ context, input }) =>
-        this.channelsService.listMembers(viewerOf(context), input.roomId)
       );
   }
 

@@ -27,7 +27,7 @@ import { toast } from 'sonner';
 
 import { StatusButton } from '@/components/async/status-button';
 import { useAddChannelMembers } from '@/services/channels/hooks';
-import { roomMembersQuery } from '@/services/channels/queries';
+import { roomMembersQuery } from '@/services/rooms/queries';
 import { useWorkspaceMembers } from '@/services/workspaces/hooks';
 
 import { useChannelDialogs } from '../../context/channel-dialogs-provider';

@@ -4,53 +4,39 @@ import {
   checkChannel,
   type Room,
   type RoomMember,
-  type WorkspaceRole,
 } from '@conduit/contract';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { channelError, sectionError } from '@/channels/domain/channel-errors';
 import { ChannelSectionsRepository } from '@/channels/domain/channel-sections.repository';
-import { ChannelsRepository } from '@/channels/domain/channels.repository';
+import {
+  RoomsService,
+  type RoomViewer,
+} from '@/rooms/application/rooms.service';
+import { RoomsRepository } from '@/rooms/domain/rooms.repository';
 import { WorkspaceMembersRepository } from '@/workspaces/domain/workspace-members.repository';
 import { WorkspaceSettingsRepository } from '@/workspaces/domain/workspace-settings.repository';
-
-export type ChannelViewer = {
-  userId: string;
-  organizationId: string;
-  workspaceRole: WorkspaceRole;
-};
 
 @Injectable()
 export class ChannelsService {
   constructor(
-    @Inject(ChannelsRepository) private readonly channels: ChannelsRepository,
+    @Inject(RoomsRepository) private readonly channels: RoomsRepository,
     @Inject(ChannelSectionsRepository)
     private readonly sections: ChannelSectionsRepository,
     @Inject(WorkspaceMembersRepository)
     private readonly workspaceMembers: WorkspaceMembersRepository,
     @Inject(WorkspaceSettingsRepository)
-    private readonly workspaceSettings: WorkspaceSettingsRepository
+    private readonly workspaceSettings: WorkspaceSettingsRepository,
+    @Inject(RoomsService) private readonly rooms: RoomsService
   ) {}
 
   /** Active channels, or only the archived ones when asked. */
-  list(viewer: ChannelViewer, archived = false) {
+  list(viewer: RoomViewer, archived = false) {
     return this.channels.list(viewer, archived);
   }
 
-  /** Resolves a channel in any workspace the caller belongs to, so a copied link can switch workspace. */
-  async get(userId: string, roomId: string) {
-    const organizationId = await this.channels.findOrganizationId(roomId);
-    const workspaceRole =
-      organizationId &&
-      (await this.workspaceMembers.findRole(organizationId, userId));
-    if (!organizationId || !workspaceRole) {
-      throw channelError('NOT_FOUND');
-    }
-    return this.find({ userId, organizationId, workspaceRole }, roomId);
-  }
-
   async create(
-    viewer: ChannelViewer,
+    viewer: RoomViewer,
     input: { name: string; visibility: Room['visibility'] }
   ) {
     const settings = await this.workspaceSettings.get(viewer.organizationId);
@@ -60,42 +46,42 @@ export class ChannelsService {
     return this.channels.create(viewer, input);
   }
 
-  async rename(viewer: ChannelViewer, roomId: string, name: string) {
+  async rename(viewer: RoomViewer, roomId: string, name: string) {
     await this.authorize(viewer, roomId, 'rename');
     return this.channels.rename(viewer, roomId, name);
   }
 
-  async delete(viewer: ChannelViewer, roomId: string) {
+  async delete(viewer: RoomViewer, roomId: string) {
     await this.authorize(viewer, roomId, 'delete');
     await this.channels.delete(roomId);
   }
 
-  async join(viewer: ChannelViewer, roomId: string) {
+  async join(viewer: RoomViewer, roomId: string) {
     const channel = await this.authorize(viewer, roomId, 'join');
     if (channel.membership) {
       return channel;
     }
     await this.channels.addMembers(roomId, [viewer.userId]);
-    return this.find(viewer, roomId);
+    return this.rooms.find(viewer, roomId);
   }
 
-  async leave(viewer: ChannelViewer, roomId: string) {
+  async leave(viewer: RoomViewer, roomId: string) {
     await this.authorize(viewer, roomId, 'leave');
     await this.channels.removeMember(roomId, viewer.userId);
   }
 
-  async archive(viewer: ChannelViewer, roomId: string) {
+  async archive(viewer: RoomViewer, roomId: string) {
     await this.authorize(viewer, roomId, 'archive');
     return this.channels.setArchived(viewer, roomId, true);
   }
 
-  async unarchive(viewer: ChannelViewer, roomId: string) {
+  async unarchive(viewer: RoomViewer, roomId: string) {
     await this.authorize(viewer, roomId, 'unarchive');
     return this.channels.setArchived(viewer, roomId, false);
   }
 
   async setVisibility(
-    viewer: ChannelViewer,
+    viewer: RoomViewer,
     roomId: string,
     visibility: Room['visibility']
   ) {
@@ -107,14 +93,14 @@ export class ChannelsService {
     return this.channels.setVisibility(viewer, roomId, visibility);
   }
 
-  async star(viewer: ChannelViewer, roomId: string) {
+  async star(viewer: RoomViewer, roomId: string) {
     await this.authorize(viewer, roomId, 'star');
     await this.channels.updateMembership(roomId, viewer.userId, {
       starredAt: new Date(),
     });
   }
 
-  async unstar(viewer: ChannelViewer, roomId: string) {
+  async unstar(viewer: RoomViewer, roomId: string) {
     await this.authorize(viewer, roomId, 'star');
     await this.channels.updateMembership(roomId, viewer.userId, {
       starredAt: null,
@@ -122,7 +108,7 @@ export class ChannelsService {
   }
 
   async moveToSection(
-    viewer: ChannelViewer,
+    viewer: RoomViewer,
     roomId: string,
     sectionId: string | null
   ) {
@@ -137,7 +123,7 @@ export class ChannelsService {
   }
 
   async update(
-    viewer: ChannelViewer,
+    viewer: RoomViewer,
     roomId: string,
     input: { topic?: string | null; description?: string | null }
   ) {
@@ -151,15 +137,7 @@ export class ChannelsService {
     });
   }
 
-  async listMembers(
-    viewer: ChannelViewer,
-    roomId: string
-  ): Promise<RoomMember[]> {
-    await this.find(viewer, roomId);
-    return this.channels.listMembers(viewer, roomId);
-  }
-
-  async addMembers(viewer: ChannelViewer, roomId: string, userIds: string[]) {
+  async addMembers(viewer: RoomViewer, roomId: string, userIds: string[]) {
     await this.authorize(viewer, roomId, 'addMembers');
     const ids = [...new Set(userIds)];
     const inWorkspace = await this.workspaceMembers.count(
@@ -172,7 +150,7 @@ export class ChannelsService {
     await this.channels.addMembers(roomId, ids);
   }
 
-  async removeMember(viewer: ChannelViewer, roomId: string, userId: string) {
+  async removeMember(viewer: RoomViewer, roomId: string, userId: string) {
     await this.authorize(viewer, roomId, 'removeMember');
     if (userId === viewer.userId) {
       throw channelError('FORBIDDEN', 'Use Leave channel to remove yourself.');
@@ -183,7 +161,7 @@ export class ChannelsService {
   }
 
   async setMemberRole(
-    viewer: ChannelViewer,
+    viewer: RoomViewer,
     roomId: string,
     userId: string,
     role: RoomMember['role']
@@ -202,21 +180,12 @@ export class ChannelsService {
     );
   }
 
-  /** A channel the viewer cannot see is NOT_FOUND, so private channels do not leak. */
-  private async find(viewer: ChannelViewer, roomId: string) {
-    const channel = await this.channels.find(viewer, roomId);
-    if (!channel || checkChannel('view', viewer.workspaceRole, channel)) {
-      throw channelError('NOT_FOUND');
-    }
-    return channel;
-  }
-
   private async authorize(
-    viewer: ChannelViewer,
+    viewer: RoomViewer,
     roomId: string,
     action: ChannelAction
   ) {
-    const channel = await this.find(viewer, roomId);
+    const channel = await this.rooms.find(viewer, roomId);
     const denial = checkChannel(action, viewer.workspaceRole, channel);
     if (denial) {
       throw channelError(denial);

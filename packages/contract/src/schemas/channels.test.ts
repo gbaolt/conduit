@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  CHANNEL_TEXT_MAX,
-  ChannelNameSchema,
-  UpdateChannelInputSchema,
-} from './channels';
+import { CHANNEL_TEXT_MAX, UpdateChannelInputSchema } from './channels';
+import { ChannelNameSchema } from './rooms';
 
 describe('ChannelNameSchema', () => {
   it.each(['Hello World', 'xin-chào', '', '日本'])('rejects %j', (name) => {

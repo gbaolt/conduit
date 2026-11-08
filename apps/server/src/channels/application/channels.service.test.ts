@@ -2,12 +2,16 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { ensureDefaultChannel } from '@/channels/infrastructure/default-channel';
 import { PrismaChannelSectionsRepository } from '@/channels/infrastructure/prisma-channel-sections.repository';
-import { PrismaChannelsRepository } from '@/channels/infrastructure/prisma-channels.repository';
 import { prisma } from '@/infrastructure/database/prisma.service';
+import {
+  RoomsService,
+  type RoomViewer,
+} from '@/rooms/application/rooms.service';
+import { PrismaRoomsRepository } from '@/rooms/infrastructure/prisma-rooms.repository';
 import { PrismaWorkspaceMembersRepository } from '@/workspaces/infrastructure/prisma-workspace-members.repository';
 import { PrismaWorkspaceSettingsRepository } from '@/workspaces/infrastructure/prisma-workspace-settings.repository';
 
-import { ChannelsService, type ChannelViewer } from './channels.service';
+import { ChannelsService } from './channels.service';
 
 // vi.hoisted runs before the imports above.
 vi.hoisted(() => {
@@ -20,11 +24,16 @@ const connectionString = process.env.TEST_DATABASE_URL;
 
 describe.skipIf(!connectionString)('ChannelsService', () => {
   const settings = new PrismaWorkspaceSettingsRepository(prisma);
+  const rooms = new RoomsService(
+    new PrismaRoomsRepository(prisma),
+    new PrismaWorkspaceMembersRepository(prisma)
+  );
   const service = new ChannelsService(
-    new PrismaChannelsRepository(prisma),
+    new PrismaRoomsRepository(prisma),
     new PrismaChannelSectionsRepository(prisma),
     new PrismaWorkspaceMembersRepository(prisma),
-    settings
+    settings,
+    rooms
   );
   const run = crypto.randomUUID();
   const organization = { id: run, name: 'Acme', slug: `acme-${run}` };
@@ -37,8 +46,8 @@ describe.skipIf(!connectionString)('ChannelsService', () => {
   };
   const viewer = (
     userId: string,
-    workspaceRole: ChannelViewer['workspaceRole']
-  ): ChannelViewer => ({
+    workspaceRole: RoomViewer['workspaceRole']
+  ): RoomViewer => ({
     userId,
     organizationId: organization.id,
     workspaceRole,
@@ -167,7 +176,7 @@ describe.skipIf(!connectionString)('ChannelsService', () => {
     expect(joined.membership?.role).toBe('member');
     expect(joined.memberCount).toBe(2);
     await service.leave(member, channel.id);
-    await expect(service.get(users.member, channel.id)).resolves.toMatchObject({
+    await expect(rooms.get(users.member, channel.id)).resolves.toMatchObject({
       membership: null,
       memberCount: 1,
     });
@@ -182,7 +191,7 @@ describe.skipIf(!connectionString)('ChannelsService', () => {
       code: 'FORBIDDEN',
     });
     await service.delete(owner, channel.id);
-    await expect(service.get(users.owner, channel.id)).rejects.toMatchObject({
+    await expect(rooms.get(users.owner, channel.id)).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
   });
@@ -195,7 +204,7 @@ describe.skipIf(!connectionString)('ChannelsService', () => {
     expect((await service.list(member)).map((c) => c.id)).not.toContain(
       secret.id
     );
-    await expect(service.get(users.member, secret.id)).rejects.toMatchObject({
+    await expect(rooms.get(users.member, secret.id)).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
     await expect(service.join(member, secret.id)).rejects.toMatchObject({
@@ -205,10 +214,10 @@ describe.skipIf(!connectionString)('ChannelsService', () => {
 
   it('resolves get only in workspaces the caller belongs to', async () => {
     await expect(
-      service.get(users.owner, defaultChannelId)
+      rooms.get(users.owner, defaultChannelId)
     ).resolves.toMatchObject({ organizationId: organization.id });
     await expect(
-      service.get(users.stranger, defaultChannelId)
+      rooms.get(users.stranger, defaultChannelId)
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
@@ -221,10 +230,10 @@ describe.skipIf(!connectionString)('ChannelsService', () => {
     await prisma.member.deleteMany({
       where: { organizationId: organization.id, userId: users.admin },
     });
-    await expect(service.get(users.owner, channel.id)).resolves.toMatchObject({
+    await expect(rooms.get(users.owner, channel.id)).resolves.toMatchObject({
       memberCount: 1,
     });
-    await expect(service.get(users.admin, channel.id)).rejects.toMatchObject({
+    await expect(rooms.get(users.admin, channel.id)).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
   });
@@ -270,7 +279,7 @@ describe.skipIf(!connectionString)('ChannelsService', () => {
       await prisma.member.deleteMany({
         where: { organizationId: organization.id, userId: users.admin },
       });
-      const members = await service.listMembers(member, channel.id);
+      const members = await rooms.listMembers(member, channel.id);
       expect(members.map((m) => [m.userId, m.role])).toEqual([
         [users.owner, 'manager'],
         [users.member, 'member'],
@@ -298,9 +307,7 @@ describe.skipIf(!connectionString)('ChannelsService', () => {
         service.addMembers(owner, defaultChannelId, [users.member])
       ).rejects.toMatchObject({ code: 'DEFAULT_CHANNEL_LOCKED' });
       await service.addMembers(owner, channel.id, [users.member, users.member]);
-      await expect(
-        service.get(users.member, channel.id)
-      ).resolves.toMatchObject({
+      await expect(rooms.get(users.member, channel.id)).resolves.toMatchObject({
         membership: { role: 'member' },
         memberCount: 2,
       });
@@ -362,7 +369,7 @@ describe.skipIf(!connectionString)('ChannelsService', () => {
     expect((await service.list(member, true)).map((c) => c.id)).toContain(
       channel.id
     );
-    await expect(service.get(users.member, channel.id)).resolves.toMatchObject({
+    await expect(rooms.get(users.member, channel.id)).resolves.toMatchObject({
       archivedAt: expect.any(Date),
     });
     await expect(

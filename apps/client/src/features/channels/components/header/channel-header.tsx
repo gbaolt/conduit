@@ -6,8 +6,8 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
 import { BackToList } from '@/components/list-view';
-import { useActivateChannelWorkspace } from '@/services/channels/hooks';
-import { roomQuery } from '@/services/channels/queries';
+import { useActivateRoomWorkspace } from '@/services/rooms/hooks';
+import { roomQuery } from '@/services/rooms/queries';
 
 import { useChannelDialogs } from '../../context/channel-dialogs-provider';
 import { ChannelActionsDropdown } from '../actions/channel-actions';
@@ -28,7 +28,7 @@ export function ChannelHeader({
   const { open } = useChannelDialogs();
   const Glyph = channel.visibility === 'private' ? IconLock : IconHash;
 
-  useActivateChannelWorkspace(roomId, channel.organizationId);
+  useActivateRoomWorkspace(roomId, channel.organizationId);
 
   return (
     <>

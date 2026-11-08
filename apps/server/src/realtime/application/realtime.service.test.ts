@@ -1,11 +1,11 @@
 import type { Room } from '@conduit/contract';
 import { describe, expect, it } from 'vitest';
 
-import type { ChannelsRepository } from '@/channels/domain/channels.repository';
 import type {
   LiveQueries,
   LiveQuery,
 } from '@/realtime/domain/live-queries.port';
+import type { RoomsRepository } from '@/rooms/domain/rooms.repository';
 
 import { RealtimeService, type RealtimeViewer } from './realtime.service';
 
@@ -39,7 +39,7 @@ function setup(channel: Partial<Room> | null) {
         membership: null,
         ...channel,
       },
-  } as Partial<ChannelsRepository> as ChannelsRepository;
+  } as Partial<RoomsRepository> as RoomsRepository;
   return { service: new RealtimeService(liveQueries, channels), sealed };
 }
 

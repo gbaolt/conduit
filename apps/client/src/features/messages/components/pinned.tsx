@@ -13,9 +13,9 @@ import { IconPin } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
-import { roomQuery } from '@/services/channels/queries';
 import { useTogglePin } from '@/services/messages/hooks';
 import { pinnedQuery } from '@/services/messages/queries';
+import { roomQuery } from '@/services/rooms/queries';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
 import { MentionNames } from '../context/mention-names';

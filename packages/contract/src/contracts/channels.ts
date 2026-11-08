@@ -4,10 +4,7 @@ import { z } from 'zod';
 
 import {
   AddChannelMembersInputSchema,
-  RoomIdInputSchema,
   ChannelMemberInputSchema,
-  RoomMemberSchema,
-  RoomSchema,
   CreateChannelInputSchema,
   ListChannelsInputSchema,
   MoveChannelToSectionInputSchema,
@@ -16,23 +13,20 @@ import {
   UpdateChannelInputSchema,
   SetChannelVisibilityInputSchema,
 } from '@/schemas/channels';
+import { roomErrors } from '@/contracts/rooms';
+import { RoomIdInputSchema, RoomSchema } from '@/schemas/rooms';
 
 export const channelErrors = {
-  NOT_FOUND: { status: 404, message: 'Channel not found.' },
+  ...roomErrors,
   FORBIDDEN: {
     status: 403,
     message: 'You do not have permission to do that in this channel.',
   },
-  NAME_TAKEN: { status: 409, message: 'That channel name is already taken.' },
   DEFAULT_CHANNEL_LOCKED: {
     status: 409,
     message: 'The default channel cannot be changed this way.',
   },
   CHANNEL_ARCHIVED: { status: 409, message: 'This channel is archived.' },
-  LAST_MANAGER: {
-    status: 409,
-    message: 'A channel needs at least one manager.',
-  },
 } as const;
 
 const {
@@ -49,12 +43,6 @@ export const listChannelsContract = oc
   .errors({ FORBIDDEN })
   .input(ListChannelsInputSchema)
   .output(z.array(RoomSchema));
-
-export const getRoomContract = oc
-  .meta(openapi({ method: 'GET', path: '/rooms/{roomId}' }))
-  .errors({ NOT_FOUND })
-  .input(RoomIdInputSchema)
-  .output(RoomSchema);
 
 export const createChannelContract = oc
   .meta(openapi({ method: 'POST', path: '/channels' }))
@@ -91,12 +79,6 @@ export const updateChannelContract = oc
   .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED })
   .input(UpdateChannelInputSchema)
   .output(RoomSchema);
-
-export const listRoomMembersContract = oc
-  .meta(openapi({ method: 'GET', path: '/rooms/{roomId}/members' }))
-  .errors({ NOT_FOUND })
-  .input(RoomIdInputSchema)
-  .output(z.array(RoomMemberSchema));
 
 export const addChannelMembersContract = oc
   .meta(openapi({ method: 'POST', path: '/channels/{roomId}/members' }))

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { ChannelNameSchema } from '@/schemas/channels';
+import { ChannelNameSchema } from '@/schemas/rooms';
 
 /** The most people one DM holds, the caller included. */
 export const DM_MEMBERS_MAX = 10;

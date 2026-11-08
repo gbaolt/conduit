@@ -24,7 +24,7 @@ import {
 
 import { ActivityService } from '@/activity/application/activity.service';
 import { InMemoryActivityRepository } from '@/activity/testing/in-memory-activity.repository';
-import type { ChannelsRepository } from '@/channels/domain/channels.repository';
+import type { RoomsRepository } from '@/rooms/domain/rooms.repository';
 
 const MEMBERS = 10;
 const MINUTES = 10;
@@ -56,7 +56,7 @@ async function run(profile: keyof typeof PROFILES) {
   const repository = new InMemoryActivityRepository(messages);
   const service = new ActivityService(repository, {
     find: async () => channel,
-  } as unknown as ChannelsRepository);
+  } as unknown as RoomsRepository);
 
   const members = Array.from({ length: MEMBERS }, (_, index) => {
     const viewer = {

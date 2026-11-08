@@ -8,10 +8,10 @@ import {
 } from '@conduit/contract';
 import { describe, expect, it } from 'vitest';
 
-import type { ChannelsRepository } from '@/channels/domain/channels.repository';
-import type { DmsRepository } from '@/channels/domain/dms.repository';
+import type { DmsRepository } from '@/dms/domain/dms.repository';
 import type { MessagesRepository } from '@/messages/domain/messages.repository';
 import type { SavedMessagesRepository } from '@/messages/domain/saved-messages.repository';
+import type { RoomsRepository } from '@/rooms/domain/rooms.repository';
 
 import { MessagesService, type MessageViewer } from './messages.service';
 
@@ -157,7 +157,7 @@ function setup(views: Record<string, Room | null>, memberIds: string[] = []) {
           joinedAt: new Date(0),
         })
       ),
-  } as Partial<ChannelsRepository> as ChannelsRepository;
+  } as Partial<RoomsRepository> as RoomsRepository;
 
   const dmIds: string[] = [];
   const dms = {

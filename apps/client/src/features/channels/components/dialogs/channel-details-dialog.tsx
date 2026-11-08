@@ -45,7 +45,7 @@ import {
   useSetChannelMemberRole,
   useUpdateChannel,
 } from '@/services/channels/hooks';
-import { roomMembersQuery, roomQuery } from '@/services/channels/queries';
+import { roomMembersQuery, roomQuery } from '@/services/rooms/queries';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
 import { useChannelDialogs } from '../../context/channel-dialogs-provider';

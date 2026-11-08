@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 
 import { UserAvatar } from '@/components/nav-user';
 import { PresenceDot } from '@/components/presence-dot';
-import { useOpenDm } from '@/services/channels/hooks';
+import { useOpenDm } from '@/services/dms/hooks';
 import { useWorkspaceMembers } from '@/services/workspaces/hooks';
 
 const ROLE: Record<string, string> = {

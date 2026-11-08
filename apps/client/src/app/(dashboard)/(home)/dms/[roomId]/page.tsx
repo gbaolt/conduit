@@ -2,20 +2,21 @@ import { ORPCError } from '@orpc/client';
 import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
-import { ChannelPageSkeleton } from '@/features/channels/components/channel-skeletons';
-import { DmHeader } from '@/features/channels/components/header/dm-header';
-import { DmIntro } from '@/features/channels/components/intro/dm-intro';
+import { DmHeader } from '@/features/dms/components/dm-header';
+import { DmIntro } from '@/features/dms/components/dm-intro';
 import { Conversation } from '@/features/messages/components/conversation/conversation';
 import { PinnedButton } from '@/features/messages/components/pinned';
 import { SummaryChannelItems } from '@/features/messages/components/summary/summary-menu';
 import { ThreadLayout } from '@/features/messages/components/thread/thread-layout';
+import { RoomPageSkeleton } from '@/features/rooms/components/room-skeletons';
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
-import { dmsQuery, roomQuery } from '@/services/channels/queries';
+import { dmsQuery } from '@/services/dms/queries';
 import { messagesQuery, pinnedQuery } from '@/services/messages/queries';
+import { roomQuery } from '@/services/rooms/queries';
 
 export default function DmPage({ params }: PageProps<'/dms/[roomId]'>) {
   return (
-    <Suspense fallback={<ChannelPageSkeleton />}>
+    <Suspense fallback={<RoomPageSkeleton />}>
       <Dm params={params} />
     </Suspense>
   );

@@ -14,9 +14,9 @@ import { useQueryState } from 'nuqs';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ConversationSkeleton } from '@/components/conversation-skeleton';
+import { useRoomName } from '@/features/messages/lib/use-room-name';
 import { sessionQuery } from '@/services/auth/queries';
-import { useJoinChannel, useRoomName } from '@/services/channels/hooks';
-import { roomMembersQuery, roomQuery } from '@/services/channels/queries';
+import { useJoinChannel } from '@/services/channels/hooks';
 import { useSendMessage } from '@/services/messages/hooks';
 import { type LiveStatus, useLiveStream } from '@/services/messages/live';
 import {
@@ -25,6 +25,7 @@ import {
   repliesQuery,
   threadRootQuery,
 } from '@/services/messages/queries';
+import { roomMembersQuery, roomQuery } from '@/services/rooms/queries';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
 import {

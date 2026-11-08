@@ -8,7 +8,7 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import { ActivityRepository } from '@/activity/domain/activity.repository';
 import { activityError } from '@/activity/domain/activity-errors';
-import { ChannelsRepository } from '@/channels/domain/channels.repository';
+import { RoomsRepository } from '@/rooms/domain/rooms.repository';
 
 export type ActivityViewer = {
   userId: string;
@@ -22,7 +22,7 @@ type ConversationKey = { roomId: string; parentId?: string };
 export class ActivityService {
   constructor(
     @Inject(ActivityRepository) private readonly activity: ActivityRepository,
-    @Inject(ChannelsRepository) private readonly channels: ChannelsRepository
+    @Inject(RoomsRepository) private readonly channels: RoomsRepository
   ) {}
 
   async markRead(

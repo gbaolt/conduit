@@ -21,10 +21,10 @@ import { StatusButton } from '@/components/async/status-button';
 import { FormCheckbox } from '@/components/form/form-checkbox';
 import { useCreateChannel } from '@/services/channels/hooks';
 
+import { ChannelNameField } from '../../../rooms/components/channel-name-field';
+import { ChannelNameInputSchema } from '../../../rooms/lib/channel-name-input';
 import { useChannelDialogs } from '../../context/channel-dialogs-provider';
-import { ChannelNameInputSchema } from '../../lib/channel-name-input';
 import { useCanCreateChannel } from '../../lib/use-can-create-channel';
-import { ChannelNameField } from './channel-name-field';
 
 const CreateChannelFormSchema = z.object({
   name: ChannelNameInputSchema,

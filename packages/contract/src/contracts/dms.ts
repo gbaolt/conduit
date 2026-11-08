@@ -1,7 +1,7 @@
 import { oc } from '@orpc/contract';
 import { openapi } from '@orpc/openapi';
 
-import { RoomSchema } from '@/schemas/channels';
+import { RoomSchema } from '@/schemas/rooms';
 import {
   AddDmPeopleInputSchema,
   ConvertDmInputSchema,

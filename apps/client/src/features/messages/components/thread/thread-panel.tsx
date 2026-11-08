@@ -4,7 +4,7 @@ import { Button } from '@conduit/ui/components/button';
 import { IconArrowLeft, IconMessageDots, IconX } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 
-import { useRoomName } from '@/services/channels/hooks';
+import { useRoomName } from '@/features/messages/lib/use-room-name';
 import { threadRootQuery } from '@/services/messages/queries';
 
 import { SummaryProvider } from '../../context/summary';
