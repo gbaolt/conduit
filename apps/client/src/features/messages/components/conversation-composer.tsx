@@ -15,7 +15,7 @@ export function ConversationComposer({
   ...composer
 }: { channelId: string; parentId?: string } & Pick<
   ComposerProps,
-  'placeholder' | 'onSubmit' | 'onEditLast' | 'autoFocus' | 'children'
+  'placeholder' | 'onSubmit' | 'onEditLast' | 'autoFocus' | 'actions'
 >) {
   const draft = useDraft(channelId, parentId);
   const onChange = useComposerActivity(channelId, draft ?? '', parentId);

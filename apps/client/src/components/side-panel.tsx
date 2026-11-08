@@ -46,7 +46,11 @@ export function SidePanelLayout({ children }: { children: ReactNode }) {
   return (
     <DockContext value={dock}>
       <ResizablePanelGroup className="min-h-0 min-w-0 flex-1 overflow-hidden py-2 pe-2">
-        <ResizablePanel id="main" minSize="30%">
+        <ResizablePanel
+          id="main"
+          minSize="60%"
+          groupResizeBehavior="preserve-pixel-size"
+        >
           <SidebarInset className="border-sidebar-border h-full min-h-0 overflow-hidden rounded-xl border">
             {children}
           </SidebarInset>
@@ -56,9 +60,8 @@ export function SidePanelLayout({ children }: { children: ReactNode }) {
             <ResizeHandle className="w-2 bg-transparent" />
             <ResizablePanel
               id="side"
-              defaultSize="380px"
-              minSize="320px"
-              maxSize="60%"
+              defaultSize={512}
+              minSize={448}
               groupResizeBehavior="preserve-pixel-size"
             >
               <aside

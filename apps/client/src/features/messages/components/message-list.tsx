@@ -239,7 +239,7 @@ export function MessageList({
 
   return (
     <MessageScrollerProvider autoScroll defaultScrollPosition="end">
-      <MessageScroller className="min-h-0 flex-1">
+      <MessageScroller className="min-h-0 flex-1 pb-6">
         <MessageScrollerViewport
           aria-label="Messages"
           onKeyDown={(event) => {
@@ -267,8 +267,8 @@ export function MessageList({
               <MessageScrollerItem
                 key={entry.key}
                 messageId={entry.key}
-                // content-visibility clips paint to the row, so lift it while the action bar overlaps the row above.
-                className="focus-within:relative focus-within:z-10 focus-within:[content-visibility:visible] hover:relative hover:z-10 hover:[content-visibility:visible] has-aria-expanded:relative has-aria-expanded:z-10 has-aria-expanded:[content-visibility:visible]"
+                // The action bar overlaps the row above, which content-visibility:auto would clip. Toggling it on hover moved the row 1px (pixel snapping) and cut the bar mid fade-out.
+                className="[content-visibility:visible]"
               >
                 {entry.startsDay && <DayDivider date={entry.createdAt} />}
                 {entry.startsNew && <NewMarker />}

@@ -26,7 +26,7 @@ import {
   IconBookmark,
   IconBookmarkFilled,
   IconDots,
-  IconMessageCircle,
+  IconMessageDots,
   IconMoodPlus,
   IconPencil,
   IconPin,
@@ -125,7 +125,7 @@ export function MessageActions({
           label="Reply in thread"
           onClick={() => openThread(message.id)}
         >
-          <IconMessageCircle />
+          <IconMessageDots />
         </ActionButton>
       )}
       <ActionButton
