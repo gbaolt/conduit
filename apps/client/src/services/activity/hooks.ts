@@ -108,7 +108,8 @@ export function useMarkRead(channelId: string) {
  */
 export function useDraft(channelId: string, parentId?: string) {
   const { data, isError } = useQuery(draftQuery(channelId, parentId));
-  const loaded = data ? data.body : isError ? '' : undefined;
+  // A draft that fails to load starts the composer empty.
+  const loaded = data?.body ?? (isError ? '' : undefined);
   const [initial, setInitial] = useState(loaded);
 
   if (initial === undefined && loaded !== undefined) setInitial(loaded);

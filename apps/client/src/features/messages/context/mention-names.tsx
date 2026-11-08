@@ -20,3 +20,6 @@ const NO_SUGGESTIONS: readonly MentionSuggestion[] = [];
 /** Who an `@` in the composer offers. Empty means it offers nobody. */
 export const MentionSuggestions =
   createContext<readonly MentionSuggestion[]>(NO_SUGGESTIONS);
+
+/** The signed-in member, so a mention of them reads as filled. Null outside a conversation. */
+export const MentionViewer = createContext<string | null>(null);

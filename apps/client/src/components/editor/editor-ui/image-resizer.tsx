@@ -55,11 +55,11 @@ export function ImageResizer({
   });
   const editorRootElement = editor.getRootElement();
   // Find max width, accounting for editor padding.
-  const maxWidthContainer = maxWidth
-    ? maxWidth
-    : editorRootElement !== null
+  const editorWidth =
+    editorRootElement !== null
       ? editorRootElement.getBoundingClientRect().width - 20
       : 100;
+  const maxWidthContainer = maxWidth || editorWidth;
   const maxHeightContainer =
     editorRootElement !== null
       ? editorRootElement.getBoundingClientRect().height - 20
@@ -75,7 +75,9 @@ export function ImageResizer({
       (direction & Direction.north && direction & Direction.west) ||
       (direction & Direction.south && direction & Direction.east);
 
-    const cursorDir = ew ? 'ew' : ns ? 'ns' : nwse ? 'nwse' : 'nesw';
+    const diagonal = nwse ? 'nwse' : 'nesw';
+    const straight = ns ? 'ns' : diagonal;
+    const cursorDir = ew ? 'ew' : straight;
 
     if (editorRootElement !== null) {
       editorRootElement.style.setProperty(

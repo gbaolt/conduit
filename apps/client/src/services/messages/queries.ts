@@ -31,7 +31,7 @@ export const threadRootQuery = (parentId: string) =>
 export function compareMessages(a: Message, b: Message) {
   return (
     a.createdAt.getTime() - b.createdAt.getTime() ||
-    (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+    Number(a.id > b.id) - Number(a.id < b.id)
   );
 }
 

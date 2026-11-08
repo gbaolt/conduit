@@ -1,22 +1,20 @@
 'use client';
 
 import { Button } from '@conduit/ui/components/button';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@conduit/ui/components/tooltip';
 import { cn } from '@conduit/ui/lib/utils';
-import { IconCheck, IconCopy, IconTextWrap } from '@tabler/icons-react';
+import { IconTextWrap } from '@tabler/icons-react';
 import {
   type ComponentProps,
   createContext,
   type Dispatch,
+  type ReactNode,
   type SetStateAction,
   use,
   useEffect,
   useState,
 } from 'react';
+
+import { CopyButton } from './copy-button';
 
 const CodeBlockContext = createContext<{
   wrap: boolean;
@@ -29,7 +27,10 @@ function useCodeBlock() {
   return context;
 }
 
-/** A framed code listing. Compose `CodeBlockHeader` and `CodeBlockContent` inside it. */
+/**
+ * A framed code listing, styled by `styles/code.css`. Compose `CodeBlockHeader` or `CodeBlockActions`,
+ * then `CodeBlockContent`, inside it.
+ */
 export function CodeBlock({
   className,
   children,
@@ -42,10 +43,8 @@ export function CodeBlock({
       <figure
         {...props}
         data-slot="code-block"
-        className={cn(
-          'border-border bg-background my-1.5 flex min-w-0 flex-col overflow-hidden rounded-md border',
-          className
-        )}
+        data-wrap={wrap || undefined}
+        className={cn('code-block not-typeset', className)}
       >
         {children}
       </figure>
@@ -53,81 +52,55 @@ export function CodeBlock({
   );
 }
 
+/** The language and the actions. Without a header, `CodeBlockActions` floats in the corner on hover. */
 export function CodeBlockHeader({
   language,
   children,
 }: {
-  language?: string;
-  children?: React.ReactNode;
+  language: string;
+  children?: ReactNode;
 }) {
   return (
-    <figcaption
-      data-slot="code-block-header"
-      className="border-border bg-muted/50 text-muted-foreground flex min-h-9 items-center gap-2 border-b py-1 pr-1 pl-3 font-mono text-xs"
-    >
-      <span className="min-w-0 flex-1 truncate">{language}</span>
-      <div className="flex shrink-0 items-center gap-0.5">{children}</div>
+    <figcaption data-slot="code-block-header">
+      <span data-slot="code-block-title">{language}</span>
+      <CodeBlockActions>{children}</CodeBlockActions>
     </figcaption>
   );
 }
+
+export function CodeBlockActions({ children }: { children: ReactNode }) {
+  return <div data-slot="code-block-actions">{children}</div>;
+}
+
+const actionClassName =
+  "text-muted-foreground [&_svg:not([class*='size-'])]:size-4";
 
 export function CodeBlockWrapButton() {
   const { wrap, setWrap } = useCodeBlock();
 
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            className="text-muted-foreground"
-            aria-label="Wrap lines"
-            aria-pressed={wrap}
-            onClick={() => setWrap((current) => !current)}
-          />
-        }
-      >
-        <IconTextWrap />
-      </TooltipTrigger>
-      <TooltipContent>{wrap ? 'Stop wrapping' : 'Wrap lines'}</TooltipContent>
-    </Tooltip>
+    <Button
+      variant="ghost"
+      size="icon-xs"
+      className={actionClassName}
+      aria-label="Wrap lines"
+      aria-pressed={wrap}
+      onClick={() => setWrap((current) => !current)}
+    >
+      <IconTextWrap />
+    </Button>
   );
 }
 
-const COPIED_MS = 1500;
-
 export function CodeBlockCopyButton({ value }: { value: string }) {
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    if (!copied) return;
-    const timer = setTimeout(() => setCopied(false), COPIED_MS);
-    return () => clearTimeout(timer);
-  }, [copied]);
-
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            className="text-muted-foreground"
-            aria-label={copied ? 'Copied' : 'Copy code'}
-            onClick={() => {
-              navigator.clipboard.writeText(value).then(
-                () => setCopied(true),
-                () => undefined
-              );
-            }}
-          />
-        }
-      >
-        {copied ? <IconCheck /> : <IconCopy />}
-      </TooltipTrigger>
-      <TooltipContent>{copied ? 'Copied' : 'Copy code'}</TooltipContent>
-    </Tooltip>
+    <CopyButton
+      variant="ghost"
+      size="icon-xs"
+      className={actionClassName}
+      aria-label="Copy code"
+      text={value}
+    />
   );
 }
 
@@ -171,7 +144,6 @@ export function CodeBlockContent({
   code: string;
   language?: string;
 }) {
-  const { wrap } = useCodeBlock();
   const [highlighted, setHighlighted] = useState<{
     key: string;
     tokens: Token[][];
@@ -193,32 +165,23 @@ export function CodeBlockContent({
   const tokens = highlighted?.key === key ? highlighted.tokens : null;
 
   return (
-    <pre
-      dir="ltr"
-      tabIndex={0}
-      data-slot="code-block-content"
-      className={cn(
-        'focus-visible:ring-ring/50 max-h-[360px] overflow-auto overscroll-x-contain py-2.5 text-start font-mono text-[13px] leading-5 outline-none focus-visible:ring-3',
-        wrap && '[overflow-wrap:anywhere] whitespace-pre-wrap'
-      )}
-    >
-      <code className={cn('block px-3', !wrap && 'w-max min-w-full')}>
-        {tokens
-          ? tokens.map((line, index) => (
-              <span key={index} className="block min-h-5">
-                {line.map((token, tokenIndex) => (
-                  <span
-                    key={tokenIndex}
-                    className="text-(--shiki-light) dark:text-(--shiki-dark)"
-                    style={token.htmlStyle}
-                  >
-                    {token.content}
-                  </span>
-                ))}
-              </span>
-            ))
-          : code}
-      </code>
-    </pre>
+    <div className="code-block-panel">
+      <pre dir="ltr" tabIndex={0} data-slot="code-block-content">
+        <code>
+          {(
+            tokens ??
+            code.split('\n').map((line): Token[] => [{ content: line }])
+          ).map((line, index) => (
+            <span key={index} data-line="">
+              {line.map((token, tokenIndex) => (
+                <span key={tokenIndex} style={token.htmlStyle}>
+                  {token.content}
+                </span>
+              ))}
+            </span>
+          ))}
+        </code>
+      </pre>
+    </div>
   );
 }

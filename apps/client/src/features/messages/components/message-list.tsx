@@ -37,15 +37,16 @@ function DayDivider({ date }: { date: Date }) {
   );
 }
 
+function repliesLabel(count: number) {
+  if (count === 0) return 'No replies yet';
+  return count === 1 ? '1 reply' : `${count} replies`;
+}
+
 function ReplyDivider({ count }: { count: number }) {
   return (
     <div role="separator" className="flex items-center gap-3 px-5 pt-3 pb-1">
       <span className="text-muted-foreground text-xs font-medium">
-        {count === 0
-          ? 'No replies yet'
-          : count === 1
-            ? '1 reply'
-            : `${count} replies`}
+        {repliesLabel(count)}
       </span>
       <div className="bg-border h-px flex-1" />
     </div>
@@ -250,7 +251,8 @@ export function MessageList({
         >
           <MessageScrollerContent
             aria-live="polite"
-            className="gap-0 pt-2 pb-3"
+            // The composer floats over the log, so the end of the log clears its height.
+            className="gap-0 pt-2 pb-[calc(var(--composer-height,8rem)+0.75rem)]"
           >
             {olderFailed && (
               <p className="text-muted-foreground px-5 py-2 text-xs">
@@ -262,7 +264,12 @@ export function MessageList({
             )}
             {!hasOlder && start}
             {entries.map((entry) => (
-              <MessageScrollerItem key={entry.key} messageId={entry.key}>
+              <MessageScrollerItem
+                key={entry.key}
+                messageId={entry.key}
+                // content-visibility clips paint to the row, so lift it while the action bar overlaps the row above.
+                className="focus-within:relative focus-within:z-10 focus-within:[content-visibility:visible] hover:relative hover:z-10 hover:[content-visibility:visible] has-aria-expanded:relative has-aria-expanded:z-10 has-aria-expanded:[content-visibility:visible]"
+              >
                 {entry.startsDay && <DayDivider date={entry.createdAt} />}
                 {entry.startsNew && <NewMarker />}
                 {entry.kind === 'message' ? (
@@ -297,7 +304,7 @@ export function MessageList({
             {end}
           </MessageScrollerContent>
         </MessageScrollerViewport>
-        <MessageScrollerButton />
+        <MessageScrollerButton className="data-[direction=end]:bottom-[calc(var(--composer-height,8rem)+0.5rem)]" />
         <ScrollToTarget
           target={scrollTarget}
           loaded={messages.some((message) => message.id === scrollTarget)}

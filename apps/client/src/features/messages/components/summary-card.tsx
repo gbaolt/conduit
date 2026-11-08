@@ -89,12 +89,9 @@ export function SummaryCard({
     summary.target.kind === 'channel' ? <SummarizeSinceDialog /> : null;
   if (state.status === 'idle') return dialog;
 
-  const messageCount =
-    state.status === 'streaming'
-      ? state.messageCount
-      : state.status === 'done'
-        ? state.summary.messageCount
-        : 0;
+  let messageCount = 0;
+  if (state.status === 'streaming') messageCount = state.messageCount;
+  if (state.status === 'done') messageCount = state.summary.messageCount;
 
   return (
     <>

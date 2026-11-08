@@ -1,5 +1,4 @@
-import { cn } from '@conduit/ui/lib/utils';
-import { memo } from 'react';
+import { memo, use } from 'react';
 import Markdown, { type Components } from 'react-markdown';
 import rehypeExternalLinks from 'rehype-external-links';
 import rehypeSanitize from 'rehype-sanitize';
@@ -8,12 +7,17 @@ import remarkGfm from 'remark-gfm';
 
 import {
   CodeBlock,
+  CodeBlockActions,
   CodeBlockContent,
   CodeBlockCopyButton,
   CodeBlockHeader,
   CodeBlockWrapButton,
 } from '@/components/code-block';
-import { useMentionName } from '@/features/messages/context/mention-names';
+import { MentionCard } from '@/features/messages/components/mention-card';
+import {
+  MentionViewer,
+  useMentionName,
+} from '@/features/messages/context/mention-names';
 
 import { rehypeCode } from './rehype-code';
 import { remarkHtmlAsText } from './remark-html-as-text';
@@ -36,10 +40,16 @@ const rehypePlugins: React.ComponentProps<typeof Markdown>['rehypePlugins'] = [
 
 function Mention({ target }: { target: string }) {
   const name = useMentionName(target);
-  return (
-    <span className="bg-primary/10 text-primary rounded-sm px-0.5 font-medium">
+  const viewerId = use(MentionViewer);
+  const isMember =
+    target !== 'channel' && target !== 'here' && name !== '@unknown member';
+
+  return isMember ? (
+    <MentionCard userId={target} isViewer={target === viewerId}>
       {name}
-    </span>
+    </MentionCard>
+  ) : (
+    <span className="mention">{name}</span>
   );
 }
 
@@ -49,24 +59,8 @@ function dom<T extends { node?: unknown }>({ node, ...props }: T) {
   return props;
 }
 
-/** A chat row never shows a 24 px title, so every heading is a bold paragraph. */
-const Heading: Components['h1'] = (props) => (
-  <p {...dom(props)} className="font-semibold" />
-);
-
+// Typeset styles everything else. These only add behaviour Markdown cannot carry.
 const components: Components = {
-  h1: Heading,
-  h2: Heading,
-  h3: Heading,
-  h4: Heading,
-  h5: Heading,
-  h6: Heading,
-  a: (props) => (
-    <a
-      {...dom(props)}
-      className="text-primary underline-offset-2 hover:underline"
-    />
-  ),
   span: (props) => {
     const { 'data-mention': target, ...rest } = dom(props) as Record<
       string,
@@ -78,19 +72,6 @@ const components: Components = {
       <span {...rest} />
     );
   },
-  code: (props) => {
-    const { className, ...rest } = dom(props);
-    return (
-      <code
-        {...rest}
-        className={cn(
-          !className?.startsWith('language-') &&
-            'bg-muted rounded-sm px-1 py-0.5 font-mono text-[13px]',
-          className
-        )}
-      />
-    );
-  },
   pre: (props) => {
     const { children, ...rest } = dom(props);
     const { 'data-code': code, 'data-language': language } = rest as Record<
@@ -100,34 +81,27 @@ const components: Components = {
     if (typeof code !== 'string') return <pre>{children}</pre>;
 
     const lang = typeof language === 'string' ? language : undefined;
+    const actions = (
+      <>
+        <CodeBlockWrapButton />
+        <CodeBlockCopyButton value={code} />
+      </>
+    );
     return (
       <CodeBlock>
-        <CodeBlockHeader language={lang}>
-          <CodeBlockWrapButton />
-          <CodeBlockCopyButton value={code} />
-        </CodeBlockHeader>
+        {lang ? (
+          <CodeBlockHeader language={lang}>{actions}</CodeBlockHeader>
+        ) : (
+          <CodeBlockActions>{actions}</CodeBlockActions>
+        )}
         <CodeBlockContent code={code} language={lang} />
       </CodeBlock>
     );
   },
-  blockquote: (props) => (
-    <blockquote {...dom(props)} className="border-border border-l-[3px] pl-3" />
-  ),
-  ul: (props) => <ul {...dom(props)} className="list-disc pl-5" />,
-  ol: (props) => <ol {...dom(props)} className="list-decimal pl-5" />,
   table: (props) => (
-    <div className="overflow-x-auto">
-      <table {...dom(props)} className="border-collapse text-left" />
+    <div className="typeset-scroll">
+      <table {...dom(props)} />
     </div>
-  ),
-  th: (props) => (
-    <th
-      {...dom(props)}
-      className="border-border border px-2 py-1 font-semibold"
-    />
-  ),
-  td: (props) => (
-    <td {...dom(props)} className="border-border border px-2 py-1" />
   ),
 };
 
@@ -137,7 +111,7 @@ type MessageMarkdownProps = { id: string; updatedAt: Date; body: string };
 export const MessageMarkdown = memo(
   function MessageMarkdown({ body }: MessageMarkdownProps) {
     return (
-      <div className="max-w-[72ch] text-sm leading-[22px] wrap-break-word [&>*+*]:mt-1.5">
+      <div className="typeset typeset-chat max-w-[72ch]">
         <Markdown
           remarkPlugins={remarkPlugins}
           rehypePlugins={rehypePlugins}

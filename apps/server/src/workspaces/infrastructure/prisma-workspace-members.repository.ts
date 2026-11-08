@@ -7,11 +7,8 @@ import type { WorkspaceMembersRepository } from '@/workspaces/domain/workspace-m
 // Better Auth stores multiple roles comma-separated.
 function toWorkspaceRole(stored: string): WorkspaceRole {
   const roles = stored.split(',').map((role) => role.trim());
-  return roles.includes('owner')
-    ? 'owner'
-    : roles.includes('admin')
-      ? 'admin'
-      : 'member';
+  if (roles.includes('owner')) return 'owner';
+  return roles.includes('admin') ? 'admin' : 'member';
 }
 
 /** Reads the `Member` rows that Better Auth's organization plugin owns. */

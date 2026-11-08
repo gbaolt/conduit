@@ -101,7 +101,7 @@ export default function Pricing() {
                   scale: 1,
                   transition: {
                     duration: reduced ? 0.2 : 0.4,
-                    delay: reduced ? 0 : plan.featured ? 0.04 : 0,
+                    delay: !reduced && plan.featured ? 0.04 : 0,
                     ease: easeOut,
                   },
                 },

@@ -234,7 +234,7 @@ export function WorkspacePicker({ onCreate }: { onCreate: () => void }) {
         </div>
       </div>
 
-      {invitations.isError ? (
+      {invitations.isError && (
         <p className="text-muted-foreground text-[13px]">
           Couldn&apos;t load your invitations.{' '}
           <button
@@ -245,12 +245,13 @@ export function WorkspacePicker({ onCreate }: { onCreate: () => void }) {
             Try again
           </button>
         </p>
-      ) : invitations.data?.length === 0 ? (
+      )}
+      {invitations.data?.length === 0 && (
         <p className="text-muted-foreground text-[13px] text-pretty">
           Waiting for an invitation? Ask a workspace admin to send one to this
           email.
         </p>
-      ) : null}
+      )}
     </div>
   );
 }

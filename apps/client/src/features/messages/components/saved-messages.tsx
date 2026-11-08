@@ -74,9 +74,41 @@ function SavedSkeleton() {
   );
 }
 
+function SavedList() {
+  const { data: items, isPending, isError, refetch } = useQuery(savedQuery);
+
+  if (isPending) return <SavedSkeleton />;
+  if (isError) {
+    return (
+      <p className="text-muted-foreground text-sm">
+        Couldn&apos;t load saved messages.{' '}
+        <Button variant="link" size="xs" onClick={() => void refetch()}>
+          Retry
+        </Button>
+      </p>
+    );
+  }
+  if (items.length === 0) {
+    return (
+      <p className="text-muted-foreground max-w-sm text-sm">
+        Nothing saved yet. Use Save for later on a message, and it shows up
+        here. Only you can see this list.
+      </p>
+    );
+  }
+  return (
+    <ul className="flex max-w-2xl flex-col gap-5">
+      {items.map((item) => (
+        <li key={item.message.id}>
+          <SavedItem item={item} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** Messages the member saved for later, newest first. Only the member sees them. */
 export function SavedMessages() {
-  const { data: items, isPending, isError, refetch } = useQuery(savedQuery);
   const { names } = useAuthors();
 
   return (
@@ -87,29 +119,7 @@ export function SavedMessages() {
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5">
         <MentionNames value={names}>
-          {isPending ? (
-            <SavedSkeleton />
-          ) : isError ? (
-            <p className="text-muted-foreground text-sm">
-              Couldn&apos;t load saved messages.{' '}
-              <Button variant="link" size="xs" onClick={() => void refetch()}>
-                Retry
-              </Button>
-            </p>
-          ) : items.length === 0 ? (
-            <p className="text-muted-foreground max-w-sm text-sm">
-              Nothing saved yet. Use Save for later on a message, and it shows
-              up here. Only you can see this list.
-            </p>
-          ) : (
-            <ul className="flex max-w-2xl flex-col gap-5">
-              {items.map((item) => (
-                <li key={item.message.id}>
-                  <SavedItem item={item} />
-                </li>
-              ))}
-            </ul>
-          )}
+          <SavedList />
         </MentionNames>
       </div>
     </div>

@@ -63,6 +63,11 @@ type Active = {
   block: Block;
 };
 
+const INSERT_LIST_COMMANDS = {
+  bullet: INSERT_UNORDERED_LIST_COMMAND,
+  number: INSERT_ORDERED_LIST_COMMAND,
+} as const;
+
 const IDLE: Active = {
   bold: false,
   italic: false,
@@ -87,7 +92,7 @@ function readActive(): Active {
     strikethrough: selection.hasFormat('strikethrough'),
     code: selection.hasFormat('code'),
     link: $isLinkNode(node) || $isLinkNode(node.getParent()),
-    block: isCode ? 'code' : list ? list.getListType() : 'paragraph',
+    block: isCode ? 'code' : (list?.getListType() ?? 'paragraph'),
   };
 }
 
@@ -132,11 +137,16 @@ function useActiveFormats(editor: LexicalEditor) {
   return active;
 }
 
+const FORMAT_BUTTON =
+  "text-muted-foreground size-7 pointer-coarse:size-10 [&_svg:not([class*='size-'])]:size-4";
+const ACTION_BUTTON =
+  "text-muted-foreground size-8 pointer-coarse:size-11 [&_svg:not([class*='size-'])]:size-5";
+
 function ToolbarButton({
   label,
   shortcut,
   pressed,
-  className,
+  className = FORMAT_BUTTON,
   onClick,
   children,
 }: {
@@ -158,9 +168,8 @@ function ToolbarButton({
             aria-label={label}
             aria-pressed={pressed}
             className={cn(
-              'text-muted-foreground size-7 pointer-coarse:size-11',
-              pressed && 'bg-accent text-accent-foreground',
-              className
+              className,
+              pressed && 'bg-accent text-accent-foreground'
             )}
             // Keeps the selection in the editor, so a format applies to what is selected.
             onMouseDown={(event) => event.preventDefault()}
@@ -178,36 +187,25 @@ function ToolbarButton({
   );
 }
 
-export function ComposerToolbar({
-  length,
-  canSend,
-  mode,
-  onSubmit,
-  onCancel,
+const Divider = () => <span aria-hidden className="bg-border mx-1 h-4 w-px" />;
+
+/** Bold to code block, along the top edge. On a phone it stays folded until Aa opens it. */
+export function ComposerFormattingBar({
+  open,
   setIsLinkEditMode,
 }: {
-  length: number;
-  canSend: boolean;
-  mode: 'send' | 'save';
-  onSubmit: () => void;
-  onCancel?: () => void;
+  open: boolean;
   setIsLinkEditMode: (editing: boolean) => void;
 }) {
   const [editor] = useLexicalComposerContext();
   const active = useActiveFormats(editor);
-  // On a phone the formatting row stays folded until Aa is pressed.
-  const [showFormatting, setShowFormatting] = useState(false);
 
   const format = (type: TextFormatType) =>
     editor.dispatchCommand(FORMAT_TEXT_COMMAND, type);
 
-  const toggleList = (type: ListType) =>
+  const toggleList = (type: keyof typeof INSERT_LIST_COMMANDS) =>
     editor.dispatchCommand(
-      active.block === type
-        ? REMOVE_LIST_COMMAND
-        : type === 'bullet'
-          ? INSERT_UNORDERED_LIST_COMMAND
-          : INSERT_ORDERED_LIST_COMMAND,
+      active.block === type ? REMOVE_LIST_COMMAND : INSERT_LIST_COMMANDS[type],
       undefined
     );
 
@@ -231,8 +229,15 @@ export function ComposerToolbar({
     }
   };
 
-  const formatting = (
-    <>
+  return (
+    <div
+      role="toolbar"
+      aria-label="Formatting"
+      className={cn(
+        'border-border/60 flex-wrap items-center gap-0.5 border-b px-1.5 py-1',
+        open ? 'flex' : 'hidden sm:flex'
+      )}
+    >
       <ToolbarButton
         label="Bold"
         shortcut="Ctrl+B"
@@ -257,6 +262,7 @@ export function ComposerToolbar({
       >
         <IconStrikethrough />
       </ToolbarButton>
+      <Divider />
       <ToolbarButton
         label="Link"
         shortcut="Ctrl+K"
@@ -265,13 +271,7 @@ export function ComposerToolbar({
       >
         <IconLink />
       </ToolbarButton>
-      <ToolbarButton
-        label="Inline code"
-        pressed={active.code}
-        onClick={() => format('code')}
-      >
-        <IconCode />
-      </ToolbarButton>
+      <Divider />
       <ToolbarButton
         label="Bulleted list"
         pressed={active.block === 'bullet'}
@@ -286,6 +286,14 @@ export function ComposerToolbar({
       >
         <IconListNumbers />
       </ToolbarButton>
+      <Divider />
+      <ToolbarButton
+        label="Inline code"
+        pressed={active.code}
+        onClick={() => format('code')}
+      >
+        <IconCode />
+      </ToolbarButton>
       <ToolbarButton
         label="Code block"
         pressed={active.block === 'code'}
@@ -293,92 +301,105 @@ export function ComposerToolbar({
       >
         <IconBraces />
       </ToolbarButton>
-    </>
+    </div>
   );
+}
 
+/** Emoji and mentions on the left, the length and send on the right, along the bottom edge. */
+export function ComposerActionBar({
+  length,
+  canSend,
+  mode,
+  formattingOpen,
+  onToggleFormatting,
+  onSubmit,
+  onCancel,
+}: {
+  length: number;
+  canSend: boolean;
+  mode: 'send' | 'save';
+  formattingOpen: boolean;
+  onToggleFormatting: () => void;
+  onSubmit: () => void;
+  onCancel?: () => void;
+}) {
+  const [editor] = useLexicalComposerContext();
   const overLimit = length > MESSAGE_BODY_MAX;
 
   return (
-    <div className="flex flex-col">
-      {showFormatting && (
-        <div className="flex flex-wrap items-center gap-0.5 px-1.5 sm:hidden">
-          {formatting}
-        </div>
-      )}
-      <div className="flex items-center gap-0.5 px-1.5 pb-1.5">
-        <ToolbarButton
-          label="Formatting"
-          pressed={showFormatting}
-          className="sm:hidden"
-          onClick={() => setShowFormatting((shown) => !shown)}
-        >
-          <IconTextSize />
-        </ToolbarButton>
-        <div className="hidden items-center gap-0.5 sm:flex">{formatting}</div>
-        <EmojiPickerButton
-          label="Emoji"
-          variant="ghost"
-          size="icon-xs"
-          className="text-muted-foreground size-7 pointer-coarse:size-11"
-          onPick={(emoji) => insertAtCaret(editor, emoji)}
-        >
-          <IconMoodSmile />
-        </EmojiPickerButton>
-        <ToolbarButton
-          label="Mention someone"
-          onClick={() => insertAtCaret(editor, '@')}
-        >
-          <IconAt />
-        </ToolbarButton>
-        <div className="ml-auto flex items-center gap-2">
-          {length >= MESSAGE_BODY_MAX - 200 && (
-            <span
-              className={cn(
-                'text-xs tabular-nums',
-                overLimit ? 'text-destructive' : 'text-muted-foreground'
-              )}
-              aria-live="polite"
-            >
-              {length.toLocaleString('en-US')} /{' '}
-              {MESSAGE_BODY_MAX.toLocaleString('en-US')}
-            </span>
-          )}
-          {mode === 'save' ? (
-            <>
-              {onCancel && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="xs"
-                  onClick={onCancel}
-                >
-                  Cancel
-                </Button>
-              )}
+    <div className="flex items-center gap-0.5 px-1.5 pb-1.5">
+      <ToolbarButton
+        label="Formatting"
+        pressed={formattingOpen}
+        className={cn(ACTION_BUTTON, 'sm:hidden')}
+        onClick={onToggleFormatting}
+      >
+        <IconTextSize />
+      </ToolbarButton>
+      <EmojiPickerButton
+        label="Emoji"
+        variant="ghost"
+        size="icon-xs"
+        className={ACTION_BUTTON}
+        onPick={(emoji) => insertAtCaret(editor, emoji)}
+      >
+        <IconMoodSmile />
+      </EmojiPickerButton>
+      <ToolbarButton
+        label="Mention someone"
+        className={ACTION_BUTTON}
+        onClick={() => insertAtCaret(editor, '@')}
+      >
+        <IconAt />
+      </ToolbarButton>
+      <div className="ml-auto flex items-center gap-2">
+        {length >= MESSAGE_BODY_MAX - 200 && (
+          <span
+            className={cn(
+              'text-xs tabular-nums',
+              overLimit ? 'text-destructive' : 'text-muted-foreground'
+            )}
+            aria-live="polite"
+          >
+            {length.toLocaleString('en-US')} /{' '}
+            {MESSAGE_BODY_MAX.toLocaleString('en-US')}
+          </span>
+        )}
+        {mode === 'save' ? (
+          <>
+            {onCancel && (
               <Button
                 type="button"
-                size="xs"
-                disabled={!canSend}
-                onClick={onSubmit}
+                variant="ghost"
+                size="sm"
+                onClick={onCancel}
               >
-                Save
+                Cancel
               </Button>
-            </>
-          ) : (
+            )}
             <Button
               type="button"
-              size="icon-xs"
-              variant={canSend ? 'default' : 'secondary'}
+              size="sm"
               disabled={!canSend}
-              aria-label="Send message"
-              className="size-7 pointer-coarse:size-11"
-              onMouseDown={(event) => event.preventDefault()}
               onClick={onSubmit}
             >
-              <IconSend2 />
+              Save
             </Button>
-          )}
-        </div>
+          </>
+        ) : (
+          <Button
+            type="button"
+            size="icon-sm"
+            variant={canSend ? 'default' : 'secondary'}
+            disabled={!canSend}
+            aria-label="Send message"
+            className="size-8 pointer-coarse:size-11"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={onSubmit}
+          >
+            <IconSend2 />
+          </Button>
+        )}
       </div>
     </div>
   );

@@ -69,13 +69,6 @@ describe('MessageMarkdown rendering', () => {
     expect(html).toContain('rel="noopener nofollow"');
   });
 
-  it('renders a heading as a bold paragraph', () => {
-    const html = render('# Title');
-
-    expect(html).not.toContain('<h1');
-    expect(html).toContain('<p class="font-semibold">Title</p>');
-  });
-
   it('turns a single newline into a line break', () => {
     expect(render('one\ntwo')).toContain('one<br/>\ntwo');
   });
@@ -106,6 +99,20 @@ describe('MessageMarkdown rendering', () => {
     expect(html).toContain('@channel');
     expect(html).toContain('@here');
     expect(html).toContain('@unknown member');
+  });
+
+  it('renders a mention that is the whole message', () => {
+    for (const body of ['<@u1>', '<@channel>', '<@here>\n\nhi']) {
+      expect(render(body, [['u1', 'Linh']])).not.toContain('&lt;@');
+    }
+  });
+
+  it('keeps heading levels', () => {
+    const html = render('# One\n\n## Two\n\n### Three');
+
+    expect(html).toContain('<h1>One</h1>');
+    expect(html).toContain('<h2>Two</h2>');
+    expect(html).toContain('<h3>Three</h3>');
   });
 
   it('leaves a mention inside code as typed', () => {

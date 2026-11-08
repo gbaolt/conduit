@@ -5,7 +5,10 @@ import {
 } from '@conduit/ui/components/sidebar';
 import { Skeleton } from '@conduit/ui/components/skeleton';
 
-import { ConversationSkeleton } from '@/components/conversation-skeleton';
+import {
+  ComposerSkeleton,
+  ConversationSkeleton,
+} from '@/components/conversation-skeleton';
 
 // Fixed widths: a random width would differ between the server and the client render.
 const CHANNEL_WIDTHS = ['w-24', 'w-28', 'w-20'];
@@ -46,7 +49,7 @@ export function ChannelHeaderSkeleton() {
   );
 }
 
-/** Stands in for the whole channel page while its sidebar loads: the header and the log. */
+/** Stands in for the whole channel page while it loads: the header, the log, and the composer. */
 export function ChannelPageSkeleton() {
   return (
     <div
@@ -56,6 +59,9 @@ export function ChannelPageSkeleton() {
     >
       <ChannelHeaderSkeleton />
       <ConversationSkeleton />
+      <div className="px-4 pb-4 sm:px-5">
+        <ComposerSkeleton />
+      </div>
     </div>
   );
 }

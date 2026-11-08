@@ -245,13 +245,15 @@ export function MessageRow({
         )
       }
     >
-      {message.deletedAt ? (
+      {message.deletedAt && (
         <p className="text-muted-foreground text-sm leading-[22px] italic">
           This message was deleted.
         </p>
-      ) : editing ? (
+      )}
+      {!message.deletedAt && editing && (
         <EditMessage message={message} onDone={onStopEditing} />
-      ) : (
+      )}
+      {!message.deletedAt && !editing && (
         <>
           {message.pinnedAt && (
             <p className="text-muted-foreground flex items-center gap-1 text-xs">
@@ -354,11 +356,16 @@ export function PendingRow({
       createdAt={pending.createdAt}
       grouped={grouped}
       trailing={
-        failed ? (
-          <span className="text-destructive text-xs">Not sent.</span>
-        ) : slow ? (
-          <span className="text-muted-foreground text-xs">Sending…</span>
-        ) : undefined
+        (failed || slow) && (
+          <span
+            className={cn(
+              'text-xs',
+              failed ? 'text-destructive' : 'text-muted-foreground'
+            )}
+          >
+            {failed ? 'Not sent.' : 'Sending…'}
+          </span>
+        )
       }
     >
       <MessageMarkdown

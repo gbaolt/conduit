@@ -46,11 +46,13 @@ export function WorkspaceSwitcher() {
       <DropdownMenuContent side="right" align="start" className="w-56 min-w-56">
         <DropdownMenuGroup>
           <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
-          {isPending ? (
+          {isPending && (
             <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
-          ) : workspaces.length === 0 ? (
+          )}
+          {!isPending && workspaces.length === 0 && (
             <DropdownMenuItem disabled>No workspaces yet</DropdownMenuItem>
-          ) : (
+          )}
+          {!isPending &&
             workspaces.map((workspace) => (
               <DropdownMenuItem
                 key={workspace.id}
@@ -71,8 +73,7 @@ export function WorkspaceSwitcher() {
                 </span>
                 {workspace.id === activeWorkspace?.id ? <IconCheck /> : null}
               </DropdownMenuItem>
-            ))
-          )}
+            ))}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem
