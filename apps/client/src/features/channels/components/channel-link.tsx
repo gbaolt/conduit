@@ -4,8 +4,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@conduit/ui/components/sidebar';
-import { IconDots, IconHash, IconLock } from '@tabler/icons-react';
+import { cn } from '@conduit/ui/lib/utils';
+import { IconDots, IconHash, IconLock, IconPencil } from '@tabler/icons-react';
 import Link from 'next/link';
+
+import { useHasDraft, useIsUnread } from '@/services/activity/hooks';
 
 import {
   ChannelActionsDropdown,
@@ -20,6 +23,9 @@ export function ChannelLink({
   isActive: boolean;
 }) {
   const Glyph = channel.visibility === 'private' ? IconLock : IconHash;
+  // The open conversation is being read, so it never reads as unread.
+  const unread = useIsUnread(channel.id) && !isActive;
+  const hasDraft = useHasDraft(channel.id) && !isActive;
 
   return (
     <ChannelContextMenu channel={channel} render={<SidebarMenuItem />}>
@@ -34,7 +40,19 @@ export function ChannelLink({
         }
       >
         <Glyph />
-        <span>{channel.name}</span>
+        <span className={cn(unread && 'text-foreground font-semibold')}>
+          {channel.name}
+        </span>
+        {unread && <span className="sr-only">, unread</span>}
+        {hasDraft && (
+          <>
+            <IconPencil
+              aria-hidden
+              className="text-muted-foreground ml-auto size-3.5"
+            />
+            <span className="sr-only">, draft</span>
+          </>
+        )}
       </SidebarMenuButton>
       <ChannelActionsDropdown
         channel={channel}
