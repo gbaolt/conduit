@@ -9,7 +9,7 @@ import {
 
 type SummaryControls = ReturnType<typeof useSummaryRun> & {
   target: SummaryTarget;
-  /** The "since a date" dialog, which the menu cannot own because the menu closes first. */
+  /** The date range dialog, which the menu cannot own because the menu closes first. */
   pickingDate: boolean;
   setPickingDate: (picking: boolean) => void;
 };

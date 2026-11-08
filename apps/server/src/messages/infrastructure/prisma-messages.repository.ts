@@ -124,13 +124,13 @@ export class PrismaMessagesRepository implements MessagesRepository {
 
   async listForSummary(
     channelId: string,
-    range: { threadId?: string; from?: Date; limit: number }
+    range: { threadId?: string; from?: Date; to?: Date; limit: number }
   ) {
     const rows = await this.db.message.findMany({
       where: {
         channelId,
         deletedAt: null,
-        ...(range.from && { createdAt: { gte: range.from } }),
+        createdAt: { gte: range.from, lt: range.to },
         OR: range.threadId
           ? [{ id: range.threadId }, { parentId: range.threadId }]
           : [{ parentId: null }, { alsoSentToChannel: true }],

@@ -57,10 +57,17 @@ export const ThreadSummaryInputSchema = z.object({
   messageId: z.string(),
 });
 
-export const ChannelSummaryInputSchema = z.object({
-  channelId: z.string(),
-  /** Summarizes the channel's log from this time until now. */
-  from: z.iso.datetime(),
-});
+export const ChannelSummaryInputSchema = z
+  .object({
+    channelId: z.string(),
+    /** Summarizes the channel's log from this time. */
+    from: z.iso.datetime(),
+    /** Until just before this time, or until now when left out. */
+    to: z.iso.datetime().optional(),
+  })
+  .refine(({ from, to }) => !to || new Date(to) > new Date(from), {
+    message: 'The end must come after the start.',
+    path: ['to'],
+  });
 
 export const SummaryIdInputSchema = z.object({ summaryId: z.string() });

@@ -85,12 +85,13 @@ export class MessagesService {
    */
   async listForSummary(
     viewer: MessageViewer,
-    input: { channelId: string; threadId?: string; from?: Date }
+    input: { channelId: string; threadId?: string; from?: Date; to?: Date }
   ) {
     await this.find(viewer, input.channelId);
     return this.messages.listForSummary(input.channelId, {
       threadId: input.threadId,
       from: input.from,
+      to: input.to,
       limit: SUMMARY_MESSAGES_MAX,
     });
   }
