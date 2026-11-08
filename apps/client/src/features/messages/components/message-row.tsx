@@ -184,10 +184,6 @@ function RepliedLine({ rootId }: { rootId: string }) {
   );
 }
 
-function EditedMark() {
-  return <span className="text-muted-foreground text-xs">(edited)</span>;
-}
-
 export function MessageRow({
   message,
   author,
@@ -264,14 +260,11 @@ export function MessageRow({
           {message.parentId && !inThread && (
             <RepliedLine rootId={message.parentId} />
           )}
-          <div className="flex flex-wrap items-baseline gap-x-1.5">
-            <MessageMarkdown
-              id={message.id}
-              updatedAt={message.updatedAt}
-              body={message.body}
-            />
-            {message.editedAt && <EditedMark />}
-          </div>
+          <MessageMarkdown
+            id={message.id}
+            updatedAt={message.updatedAt}
+            body={message.body}
+          />
           {message.linkPreview && (
             <MessagePreview
               messageId={message.id}
