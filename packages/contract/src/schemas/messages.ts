@@ -1,0 +1,69 @@
+import { z } from 'zod';
+
+import { MessageBodySchema } from '@/lib/message-body';
+
+/** `Record<emoji, userId[]>`. */
+export const ReactionSummarySchema = z.record(z.string(), z.array(z.string()));
+export type ReactionSummary = z.infer<typeof ReactionSummarySchema>;
+
+export const MessageSchema = z.object({
+  id: z.string(),
+  channelId: z.string(),
+  authorId: z.string(),
+  clientId: z.string(),
+  parentId: z.string().nullable(),
+  alsoSentToChannel: z.boolean(),
+  body: z.string(),
+  mentionedUserIds: z.array(z.string()),
+  mentionsChannel: z.boolean(),
+  mentionsHere: z.boolean(),
+  reactions: ReactionSummarySchema,
+  replyCount: z.number().int(),
+  lastReplyAt: z.coerce.date().nullable(),
+  linkPreview: z.unknown().nullable(),
+  pinnedAt: z.coerce.date().nullable(),
+  pinnedById: z.string().nullable(),
+  editedAt: z.coerce.date().nullable(),
+  deletedAt: z.coerce.date().nullable(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+export type Message = z.infer<typeof MessageSchema>;
+
+export const MESSAGE_PAGE_MAX = 100;
+export const MESSAGE_PAGE_DEFAULT = 50;
+
+export const ListMessagesInputSchema = z.object({
+  channelId: z.string(),
+  /** The oldest message already loaded. The page ends just before it. */
+  before: z.string().optional(),
+  limit: z.number().int().min(1).max(MESSAGE_PAGE_MAX).optional(),
+});
+
+export const ListMessagesOutputSchema = z.object({
+  /** Newest first. */
+  messages: z.array(MessageSchema),
+  hasMore: z.boolean(),
+});
+export type ListMessagesOutput = z.infer<typeof ListMessagesOutputSchema>;
+
+export const SendMessageInputSchema = z.object({
+  channelId: z.string(),
+  /** Chosen by the client for each new message, so a retry cannot post it twice. */
+  clientId: z.string().min(1).max(64),
+  body: MessageBodySchema,
+});
+
+export const SendMessageOutputSchema = z.object({
+  message: MessageSchema,
+  /** The Postgres transaction that stored the message, or null when `clientId` was already stored. */
+  txid: z.string().nullable(),
+});
+export type SendMessageOutput = z.infer<typeof SendMessageOutputSchema>;
+
+export const EditMessageInputSchema = z.object({
+  messageId: z.string(),
+  body: MessageBodySchema,
+});
+
+export const MessageIdInputSchema = z.object({ messageId: z.string() });

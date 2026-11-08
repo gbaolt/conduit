@@ -20,7 +20,7 @@ export function ChannelHeader({ channelId }: { channelId: string }) {
 
   return (
     <>
-      <header className="flex min-h-12 items-center gap-1.5 border-b px-4 py-1.5">
+      <header className="flex min-h-12 shrink-0 items-center gap-1.5 border-b px-4 py-1.5">
         <div className="min-w-0 flex-1">
           <h1 className="min-w-0 text-sm font-semibold">
             <Button
@@ -62,9 +62,6 @@ export function ChannelHeader({ channelId }: { channelId: string }) {
         </ChannelActionsDropdown>
       </header>
       <ArchivedBanner channel={channel} />
-      <p className="text-muted-foreground p-4 text-sm">
-        This is the very beginning of #{channel.name}.
-      </p>
     </>
   );
 }

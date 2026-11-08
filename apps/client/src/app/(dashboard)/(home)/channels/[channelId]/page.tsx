@@ -3,9 +3,12 @@ import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { ChannelHeader } from '@/features/channels/components/channel-header';
+import { ChannelIntro } from '@/features/channels/components/channel-intro';
 import { ChannelPageSkeleton } from '@/features/channels/components/channel-skeletons';
+import { Conversation } from '@/features/messages/components/conversation';
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
 import { channelQuery } from '@/services/channels/queries';
+import { messagesQuery } from '@/services/messages/queries';
 
 export default function ChannelPage({
   params,
@@ -23,14 +26,24 @@ async function Channel({
   const { channelId } = await params;
   const client = getQueryClient();
 
-  await client.fetchQuery(channelQuery(channelId)).catch((error: unknown) => {
-    if (error instanceof ORPCError && error.code === 'NOT_FOUND') notFound();
-    throw error;
-  });
+  // A prefetch never throws: if the first page fails, the log loads in the browser instead.
+  await Promise.all([
+    client.fetchQuery(channelQuery(channelId)).catch((error: unknown) => {
+      if (error instanceof ORPCError && error.code === 'NOT_FOUND') notFound();
+      throw error;
+    }),
+    client.prefetchInfiniteQuery(messagesQuery(channelId)),
+  ]);
 
   return (
     <HydrateClient client={client}>
-      <ChannelHeader channelId={channelId} />
+      <div className="flex h-full min-h-0 flex-col">
+        <ChannelHeader channelId={channelId} />
+        <Conversation
+          channelId={channelId}
+          start={<ChannelIntro channelId={channelId} />}
+        />
+      </div>
     </HydrateClient>
   );
 }

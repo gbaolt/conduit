@@ -23,5 +23,6 @@ import { ChannelsController } from './presentation/channels.controller';
       useClass: PrismaChannelSectionsRepository,
     },
   ],
+  exports: [ChannelsRepository],
 })
 export class ChannelsModule {}

@@ -40,7 +40,8 @@ These are out of scope. Don't start them without a PR that moves them into a mil
 - Shared channels between workspaces.
 - Enterprise features: SAML SSO, retention policies, and eDiscovery.
 - Native mobile apps. The web app works on a phone screen instead.
-- Billing and plans. Every workspace is free, with caps on AI usage and storage.
+- Billing and plans. Every workspace is free, with a cap on storage.
+- A monthly AI usage cap per workspace, and a usage meter. Conduit is not serving real teams yet.
 - UI languages other than English.
 
 ## Quality targets for every feature
@@ -62,7 +63,7 @@ These rules apply to every AI feature, including the ones listed under AI later.
 - Every summary and answer links to the messages it used.
 - A workspace admin can turn AI off for the whole workspace.
 - Conduit never uses workspace data to train a model.
-- Conduit pays for the built-in AI features on its own model account. Each workspace has a monthly AI usage cap.
+- Conduit pays for the built-in AI features on its own model account.
 - AI teammates run on an API key the workspace provides, or on the team's own servers. Anthropic's terms bar third-party apps from using Claude Free, Pro, or Max logins, so members can't connect a consumer subscription.
 
 ## Success metrics
@@ -87,7 +88,7 @@ Targets get set once M2 ships and there is a baseline to measure against.
 - `packages/ui` holds the shared components, including `Message` and `MessageScroller`. A Lexical editor kit lives in `apps/client/src/components/editor/`.
 - Files will be stored in S3.
 
-Nothing yet handles realtime delivery, messages, file storage, search, or AI calls.
+Nothing yet handles file storage, search, or AI calls. Messages are stored in Postgres and delivered live through Neon Realtime.
 
 ## Milestones
 
@@ -97,7 +98,7 @@ Each milestone ships its core features first, then the AI feature that depends o
 | ------------------------------------------ | ---------------------------------------- | --------------------------- | ----------- |
 | [Foundations](#foundations)                | Sign-in, workspaces, channels, sections  | None                        | Shipped     |
 | [M0](#m0-workspace-admin)                  | Invitations, member management, settings | None                        | In progress |
-| [M1](#m1-messaging)                        | Messages, threads, DMs, realtime         | Summaries                   | Not started |
+| [M1](#m1-messaging)                        | Messages, threads, DMs, realtime         | Summaries                   | In progress |
 | [M2](#m2-activity-and-notifications)       | Activity feed, notifications             | Smart Activity, Catch me up | Not started |
 | [M3](#m3-files-and-search)                 | Files, search, quick switcher            | Ask Conduit                 | Not started |
 | [M4](#m4-canvas)                           | Canvas                                   | Thread to canvas            | Not started |
@@ -146,27 +147,27 @@ A team can't try messaging until more than one person can get in. Today a member
 
 Every other feature reads or writes messages, so messaging comes first.
 
-| ID    | Sub-feature                                                                             | Status      | PR  |
-| ----- | --------------------------------------------------------------------------------------- | ----------- | --- |
-| M1.1  | Deliver messages in realtime to every open client                                       | Not started |     |
-| M1.2  | Send, edit, and delete messages                                                         | Not started |     |
-| M1.3  | Rich text with Markdown shortcuts, built on the Lexical kit                             | Not started |     |
-| M1.4  | Mention a person, `@channel`, or `@here`                                                | Not started |     |
-| M1.5  | Emoji reactions                                                                         | Not started |     |
-| M1.6  | Threads, with **Also send to channel**                                                  | Not started |     |
-| M1.7  | Unread markers, and remembering where each member stopped reading                       | Not started |     |
-| M1.8  | Typing indicators                                                                       | Not started |     |
-| M1.9  | Online and away status                                                                  | Not started |     |
-| M1.10 | Keep a saved draft for each conversation                                                | Not started |     |
-| M1.11 | Pin messages to a conversation                                                          | Not started |     |
-| M1.12 | **Save for later** on any message                                                       | Not started |     |
-| M1.13 | Link previews                                                                           | Not started |     |
-| M1.14 | One-on-one DMs                                                                          | Not started |     |
-| M1.15 | Group DMs of up to 10 people, including you                                             | Not started |     |
-| M1.16 | **Turn into a private channel**, offered when someone adds an 11th person to a group DM | Not started |     |
-| M1.17 | A DM with yourself, for notes                                                           | Not started |     |
-| M1.18 | AI: summarize a thread, or a channel over a time range                                  | Not started |     |
-| M1.19 | AI admin controls: AI on or off, the monthly usage cap, and a usage meter               | Not started |     |
+| ID    | Sub-feature                                                                             | Status      | PR                                               |
+| ----- | --------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------ |
+| M1.1  | Deliver messages in realtime to every open client                                       | Shipped     | [#59](https://github.com/gbaolt/conduit/pull/59) |
+| M1.2  | Send, edit, and delete messages                                                         | Shipped     | [#59](https://github.com/gbaolt/conduit/pull/59) |
+| M1.3  | Rich text with Markdown shortcuts, built on the Lexical kit                             | Shipped     | [#59](https://github.com/gbaolt/conduit/pull/59) |
+| M1.4  | Mention a person, `@channel`, or `@here`                                                | Not started |                                                  |
+| M1.5  | Emoji reactions                                                                         | Not started |                                                  |
+| M1.6  | Threads, with **Also send to channel**                                                  | Not started |                                                  |
+| M1.7  | Unread markers, and remembering where each member stopped reading                       | Not started |                                                  |
+| M1.8  | Typing indicators                                                                       | Not started |                                                  |
+| M1.9  | Online and away status                                                                  | Not started |                                                  |
+| M1.10 | Keep a saved draft for each conversation                                                | Not started |                                                  |
+| M1.11 | Pin messages to a conversation                                                          | Not started |                                                  |
+| M1.12 | **Save for later** on any message                                                       | Not started |                                                  |
+| M1.13 | Link previews                                                                           | Not started |                                                  |
+| M1.14 | One-on-one DMs                                                                          | Not started |                                                  |
+| M1.15 | Group DMs of up to 10 people, including you                                             | Not started |                                                  |
+| M1.16 | **Turn into a private channel**, offered when someone adds an 11th person to a group DM | Not started |                                                  |
+| M1.17 | A DM with yourself, for notes                                                           | Not started |                                                  |
+| M1.18 | AI: summarize a thread, or a channel over a time range                                  | Not started |                                                  |
+| M1.19 | AI admin control: turn AI on or off for the workspace                                   | Not started |                                                  |
 
 File attachments ship in M3, together with file storage.
 
@@ -292,7 +293,6 @@ These ideas wait until the must-have AI features ship:
 
 ## Open questions
 
-- The monthly AI usage cap for each workspace has no number yet.
 - The 10 GB storage cap for each workspace is a placeholder.
 - The 4-hour reply window in the success metrics is a placeholder.
 - The 1-hour wait before the email digest is a placeholder.

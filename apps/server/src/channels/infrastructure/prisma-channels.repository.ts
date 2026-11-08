@@ -87,6 +87,7 @@ export class PrismaChannelsRepository implements ChannelsRepository {
     const rows = await this.db.channel.findMany({
       where: {
         organizationId: scope.organizationId,
+        kind: 'CHANNEL',
         archivedAt: archived ? { not: null } : null,
         OR: [
           { visibility: 'PUBLIC' },
