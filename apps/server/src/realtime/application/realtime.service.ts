@@ -29,10 +29,12 @@ export class RealtimeService {
    * so someone who loses access stops receiving changes within a minute.
    */
   async seal(viewer: RealtimeViewer, stream: LiveStream) {
-    const channel = await this.channels.find(viewer, stream.channelId);
-    if (!channel || checkChannel('view', viewer.workspaceRole, channel)) {
-      throw realtimeError('NOT_FOUND');
+    if ('channelId' in stream) {
+      const channel = await this.channels.find(viewer, stream.channelId);
+      if (!channel || checkChannel('view', viewer.workspaceRole, channel)) {
+        throw realtimeError('NOT_FOUND');
+      }
     }
-    return this.liveQueries.seal(queryFor(stream));
+    return this.liveQueries.seal(queryFor(stream, viewer));
   }
 }

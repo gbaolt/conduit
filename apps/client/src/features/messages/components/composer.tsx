@@ -49,6 +49,8 @@ export type ComposerProps = {
   onCancel?: () => void;
   /** Up arrow in an empty composer. */
   onEditLast?: () => void;
+  /** The Markdown after each change, such as typing, a paste, or the composer clearing after a send. */
+  onChange?: (markdown: string) => void;
   /** Rendered under the frame, such as a thread's "Also send to channel" checkbox. */
   children?: ReactNode;
 };
@@ -68,10 +70,16 @@ function ComposerBehavior({
   onSubmit,
   onCancel,
   onEditLast,
+  onChange,
 }: Required<Pick<ComposerProps, 'mode'>> &
   Pick<
     ComposerProps,
-    'autoFocus' | 'onSubmit' | 'onCancel' | 'onEditLast' | 'initialMarkdown'
+    | 'autoFocus'
+    | 'onSubmit'
+    | 'onCancel'
+    | 'onEditLast'
+    | 'onChange'
+    | 'initialMarkdown'
   > & {
     anchor: HTMLDivElement | null;
     isLinkEditMode: boolean;
@@ -83,10 +91,14 @@ function ComposerBehavior({
   const canSend =
     markdown.trim().length > 0 && markdown.length <= MESSAGE_BODY_MAX;
 
+  const handleChange = useEffectEvent((next: string) => onChange?.(next));
+
   useEffect(() => {
     return editor.registerUpdateListener(({ dirtyElements, dirtyLeaves }) => {
       if (dirtyElements.size > 0 || dirtyLeaves.size > 0) {
-        setMarkdown(markdownOf(editor));
+        const next = markdownOf(editor);
+        setMarkdown(next);
+        handleChange(next);
       }
     });
   }, [editor]);

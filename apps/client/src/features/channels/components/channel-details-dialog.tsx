@@ -37,6 +37,7 @@ import { toast } from 'sonner';
 
 import { StatusButton } from '@/components/async/status-button';
 import { UserAvatar } from '@/components/nav-user';
+import { PresenceDot } from '@/components/presence-dot';
 import { sessionQuery } from '@/services/auth/queries';
 import {
   useLeaveChannel,
@@ -261,7 +262,13 @@ function MemberRow({
 
   return (
     <li className="flex items-center gap-2 py-1.5">
-      <UserAvatar name={member.name} image={member.image} />
+      <span className="relative">
+        <UserAvatar name={member.name} image={member.image} />
+        <PresenceDot
+          userId={member.userId}
+          className="absolute right-0 bottom-0"
+        />
+      </span>
       <p className="min-w-0 flex-1 truncate text-sm font-medium">
         {member.name}
       </p>
