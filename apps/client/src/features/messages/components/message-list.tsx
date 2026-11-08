@@ -239,7 +239,7 @@ export function MessageList({
 
   return (
     <MessageScrollerProvider autoScroll defaultScrollPosition="end">
-      <MessageScroller className="min-h-0 flex-1 pb-6">
+      <MessageScroller className="min-h-0 flex-1 pb-4">
         <MessageScrollerViewport
           aria-label="Messages"
           onKeyDown={(event) => {
