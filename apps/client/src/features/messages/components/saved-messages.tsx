@@ -3,7 +3,7 @@
 import type { SavedMessage } from '@conduit/contract';
 import { Button } from '@conduit/ui/components/button';
 import { Skeleton } from '@conduit/ui/components/skeleton';
-import { IconBookmark, IconHash } from '@tabler/icons-react';
+import { IconBookmark, IconHash, IconMessage } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 
@@ -27,11 +27,17 @@ function SavedItem({ item }: { item: SavedMessage }) {
       author={authors.get(message.authorId) ?? FORMER_MEMBER}
       context={
         <Link
-          href={`/channels/${message.channelId}`}
+          href={`${channelName === null ? '/dms' : '/channels'}/${message.channelId}${
+            message.parentId ? `?thread=${message.parentId}` : ''
+          }`}
           className="text-primary mb-0.5 flex w-fit items-center gap-0.5 text-xs hover:underline"
         >
-          <IconHash className="size-3.5" aria-hidden />
-          {channelName ?? 'Open conversation'}
+          {channelName === null ? (
+            <IconMessage className="size-3.5" aria-hidden />
+          ) : (
+            <IconHash className="size-3.5" aria-hidden />
+          )}
+          {channelName ?? 'Direct message'}
         </Link>
       }
     >

@@ -44,6 +44,28 @@ export class MessagesController {
       );
   }
 
+  @Implement(contract.messages.get)
+  get() {
+    return implement(contract.messages.get)
+      .use(authorized)
+      .use(arcjet.read)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.messagesService.get(viewerOf(context), input.messageId)
+      );
+  }
+
+  @Implement(contract.messages.listReplies)
+  listReplies() {
+    return implement(contract.messages.listReplies)
+      .use(authorized)
+      .use(arcjet.read)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.messagesService.listReplies(viewerOf(context), input)
+      );
+  }
+
   @Implement(contract.messages.send)
   send() {
     return implement(contract.messages.send)

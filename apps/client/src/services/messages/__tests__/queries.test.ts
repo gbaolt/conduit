@@ -1,12 +1,17 @@
 import type { Message } from '@conduit/contract';
+import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it } from 'vitest';
 
 import {
+  cacheMessage,
   flattenMessages,
   mapMessage,
-  markDeleted,
   type MessagePages,
+  messagesQuery,
+  patchCachedMessage,
   pinnedIsStale,
+  repliesQuery,
+  threadRootQuery,
   upsertMessages,
 } from '../queries';
 
@@ -138,17 +143,90 @@ describe('flattenMessages', () => {
   });
 });
 
-describe('markDeleted', () => {
-  it('clears the body and sets deletedAt', () => {
-    const a = message({ id: 'a' });
-    const at = new Date(7000);
+describe('cacheMessage and patchCachedMessage', () => {
+  const root = message({ id: 'root', channelId: 'c1' });
+  const quiet = message({ id: 'quiet', parentId: 'root' });
+  const loud = message({
+    id: 'loud',
+    parentId: 'root',
+    alsoSentToChannel: true,
+  });
 
-    const next = markDeleted(pages({ messages: [a], hasMore: false }), 'a', at);
+  function seeded() {
+    const client = new QueryClient();
+    client.setQueryData(
+      messagesQuery('c1').queryKey,
+      pages({ messages: [root], hasMore: false })
+    );
+    client.setQueryData(
+      repliesQuery('root').queryKey,
+      pages({ messages: [], hasMore: false })
+    );
+    client.setQueryData(threadRootQuery('root').queryKey, root);
+    return client;
+  }
 
-    expect(next?.pages[0]?.messages[0]).toMatchObject({
-      body: '',
-      deletedAt: at,
-    });
+  const channelIds = (client: QueryClient) =>
+    flattenMessages(client.getQueryData(messagesQuery('c1').queryKey)).map(
+      (m) => m.id
+    );
+  const replyIds = (client: QueryClient) =>
+    flattenMessages(client.getQueryData(repliesQuery('root').queryKey)).map(
+      (m) => m.id
+    );
+
+  it('keeps a quiet reply out of the channel log', () => {
+    const client = seeded();
+
+    cacheMessage(client, quiet);
+
+    expect(replyIds(client)).toEqual(['quiet']);
+    expect(channelIds(client)).toEqual(['root']);
+  });
+
+  it('puts a reply sent to the channel in both lists', () => {
+    const client = seeded();
+
+    cacheMessage(client, loud);
+
+    expect(replyIds(client)).toEqual(['loud']);
+    expect(channelIds(client)).toEqual(['root', 'loud']);
+  });
+
+  it('refreshes the thread panel root and the log when the root changes', () => {
+    const client = seeded();
+    const changed = { ...root, replyCount: 3, updatedAt: new Date(99_000) };
+
+    cacheMessage(client, changed);
+
+    expect(
+      client.getQueryData(threadRootQuery('root').queryKey)?.replyCount
+    ).toBe(3);
+    expect(
+      flattenMessages(client.getQueryData(messagesQuery('c1').queryKey))[0]
+        ?.replyCount
+    ).toBe(3);
+  });
+
+  it('changes a message in the log, a thread, and the thread root', () => {
+    const client = seeded();
+    cacheMessage(client, quiet);
+
+    const mark = (m: Message) => ({ ...m, body: 'marked' });
+    patchCachedMessage(client, 'c1', 'quiet', mark);
+    patchCachedMessage(client, 'c1', 'root', mark);
+
+    expect(
+      flattenMessages(client.getQueryData(repliesQuery('root').queryKey))[0]
+        ?.body
+    ).toBe('marked');
+    expect(
+      flattenMessages(client.getQueryData(messagesQuery('c1').queryKey))[0]
+        ?.body
+    ).toBe('marked');
+    expect(client.getQueryData(threadRootQuery('root').queryKey)?.body).toBe(
+      'marked'
+    );
   });
 });
 

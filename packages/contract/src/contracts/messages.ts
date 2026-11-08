@@ -8,6 +8,7 @@ import {
   ListMessagesOutputSchema,
   ListPinnedInputSchema,
   ListPinnedOutputSchema,
+  ListRepliesInputSchema,
   ListSavedOutputSchema,
   MessageIdInputSchema,
   MessageSchema,
@@ -28,10 +29,19 @@ export const messageErrors = {
     status: 409,
     message: 'This message has too many different reactions.',
   },
+  REPLY_TO_REPLY: {
+    status: 409,
+    message: 'Reply to the message that started the thread.',
+  },
 } as const;
 
-const { NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED, REACTION_LIMIT } =
-  messageErrors;
+const {
+  NOT_FOUND,
+  FORBIDDEN,
+  CHANNEL_ARCHIVED,
+  REACTION_LIMIT,
+  REPLY_TO_REPLY,
+} = messageErrors;
 
 export const listMessagesContract = oc
   .meta(openapi({ method: 'GET', path: '/channels/{channelId}/messages' }))
@@ -41,9 +51,21 @@ export const listMessagesContract = oc
 
 export const sendMessageContract = oc
   .meta(openapi({ method: 'POST', path: '/channels/{channelId}/messages' }))
-  .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED })
+  .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED, REPLY_TO_REPLY })
   .input(SendMessageInputSchema)
   .output(SendMessageOutputSchema);
+
+export const getMessageContract = oc
+  .meta(openapi({ method: 'GET', path: '/messages/{messageId}' }))
+  .errors({ NOT_FOUND })
+  .input(MessageIdInputSchema)
+  .output(MessageSchema);
+
+export const listRepliesContract = oc
+  .meta(openapi({ method: 'GET', path: '/messages/{messageId}/replies' }))
+  .errors({ NOT_FOUND })
+  .input(ListRepliesInputSchema)
+  .output(ListMessagesOutputSchema);
 
 export const editMessageContract = oc
   .meta(openapi({ method: 'PATCH', path: '/messages/{messageId}' }))

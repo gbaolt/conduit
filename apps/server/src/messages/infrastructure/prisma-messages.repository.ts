@@ -85,6 +85,43 @@ export class PrismaMessagesRepository implements MessagesRepository {
     };
   }
 
+  async listReplies(
+    channelId: string,
+    parentId: string,
+    page: { before?: string; limit: number }
+  ) {
+    const cursor = page.before
+      ? await this.db.message.findUnique({
+          where: { id: page.before },
+          select: { id: true, parentId: true, createdAt: true },
+        })
+      : null;
+    if (page.before && cursor?.parentId !== parentId) {
+      return null;
+    }
+
+    const rows = await this.db.message.findMany({
+      where: {
+        channelId,
+        parentId,
+        deletedAt: null,
+        ...(cursor && {
+          OR: [
+            { createdAt: { lt: cursor.createdAt } },
+            { createdAt: cursor.createdAt, id: { lt: cursor.id } },
+          ],
+        }),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: page.limit + 1,
+    });
+
+    return {
+      messages: rows.slice(0, page.limit).map(toMessage),
+      hasMore: rows.length > page.limit,
+    };
+  }
+
   async find(messageId: string) {
     const row = await this.db.message.findUnique({ where: { id: messageId } });
     return row && toMessage(row);
@@ -96,6 +133,8 @@ export class PrismaMessagesRepository implements MessagesRepository {
     clientId: string;
     body: string;
     mentions: MessageMentions;
+    parentId?: string;
+    alsoSentToChannel?: boolean;
   }) {
     const key = {
       authorId_clientId: {
@@ -112,6 +151,8 @@ export class PrismaMessagesRepository implements MessagesRepository {
           authorId: input.authorId,
           clientId: input.clientId,
           body: input.body,
+          parentId: input.parentId,
+          alsoSentToChannel: input.alsoSentToChannel ?? false,
           ...mentionColumns(input.mentions),
         },
         skipDuplicates: true,
@@ -121,10 +162,19 @@ export class PrismaMessagesRepository implements MessagesRepository {
         return { message: toMessage(row), txid: null };
       }
 
-      await tx.channel.update({
-        where: { id: input.channelId },
-        data: { lastMessageAt: row.createdAt },
-      });
+      if (!row.parentId || row.alsoSentToChannel) {
+        await tx.channel.update({
+          where: { id: input.channelId },
+          data: { lastMessageAt: row.createdAt },
+        });
+      }
+      if (row.parentId) {
+        // An atomic increment, so two replies at once both count.
+        await tx.message.update({
+          where: { id: row.parentId },
+          data: { replyCount: { increment: 1 }, lastReplyAt: row.createdAt },
+        });
+      }
       const [{ txid }] = await tx.$queryRaw<
         [{ txid: string }]
       >`SELECT pg_current_xact_id()::text AS txid`;
@@ -141,16 +191,31 @@ export class PrismaMessagesRepository implements MessagesRepository {
   }
 
   async markDeleted(messageId: string) {
-    await this.db.message.update({
-      where: { id: messageId },
-      data: {
-        body: '',
-        deletedAt: new Date(),
-        mentionedUserIds: [],
-        mentionsChannel: false,
-        mentionsHere: false,
-        linkPreview: Prisma.DbNull,
-      },
+    await this.db.$transaction(async (tx) => {
+      // A second delete at once matches nothing, so it cannot take a reply off the root twice.
+      const { count } = await tx.message.updateMany({
+        where: { id: messageId, deletedAt: null },
+        data: {
+          body: '',
+          deletedAt: new Date(),
+          mentionedUserIds: [],
+          mentionsChannel: false,
+          mentionsHere: false,
+          linkPreview: Prisma.DbNull,
+        },
+      });
+      if (count === 0) return;
+
+      const { parentId } = await tx.message.findUniqueOrThrow({
+        where: { id: messageId },
+        select: { parentId: true },
+      });
+      if (parentId) {
+        await tx.message.updateMany({
+          where: { id: parentId, replyCount: { gt: 0 } },
+          data: { replyCount: { decrement: 1 } },
+        });
+      }
     });
   }
 

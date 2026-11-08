@@ -1,5 +1,5 @@
 import type { ListMessagesOutput, Message } from '@conduit/contract';
-import type { InfiniteData } from '@tanstack/react-query';
+import type { InfiniteData, QueryClient } from '@tanstack/react-query';
 
 import { orpc } from '@/lib/orpc';
 
@@ -13,6 +13,19 @@ export const messagesQuery = (channelId: string) =>
     getNextPageParam: (last) =>
       last.hasMore ? last.messages.at(-1)?.id : undefined,
   });
+
+/** Pages of a thread's replies, shaped like the channel's pages. */
+export const repliesQuery = (parentId: string) =>
+  orpc.messages.listReplies.infiniteOptions({
+    input: (before: string | undefined) => ({ messageId: parentId, before }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) =>
+      last.hasMore ? last.messages.at(-1)?.id : undefined,
+  });
+
+/** The message that started a thread. The thread's stream keeps it current. */
+export const threadRootQuery = (parentId: string) =>
+  orpc.messages.get.queryOptions({ input: { messageId: parentId } });
 
 /** Oldest first, ties broken by id: the order the server pages in, reversed. */
 export function compareMessages(a: Message, b: Message) {
@@ -85,26 +98,6 @@ export function upsertMessages(
   return { ...data, pages };
 }
 
-/** Clears a deleted message locally, ahead of the live row that confirms it. */
-export function markDeleted(
-  data: MessagePages | undefined,
-  messageId: string,
-  at: Date
-): MessagePages | undefined {
-  if (!data) return data;
-  return {
-    ...data,
-    pages: data.pages.map((page) => ({
-      ...page,
-      messages: page.messages.map((message) =>
-        message.id === messageId
-          ? { ...message, body: '', deletedAt: at }
-          : message
-      ),
-    })),
-  };
-}
-
 /** Message pages with one message changed. */
 export function mapMessage(
   data: MessagePages | undefined,
@@ -121,6 +114,47 @@ export function mapMessage(
       ),
     })),
   };
+}
+
+/**
+ * Writes a stored message into the lists that show it: the channel log when it belongs there, its thread
+ * when it is a reply, and the open thread panel's root when it is the root.
+ */
+export function cacheMessage(queryClient: QueryClient, message: Message) {
+  const upsert = (data: MessagePages | undefined) =>
+    upsertMessages(data, [message]);
+
+  if (!message.parentId || message.alsoSentToChannel) {
+    queryClient.setQueryData(messagesQuery(message.channelId).queryKey, upsert);
+  }
+  if (message.parentId) {
+    queryClient.setQueryData(repliesQuery(message.parentId).queryKey, upsert);
+  } else {
+    queryClient.setQueryData(threadRootQuery(message.id).queryKey, (root) =>
+      root && message.updatedAt >= root.updatedAt ? message : root
+    );
+  }
+}
+
+/** Changes one message by id wherever it is cached: the channel log, every loaded thread, and a thread root. */
+export function patchCachedMessage(
+  queryClient: QueryClient,
+  channelId: string,
+  messageId: string,
+  change: (message: Message) => Message
+) {
+  const patch = (data: MessagePages | undefined) =>
+    mapMessage(data, messageId, change);
+
+  queryClient.setQueryData(messagesQuery(channelId).queryKey, patch);
+  queryClient.setQueriesData<MessagePages>(
+    { queryKey: orpc.messages.listReplies.key({ type: 'infinite' }) },
+    patch
+  );
+  queryClient.setQueryData(
+    threadRootQuery(messageId).queryKey,
+    (root) => root && change(root)
+  );
 }
 
 export const pinnedQuery = (channelId: string) =>

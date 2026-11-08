@@ -63,6 +63,10 @@ export const SendMessageInputSchema = z.object({
   /** Chosen by the client for each new message, so a retry cannot post it twice. */
   clientId: z.string().min(1).max(64),
   body: MessageBodySchema,
+  /** A top-level message of the channel to reply to. Omit it for a message in the channel itself. */
+  parentId: z.string().optional(),
+  /** Also shows the reply in the channel's log. Ignored without `parentId`. */
+  alsoSentToChannel: z.boolean().optional(),
 });
 
 export const SendMessageOutputSchema = z.object({
@@ -71,6 +75,14 @@ export const SendMessageOutputSchema = z.object({
   txid: z.string().nullable(),
 });
 export type SendMessageOutput = z.infer<typeof SendMessageOutputSchema>;
+
+export const ListRepliesInputSchema = z.object({
+  /** The top-level message whose thread to list. */
+  messageId: z.string(),
+  /** The oldest reply already loaded. The page ends just before it. */
+  before: z.string().optional(),
+  limit: z.number().int().min(1).max(MESSAGE_PAGE_MAX).optional(),
+});
 
 export const EditMessageInputSchema = z.object({
   messageId: z.string(),

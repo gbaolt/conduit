@@ -25,9 +25,15 @@ export const ChannelNameSchema = z
     'Use lowercase letters, numbers, hyphens, and underscores.'
   );
 
+/** A DM is a channel with no name, no managers, and members chosen when it opens. */
+export const ChannelKindSchema = z.enum(['channel', 'dm']);
+export type ChannelKind = z.infer<typeof ChannelKindSchema>;
+
 export const ChannelSchema = z.object({
   id: z.string(),
   organizationId: z.string(),
+  kind: ChannelKindSchema,
+  /** Empty for a DM. */
   name: z.string(),
   topic: z.string().nullable(),
   description: z.string().nullable(),

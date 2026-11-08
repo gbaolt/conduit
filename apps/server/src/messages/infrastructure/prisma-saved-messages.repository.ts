@@ -28,7 +28,9 @@ export class PrismaSavedMessagesRepository implements SavedMessagesRepository {
         message: { channelId: { in: channelIds }, deletedAt: null },
       },
       include: {
-        message: { include: { channel: { select: { name: true } } } },
+        message: {
+          include: { channel: { select: { name: true, kind: true } } },
+        },
       },
       orderBy: [{ savedAt: 'desc' }, { messageId: 'desc' }],
       take: limit,
@@ -36,7 +38,8 @@ export class PrismaSavedMessagesRepository implements SavedMessagesRepository {
 
     return rows.map(({ message, savedAt }) => ({
       message: toMessage(message),
-      channelName: message.channel.name,
+      // A DM stores its key in `name`, and shows no name.
+      channelName: message.channel.kind === 'DM' ? null : message.channel.name,
       savedAt,
     }));
   }

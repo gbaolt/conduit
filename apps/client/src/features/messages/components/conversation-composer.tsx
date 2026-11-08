@@ -15,17 +15,18 @@ function DraftLoading() {
 
 /**
  * The composer for sending to a conversation. It starts from the viewer's saved draft, keeps that draft
- * current as they type, and tells the conversation they are typing. Render it with `key={channelId}`.
+ * current as they type, and tells the conversation they are typing. Pass a thread's `parentId` to keep its draft apart. Render it with `key={channelId}`.
  */
 export function ConversationComposer({
   channelId,
+  parentId,
   ...composer
-}: { channelId: string } & Pick<
+}: { channelId: string; parentId?: string } & Pick<
   ComposerProps,
-  'placeholder' | 'onSubmit' | 'onEditLast'
+  'placeholder' | 'onSubmit' | 'onEditLast' | 'autoFocus' | 'children'
 >) {
-  const draft = useDraft(channelId);
-  const onChange = useComposerActivity(channelId, draft ?? '');
+  const draft = useDraft(channelId, parentId);
+  const onChange = useComposerActivity(channelId, draft ?? '', parentId);
 
   if (draft === undefined) return <DraftLoading />;
 

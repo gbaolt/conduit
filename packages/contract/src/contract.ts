@@ -32,12 +32,20 @@ import {
   setChannelVisibilityContract,
   unarchiveChannelContract,
 } from './contracts/channels';
+import {
+  addDmPeopleContract,
+  convertDmContract,
+  listDmsContract,
+  openDmContract,
+} from './contracts/dms';
 import { healthCheckContract } from './contracts/health';
 import {
   deleteMessageContract,
   editMessageContract,
+  getMessageContract,
   listMessagesContract,
   listPinnedMessagesContract,
+  listRepliesContract,
   listSavedMessagesContract,
   pinMessageContract,
   reactMessageContract,
@@ -148,6 +156,8 @@ export const contract = {
   },
   messages: {
     list: listMessagesContract,
+    get: getMessageContract,
+    listReplies: listRepliesContract,
     send: sendMessageContract,
     edit: editMessageContract,
     delete: deleteMessageContract,
@@ -157,6 +167,12 @@ export const contract = {
     unpin: unpinMessageContract,
     listPinned: listPinnedMessagesContract,
     removeLinkPreview: removeLinkPreviewContract,
+  },
+  dms: {
+    list: listDmsContract,
+    open: openDmContract,
+    addPeople: addDmPeopleContract,
+    convertToChannel: convertDmContract,
   },
   saved: {
     add: saveMessageContract,

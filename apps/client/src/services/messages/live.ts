@@ -19,12 +19,7 @@ import type { ZodType } from 'zod';
 
 import { client } from '@/lib/orpc';
 
-import {
-  messagesQuery,
-  pinnedIsStale,
-  pinnedQuery,
-  upsertMessages,
-} from './queries';
+import { cacheMessage, pinnedIsStale, pinnedQuery } from './queries';
 
 type LiveRow = Record<string, unknown>;
 type LiveSubscription = MaterializedLiveQuerySubscription<LiveRow>;
@@ -53,11 +48,14 @@ function realtimeClient(url: string) {
   return existing;
 }
 
+/** Open streams by key: a channel's id, or `threadStreamKey` for a thread. */
 const subscriptions = new Map<string, LiveSubscription>();
 
-/** Resolves once the open stream for the channel has applied the transaction. Resolves at once when no stream is live. */
-export async function awaitLiveTransaction(channelId: string, txid: string) {
-  const subscription = subscriptions.get(channelId);
+export const threadStreamKey = (parentId: string) => `thread:${parentId}`;
+
+/** Resolves once the open stream has applied the transaction. Resolves at once when no stream is live. */
+export async function awaitLiveTransaction(streamKey: string, txid: string) {
+  const subscription = subscriptions.get(streamKey);
   if (subscription?.getState().status !== 'live') return;
   await subscription.awaitTxId(txid, AWAIT_TXID_MS).catch(() => undefined);
 }
@@ -158,36 +156,39 @@ function openLiveStream({
 }
 
 /**
- * The conversation stream. Writes each change into the channel's message pages.
- * History and sending still work while the status is `offline`.
+ * The conversation stream, or the thread stream when `parentId` is set. Writes each change into the
+ * cached message pages. History and sending still work while the status is `offline`.
  */
-export function useLiveStream(channelId: string): LiveStatus {
+export function useLiveStream(
+  channelId: string,
+  parentId?: string
+): LiveStatus {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<LiveStatus>('connecting');
 
   useEffect(() => {
     const since = new Date(Date.now() - SINCE_MARGIN_MS);
-    const queryKey = messagesQuery(channelId).queryKey;
+    const streamKey = parentId ? threadStreamKey(parentId) : channelId;
 
     return openLiveStream({
-      stream: { kind: 'conversation', channelId, since },
+      stream: parentId
+        ? { kind: 'thread', channelId, parentId, since }
+        : { kind: 'conversation', channelId, since },
       onStatus: setStatus,
       onRows: (rows) => {
         const messages = toMessages(rows);
-        queryClient.setQueryData(queryKey, (data) =>
-          upsertMessages(data, messages)
-        );
+        for (const message of messages) cacheMessage(queryClient, message);
         const pinnedKey = pinnedQuery(channelId).queryKey;
         if (pinnedIsStale(queryClient.getQueryData(pinnedKey), messages)) {
           void queryClient.invalidateQueries({ queryKey: pinnedKey });
         }
       },
       onSubscription: (subscription) => {
-        if (subscription) subscriptions.set(channelId, subscription);
-        else subscriptions.delete(channelId);
+        if (subscription) subscriptions.set(streamKey, subscription);
+        else if (subscriptions.get(streamKey)) subscriptions.delete(streamKey);
       },
     });
-  }, [channelId, queryClient]);
+  }, [channelId, parentId, queryClient]);
 
   return status;
 }

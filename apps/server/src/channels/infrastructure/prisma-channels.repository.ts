@@ -9,7 +9,7 @@ import type {
 } from '@/channels/domain/channels.repository';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 
-function include(scope: ChannelScope) {
+export function include(scope: ChannelScope) {
   return {
     // Count only current workspace members: leaving a workspace fires no hook, so stale rows can remain.
     _count: {
@@ -35,12 +35,14 @@ type ChannelRow = Prisma.ChannelGetPayload<{
   include: ReturnType<typeof include>;
 }>;
 
-function toChannel(row: ChannelRow): Channel {
+export function toChannel(row: ChannelRow): Channel {
   const membership = row.members[0];
   return {
     id: row.id,
     organizationId: row.organizationId,
-    name: row.name,
+    kind: row.kind === 'DM' ? 'dm' : 'channel',
+    // A DM stores its key in `name` to keep the column unique, and shows no name.
+    name: row.kind === 'DM' ? '' : row.name,
     topic: row.topic,
     description: row.description,
     visibility: row.visibility === 'PRIVATE' ? 'private' : 'public',
@@ -61,7 +63,7 @@ function toChannel(row: ChannelRow): Channel {
 }
 
 // The only unique a create or rename can hit is (organizationId, name).
-function rethrowNameTaken(error: unknown): never {
+export function rethrowNameTaken(error: unknown): never {
   if (
     error instanceof Prisma.PrismaClientKnownRequestError &&
     error.code === 'P2002'

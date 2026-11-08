@@ -43,6 +43,13 @@ export function queryFor(stream: LiveStream, viewer: StreamViewer): LiveQuery {
         sql: `SELECT ${MESSAGE_COLUMNS} FROM "Message" WHERE "channelId" = $1 AND ("parentId" IS NULL OR "alsoSentToChannel") AND "updatedAt" >= $2`,
         parameters: [stream.channelId, stream.since],
       };
+    case 'thread':
+      // The root rides along so its edits and reactions reach the open panel. `channelId` stays in the
+      // predicate, so a `parentId` from another channel matches nothing.
+      return {
+        sql: `SELECT ${MESSAGE_COLUMNS} FROM "Message" WHERE "channelId" = $1 AND ("parentId" = $2 OR "id" = $2) AND "updatedAt" >= $3`,
+        parameters: [stream.channelId, stream.parentId, stream.since],
+      };
     case 'typing':
       return {
         sql: 'SELECT "userId", "parentId", "until" FROM "TypingState" WHERE "channelId" = $1 AND "until" >= $2 AND "userId" <> $3',

@@ -1,6 +1,7 @@
 import {
   type Channel,
   type ChannelMember,
+  type Dm,
   type Message,
   REACTION_EMOJI_MAX,
   type SavedMessage,
@@ -8,6 +9,7 @@ import {
 import { describe, expect, it } from 'vitest';
 
 import type { ChannelsRepository } from '@/channels/domain/channels.repository';
+import type { DmsRepository } from '@/channels/domain/dms.repository';
 import type { MessagesRepository } from '@/messages/domain/messages.repository';
 import type { SavedMessagesRepository } from '@/messages/domain/saved-messages.repository';
 
@@ -31,6 +33,7 @@ function channelFor(
   return {
     id: 'c1',
     organizationId,
+    kind: 'channel',
     name: 'design',
     topic: null,
     description: null,
@@ -63,6 +66,8 @@ function setup(
         channelId: input.channelId,
         authorId: input.authorId,
         clientId: input.clientId,
+        parentId: input.parentId ?? null,
+        alsoSentToChannel: input.alsoSentToChannel ?? false,
         body: input.body,
         mentionedUserIds: input.mentions.userIds,
         reactions: {},
@@ -72,6 +77,15 @@ function setup(
       } as unknown as Message;
       stored.set(message.id, message);
       return { message, txid: '1' };
+    },
+    listReplies: async (_channelId, parentId, page) => {
+      const replies = [...stored.values()].filter(
+        (message) => message.parentId === parentId
+      );
+      return {
+        messages: replies.slice(0, page.limit),
+        hasMore: replies.length > page.limit,
+      };
     },
     edit: async (id, body) => {
       const message = { ...stored.get(id)!, body, editedAt: new Date() };
@@ -131,7 +145,10 @@ function setup(
     find: async (scope: { userId: string }) => views[scope.userId] ?? null,
     list: async (scope: { userId: string }, archived: boolean) => {
       const view = views[scope.userId];
-      return view && Boolean(view.archivedAt) === archived ? [view] : [];
+      // The real list leaves DMs out.
+      return view?.kind === 'channel' && Boolean(view.archivedAt) === archived
+        ? [view]
+        : [];
     },
     listMembers: async () =>
       memberIds.map(
@@ -145,8 +162,14 @@ function setup(
       ),
   } as Partial<ChannelsRepository> as ChannelsRepository;
 
+  const dmIds: string[] = [];
+  const dms = {
+    list: async () => dmIds.map((id) => ({ id }) as Dm),
+  } as Partial<DmsRepository> as DmsRepository;
+
   return {
-    service: new MessagesService(messages, channels, saved),
+    dmIds,
+    service: new MessagesService(messages, channels, saved, dms),
     stored,
     sent,
   };
@@ -205,6 +228,183 @@ describe('MessagesService.send', () => {
       channel: false,
       here: true,
     });
+  });
+});
+
+describe('MessagesService threads', () => {
+  const views = { author: channelFor('member'), other: channelFor('member') };
+  const reply = (
+    service: MessagesService,
+    viewer: MessageViewer,
+    parentId: string,
+    extra: { alsoSentToChannel?: boolean } = {}
+  ) =>
+    service.send(viewer, {
+      channelId: 'c1',
+      clientId: crypto.randomUUID(),
+      body: 'reply',
+      parentId,
+      alsoSentToChannel: extra.alsoSentToChannel,
+    });
+
+  it('stores a reply under its root', async () => {
+    const { service, sent } = setup(views);
+    const { message: root } = await sendAs(service, author);
+
+    await reply(service, other, root.id);
+
+    expect(sent[1]).toMatchObject({
+      parentId: root.id,
+      alsoSentToChannel: false,
+    });
+  });
+
+  it('passes also-send-to-channel through for a reply and drops it without a parent', async () => {
+    const { service, sent } = setup(views);
+    const { message: root } = await sendAs(service, author);
+
+    await reply(service, other, root.id, { alsoSentToChannel: true });
+    await service.send(other, {
+      channelId: 'c1',
+      clientId: 'plain',
+      body: 'hi',
+      alsoSentToChannel: true,
+    });
+
+    expect(sent[1]?.alsoSentToChannel).toBe(true);
+    expect(sent[2]?.alsoSentToChannel).toBe(false);
+  });
+
+  it('refuses a reply to a reply', async () => {
+    const { service } = setup(views);
+    const { message: root } = await sendAs(service, author);
+    const { message: first } = await reply(service, other, root.id);
+
+    await expect(reply(service, author, first.id)).rejects.toMatchObject({
+      code: 'REPLY_TO_REPLY',
+    });
+  });
+
+  it('refuses a reply to a deleted or missing root', async () => {
+    const { service } = setup(views);
+    const { message: root } = await sendAs(service, author);
+    await service.delete(author, root.id);
+
+    await expect(reply(service, other, root.id)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+    await expect(reply(service, other, 'ghost')).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
+
+  it('refuses a root that belongs to another channel', async () => {
+    const { service, stored } = setup(views);
+    const { message: root } = await sendAs(service, author);
+    stored.set(root.id, { ...root, channelId: 'c2' });
+
+    await expect(reply(service, other, root.id)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
+
+  it('refuses a reply from someone who cannot post in the channel', async () => {
+    const { service } = setup({ ...views, outsider: channelFor(null) });
+    const { message: root } = await sendAs(service, author);
+
+    await expect(reply(service, outsider, root.id)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+  });
+
+  it('lists the replies of a root, even a deleted one', async () => {
+    const { service } = setup(views);
+    const { message: root } = await sendAs(service, author);
+    await reply(service, other, root.id);
+    await service.delete(author, root.id);
+
+    const page = await service.listReplies(other, { messageId: root.id });
+
+    expect(page.messages).toHaveLength(1);
+  });
+
+  it('lists nothing for a reply, and hides a private channel from an outsider', async () => {
+    const { service } = setup({
+      author: channelFor('member', { visibility: 'private' }),
+      other: channelFor('member', { visibility: 'private' }),
+      outsider: channelFor(null, { visibility: 'private' }),
+    });
+    const { message: root } = await sendAs(service, author);
+    const { message: first } = await reply(service, other, root.id);
+
+    await expect(
+      service.listReplies(other, { messageId: first.id })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(
+      service.listReplies(outsider, { messageId: root.id })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(service.get(outsider, root.id)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
+});
+
+describe('MessagesService in a DM', () => {
+  const dm = (role: 'member' | null, overrides: Partial<Channel> = {}) =>
+    channelFor(role, { kind: 'dm', visibility: 'private', ...overrides });
+
+  it('lets a DM member send, and reply in a thread', async () => {
+    const { service, sent } = setup({ author: dm('member') });
+    const { message: root } = await sendAs(service, author);
+
+    await service.send(author, {
+      channelId: 'c1',
+      clientId: 'r1',
+      body: 'reply',
+      parentId: root.id,
+    });
+
+    expect(sent[1]).toMatchObject({ parentId: root.id });
+  });
+
+  it('hides a DM from everyone outside it, an admin included', async () => {
+    const { service } = setup({
+      author: dm('member'),
+      admin: dm(null),
+      outsider: dm(null),
+    });
+    const { message } = await sendAs(service, author);
+
+    for (const viewer of [admin, outsider]) {
+      await expect(sendAs(service, viewer)).rejects.toMatchObject({
+        code: 'NOT_FOUND',
+      });
+      await expect(service.get(viewer, message.id)).rejects.toMatchObject({
+        code: 'NOT_FOUND',
+      });
+      await expect(
+        service.list(viewer, { channelId: 'c1' })
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+      await expect(
+        service.listReplies(viewer, { messageId: message.id })
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+      await expect(
+        service.react(viewer, message.id, '👍')
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+      await expect(service.save(viewer, message.id)).rejects.toMatchObject({
+        code: 'NOT_FOUND',
+      });
+    }
+  });
+
+  it("refuses to delete someone else's message, even for a workspace admin in the DM", async () => {
+    const { service } = setup({ author: dm('member'), admin: dm('member') });
+    const { message } = await sendAs(service, author);
+
+    await expect(service.delete(admin, message.id)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    await expect(service.delete(author, message.id)).resolves.toBeUndefined();
   });
 });
 
@@ -453,6 +653,19 @@ describe('MessagesService saved messages', () => {
     views.other = null;
 
     expect(await service.listSaved(other)).toHaveLength(0);
+  });
+
+  it('lists a save from a DM the viewer is in', async () => {
+    const { service, dmIds } = setup({
+      author: channelFor('member', { kind: 'dm', visibility: 'private' }),
+    });
+    const { message } = await sendAs(service, author);
+    await service.save(author, message.id);
+    expect(await service.listSaved(author)).toHaveLength(0);
+
+    dmIds.push('c1');
+
+    expect(await service.listSaved(author)).toHaveLength(1);
   });
 
   it('removes a save', async () => {

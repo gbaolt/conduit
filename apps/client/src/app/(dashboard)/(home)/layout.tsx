@@ -12,7 +12,7 @@ import {
   parseLayout,
 } from '@/features/workspace/lib/layout-cookie';
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
-import { channelsQuery } from '@/services/channels/queries';
+import { channelsQuery, dmsQuery } from '@/services/channels/queries';
 
 export default function HomeLayout({ children }: { children: ReactNode }) {
   return (
@@ -35,8 +35,9 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
 
 async function ChannelPanel({ children }: { children: ReactNode }) {
   const client = getQueryClient();
-  const [, cookieStore] = await Promise.all([
+  const [, , cookieStore] = await Promise.all([
     client.prefetchQuery(channelsQuery),
+    client.prefetchQuery(dmsQuery),
     cookies(),
   ]);
 
