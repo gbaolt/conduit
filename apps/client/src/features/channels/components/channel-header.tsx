@@ -5,6 +5,7 @@ import { IconDots, IconHash, IconLock, IconUsers } from '@tabler/icons-react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
+import { BackToList } from '@/components/list-view';
 import { useActivateChannelWorkspace } from '@/services/channels/hooks';
 import { channelQuery } from '@/services/channels/queries';
 
@@ -31,13 +32,14 @@ export function ChannelHeader({
 
   return (
     <>
-      <header className="flex min-h-12 shrink-0 items-center gap-1.5 border-b px-4 py-1.5">
+      <header className="flex min-h-12 shrink-0 items-center gap-1.5 border-b px-2">
+        <BackToList />
         <div className="min-w-0 flex-1">
           <h1 className="min-w-0 text-sm font-semibold">
             <Button
               variant="ghost"
-              size="xs"
-              className="max-w-full font-semibold"
+              size="sm"
+              className="max-w-full text-base font-semibold"
               onClick={() => open({ kind: 'details', channel })}
             >
               <Glyph />
@@ -53,7 +55,7 @@ export function ChannelHeader({
         {children}
         <Button
           variant="ghost"
-          size="xs"
+          size="sm"
           aria-label={`${channel.memberCount} members`}
           onClick={() => open({ kind: 'details', channel, tab: 'members' })}
         >
@@ -66,7 +68,7 @@ export function ChannelHeader({
           trigger={
             <Button
               variant="ghost"
-              size="icon-xs"
+              size="icon-sm"
               aria-label={`Actions for #${channel.name}`}
             />
           }

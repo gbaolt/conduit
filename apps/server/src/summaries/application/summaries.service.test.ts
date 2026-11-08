@@ -104,7 +104,11 @@ function setup({
 }) {
   const sent: Parameters<MessagesRepository['send']>[0][] = [];
   const messageRepository = {
-    listForSummary: async () => messages,
+    listForSummary: async (_channelId, { from, to }) =>
+      messages.filter(
+        ({ createdAt }) =>
+          (!from || createdAt >= from) && (!to || createdAt < to)
+      ),
     find: async (id: string) => messages.find((m) => m.id === id) ?? null,
     send: async (input) => {
       sent.push(input);
@@ -191,6 +195,25 @@ describe('SummariesService', () => {
       sharedMessageId: null,
     });
     expect(rows.size).toBe(1);
+  });
+
+  it('summarizes only the messages sent before the end of the range', async () => {
+    const { service } = setup({ views: { linh: channelFor('member') } });
+    const to = new Date(2000);
+
+    const events = await finish(
+      await service.summarizeChannel(linh, {
+        channelId: 'c1',
+        from: new Date(0).toISOString(),
+        to: to.toISOString(),
+      })
+    );
+
+    expect(summaryOf(events)).toMatchObject({
+      messageCount: 2,
+      from: new Date(0),
+      to,
+    });
   });
 
   it('drops a source id that was not in the input, and a bullet left with none', async () => {

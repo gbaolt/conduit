@@ -62,7 +62,9 @@ export type ComposerProps = {
   onEditLast?: () => void;
   /** The Markdown after each change, such as typing, a paste, or the composer clearing after a send. */
   onChange?: (markdown: string) => void;
-  /** Rendered under the frame, such as a thread's "Also send to channel" checkbox. */
+  /** Controls in the bottom bar, before Send, such as a thread's "Also send to channel" checkbox. */
+  actions?: ReactNode;
+  /** Rendered under the frame, such as the edit hint. */
   children?: ReactNode;
 };
 
@@ -118,6 +120,7 @@ function ComposerBehavior({
   onCancel,
   onEditLast,
   onChange,
+  actions,
 }: Required<Pick<ComposerProps, 'mode' | 'placeholder'>> &
   Pick<
     ComposerProps,
@@ -127,6 +130,7 @@ function ComposerBehavior({
     | 'onEditLast'
     | 'onChange'
     | 'initialMarkdown'
+    | 'actions'
   > & {
     anchor: HTMLDivElement | null;
     menuOpen: RefObject<boolean>;
@@ -296,7 +300,9 @@ function ComposerBehavior({
         onToggleFormatting={() => setFormattingOpen((open) => !open)}
         onSubmit={submit}
         onCancel={onCancel}
-      />
+      >
+        {actions}
+      </ComposerActionBar>
     </>
   );
 }

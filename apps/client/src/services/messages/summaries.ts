@@ -18,13 +18,16 @@ export type SummaryState =
   | { status: 'done'; summary: Summary }
   | { status: 'error'; code: string | null; message: string };
 
+/** The span of a channel summary. Without `to` it runs until now. */
+export type SummaryRange = { from: Date; to?: Date };
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Runs one summary at a time for `target` and keeps what the stream has said so far. */
 export function useSummaryRun(target: SummaryTarget) {
   const [state, setState] = useState<SummaryState>({ status: 'idle' });
   const running = useRef<AbortController | null>(null);
-  const lastFrom = useRef<Date | undefined>(undefined);
+  const lastRange = useRef<SummaryRange | undefined>(undefined);
   const id = target.kind === 'thread' ? target.messageId : target.channelId;
 
   const stop = useCallback(() => {
@@ -34,9 +37,9 @@ export function useSummaryRun(target: SummaryTarget) {
   useEffect(() => stop, [stop]);
 
   const summarize = useCallback(
-    async (from?: Date) => {
+    async (range?: SummaryRange) => {
       stop();
-      lastFrom.current = from;
+      lastRange.current = range;
       const controller = new AbortController();
       running.current = controller;
       setState({ status: 'streaming', messageCount: 0, bullets: [] });
@@ -51,7 +54,10 @@ export function useSummaryRun(target: SummaryTarget) {
             : await client.summaries.channel(
                 {
                   channelId: id,
-                  from: (from ?? new Date(Date.now() - DAY_MS)).toISOString(),
+                  from: (
+                    range?.from ?? new Date(Date.now() - DAY_MS)
+                  ).toISOString(),
+                  to: range?.to?.toISOString(),
                 },
                 { signal: controller.signal }
               );
@@ -96,7 +102,7 @@ export function useSummaryRun(target: SummaryTarget) {
   return {
     state,
     summarize,
-    retry: () => void summarize(lastFrom.current),
+    retry: () => void summarize(lastRange.current),
     dismiss,
     share,
   };

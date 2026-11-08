@@ -1,19 +1,19 @@
 'use client';
 
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from '@conduit/ui/components/resizable';
-import { useIsMobile } from '@conduit/ui/hooks/use-mobile';
 import { useQueryState } from 'nuqs';
 import { type ReactNode, useCallback, useMemo } from 'react';
+
+import { SidePanel } from '@/components/side-panel';
+import { useMediaQuery } from '@/hooks/use-media-query';
 
 import { SummaryProvider } from '../context/summary';
 import { OpenThread } from '../context/thread';
 import { ThreadPanel } from './thread-panel';
 
-/** Puts the thread named by `?thread=` beside the conversation, or over it on a phone. */
+/**
+ * Puts the thread named by `?thread=` in the side card beside the main card from xl up. Narrower, the thread
+ * replaces the conversation, and its back button returns to it.
+ */
 export function ThreadLayout({
   channelId,
   children,
@@ -23,7 +23,7 @@ export function ThreadLayout({
   children: ReactNode;
 }) {
   const [threadId, setThreadId] = useQueryState('thread');
-  const isMobile = useIsMobile();
+  const docked = useMediaQuery('(min-width: 80rem)');
 
   const close = useCallback(() => {
     const closing = threadId;
@@ -53,33 +53,13 @@ export function ThreadLayout({
   return (
     <SummaryProvider target={{ kind: 'channel', channelId }}>
       <OpenThread value={open}>
-        {isMobile ? (
-          <div className="relative h-full min-h-0">
-            {children}
-            {panel && (
-              <div className="bg-background absolute inset-0 z-20">{panel}</div>
-            )}
-          </div>
-        ) : (
-          <ResizablePanelGroup orientation="horizontal">
-            <ResizablePanel id="conversation" minSize="30%">
-              {children}
-            </ResizablePanel>
-            {panel && (
-              <>
-                <ResizableHandle />
-                <ResizablePanel
-                  id="thread"
-                  defaultSize="380px"
-                  minSize="320px"
-                  maxSize="60%"
-                >
-                  {panel}
-                </ResizablePanel>
-              </>
-            )}
-          </ResizablePanelGroup>
-        )}
+        <div className="relative h-full min-h-0">
+          {children}
+          {panel && !docked && (
+            <div className="bg-background absolute inset-0 z-20">{panel}</div>
+          )}
+          {panel && docked && <SidePanel>{panel}</SidePanel>}
+        </div>
       </OpenThread>
     </SummaryProvider>
   );

@@ -314,6 +314,7 @@ export function ComposerActionBar({
   onToggleFormatting,
   onSubmit,
   onCancel,
+  children,
 }: {
   length: number;
   canSend: boolean;
@@ -322,6 +323,8 @@ export function ComposerActionBar({
   onToggleFormatting: () => void;
   onSubmit: () => void;
   onCancel?: () => void;
+  /** Extra controls placed before the length and Send. */
+  children?: ReactNode;
 }) {
   const [editor] = useLexicalComposerContext();
   const overLimit = length > MESSAGE_BODY_MAX;
@@ -352,7 +355,8 @@ export function ComposerActionBar({
       >
         <IconAt />
       </ToolbarButton>
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex min-w-0 items-center gap-2">
+        {children}
         {length >= MESSAGE_BODY_MAX - 200 && (
           <span
             className={cn(

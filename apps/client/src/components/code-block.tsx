@@ -2,7 +2,17 @@
 
 import { Button } from '@conduit/ui/components/button';
 import { cn } from '@conduit/ui/lib/utils';
-import { IconTextWrap } from '@tabler/icons-react';
+import {
+  IconBrandCss3,
+  IconBrandJavascript,
+  IconBrandPrisma,
+  IconBrandReact,
+  IconBrandTypescript,
+  IconFileCode,
+  IconJson,
+  IconMarkdown,
+  IconTextWrap,
+} from '@tabler/icons-react';
 import {
   type ComponentProps,
   createContext,
@@ -53,6 +63,25 @@ export function CodeBlock({
 }
 
 /** The language and the actions. Without a header, `CodeBlockActions` floats in the corner on hover. */
+const LANGUAGE_ICONS: Record<string, typeof IconFileCode> = {
+  json: IconJson,
+  css: IconBrandCss3,
+  js: IconBrandJavascript,
+  mjs: IconBrandJavascript,
+  cjs: IconBrandJavascript,
+  javascript: IconBrandJavascript,
+  ts: IconBrandTypescript,
+  mts: IconBrandTypescript,
+  cts: IconBrandTypescript,
+  typescript: IconBrandTypescript,
+  jsx: IconBrandReact,
+  tsx: IconBrandReact,
+  md: IconMarkdown,
+  mdx: IconMarkdown,
+  markdown: IconMarkdown,
+  prisma: IconBrandPrisma,
+};
+
 export function CodeBlockHeader({
   language,
   children,
@@ -60,8 +89,11 @@ export function CodeBlockHeader({
   language: string;
   children?: ReactNode;
 }) {
+  const Icon = LANGUAGE_ICONS[language.toLowerCase()] ?? IconFileCode;
+
   return (
     <figcaption data-slot="code-block-header">
+      <Icon aria-hidden className="-me-1.5 size-3.5 shrink-0" />
       <span data-slot="code-block-title">{language}</span>
       <CodeBlockActions>{children}</CodeBlockActions>
     </figcaption>

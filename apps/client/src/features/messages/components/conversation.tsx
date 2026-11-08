@@ -4,6 +4,7 @@ import { canChannel } from '@conduit/contract';
 import { Button } from '@conduit/ui/components/button';
 import { Checkbox } from '@conduit/ui/components/checkbox';
 import { Label } from '@conduit/ui/components/label';
+import { cn } from '@conduit/ui/lib/utils';
 import {
   useInfiniteQuery,
   useQuery,
@@ -304,23 +305,30 @@ export function Conversation({
                     onEditLast={
                       lastOwn ? () => setEditingId(lastOwn.id) : undefined
                     }
-                  >
-                    {parentId && (
-                      <div className="flex items-center gap-2 pt-2">
-                        <Checkbox
-                          id={`also-send-${parentId}`}
-                          checked={alsoSend}
-                          onCheckedChange={setAlsoSend}
-                        />
-                        <Label
-                          htmlFor={`also-send-${parentId}`}
-                          className="text-muted-foreground text-xs font-normal"
-                        >
-                          Also send to {title}
-                        </Label>
-                      </div>
-                    )}
-                  </ConversationComposer>
+                    actions={
+                      parentId && (
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <Checkbox
+                            id={`also-send-${parentId}`}
+                            checked={alsoSend}
+                            onCheckedChange={setAlsoSend}
+                          />
+                          <Label
+                            htmlFor={`also-send-${parentId}`}
+                            title={`Also send to ${title}`}
+                            className={cn(
+                              'block truncate text-xs font-normal',
+                              alsoSend
+                                ? 'text-foreground'
+                                : 'text-muted-foreground'
+                            )}
+                          >
+                            Also send to {title}
+                          </Label>
+                        </div>
+                      )
+                    }
+                  />
                   <TypingLine channelId={channelId} parentId={parentId} />
                 </>
               )}

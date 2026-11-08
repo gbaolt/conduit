@@ -29,7 +29,12 @@ import {
 } from '@/summaries/domain/summary-prompt';
 import { summaryMessageBody } from '@/summaries/domain/summary-share';
 
-type Scope = { channelId: string; parentId: string | null; from: Date | null };
+type Scope = {
+  channelId: string;
+  parentId: string | null;
+  from: Date | null;
+  to: Date | null;
+};
 
 /** What the API returns: the summary without the fields that decide who may read it. */
 function toSummary(stored: StoredSummary): Summary {
@@ -67,28 +72,30 @@ export class SummariesService {
     });
     return this.start(
       viewer,
-      { channelId: root.channelId, parentId: root.id, from: null },
+      { channelId: root.channelId, parentId: root.id, from: null, to: null },
       messages,
       signal
     );
   }
 
-  /** Summarizes the channel's log, or a DM's, from `from` until now. */
+  /** Summarizes the channel's log, or a DM's, from `from` until `to`, or until now without one. */
   async summarizeChannel(
     viewer: MessageViewer,
-    input: { channelId: string; from: string },
+    input: { channelId: string; from: string; to?: string },
     signal?: AbortSignal
   ) {
     await this.access.assertEnabled(viewer.organizationId);
     const from = new Date(input.from);
+    const to = input.to ? new Date(input.to) : null;
 
     const messages = await this.messages.listForSummary(viewer, {
       channelId: input.channelId,
       from,
+      to: to ?? undefined,
     });
     return this.start(
       viewer,
-      { channelId: input.channelId, parentId: null, from },
+      { channelId: input.channelId, parentId: null, from, to },
       messages,
       signal
     );
@@ -193,7 +200,7 @@ export class SummariesService {
       channelId: scope.channelId,
       parentId: scope.parentId,
       from: scope.from,
-      to: new Date(),
+      to: scope.to ?? new Date(),
       messageCount: input.messageCount,
       bullets,
       sourceMessageIds: citedSourceIds(bullets),

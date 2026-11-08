@@ -169,7 +169,7 @@ Every other feature reads or writes messages, so messaging comes first.
 | M1.18 | AI: summarize a thread, or a channel over a time range                                  | Shipped | [#63](https://github.com/gbaolt/conduit/pull/63) |
 | M1.19 | AI admin control: turn AI on or off for the workspace                                   | Shipped | [#63](https://github.com/gbaolt/conduit/pull/63) |
 
-File attachments ship in M3, together with file storage.
+File attachments ship in M3, together with file storage. An edited message shows no "(edited)" mark.
 
 **Exit check.** Two members in different browsers exchange channel messages, thread replies, reactions, and DMs. Delivery meets the 200 ms p95 target. A summary of a 50-message thread links to the messages it used.
 

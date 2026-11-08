@@ -1,6 +1,8 @@
 import { cn } from '@conduit/ui/lib/utils';
 import type { ReactNode } from 'react';
 
+import { BackToList } from '@/components/list-view';
+
 /** The view's title row: the area's name, one line about its data, and the view's one action. */
 export function SettingsHeader({
   title,
@@ -14,7 +16,10 @@ export function SettingsHeader({
   return (
     <header className="flex flex-wrap items-end justify-between gap-4 pb-8">
       <div className="flex min-w-0 flex-col gap-1.5">
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <div className="flex items-center gap-1.5">
+          <BackToList />
+          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        </div>
         {description ? (
           <p className="text-muted-foreground text-sm">{description}</p>
         ) : null}
