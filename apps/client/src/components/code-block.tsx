@@ -1,13 +1,8 @@
 'use client';
 
 import { Button } from '@conduit/ui/components/button';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@conduit/ui/components/tooltip';
 import { cn } from '@conduit/ui/lib/utils';
-import { IconCheck, IconCopy, IconTextWrap } from '@tabler/icons-react';
+import { IconTextWrap } from '@tabler/icons-react';
 import {
   type ComponentProps,
   createContext,
@@ -18,6 +13,8 @@ import {
   useEffect,
   useState,
 } from 'react';
+
+import { CopyButton } from './copy-button';
 
 const CodeBlockContext = createContext<{
   wrap: boolean;
@@ -75,63 +72,35 @@ export function CodeBlockActions({ children }: { children: ReactNode }) {
   return <div data-slot="code-block-actions">{children}</div>;
 }
 
+const actionClassName =
+  "text-muted-foreground [&_svg:not([class*='size-'])]:size-4";
+
 export function CodeBlockWrapButton() {
   const { wrap, setWrap } = useCodeBlock();
 
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            className="text-muted-foreground [&_svg:not([class*='size-'])]:size-4"
-            aria-label="Wrap lines"
-            aria-pressed={wrap}
-            onClick={() => setWrap((current) => !current)}
-          />
-        }
-      >
-        <IconTextWrap />
-      </TooltipTrigger>
-      <TooltipContent>{wrap ? 'Stop wrapping' : 'Wrap lines'}</TooltipContent>
-    </Tooltip>
+    <Button
+      variant="ghost"
+      size="icon-xs"
+      className={actionClassName}
+      aria-label="Wrap lines"
+      aria-pressed={wrap}
+      onClick={() => setWrap((current) => !current)}
+    >
+      <IconTextWrap />
+    </Button>
   );
 }
 
-const COPIED_MS = 1500;
-
 export function CodeBlockCopyButton({ value }: { value: string }) {
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    if (!copied) return;
-    const timer = setTimeout(() => setCopied(false), COPIED_MS);
-    return () => clearTimeout(timer);
-  }, [copied]);
-
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            className="text-muted-foreground [&_svg:not([class*='size-'])]:size-4"
-            aria-label={copied ? 'Copied' : 'Copy code'}
-            onClick={() => {
-              navigator.clipboard.writeText(value).then(
-                () => setCopied(true),
-                () => undefined
-              );
-            }}
-          />
-        }
-      >
-        {copied ? <IconCheck /> : <IconCopy />}
-      </TooltipTrigger>
-      <TooltipContent>{copied ? 'Copied' : 'Copy code'}</TooltipContent>
-    </Tooltip>
+    <CopyButton
+      variant="ghost"
+      size="icon-xs"
+      className={actionClassName}
+      aria-label="Copy code"
+      text={value}
+    />
   );
 }
 

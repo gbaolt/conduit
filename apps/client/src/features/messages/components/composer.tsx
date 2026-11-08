@@ -1,25 +1,32 @@
 'use client';
 
 import { MESSAGE_BODY_MAX } from '@conduit/contract';
-import { $createCodeNode } from '@lexical/code';
+import { $createCodeNode, $isCodeNode } from '@lexical/code';
+import { buildEditorFromExtensions } from '@lexical/extension';
 import { TOGGLE_LINK_COMMAND } from '@lexical/link';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
-import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer';
+import { LexicalExtensionEditorComposer } from '@lexical/react/LexicalExtensionEditorComposer';
+import { ReactExtension } from '@lexical/react/ReactExtension';
+import { ReactProviderExtension } from '@lexical/react/ReactProviderExtension';
 import { mergeRegister } from '@lexical/utils';
 import {
   $createParagraphNode,
   $getRoot,
   $getSelection,
+  $isLineBreakNode,
   $isParagraphNode,
   $isRangeSelection,
   COMMAND_PRIORITY_HIGH,
+  configExtension,
   FORMAT_TEXT_COMMAND,
   INSERT_PARAGRAPH_COMMAND,
+  KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_UP_COMMAND,
   KEY_ENTER_COMMAND,
   KEY_ESCAPE_COMMAND,
   KEY_MODIFIER_COMMAND,
+  type LexicalEditorWithDispose,
 } from 'lexical';
 import {
   type ReactNode,
@@ -27,7 +34,6 @@ import {
   use,
   useEffect,
   useEffectEvent,
-  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -73,6 +79,24 @@ function $openCodeFence() {
   const code = $createCodeNode(fence[1] || undefined);
   paragraph.replace(code);
   code.select();
+  return true;
+}
+
+/** Down arrow on a code block's last line leaves it, adding a paragraph when nothing follows the block. */
+function $exitCodeBlock() {
+  const selection = $getSelection();
+  if (!$isRangeSelection(selection) || !selection.isCollapsed()) return false;
+  const { anchor } = selection;
+  const code = anchor.getNode().getTopLevelElement();
+  if (!$isCodeNode(code) || code.getNextSibling()) return false;
+  const after =
+    anchor.getNode() === code
+      ? code.getChildren().slice(anchor.offset)
+      : anchor.getNode().getNextSiblings();
+  if (after.some($isLineBreakNode)) return false;
+  const paragraph = $createParagraphNode();
+  code.insertAfter(paragraph);
+  paragraph.select();
   return true;
 }
 
@@ -203,6 +227,15 @@ function ComposerBehavior({
         COMMAND_PRIORITY_HIGH
       ),
       editor.registerCommand(
+        KEY_ARROW_DOWN_COMMAND,
+        (event) => {
+          if (menuOpen.current || !$exitCodeBlock()) return false;
+          event.preventDefault();
+          return true;
+        },
+        COMMAND_PRIORITY_HIGH
+      ),
+      editor.registerCommand(
         KEY_ARROW_UP_COMMAND,
         (event) => {
           if (!canEditLast || $getRoot().getTextContentSize() > 0) return false;
@@ -285,6 +318,20 @@ function ComposerEditable({ placeholder }: { placeholder: string }) {
   );
 }
 
+const disposedEditors = new WeakSet<LexicalEditorWithDispose>();
+
+// The bars render around the editable, so the extension does not render its own.
+function buildComposerEditor(
+  markdown: string,
+  names: ReadonlyMap<string, string>
+) {
+  return buildEditorFromExtensions(
+    ReactProviderExtension,
+    configExtension(ReactExtension, { contentEditable: null }),
+    createComposerExtension(markdown, names)
+  );
+}
+
 /**
  * The one composer for a channel, a DM, a thread, and editing a sent message. Its value is Markdown text.
  * Enter sends and Shift+Enter starts a new line. Inside a list or code block Enter continues it.
@@ -299,31 +346,24 @@ export function Composer({
   // Names only label the mentions in `initialMarkdown`, so a later members refresh must not rebuild the editor.
   const [namesAtMount] = useState(use(MentionNames));
   const latest = useRef(initialMarkdown ?? '');
-  const hidden = useRef(false);
   const menuOpen = useRef(false);
-  const [seed, setSeed] = useState({
-    markdown: initialMarkdown ?? '',
-    generation: 0,
-  });
+  const [editor, setEditor] = useState(() =>
+    buildComposerEditor(latest.current, namesAtMount)
+  );
 
-  // A hidden route runs effect cleanups, which dispose the editor. Coming back builds a new one from the text.
+  // Every effect cleanup disposes the editor, including a hidden route's, and a disposed editor ignores typing.
+  // So an effect that finds its editor disposed builds a new one from the latest text.
   useEffect(() => {
-    if (hidden.current) {
-      hidden.current = false;
-      setSeed((current) => ({
-        markdown: latest.current,
-        generation: current.generation + 1,
-      }));
+    if (disposedEditors.has(editor)) {
+      setEditor(buildComposerEditor(latest.current, namesAtMount));
+      return;
     }
     return () => {
-      hidden.current = true;
+      editor.dispose();
+      disposedEditors.add(editor);
     };
-  }, []);
+  }, [editor, namesAtMount]);
 
-  const extension = useMemo(
-    () => createComposerExtension(seed.markdown, namesAtMount),
-    [seed, namesAtMount]
-  );
   const { onChange } = behavior;
   const [anchor, setAnchor] = useState<HTMLDivElement | null>(null);
   const [isLinkEditMode, setIsLinkEditMode] = useState(false);
@@ -334,8 +374,10 @@ export function Composer({
         ref={setAnchor}
         className="border-input bg-surface relative flex flex-col rounded-lg border shadow-[0_1px_3px_rgb(0_0_0/0.08)]"
       >
-        {/* Null keeps the editor from being rebuilt on every render, and lets the bars sit around the text. */}
-        <LexicalExtensionComposer extension={extension} contentEditable={null}>
+        <LexicalExtensionEditorComposer
+          key={editor.getKey()}
+          initialEditor={editor}
+        >
           <ComposerBehavior
             {...behavior}
             onChange={(markdown) => {
@@ -344,13 +386,13 @@ export function Composer({
             }}
             placeholder={placeholder}
             mode={mode}
-            initialMarkdown={seed.markdown}
+            initialMarkdown={latest.current}
             menuOpen={menuOpen}
             anchor={anchor}
             isLinkEditMode={isLinkEditMode}
             setIsLinkEditMode={setIsLinkEditMode}
           />
-        </LexicalExtensionComposer>
+        </LexicalExtensionEditorComposer>
       </div>
       {children}
     </div>
