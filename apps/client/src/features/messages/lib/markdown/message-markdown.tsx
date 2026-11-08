@@ -111,7 +111,8 @@ type MessageMarkdownProps = { id: string; updatedAt: Date; body: string };
 export const MessageMarkdown = memo(
   function MessageMarkdown({ body }: MessageMarkdownProps) {
     return (
-      <div className="typeset typeset-chat max-w-[72ch]">
+      // min-w-0: callers set this in a flex row, where a code block's longest line would otherwise set its width.
+      <div className="typeset typeset-chat max-w-[72ch] min-w-0">
         <Markdown
           remarkPlugins={remarkPlugins}
           rehypePlugins={rehypePlugins}
