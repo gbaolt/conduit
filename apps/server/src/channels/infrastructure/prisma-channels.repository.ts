@@ -1,4 +1,4 @@
-import type { Channel, ChannelMember } from '@conduit/contract';
+import type { Room, RoomMember } from '@conduit/contract';
 import { Prisma } from '@generated/prisma/client';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -28,14 +28,14 @@ export function include(scope: ChannelScope) {
       select: { role: true, starredAt: true, sectionId: true },
     },
     archivedBy: { select: { name: true } },
-  } satisfies Prisma.ChannelInclude;
+  } satisfies Prisma.RoomInclude;
 }
 
-type ChannelRow = Prisma.ChannelGetPayload<{
+type ChannelRow = Prisma.RoomGetPayload<{
   include: ReturnType<typeof include>;
 }>;
 
-export function toChannel(row: ChannelRow): Channel {
+export function toChannel(row: ChannelRow): Room {
   const membership = row.members[0];
   return {
     id: row.id,
@@ -76,17 +76,17 @@ export function rethrowNameTaken(error: unknown): never {
 function stillInWorkspace(scope: ChannelScope) {
   return {
     user: { members: { some: { organizationId: scope.organizationId } } },
-  } satisfies Prisma.ChannelMemberWhereInput;
+  } satisfies Prisma.RoomMemberWhereInput;
 }
 
-/** Channel and channel-member rows. Returns contract types, so no Prisma row leaves this file. */
+/** Room and room-member rows. Returns contract types, so no Prisma row leaves this file. */
 @Injectable()
 export class PrismaChannelsRepository implements ChannelsRepository {
   constructor(@Inject(PrismaService) private readonly db: PrismaService) {}
 
   /** Public channels plus the private ones the scope's user belongs to. */
   async list(scope: ChannelScope, archived: boolean) {
-    const rows = await this.db.channel.findMany({
+    const rows = await this.db.room.findMany({
       where: {
         organizationId: scope.organizationId,
         kind: 'CHANNEL',
@@ -103,17 +103,17 @@ export class PrismaChannelsRepository implements ChannelsRepository {
   }
 
   /** Any channel in the scope's workspace, private or not. Callers check visibility. */
-  async find(scope: ChannelScope, channelId: string) {
-    const row = await this.db.channel.findFirst({
-      where: { id: channelId, organizationId: scope.organizationId },
+  async find(scope: ChannelScope, roomId: string) {
+    const row = await this.db.room.findFirst({
+      where: { id: roomId, organizationId: scope.organizationId },
       include: include(scope),
     });
     return row && toChannel(row);
   }
 
-  async findOrganizationId(channelId: string) {
-    const row = await this.db.channel.findUnique({
-      where: { id: channelId },
+  async findOrganizationId(roomId: string) {
+    const row = await this.db.room.findUnique({
+      where: { id: roomId },
       select: { organizationId: true },
     });
     return row?.organizationId ?? null;
@@ -122,9 +122,9 @@ export class PrismaChannelsRepository implements ChannelsRepository {
   /** Creates the channel with its creator as a manager, in one transaction. */
   async create(
     scope: ChannelScope,
-    input: { name: string; visibility: Channel['visibility'] }
+    input: { name: string; visibility: Room['visibility'] }
   ) {
-    const row = await this.db.channel
+    const row = await this.db.room
       .create({
         data: {
           organizationId: scope.organizationId,
@@ -139,10 +139,10 @@ export class PrismaChannelsRepository implements ChannelsRepository {
     return toChannel(row);
   }
 
-  async rename(scope: ChannelScope, channelId: string, name: string) {
-    const row = await this.db.channel
+  async rename(scope: ChannelScope, roomId: string, name: string) {
+    const row = await this.db.room
       .update({
-        where: { id: channelId },
+        where: { id: roomId },
         data: { name },
         include: include(scope),
       })
@@ -153,11 +153,11 @@ export class PrismaChannelsRepository implements ChannelsRepository {
   /** `undefined` leaves a column alone. */
   async updateDetails(
     scope: ChannelScope,
-    channelId: string,
+    roomId: string,
     details: { topic?: string | null; description?: string | null }
   ) {
-    const row = await this.db.channel.update({
-      where: { id: channelId },
+    const row = await this.db.room.update({
+      where: { id: roomId },
       data: details,
       include: include(scope),
     });
@@ -165,9 +165,9 @@ export class PrismaChannelsRepository implements ChannelsRepository {
   }
 
   /** Archives as the scope's user, or unarchives. */
-  async setArchived(scope: ChannelScope, channelId: string, archived: boolean) {
-    const row = await this.db.channel.update({
-      where: { id: channelId },
+  async setArchived(scope: ChannelScope, roomId: string, archived: boolean) {
+    const row = await this.db.room.update({
+      where: { id: roomId },
       data: archived
         ? { archivedAt: new Date(), archivedById: scope.userId }
         : { archivedAt: null, archivedById: null },
@@ -178,11 +178,11 @@ export class PrismaChannelsRepository implements ChannelsRepository {
 
   async setVisibility(
     scope: ChannelScope,
-    channelId: string,
-    visibility: Channel['visibility']
+    roomId: string,
+    visibility: Room['visibility']
   ) {
-    const row = await this.db.channel.update({
-      where: { id: channelId },
+    const row = await this.db.room.update({
+      where: { id: roomId },
       data: {
         visibility: visibility === 'private' ? 'PRIVATE' : 'PUBLIC',
         // An admin outside the channel would lock themselves out of the channel they just made private.
@@ -201,34 +201,34 @@ export class PrismaChannelsRepository implements ChannelsRepository {
     return toChannel(row);
   }
 
-  async delete(channelId: string) {
-    await this.db.channel.delete({ where: { id: channelId } });
+  async delete(roomId: string) {
+    await this.db.room.delete({ where: { id: roomId } });
   }
 
   /** Adds each user once. Users already in the channel are skipped. */
-  async addMembers(channelId: string, userIds: string[]) {
-    await this.db.channelMember.createMany({
-      data: userIds.map((userId) => ({ channelId, userId })),
+  async addMembers(roomId: string, userIds: string[]) {
+    await this.db.roomMember.createMany({
+      data: userIds.map((userId) => ({ roomId, userId })),
       skipDuplicates: true,
     });
   }
 
   /** Returns how many rows were removed, 0 or 1. */
-  async removeMember(channelId: string, userId: string) {
-    const { count } = await this.db.channelMember.deleteMany({
-      where: { channelId, userId },
+  async removeMember(roomId: string, userId: string) {
+    const { count } = await this.db.roomMember.deleteMany({
+      where: { roomId, userId },
     });
     return count;
   }
 
   /** The user's own settings on a channel. Does nothing when they are not a member. */
   async updateMembership(
-    channelId: string,
+    roomId: string,
     userId: string,
     data: { starredAt?: Date | null; sectionId?: string | null }
   ) {
-    await this.db.channelMember.updateMany({
-      where: { channelId, userId },
+    await this.db.roomMember.updateMany({
+      where: { roomId, userId },
       data,
     });
   }
@@ -236,10 +236,10 @@ export class PrismaChannelsRepository implements ChannelsRepository {
   /** Current workspace members of the channel, managers first. */
   async listMembers(
     scope: ChannelScope,
-    channelId: string
-  ): Promise<ChannelMember[]> {
-    const rows = await this.db.channelMember.findMany({
-      where: { channelId, ...stillInWorkspace(scope) },
+    roomId: string
+  ): Promise<RoomMember[]> {
+    const rows = await this.db.roomMember.findMany({
+      where: { roomId, ...stillInWorkspace(scope) },
       include: { user: { select: { name: true, image: true } } },
       // MANAGER is declared first in the enum, so managers sort first.
       orderBy: [{ role: 'asc' }, { joinedAt: 'asc' }],
@@ -256,11 +256,11 @@ export class PrismaChannelsRepository implements ChannelsRepository {
   /** The member's channel role, or null when they are not a current workspace member in the channel. */
   async findMemberRole(
     scope: ChannelScope,
-    channelId: string,
+    roomId: string,
     userId: string
-  ): Promise<ChannelMember['role'] | null> {
-    const row = await this.db.channelMember.findFirst({
-      where: { channelId, userId, ...stillInWorkspace(scope) },
+  ): Promise<RoomMember['role'] | null> {
+    const row = await this.db.roomMember.findFirst({
+      where: { roomId, userId, ...stillInWorkspace(scope) },
       select: { role: true },
     });
     return row && (row.role === 'MANAGER' ? 'manager' : 'member');
@@ -269,24 +269,24 @@ export class PrismaChannelsRepository implements ChannelsRepository {
   /** Throws `LAST_MANAGER` when `demotingManager` would leave the channel with none. */
   async setMemberRole(
     scope: ChannelScope,
-    channelId: string,
+    roomId: string,
     userId: string,
-    role: ChannelMember['role'],
+    role: RoomMember['role'],
     demotingManager: boolean
   ) {
     await this.db.$transaction(async (tx) => {
       if (demotingManager) {
         // Locking the channel row serializes demotions, so two at once cannot both see another manager.
-        await tx.$queryRaw`SELECT id FROM "Channel" WHERE id = ${channelId} FOR UPDATE`;
-        const managers = await tx.channelMember.count({
-          where: { channelId, role: 'MANAGER', ...stillInWorkspace(scope) },
+        await tx.$queryRaw`SELECT id FROM "Channel" WHERE id = ${roomId} FOR UPDATE`;
+        const managers = await tx.roomMember.count({
+          where: { roomId, role: 'MANAGER', ...stillInWorkspace(scope) },
         });
         if (managers <= 1) {
           throw channelError('LAST_MANAGER');
         }
       }
-      await tx.channelMember.update({
-        where: { channelId_userId: { channelId, userId } },
+      await tx.roomMember.update({
+        where: { roomId_userId: { roomId, userId } },
         data: { role: role === 'manager' ? 'MANAGER' : 'MEMBER' },
       });
     });

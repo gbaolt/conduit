@@ -1,6 +1,6 @@
 'use client';
 
-import type { Channel } from '@conduit/contract';
+import type { Room } from '@conduit/contract';
 import { Button } from '@conduit/ui/components/button';
 import {
   Combobox,
@@ -27,21 +27,19 @@ import { toast } from 'sonner';
 
 import { StatusButton } from '@/components/async/status-button';
 import { useAddChannelMembers } from '@/services/channels/hooks';
-import { channelMembersQuery } from '@/services/channels/queries';
+import { roomMembersQuery } from '@/services/channels/queries';
 import { useWorkspaceMembers } from '@/services/workspaces/hooks';
 
 import { useChannelDialogs } from '../../context/channel-dialogs-provider';
 
 type Person = { id: string; name: string };
 
-export function AddMembersDialog({ channel }: { channel: Channel }) {
+export function AddMembersDialog({ channel }: { channel: Room }) {
   const { close } = useChannelDialogs();
   const anchor = useComboboxAnchor();
   const addMembers = useAddChannelMembers();
   const { data: workspaceMembers = [] } = useWorkspaceMembers();
-  const { data: channelMembers = [] } = useQuery(
-    channelMembersQuery(channel.id)
-  );
+  const { data: channelMembers = [] } = useQuery(roomMembersQuery(channel.id));
   const [selected, setSelected] = useState<Person[]>([]);
 
   const inChannel = new Set(channelMembers.map((member) => member.userId));
@@ -103,7 +101,7 @@ export function AddMembersDialog({ channel }: { channel: Channel }) {
             onClick={() =>
               addMembers.mutate(
                 {
-                  channelId: channel.id,
+                  roomId: channel.id,
                   userIds: selected.map((person) => person.id),
                 },
                 {

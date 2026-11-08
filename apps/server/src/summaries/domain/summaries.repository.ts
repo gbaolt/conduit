@@ -11,7 +11,7 @@ export abstract class SummariesRepository {
   abstract create(input: {
     organizationId: string;
     requesterId: string;
-    channelId: string;
+    roomId: string;
     parentId: string | null;
     from: Date | null;
     to: Date;

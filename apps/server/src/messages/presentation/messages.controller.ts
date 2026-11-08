@@ -165,7 +165,7 @@ export class MessagesController {
       .use(arcjet.read)
       .use(workspaceMember)
       .handler(({ context, input }) =>
-        this.messagesService.listPinned(viewerOf(context), input.channelId)
+        this.messagesService.listPinned(viewerOf(context), input.roomId)
       );
   }
 

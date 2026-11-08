@@ -1,4 +1,4 @@
-import type { Channel } from '@conduit/contract';
+import type { Room } from '@conduit/contract';
 import { describe, expect, it } from 'vitest';
 
 import type { ChannelsRepository } from '@/channels/domain/channels.repository';
@@ -15,9 +15,9 @@ const viewer: RealtimeViewer = {
   workspaceRole: 'member',
 };
 const since = new Date('2026-11-07T00:00:00.000Z');
-const stream = { kind: 'conversation', channelId: 'c1', since } as const;
+const stream = { kind: 'conversation', roomId: 'c1', since } as const;
 
-function setup(channel: Partial<Channel> | null) {
+function setup(channel: Partial<Room> | null) {
   const sealed: LiveQuery[] = [];
   const liveQueries: LiveQueries = {
     seal: async (query) => {
@@ -60,7 +60,7 @@ describe('RealtimeService.seal', () => {
 
     await service.seal(viewer, {
       kind: 'thread',
-      channelId: 'c1',
+      roomId: 'c1',
       parentId: 'm1',
       since,
     });
@@ -75,7 +75,7 @@ describe('RealtimeService.seal', () => {
     await expect(
       service.seal(viewer, {
         kind: 'thread',
-        channelId: 'c1',
+        roomId: 'c1',
         parentId: 'm1',
         since,
       })
@@ -98,7 +98,7 @@ describe('RealtimeService.seal', () => {
   it('seals the typing stream for the viewer, leaving their own rows out', async () => {
     const { service, sealed } = setup({});
 
-    await service.seal(viewer, { kind: 'typing', channelId: 'c1', since });
+    await service.seal(viewer, { kind: 'typing', roomId: 'c1', since });
 
     expect(sealed[0]?.parameters).toEqual(['c1', since, 'u1']);
     expect(sealed[0]?.sql).toContain('"userId" <> $3');
@@ -108,7 +108,7 @@ describe('RealtimeService.seal', () => {
     const { service, sealed } = setup({ visibility: 'private' });
 
     await expect(
-      service.seal(viewer, { kind: 'typing', channelId: 'c1', since })
+      service.seal(viewer, { kind: 'typing', roomId: 'c1', since })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
     expect(sealed).toEqual([]);
   });

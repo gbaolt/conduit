@@ -1,8 +1,8 @@
-import type { Channel, Dm } from '@conduit/contract';
+import type { Dm, Room } from '@conduit/contract';
 
 import type { ChannelScope } from './channels.repository';
 
-/** Direct conversations. Each is a `Channel` row with `kind: DM`, so callers check access through `ChannelsRepository` first. */
+/** Direct conversations. Each is a `Room` row with `kind: DM`, so callers check access through `ChannelsRepository` first. */
 export abstract class DmsRepository {
   /** The scope user's DMs, the most recent message first. */
   abstract list(scope: ChannelScope): Promise<Dm[]>;
@@ -19,7 +19,7 @@ export abstract class DmsRepository {
    */
   abstract addPeople(
     scope: ChannelScope,
-    channelId: string,
+    roomId: string,
     userIds: string[]
   ): Promise<Dm>;
 
@@ -29,7 +29,7 @@ export abstract class DmsRepository {
    */
   abstract convertToChannel(
     scope: ChannelScope,
-    channelId: string,
+    roomId: string,
     name: string
-  ): Promise<Channel>;
+  ): Promise<Room>;
 }

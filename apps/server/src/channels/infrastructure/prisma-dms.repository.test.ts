@@ -66,7 +66,7 @@ describe.skipIf(!connectionString)('PrismaDmsRepository', () => {
       [linh, bao].sort()
     );
     expect(
-      await prisma.channel.count({
+      await prisma.room.count({
         where: {
           organizationId,
           kind: 'DM',
@@ -86,7 +86,7 @@ describe.skipIf(!connectionString)('PrismaDmsRepository', () => {
 
   it('keeps a DM private and out of the channel list and browse', async () => {
     const dm = await dms.open(scope(linh), [linh, bao]);
-    const stored = await prisma.channel.findUniqueOrThrow({
+    const stored = await prisma.room.findUniqueOrThrow({
       where: { id: dm.id },
     });
 
@@ -102,11 +102,11 @@ describe.skipIf(!connectionString)('PrismaDmsRepository', () => {
   it('lists only the viewer’s DMs, newest message first', async () => {
     const older = await dms.open(scope(bao), [bao, cy]);
     const newer = await dms.open(scope(bao), [bao]);
-    await prisma.channel.update({
+    await prisma.room.update({
       where: { id: older.id },
       data: { lastMessageAt: new Date('2026-01-01') },
     });
-    await prisma.channel.update({
+    await prisma.room.update({
       where: { id: newer.id },
       data: { lastMessageAt: new Date('2026-02-01') },
     });
@@ -140,8 +140,8 @@ describe.skipIf(!connectionString)('PrismaDmsRepository', () => {
       dms.addPeople(scope(ids[0]!), nine.id, [ids[10]!])
     ).rejects.toMatchObject({ code: 'DM_FULL' });
 
-    const stored = await prisma.channelMember.count({
-      where: { channelId: nine.id },
+    const stored = await prisma.roomMember.count({
+      where: { roomId: nine.id },
     });
     expect(stored).toBe(10);
   });
@@ -159,14 +159,14 @@ describe.skipIf(!connectionString)('PrismaDmsRepository', () => {
   it('turns a DM into a private channel and keeps every message and member', async () => {
     const dm = await dms.open(scope(ids[9]!), [ids[9]!, ids[10]!, ids[11]!]);
     const first = await messages.send({
-      channelId: dm.id,
+      roomId: dm.id,
       authorId: ids[10]!,
       clientId: 'one',
       body: 'hello',
       mentions,
     });
     await messages.send({
-      channelId: dm.id,
+      roomId: dm.id,
       authorId: ids[9]!,
       clientId: 'two',
       body: 'reply',
@@ -186,13 +186,13 @@ describe.skipIf(!connectionString)('PrismaDmsRepository', () => {
       visibility: 'private',
     });
     expect(channel.membership?.role).toBe('manager');
-    const stored = await prisma.channel.findUniqueOrThrow({
+    const stored = await prisma.room.findUniqueOrThrow({
       where: { id: dm.id },
     });
     expect(stored.dmKey).toBeNull();
-    expect(await prisma.message.count({ where: { channelId: dm.id } })).toBe(2);
+    expect(await prisma.message.count({ where: { roomId: dm.id } })).toBe(2);
     expect(
-      (await prisma.channelMember.findMany({ where: { channelId: dm.id } }))
+      (await prisma.roomMember.findMany({ where: { roomId: dm.id } }))
         .map((member) => member.userId)
         .sort()
     ).toEqual([ids[9], ids[10], ids[11]].sort());
@@ -208,7 +208,7 @@ describe.skipIf(!connectionString)('PrismaDmsRepository', () => {
   });
 
   it('refuses a taken name and leaves the DM a DM', async () => {
-    await prisma.channel.create({
+    await prisma.room.create({
       data: { organizationId, name: 'taken-name' },
     });
     const dm = await dms.open(scope(linh), [linh, ids[4]!]);
@@ -217,7 +217,7 @@ describe.skipIf(!connectionString)('PrismaDmsRepository', () => {
       dms.convertToChannel(scope(linh), dm.id, 'taken-name')
     ).rejects.toMatchObject({ code: 'NAME_TAKEN' });
 
-    const stored = await prisma.channel.findUniqueOrThrow({
+    const stored = await prisma.room.findUniqueOrThrow({
       where: { id: dm.id },
     });
     expect(stored.kind).toBe('DM');

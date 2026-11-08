@@ -1,6 +1,6 @@
 'use client';
 
-import { canChannel, type Channel } from '@conduit/contract';
+import { canChannel, type Room } from '@conduit/contract';
 import { Button } from '@conduit/ui/components/button';
 import { IconArchive } from '@tabler/icons-react';
 import { useSyncExternalStore } from 'react';
@@ -11,7 +11,7 @@ import { useChannelDialogs } from '../../context/channel-dialogs-provider';
 
 const subscribeNever = () => () => {};
 
-export function ArchivedBanner({ channel }: { channel: Channel }) {
+export function ArchivedBanner({ channel }: { channel: Room }) {
   const { open } = useChannelDialogs();
   const workspaceRole = useWorkspaceRole();
 

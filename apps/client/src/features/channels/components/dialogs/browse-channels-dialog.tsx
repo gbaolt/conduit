@@ -1,6 +1,6 @@
 'use client';
 
-import { canChannel, type Channel } from '@conduit/contract';
+import { canChannel, type Room } from '@conduit/contract';
 import { Button } from '@conduit/ui/components/button';
 import {
   Dialog,
@@ -27,7 +27,7 @@ import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
 import { useChannelDialogs } from '../../context/channel-dialogs-provider';
 
-function BrowseChannelRow({ channel }: { channel: Channel }) {
+function BrowseChannelRow({ channel }: { channel: Room }) {
   const router = useRouter();
   const { close } = useChannelDialogs();
   const workspaceRole = useWorkspaceRole();
@@ -63,7 +63,7 @@ function BrowseChannelRow({ channel }: { channel: Channel }) {
           status={joinChannel.isPending ? 'loading' : 'idle'}
           onClick={() =>
             joinChannel.mutate(
-              { channelId: channel.id },
+              { roomId: channel.id },
               {
                 onSuccess: () => {
                   close();

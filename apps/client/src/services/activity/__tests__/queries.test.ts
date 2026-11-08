@@ -7,7 +7,7 @@ const at = (minute: number) => new Date(2026, 10, 7, 10, minute);
 
 function entry(overrides: Partial<SidebarEntry> = {}): SidebarEntry {
   return {
-    channelId: 'c1',
+    roomId: 'c1',
     lastMessageAt: at(30),
     joinedAt: at(0),
     lastReadAt: null,

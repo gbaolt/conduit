@@ -23,6 +23,7 @@ function useActiveWorkspaceChanged() {
     void queryClient.invalidateQueries({ queryKey: orpc.organizations.key() });
     void queryClient.invalidateQueries({ queryKey: orpc.users.key() });
     void queryClient.invalidateQueries({ queryKey: orpc.channels.key() });
+    void queryClient.invalidateQueries({ queryKey: orpc.rooms.key() });
     void queryClient.invalidateQueries({ queryKey: orpc.members.key() });
     void queryClient.invalidateQueries({ queryKey: orpc.invitations.key() });
     void queryClient.invalidateQueries({ queryKey: orpc.aiSettings.key() });

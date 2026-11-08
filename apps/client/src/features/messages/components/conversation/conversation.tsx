@@ -15,8 +15,8 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ConversationSkeleton } from '@/components/conversation-skeleton';
 import { sessionQuery } from '@/services/auth/queries';
-import { useConversationName, useJoinChannel } from '@/services/channels/hooks';
-import { channelMembersQuery, channelQuery } from '@/services/channels/queries';
+import { useJoinChannel, useRoomName } from '@/services/channels/hooks';
+import { roomMembersQuery, roomQuery } from '@/services/channels/queries';
 import { useSendMessage } from '@/services/messages/hooks';
 import { type LiveStatus, useLiveStream } from '@/services/messages/live';
 import {
@@ -115,31 +115,31 @@ function ConnectionLine({ status }: { status: LiveStatus }) {
  * thread instead: the root message, its replies, and a composer that replies.
  */
 export function Conversation({
-  channelId,
+  roomId,
   parentId,
   start,
 }: {
-  channelId: string;
+  roomId: string;
   parentId?: string;
   /** The opening block, shown once the log reaches its first message. */
   start: ReactNode;
 }) {
   const isClient = useIsClient();
-  const { data: channel } = useSuspenseQuery(channelQuery(channelId));
+  const { data: channel } = useSuspenseQuery(roomQuery(roomId));
   const { data: session } = useQuery(sessionQuery);
-  const { data: channelMembers } = useQuery(channelMembersQuery(channelId));
+  const { data: channelMembers } = useQuery(roomMembersQuery(roomId));
   const workspaceRole = useWorkspaceRole();
   const joinChannel = useJoinChannel();
-  const { title, isDm, isSelf } = useConversationName(channelId);
+  const { title, isDm, isSelf } = useRoomName(roomId);
   const history = useInfiniteQuery(
-    parentId ? repliesQuery(parentId) : messagesQuery(channelId)
+    parentId ? repliesQuery(parentId) : messagesQuery(roomId)
   );
   const { data: root } = useQuery({
     ...threadRootQuery(parentId ?? ''),
     enabled: Boolean(parentId),
   });
-  const liveStatus = useLiveStream(channelId, parentId);
-  const { send, retry, discard } = useSendMessage(channelId, parentId);
+  const liveStatus = useLiveStream(roomId, parentId);
+  const { send, retry, discard } = useSendMessage(roomId, parentId);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [alsoSend, setAlsoSend] = useState(false);
   const composerRef = useRef<HTMLDivElement>(null);
@@ -184,7 +184,7 @@ export function Conversation({
     return parentId && root ? [root, ...loaded] : loaded;
   }, [history.data, parentId, root]);
   const { markerId, markRead } = useNewMarker({
-    channelId,
+    roomId,
     messages,
     viewerId: session?.user.id ?? null,
     // A thread has no read state of its own.
@@ -231,7 +231,7 @@ export function Conversation({
           <div ref={frameRef} className="relative flex min-h-0 flex-1 flex-col">
             {isClient && !history.isPending && !waitingForRoot ? (
               <ConversationMessages
-                channelId={channelId}
+                roomId={roomId}
                 parentId={parentId}
                 messages={messages}
                 authors={authors}
@@ -294,7 +294,7 @@ export function Conversation({
               {footer === 'composer' && (
                 <>
                   <ConversationComposer
-                    channelId={channelId}
+                    roomId={roomId}
                     parentId={parentId}
                     placeholder={PLACEHOLDERS[kind](title)}
                     autoFocus={Boolean(parentId)}
@@ -329,10 +329,7 @@ export function Conversation({
                       )
                     }
                   />
-                  <ConversationTyping
-                    channelId={channelId}
-                    parentId={parentId}
-                  />
+                  <ConversationTyping roomId={roomId} parentId={parentId} />
                 </>
               )}
               {footer === 'join' && (
@@ -343,7 +340,7 @@ export function Conversation({
                   <Button
                     size="xs"
                     disabled={joinChannel.isPending}
-                    onClick={() => joinChannel.mutate({ channelId })}
+                    onClick={() => joinChannel.mutate({ roomId })}
                   >
                     Join channel
                   </Button>

@@ -15,27 +15,27 @@ import { BackToList } from '@/components/list-view';
 import { sessionQuery } from '@/services/auth/queries';
 import { dmTitle } from '@/services/channels/dm-title';
 import { useActivateChannelWorkspace, useDm } from '@/services/channels/hooks';
-import { channelQuery } from '@/services/channels/queries';
+import { roomQuery } from '@/services/channels/queries';
 
 import { useChannelDialogs } from '../../context/channel-dialogs-provider';
 
 /** The bar above a DM: who it is with, and the menu that adds people or turns it into a channel. */
 export function DmHeader({
-  channelId,
+  roomId,
   children,
   menu,
 }: {
-  channelId: string;
+  roomId: string;
   /** Buttons that other features add before the menu, such as the pinned list. */
   children?: ReactNode;
   /** Rows that other features add to the menu, such as Summarize conversation. */
   menu?: ReactNode;
 }) {
-  const { data: channel } = useSuspenseQuery(channelQuery(channelId));
+  const { data: channel } = useSuspenseQuery(roomQuery(roomId));
   const { data: session } = useQuery(sessionQuery);
   const { open } = useChannelDialogs();
-  const dm = useDm(channelId);
-  useActivateChannelWorkspace(channelId, channel.organizationId);
+  const dm = useDm(roomId);
+  useActivateChannelWorkspace(roomId, channel.organizationId);
 
   const title = dm ? dmTitle(dm, session?.user.id ?? '') : 'Direct message';
   const count = dm?.members.length ?? 0;
@@ -66,13 +66,13 @@ export function DmHeader({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-60">
           <DropdownMenuItem
-            onClick={() => open({ kind: 'dm-add-people', channelId })}
+            onClick={() => open({ kind: 'dm-add-people', roomId })}
           >
             <IconUserPlus />
             Add people
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => open({ kind: 'dm-convert', channelId })}
+            onClick={() => open({ kind: 'dm-convert', roomId })}
           >
             <IconUsers />
             Turn into a private channel

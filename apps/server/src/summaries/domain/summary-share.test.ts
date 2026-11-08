@@ -5,7 +5,7 @@ import { summaryMessageBody } from './summary-share';
 
 const summary = (overrides: Partial<Summary> = {}): Summary => ({
   id: 's1',
-  channelId: 'c1',
+  roomId: 'c1',
   parentId: null,
   from: null,
   to: null,

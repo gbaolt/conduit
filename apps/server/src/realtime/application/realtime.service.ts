@@ -29,8 +29,8 @@ export class RealtimeService {
    * so someone who loses access stops receiving changes within a minute.
    */
   async seal(viewer: RealtimeViewer, stream: LiveStream) {
-    if ('channelId' in stream) {
-      const channel = await this.channels.find(viewer, stream.channelId);
+    if ('roomId' in stream) {
+      const channel = await this.channels.find(viewer, stream.roomId);
       if (!channel || checkChannel('view', viewer.workspaceRole, channel)) {
         throw realtimeError('NOT_FOUND');
       }

@@ -1,8 +1,8 @@
 import {
   canChannel,
-  type Channel,
   type ChannelAction,
   type ChannelSection,
+  type Room,
   type WorkspaceRole,
 } from '@conduit/contract';
 import {
@@ -27,9 +27,9 @@ import type { ChannelDialog } from '../context/channel-dialogs-provider';
 /** What a row needs from the app to run: the dialog host and the mutations a dialog does not own. */
 export type ChannelActionContext = {
   open: (dialog: ChannelDialog) => void;
-  leave: (channel: Channel) => void;
-  setStarred: (channel: Channel, starred: boolean) => void;
-  moveToSection: (channel: Channel, sectionId: string | null) => void;
+  leave: (channel: Room) => void;
+  setStarred: (channel: Room, starred: boolean) => void;
+  moveToSection: (channel: Room, sectionId: string | null) => void;
 };
 
 /** One entry of a submenu row. */
@@ -66,14 +66,11 @@ type Row = Pick<ChannelMenuAction, 'id' | 'label' | 'icon'> & {
   /** The policy action that gates the row. Omit it for rows anyone who sees the channel can use. */
   policy?: ChannelAction;
   /** Hides the row for channels it does not apply to. */
-  when?: (channel: Channel) => boolean;
+  when?: (channel: Room) => boolean;
 } & (
-    | { run: (channel: Channel, context: ChannelActionContext) => void }
+    | { run: (channel: Room, context: ChannelActionContext) => void }
     | {
-        items: (
-          channel: Channel,
-          sections: ChannelSection[]
-        ) => ChannelMenuItem[];
+        items: (channel: Room, sections: ChannelSection[]) => ChannelMenuItem[];
       }
   );
 
@@ -220,7 +217,7 @@ const rows: Row[] = [
 
 /** The rows the viewer may use on this channel, so the menu hides what the server refuses. */
 export function getChannelActions(
-  channel: Channel,
+  channel: Room,
   viewer: { workspaceRole: WorkspaceRole; sections?: ChannelSection[] }
 ): ChannelMenuAction[] {
   return rows

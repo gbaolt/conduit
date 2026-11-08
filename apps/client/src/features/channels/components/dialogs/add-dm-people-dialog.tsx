@@ -27,7 +27,7 @@ import { PeoplePicker, type Person } from './people-picker';
  * Adds people to a DM. A DM holds ten, so an eleventh offers to turn it into a private channel,
  * which keeps every message and member and has no limit.
  */
-export function AddDmPeopleDialog({ channelId }: { channelId: string }) {
+export function AddDmPeopleDialog({ roomId }: { roomId: string }) {
   const { close, open } = useChannelDialogs();
   const addPeople = useAddDmPeople();
   const { data: workspaceMembers = [] } = useWorkspaceMembers();
@@ -36,7 +36,7 @@ export function AddDmPeopleDialog({ channelId }: { channelId: string }) {
   const [full, setFull] = useState(false);
 
   const inDm = new Set(
-    dms.find((dm) => dm.id === channelId)?.members.map((m) => m.userId)
+    dms.find((dm) => dm.id === roomId)?.members.map((m) => m.userId)
   );
   const people: Person[] = workspaceMembers
     .filter((member) => member.status === 'active' && !inDm.has(member.userId))
@@ -73,7 +73,7 @@ export function AddDmPeopleDialog({ channelId }: { channelId: string }) {
           {full ? (
             <Button
               type="button"
-              onClick={() => open({ kind: 'dm-convert', channelId })}
+              onClick={() => open({ kind: 'dm-convert', roomId })}
             >
               Turn into a private channel
             </Button>
@@ -83,7 +83,7 @@ export function AddDmPeopleDialog({ channelId }: { channelId: string }) {
               status={addPeople.isPending ? 'loading' : 'idle'}
               onClick={() =>
                 addPeople.mutate(
-                  { channelId, userIds: selected.map((person) => person.id) },
+                  { roomId, userIds: selected.map((person) => person.id) },
                   {
                     onSuccess: close,
                     onError: (error) => {

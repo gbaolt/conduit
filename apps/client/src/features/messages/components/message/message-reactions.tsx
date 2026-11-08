@@ -22,12 +22,12 @@ export function MessageReactions({
   viewerId,
   canReact,
 }: {
-  message: Pick<Message, 'id' | 'channelId' | 'reactions'>;
+  message: Pick<Message, 'id' | 'roomId' | 'reactions'>;
   viewerId: string | null;
   canReact: boolean;
 }) {
   const names = use(MentionNames);
-  const toggle = useToggleReaction(message.channelId);
+  const toggle = useToggleReaction(message.roomId);
   const entries = Object.entries(message.reactions);
   if (entries.length === 0) return null;
 

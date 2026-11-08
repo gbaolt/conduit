@@ -4,10 +4,10 @@ import { z } from 'zod';
 
 import {
   AddChannelMembersInputSchema,
-  ChannelIdInputSchema,
+  RoomIdInputSchema,
   ChannelMemberInputSchema,
-  ChannelMemberSchema,
-  ChannelSchema,
+  RoomMemberSchema,
+  RoomSchema,
   CreateChannelInputSchema,
   ListChannelsInputSchema,
   MoveChannelToSectionInputSchema,
@@ -48,58 +48,58 @@ export const listChannelsContract = oc
   .meta(openapi({ method: 'GET', path: '/channels' }))
   .errors({ FORBIDDEN })
   .input(ListChannelsInputSchema)
-  .output(z.array(ChannelSchema));
+  .output(z.array(RoomSchema));
 
-export const getChannelContract = oc
-  .meta(openapi({ method: 'GET', path: '/channels/{channelId}' }))
+export const getRoomContract = oc
+  .meta(openapi({ method: 'GET', path: '/rooms/{roomId}' }))
   .errors({ NOT_FOUND })
-  .input(ChannelIdInputSchema)
-  .output(ChannelSchema);
+  .input(RoomIdInputSchema)
+  .output(RoomSchema);
 
 export const createChannelContract = oc
   .meta(openapi({ method: 'POST', path: '/channels' }))
   .errors({ NAME_TAKEN, FORBIDDEN })
   .input(CreateChannelInputSchema)
-  .output(ChannelSchema);
+  .output(RoomSchema);
 
 export const renameChannelContract = oc
-  .meta(openapi({ method: 'PATCH', path: '/channels/{channelId}/name' }))
+  .meta(openapi({ method: 'PATCH', path: '/channels/{roomId}/name' }))
   .errors({ NOT_FOUND, FORBIDDEN, NAME_TAKEN, CHANNEL_ARCHIVED })
   .input(RenameChannelInputSchema)
-  .output(ChannelSchema);
+  .output(RoomSchema);
 
 export const deleteChannelContract = oc
-  .meta(openapi({ method: 'DELETE', path: '/channels/{channelId}' }))
+  .meta(openapi({ method: 'DELETE', path: '/channels/{roomId}' }))
   .errors({ NOT_FOUND, FORBIDDEN, DEFAULT_CHANNEL_LOCKED })
-  .input(ChannelIdInputSchema)
+  .input(RoomIdInputSchema)
   .output(z.void());
 
 export const joinChannelContract = oc
-  .meta(openapi({ method: 'POST', path: '/channels/{channelId}/join' }))
+  .meta(openapi({ method: 'POST', path: '/channels/{roomId}/join' }))
   .errors({ NOT_FOUND, CHANNEL_ARCHIVED })
-  .input(ChannelIdInputSchema)
-  .output(ChannelSchema);
+  .input(RoomIdInputSchema)
+  .output(RoomSchema);
 
 export const leaveChannelContract = oc
-  .meta(openapi({ method: 'POST', path: '/channels/{channelId}/leave' }))
+  .meta(openapi({ method: 'POST', path: '/channels/{roomId}/leave' }))
   .errors({ NOT_FOUND, FORBIDDEN, DEFAULT_CHANNEL_LOCKED })
-  .input(ChannelIdInputSchema)
+  .input(RoomIdInputSchema)
   .output(z.void());
 
 export const updateChannelContract = oc
-  .meta(openapi({ method: 'PATCH', path: '/channels/{channelId}' }))
+  .meta(openapi({ method: 'PATCH', path: '/channels/{roomId}' }))
   .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED })
   .input(UpdateChannelInputSchema)
-  .output(ChannelSchema);
+  .output(RoomSchema);
 
-export const listChannelMembersContract = oc
-  .meta(openapi({ method: 'GET', path: '/channels/{channelId}/members' }))
+export const listRoomMembersContract = oc
+  .meta(openapi({ method: 'GET', path: '/rooms/{roomId}/members' }))
   .errors({ NOT_FOUND })
-  .input(ChannelIdInputSchema)
-  .output(z.array(ChannelMemberSchema));
+  .input(RoomIdInputSchema)
+  .output(z.array(RoomMemberSchema));
 
 export const addChannelMembersContract = oc
-  .meta(openapi({ method: 'POST', path: '/channels/{channelId}/members' }))
+  .meta(openapi({ method: 'POST', path: '/channels/{roomId}/members' }))
   .errors({ NOT_FOUND, FORBIDDEN, DEFAULT_CHANNEL_LOCKED, CHANNEL_ARCHIVED })
   .input(AddChannelMembersInputSchema)
   .output(z.void());
@@ -108,7 +108,7 @@ export const removeChannelMemberContract = oc
   .meta(
     openapi({
       method: 'DELETE',
-      path: '/channels/{channelId}/members/{userId}',
+      path: '/channels/{roomId}/members/{userId}',
     })
   )
   .errors({ NOT_FOUND, FORBIDDEN, DEFAULT_CHANNEL_LOCKED, CHANNEL_ARCHIVED })
@@ -117,7 +117,7 @@ export const removeChannelMemberContract = oc
 
 export const setChannelMemberRoleContract = oc
   .meta(
-    openapi({ method: 'PATCH', path: '/channels/{channelId}/members/{userId}' })
+    openapi({ method: 'PATCH', path: '/channels/{roomId}/members/{userId}' })
   )
   .errors({
     NOT_FOUND,
@@ -129,37 +129,37 @@ export const setChannelMemberRoleContract = oc
   .input(SetChannelMemberRoleInputSchema)
   .output(z.void());
 export const archiveChannelContract = oc
-  .meta(openapi({ method: 'POST', path: '/channels/{channelId}/archive' }))
+  .meta(openapi({ method: 'POST', path: '/channels/{roomId}/archive' }))
   .errors({ NOT_FOUND, FORBIDDEN, DEFAULT_CHANNEL_LOCKED, CHANNEL_ARCHIVED })
-  .input(ChannelIdInputSchema)
-  .output(ChannelSchema);
+  .input(RoomIdInputSchema)
+  .output(RoomSchema);
 
 export const unarchiveChannelContract = oc
-  .meta(openapi({ method: 'POST', path: '/channels/{channelId}/unarchive' }))
+  .meta(openapi({ method: 'POST', path: '/channels/{roomId}/unarchive' }))
   .errors({ NOT_FOUND, FORBIDDEN })
-  .input(ChannelIdInputSchema)
-  .output(ChannelSchema);
+  .input(RoomIdInputSchema)
+  .output(RoomSchema);
 
 export const setChannelVisibilityContract = oc
-  .meta(openapi({ method: 'PATCH', path: '/channels/{channelId}/visibility' }))
+  .meta(openapi({ method: 'PATCH', path: '/channels/{roomId}/visibility' }))
   .errors({ NOT_FOUND, FORBIDDEN, DEFAULT_CHANNEL_LOCKED, CHANNEL_ARCHIVED })
   .input(SetChannelVisibilityInputSchema)
-  .output(ChannelSchema);
+  .output(RoomSchema);
 
 export const starChannelContract = oc
-  .meta(openapi({ method: 'POST', path: '/channels/{channelId}/star' }))
+  .meta(openapi({ method: 'POST', path: '/channels/{roomId}/star' }))
   .errors({ NOT_FOUND, FORBIDDEN })
-  .input(ChannelIdInputSchema)
+  .input(RoomIdInputSchema)
   .output(z.void());
 
 export const unstarChannelContract = oc
-  .meta(openapi({ method: 'DELETE', path: '/channels/{channelId}/star' }))
+  .meta(openapi({ method: 'DELETE', path: '/channels/{roomId}/star' }))
   .errors({ NOT_FOUND, FORBIDDEN })
-  .input(ChannelIdInputSchema)
+  .input(RoomIdInputSchema)
   .output(z.void());
 
 export const moveChannelToSectionContract = oc
-  .meta(openapi({ method: 'PATCH', path: '/channels/{channelId}/section' }))
+  .meta(openapi({ method: 'PATCH', path: '/channels/{roomId}/section' }))
   .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED })
   .input(MoveChannelToSectionInputSchema)
   .output(z.void());

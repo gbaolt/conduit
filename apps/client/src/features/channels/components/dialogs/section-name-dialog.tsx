@@ -1,9 +1,9 @@
 'use client';
 
 import {
-  type Channel,
   type ChannelSection,
   ChannelSectionNameSchema,
+  type Room,
 } from '@conduit/contract';
 import { Button } from '@conduit/ui/components/button';
 import {
@@ -38,7 +38,7 @@ export function SectionNameDialog({
   channel,
 }: {
   section?: ChannelSection;
-  channel?: Channel;
+  channel?: Room;
 }) {
   const { close } = useChannelDialogs();
   const createSection = useCreateChannelSection();
@@ -82,7 +82,7 @@ export function SectionNameDialog({
         onSuccess: (created) => {
           if (channel) {
             moveToSection.mutate({
-              channelId: channel.id,
+              roomId: channel.id,
               sectionId: created.id,
             });
           }

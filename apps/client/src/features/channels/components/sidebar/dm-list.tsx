@@ -79,7 +79,7 @@ export function DmList() {
   const { activeWorkspace } = useWorkspace();
   const { data: dms = [] } = useQuery(dmsQuery);
   const { data: session } = useQuery(sessionQuery);
-  const { channelId } = useParams<{ channelId?: string }>();
+  const { roomId } = useParams<{ roomId?: string }>();
   const { isCollapsed, toggle } = useCollapsedGroups(activeWorkspace?.id);
   const { open } = useChannelDialogs();
 
@@ -87,7 +87,7 @@ export function DmList() {
   const collapsed = isCollapsed(DMS_GROUP_ID);
   // A collapsed group still shows the open DM, so the viewer keeps their place.
   const shown = selfFirst(dms, viewerId).filter(
-    (dm) => !collapsed || dm.id === channelId
+    (dm) => !collapsed || dm.id === roomId
   );
 
   return (
@@ -121,7 +121,7 @@ export function DmList() {
                 key={dm.id}
                 dm={dm}
                 viewerId={viewerId}
-                isActive={dm.id === channelId}
+                isActive={dm.id === roomId}
               />
             ))}
           </SidebarMenu>

@@ -13,7 +13,7 @@ type MessageRow = Prisma.MessageGetPayload<object>;
 export function toMessage(row: MessageRow): Message {
   return {
     id: row.id,
-    channelId: row.channelId,
+    roomId: row.roomId,
     authorId: row.authorId,
     clientId: row.clientId,
     parentId: row.parentId,
@@ -48,20 +48,20 @@ function mentionColumns(mentions: MessageMentions) {
 export class PrismaMessagesRepository implements MessagesRepository {
   constructor(@Inject(PrismaService) private readonly db: PrismaService) {}
 
-  async list(channelId: string, page: { before?: string; limit: number }) {
+  async list(roomId: string, page: { before?: string; limit: number }) {
     const cursor = page.before
       ? await this.db.message.findUnique({
           where: { id: page.before },
-          select: { id: true, channelId: true, createdAt: true },
+          select: { id: true, roomId: true, createdAt: true },
         })
       : null;
-    if (page.before && cursor?.channelId !== channelId) {
+    if (page.before && cursor?.roomId !== roomId) {
       return null;
     }
 
     const rows = await this.db.message.findMany({
       where: {
-        channelId,
+        roomId,
         AND: [
           { OR: [{ parentId: null }, { alsoSentToChannel: true }] },
           { OR: [{ deletedAt: null }, { replyCount: { gt: 0 } }] },
@@ -86,7 +86,7 @@ export class PrismaMessagesRepository implements MessagesRepository {
   }
 
   async listReplies(
-    channelId: string,
+    roomId: string,
     parentId: string,
     page: { before?: string; limit: number }
   ) {
@@ -102,7 +102,7 @@ export class PrismaMessagesRepository implements MessagesRepository {
 
     const rows = await this.db.message.findMany({
       where: {
-        channelId,
+        roomId,
         parentId,
         deletedAt: null,
         ...(cursor && {
@@ -123,12 +123,12 @@ export class PrismaMessagesRepository implements MessagesRepository {
   }
 
   async listForSummary(
-    channelId: string,
+    roomId: string,
     range: { threadId?: string; from?: Date; to?: Date; limit: number }
   ) {
     const rows = await this.db.message.findMany({
       where: {
-        channelId,
+        roomId,
         deletedAt: null,
         createdAt: { gte: range.from, lt: range.to },
         OR: range.threadId
@@ -147,7 +147,7 @@ export class PrismaMessagesRepository implements MessagesRepository {
   }
 
   async send(input: {
-    channelId: string;
+    roomId: string;
     authorId: string;
     clientId: string;
     body: string;
@@ -166,7 +166,7 @@ export class PrismaMessagesRepository implements MessagesRepository {
       // skipDuplicates keeps a retried send from aborting the transaction on the unique key.
       const { count } = await tx.message.createMany({
         data: {
-          channelId: input.channelId,
+          roomId: input.roomId,
           authorId: input.authorId,
           clientId: input.clientId,
           body: input.body,
@@ -182,8 +182,8 @@ export class PrismaMessagesRepository implements MessagesRepository {
       }
 
       if (!row.parentId || row.alsoSentToChannel) {
-        await tx.channel.update({
-          where: { id: input.channelId },
+        await tx.room.update({
+          where: { id: input.roomId },
           data: { lastMessageAt: row.createdAt },
         });
       }
@@ -284,9 +284,9 @@ export class PrismaMessagesRepository implements MessagesRepository {
     return count === 0 ? null : this.find(messageId);
   }
 
-  async listPinned(channelId: string) {
+  async listPinned(roomId: string) {
     const rows = await this.db.message.findMany({
-      where: { channelId, pinnedAt: { not: null }, deletedAt: null },
+      where: { roomId, pinnedAt: { not: null }, deletedAt: null },
       orderBy: [{ pinnedAt: 'desc' }, { id: 'desc' }],
     });
     return rows.map(toMessage);

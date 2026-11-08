@@ -7,10 +7,10 @@ export abstract class SavedMessagesRepository {
 
   abstract remove(userId: string, messageId: string): Promise<void>;
 
-  /** Newest saved first, limited to messages in `channelIds` and not deleted. */
+  /** Newest saved first, limited to messages in `roomIds` and not deleted. */
   abstract list(
     userId: string,
-    channelIds: string[],
+    roomIds: string[],
     limit: number
   ): Promise<SavedMessage[]>;
 }

@@ -18,7 +18,7 @@ describe.skipIf(!connectionString)('PrismaSummariesRepository', () => {
   const run = crypto.randomUUID();
   const organizationId = run;
   const userId = `${run}-user`;
-  const channelId = `${run}-channel`;
+  const roomId = `${run}-channel`;
 
   beforeAll(async () => {
     await prisma.user.create({
@@ -32,8 +32,8 @@ describe.skipIf(!connectionString)('PrismaSummariesRepository', () => {
         createdAt: new Date(),
       },
     });
-    await prisma.channel.create({
-      data: { id: channelId, organizationId, name: 'design' },
+    await prisma.room.create({
+      data: { id: roomId, organizationId, name: 'design' },
     });
   });
 
@@ -47,7 +47,7 @@ describe.skipIf(!connectionString)('PrismaSummariesRepository', () => {
     const created = await repository.create({
       organizationId,
       requesterId: userId,
-      channelId,
+      roomId,
       parentId: null,
       from: new Date('2026-11-01T00:00:00.000Z'),
       to: new Date('2026-11-02T00:00:00.000Z'),

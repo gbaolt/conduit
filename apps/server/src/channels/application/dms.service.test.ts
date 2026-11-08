@@ -1,4 +1,4 @@
-import type { Channel, Dm } from '@conduit/contract';
+import type { Dm, Room } from '@conduit/contract';
 import { describe, expect, it } from 'vitest';
 
 import type { ChannelsRepository } from '@/channels/domain/channels.repository';
@@ -18,10 +18,7 @@ const bao = viewerOf('bao');
 const admin = viewerOf('admin', 'admin');
 const outsider = viewerOf('outsider');
 
-function channelFor(
-  member: boolean,
-  overrides: Partial<Channel> = {}
-): Channel {
+function channelFor(member: boolean, overrides: Partial<Room> = {}): Room {
   return {
     id: 'dm1',
     organizationId,
@@ -51,7 +48,7 @@ const dmOf = (...userIds: string[]): Dm => ({
 });
 
 function setup(
-  views: Record<string, Channel | null>,
+  views: Record<string, Room | null>,
   workspaceUsers = ['linh', 'bao', 'cy', 'admin', 'outsider']
 ) {
   const calls = {

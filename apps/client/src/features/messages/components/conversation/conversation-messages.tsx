@@ -172,7 +172,7 @@ function moveFocus(event: KeyboardEvent<HTMLElement>) {
 }
 
 export function ConversationMessages({
-  channelId,
+  roomId,
   parentId,
   messages,
   authors,
@@ -197,7 +197,7 @@ export function ConversationMessages({
   newMarkerId,
   onRead,
 }: {
-  channelId: string;
+  roomId: string;
   /** Set when the list is a thread: `messages` then starts with its root. */
   parentId?: string;
   messages: readonly Message[];
@@ -230,7 +230,7 @@ export function ConversationMessages({
   /** Called with the newest message once the viewer has read to the end. */
   onRead: ((messageId: string) => void) | undefined;
 }) {
-  const pending = usePendingMessages(channelId, parentId);
+  const pending = usePendingMessages(roomId, parentId);
   const entries = buildLog(messages, pending, viewerId ?? '', newMarkerId).map(
     (entry, index) =>
       // The divider after a thread's root ends its group.

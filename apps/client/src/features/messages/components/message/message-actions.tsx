@@ -90,7 +90,7 @@ export function MessageActions({
   canReplyInThread,
   onEdit,
 }: {
-  message: Pick<Message, 'id' | 'channelId' | 'reactions' | 'pinnedAt'>;
+  message: Pick<Message, 'id' | 'roomId' | 'reactions' | 'pinnedAt'>;
   /** Reacting and pinning need the right to post in the channel. */
   canPost: boolean;
   canEdit: boolean;
@@ -101,9 +101,9 @@ export function MessageActions({
 }) {
   const openThread = use(OpenThread);
   const [confirming, setConfirming] = useState(false);
-  const deleteMessage = useDeleteMessage(message.channelId);
-  const toggleReaction = useToggleReaction(message.channelId);
-  const togglePin = useTogglePin(message.channelId);
+  const deleteMessage = useDeleteMessage(message.roomId);
+  const toggleReaction = useToggleReaction(message.roomId);
+  const togglePin = useTogglePin(message.roomId);
   const { saved, toggle: toggleSaved } = useSavedMessage(message.id);
   const pinned = Boolean(message.pinnedAt);
 

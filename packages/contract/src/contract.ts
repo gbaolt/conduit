@@ -21,10 +21,10 @@ import {
   archiveChannelContract,
   createChannelContract,
   deleteChannelContract,
-  getChannelContract,
+  getRoomContract,
   joinChannelContract,
   leaveChannelContract,
-  listChannelMembersContract,
+  listRoomMembersContract,
   listChannelsContract,
   moveChannelToSectionContract,
   removeChannelMemberContract,
@@ -89,7 +89,7 @@ import { sealStreamContract } from './contracts/realtime';
 import {
   getSummaryContract,
   shareSummaryContract,
-  summarizeChannelContract,
+  summarizeRoomContract,
   summarizeThreadContract,
 } from './contracts/summaries';
 import { getSessionContract } from './contracts/users';
@@ -146,9 +146,15 @@ export const contract = {
     listForWorkspace: listWorkspaceInvitationsContract,
     revoke: revokeInvitationContract,
   },
+  rooms: {
+    get: getRoomContract,
+    members: {
+      list: listRoomMembersContract,
+    },
+  },
   channels: {
     list: listChannelsContract,
-    get: getChannelContract,
+
     create: createChannelContract,
     rename: renameChannelContract,
     delete: deleteChannelContract,
@@ -156,7 +162,6 @@ export const contract = {
     leave: leaveChannelContract,
     update: updateChannelContract,
     members: {
-      list: listChannelMembersContract,
       add: addChannelMembersContract,
       remove: removeChannelMemberContract,
       setRole: setChannelMemberRoleContract,
@@ -198,7 +203,7 @@ export const contract = {
   },
   summaries: {
     thread: summarizeThreadContract,
-    channel: summarizeChannelContract,
+    room: summarizeRoomContract,
     get: getSummaryContract,
     share: shareSummaryContract,
   },

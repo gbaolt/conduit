@@ -10,10 +10,10 @@ import { PinnedButton } from '@/features/messages/components/pinned';
 import { SummaryChannelItems } from '@/features/messages/components/summary/summary-menu';
 import { ThreadLayout } from '@/features/messages/components/thread/thread-layout';
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
-import { channelQuery, dmsQuery } from '@/services/channels/queries';
+import { dmsQuery, roomQuery } from '@/services/channels/queries';
 import { messagesQuery, pinnedQuery } from '@/services/messages/queries';
 
-export default function DmPage({ params }: PageProps<'/dms/[channelId]'>) {
+export default function DmPage({ params }: PageProps<'/dms/[roomId]'>) {
   return (
     <Suspense fallback={<ChannelPageSkeleton />}>
       <Dm params={params} />
@@ -23,34 +23,34 @@ export default function DmPage({ params }: PageProps<'/dms/[channelId]'>) {
 
 async function Dm({
   params,
-}: Omit<PageProps<'/dms/[channelId]'>, 'searchParams'>) {
-  const { channelId } = await params;
+}: Omit<PageProps<'/dms/[roomId]'>, 'searchParams'>) {
+  const { roomId } = await params;
   const client = getQueryClient();
 
   // A prefetch never throws: if the first page fails, the log loads in the browser instead.
   const [channel] = await Promise.all([
-    client.fetchQuery(channelQuery(channelId)).catch((error: unknown) => {
+    client.fetchQuery(roomQuery(roomId)).catch((error: unknown) => {
       if (error instanceof ORPCError && error.code === 'NOT_FOUND') notFound();
       throw error;
     }),
     client.prefetchQuery(dmsQuery),
-    client.prefetchInfiniteQuery(messagesQuery(channelId)),
-    client.prefetchQuery(pinnedQuery(channelId)),
+    client.prefetchInfiniteQuery(messagesQuery(roomId)),
+    client.prefetchQuery(pinnedQuery(roomId)),
   ]);
   // A converted DM is a channel now.
-  if (channel.kind !== 'dm') redirect(`/channels/${channelId}`);
+  if (channel.kind !== 'dm') redirect(`/channels/${roomId}`);
 
   return (
     <HydrateClient client={client}>
-      <ThreadLayout channelId={channelId}>
+      <ThreadLayout roomId={roomId}>
         <div className="flex h-full min-h-0 flex-col">
-          <DmHeader channelId={channelId} menu={<SummaryChannelItems isDm />}>
-            <PinnedButton channelId={channelId} />
+          <DmHeader roomId={roomId} menu={<SummaryChannelItems isDm />}>
+            <PinnedButton roomId={roomId} />
           </DmHeader>
           <Conversation
-            key={channelId}
-            channelId={channelId}
-            start={<DmIntro channelId={channelId} />}
+            key={roomId}
+            roomId={roomId}
+            start={<DmIntro roomId={roomId} />}
           />
         </div>
       </ThreadLayout>

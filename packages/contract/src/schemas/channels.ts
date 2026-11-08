@@ -9,8 +9,8 @@ import {
 export const ChannelVisibilitySchema = z.enum(['public', 'private']);
 export type ChannelVisibility = z.infer<typeof ChannelVisibilitySchema>;
 
-export const ChannelRoleSchema = z.enum(['manager', 'member']);
-export type ChannelRole = z.infer<typeof ChannelRoleSchema>;
+export const RoomRoleSchema = z.enum(['manager', 'member']);
+export type RoomRole = z.infer<typeof RoomRoleSchema>;
 
 export const ChannelNameSchema = z
   .string()
@@ -25,14 +25,14 @@ export const ChannelNameSchema = z
     'Use lowercase letters, numbers, hyphens, and underscores.'
   );
 
-/** A DM is a channel with no name, no managers, and members chosen when it opens. */
-export const ChannelKindSchema = z.enum(['channel', 'dm']);
-export type ChannelKind = z.infer<typeof ChannelKindSchema>;
+/** A room is a channel or a DM. A DM has no name, no managers, and members chosen when it opens. */
+export const RoomKindSchema = z.enum(['channel', 'dm']);
+export type RoomKind = z.infer<typeof RoomKindSchema>;
 
-export const ChannelSchema = z.object({
+export const RoomSchema = z.object({
   id: z.string(),
   organizationId: z.string(),
-  kind: ChannelKindSchema,
+  kind: RoomKindSchema,
   /** Empty for a DM. */
   name: z.string(),
   topic: z.string().nullable(),
@@ -45,16 +45,16 @@ export const ChannelSchema = z.object({
   createdAt: z.coerce.date(),
   membership: z
     .object({
-      role: ChannelRoleSchema,
+      role: RoomRoleSchema,
       starredAt: z.coerce.date().nullable(),
       sectionId: z.string().nullable(),
     })
     .nullable(),
   archivedByName: z.string().nullable(),
 });
-export type Channel = z.infer<typeof ChannelSchema>;
+export type Room = z.infer<typeof RoomSchema>;
 
-export const ChannelIdInputSchema = z.object({ channelId: z.string() });
+export const RoomIdInputSchema = z.object({ roomId: z.string() });
 
 export const CreateChannelInputSchema = z.object({
   name: ChannelNameSchema,
@@ -62,7 +62,7 @@ export const CreateChannelInputSchema = z.object({
 });
 
 export const RenameChannelInputSchema = z.object({
-  channelId: z.string(),
+  roomId: z.string(),
   name: ChannelNameSchema,
 });
 
@@ -77,34 +77,34 @@ const ChannelTextSchema = z
   .optional();
 
 export const UpdateChannelInputSchema = z.object({
-  channelId: z.string(),
+  roomId: z.string(),
   topic: ChannelTextSchema,
   description: ChannelTextSchema,
 });
 
-export const ChannelMemberSchema = z.object({
+export const RoomMemberSchema = z.object({
   userId: z.string(),
   name: z.string(),
   image: z.string().nullable(),
-  role: ChannelRoleSchema,
+  role: RoomRoleSchema,
   joinedAt: z.coerce.date(),
 });
-export type ChannelMember = z.infer<typeof ChannelMemberSchema>;
+export type RoomMember = z.infer<typeof RoomMemberSchema>;
 
 export const AddChannelMembersInputSchema = z.object({
-  channelId: z.string(),
+  roomId: z.string(),
   userIds: z.array(z.string()).min(1).max(100),
 });
 
 export const ChannelMemberInputSchema = z.object({
-  channelId: z.string(),
+  roomId: z.string(),
   userId: z.string(),
 });
 
 export const SetChannelMemberRoleInputSchema = z.object({
-  channelId: z.string(),
+  roomId: z.string(),
   userId: z.string(),
-  role: ChannelRoleSchema,
+  role: RoomRoleSchema,
 });
 
 export const ListChannelsInputSchema = z
@@ -112,12 +112,12 @@ export const ListChannelsInputSchema = z
   .optional();
 
 export const SetChannelVisibilityInputSchema = z.object({
-  channelId: z.string(),
+  roomId: z.string(),
   visibility: ChannelVisibilitySchema,
 });
 
 export const MoveChannelToSectionInputSchema = z.object({
-  channelId: z.string(),
+  roomId: z.string(),
   sectionId: z.string().nullable(),
 });
 

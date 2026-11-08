@@ -16,7 +16,7 @@ export abstract class MessagesRepository {
    * A deleted message stays only while it has replies. Returns null when `before` is not a message of the channel.
    */
   abstract list(
-    channelId: string,
+    roomId: string,
     page: { before?: string; limit: number }
   ): Promise<{ messages: Message[]; hasMore: boolean } | null>;
 
@@ -25,7 +25,7 @@ export abstract class MessagesRepository {
    * Returns null when `before` is not a reply in the thread.
    */
   abstract listReplies(
-    channelId: string,
+    roomId: string,
     parentId: string,
     page: { before?: string; limit: number }
   ): Promise<{ messages: Message[]; hasMore: boolean } | null>;
@@ -36,7 +36,7 @@ export abstract class MessagesRepository {
    * is left out.
    */
   abstract listForSummary(
-    channelId: string,
+    roomId: string,
     range: { threadId?: string; from?: Date; to?: Date; limit: number }
   ): Promise<Message[]>;
 
@@ -48,7 +48,7 @@ export abstract class MessagesRepository {
    * A `clientId` the author already sent returns the stored row with a null `txid`.
    */
   abstract send(input: {
-    channelId: string;
+    roomId: string;
     authorId: string;
     clientId: string;
     body: string;
@@ -87,7 +87,7 @@ export abstract class MessagesRepository {
   ): Promise<Message>;
 
   /** Messages of the channel that are pinned, newest pin first. */
-  abstract listPinned(channelId: string): Promise<Message[]>;
+  abstract listPinned(roomId: string): Promise<Message[]>;
 
   /**
    * Stores the preview, or clears it when null. With `onlyIfBody`, a message that was edited or deleted

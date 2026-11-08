@@ -24,7 +24,7 @@ export type ModelSummary = z.infer<typeof ModelSummarySchema>;
 /** A summary as its requester sees it. A source id is the id of a message the model read. */
 export const SummarySchema = z.object({
   id: z.string(),
-  channelId: z.string(),
+  roomId: z.string(),
   /** The thread's root message, or null for a channel summary. */
   parentId: z.string().nullable(),
   from: z.coerce.date().nullable(),
@@ -59,7 +59,7 @@ export const ThreadSummaryInputSchema = z.object({
 
 export const ChannelSummaryInputSchema = z
   .object({
-    channelId: z.string(),
+    roomId: z.string(),
     /** Summarizes the channel's log from this time. */
     from: z.iso.datetime(),
     /** Until just before this time, or until now when left out. */

@@ -13,21 +13,21 @@ import { firstUnreadId } from './first-unread';
  * `markRead` stays undefined until that decision is made, so reading cannot move the read time first.
  */
 export function useNewMarker({
-  channelId,
+  roomId,
   messages,
   viewerId,
   ready,
   hasOlder,
 }: {
-  channelId: string;
+  roomId: string;
   messages: readonly Message[];
   viewerId: string | null;
   /** The first page of messages has loaded. */
   ready: boolean;
   hasOlder: boolean;
 }) {
-  const entry = useSidebarEntry(channelId);
-  const markRead = useMarkRead(channelId);
+  const entry = useSidebarEntry(roomId);
+  const markRead = useMarkRead(roomId);
   const [markerId, setMarkerId] = useState<string | null>();
 
   if (markerId === undefined && ready && entry) {

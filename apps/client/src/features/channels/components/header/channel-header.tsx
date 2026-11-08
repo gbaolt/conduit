@@ -7,28 +7,28 @@ import type { ReactNode } from 'react';
 
 import { BackToList } from '@/components/list-view';
 import { useActivateChannelWorkspace } from '@/services/channels/hooks';
-import { channelQuery } from '@/services/channels/queries';
+import { roomQuery } from '@/services/channels/queries';
 
 import { useChannelDialogs } from '../../context/channel-dialogs-provider';
 import { ChannelActionsDropdown } from '../actions/channel-actions';
 import { ArchivedBanner } from './archived-banner';
 
 export function ChannelHeader({
-  channelId,
+  roomId,
   children,
   menu,
 }: {
-  channelId: string;
+  roomId: string;
   /** Buttons that other features add before the member count, such as the pinned list. */
   children?: ReactNode;
   /** Rows that other features add to the actions menu, such as Summarize channel. */
   menu?: ReactNode;
 }) {
-  const { data: channel } = useSuspenseQuery(channelQuery(channelId));
+  const { data: channel } = useSuspenseQuery(roomQuery(roomId));
   const { open } = useChannelDialogs();
   const Glyph = channel.visibility === 'private' ? IconLock : IconHash;
 
-  useActivateChannelWorkspace(channelId, channel.organizationId);
+  useActivateChannelWorkspace(roomId, channel.organizationId);
 
   return (
     <>

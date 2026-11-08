@@ -46,9 +46,9 @@ export class SummariesController {
       );
   }
 
-  @Implement(contract.summaries.channel)
+  @Implement(contract.summaries.room)
   channel() {
-    return implement(contract.summaries.channel)
+    return implement(contract.summaries.room)
       .use(authorized)
       .use(workspaceMember)
       .use(arcjet.heavyWriteByWorkspace)

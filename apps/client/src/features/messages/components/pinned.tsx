@@ -13,7 +13,7 @@ import { IconPin } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
-import { channelQuery } from '@/services/channels/queries';
+import { roomQuery } from '@/services/channels/queries';
 import { useTogglePin } from '@/services/messages/hooks';
 import { pinnedQuery } from '@/services/messages/queries';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
@@ -25,8 +25,8 @@ import { MessageExcerpt } from './message/message-excerpt';
 const FORMER_MEMBER = { name: 'Former member', image: null };
 
 /** The channel header's Pinned count, which opens the list. It renders nothing while no message is pinned. */
-export function PinnedButton({ channelId }: { channelId: string }) {
-  const { data: pinned } = useQuery(pinnedQuery(channelId));
+export function PinnedButton({ roomId }: { roomId: string }) {
+  const { data: pinned } = useQuery(pinnedQuery(roomId));
   const [open, setOpen] = useState(false);
 
   if (!pinned?.length) return null;
@@ -47,19 +47,19 @@ export function PinnedButton({ channelId }: { channelId: string }) {
               pinned to this channel.
             </DialogDescription>
           </DialogHeader>
-          <PinnedList channelId={channelId} />
+          <PinnedList roomId={roomId} />
         </DialogContent>
       </Dialog>
     </>
   );
 }
 
-function PinnedList({ channelId }: { channelId: string }) {
-  const { data: pinned = [] } = useQuery(pinnedQuery(channelId));
-  const { data: channel } = useQuery(channelQuery(channelId));
+function PinnedList({ roomId }: { roomId: string }) {
+  const { data: pinned = [] } = useQuery(pinnedQuery(roomId));
+  const { data: channel } = useQuery(roomQuery(roomId));
   const workspaceRole = useWorkspaceRole();
   const { authors, names } = useAuthors();
-  const togglePin = useTogglePin(channelId);
+  const togglePin = useTogglePin(roomId);
   const canUnpin = channel ? canChannel('post', workspaceRole, channel) : false;
 
   return (

@@ -25,7 +25,7 @@ describe('ChannelNameSchema', () => {
 
 describe('UpdateChannelInputSchema', () => {
   const parse = (topic: string | null | undefined) =>
-    UpdateChannelInputSchema.safeParse({ channelId: 'c1', topic });
+    UpdateChannelInputSchema.safeParse({ roomId: 'c1', topic });
 
   it('accepts a topic at the limit, null, and an omitted topic', () => {
     expect(parse('a'.repeat(CHANNEL_TEXT_MAX)).success).toBe(true);

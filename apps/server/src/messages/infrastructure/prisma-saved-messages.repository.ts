@@ -21,15 +21,15 @@ export class PrismaSavedMessagesRepository implements SavedMessagesRepository {
     await this.db.savedMessage.deleteMany({ where: { userId, messageId } });
   }
 
-  async list(userId: string, channelIds: string[], limit: number) {
+  async list(userId: string, roomIds: string[], limit: number) {
     const rows = await this.db.savedMessage.findMany({
       where: {
         userId,
-        message: { channelId: { in: channelIds }, deletedAt: null },
+        message: { roomId: { in: roomIds }, deletedAt: null },
       },
       include: {
         message: {
-          include: { channel: { select: { name: true, kind: true } } },
+          include: { room: { select: { name: true, kind: true } } },
         },
       },
       orderBy: [{ savedAt: 'desc' }, { messageId: 'desc' }],
@@ -39,7 +39,7 @@ export class PrismaSavedMessagesRepository implements SavedMessagesRepository {
     return rows.map(({ message, savedAt }) => ({
       message: toMessage(message),
       // A DM stores its key in `name`, and shows no name.
-      channelName: message.channel.kind === 'DM' ? null : message.channel.name,
+      channelName: message.room.kind === 'DM' ? null : message.room.name,
       savedAt,
     }));
   }

@@ -91,7 +91,7 @@ describe.skipIf(!connectionString)('OrganizationsService members', () => {
 
   it('removes a member and their channel memberships', async () => {
     const channelRows = () =>
-      prisma.channelMember.count({
+      prisma.roomMember.count({
         where: {
           userId: people().other.userId,
           channel: { organizationId: workspace.organizationId },

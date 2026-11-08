@@ -1,9 +1,9 @@
 import {
-  type Channel,
-  type ChannelMember,
   type Dm,
   type Message,
   REACTION_EMOJI_MAX,
+  type Room,
+  type RoomMember,
   type SavedMessage,
 } from '@conduit/contract';
 import { describe, expect, it } from 'vitest';
@@ -28,8 +28,8 @@ const admin = viewerOf('admin', 'admin');
 
 function channelFor(
   role: 'manager' | 'member' | null,
-  overrides: Partial<Channel> = {}
-): Channel {
+  overrides: Partial<Room> = {}
+): Room {
   return {
     id: 'c1',
     organizationId,
@@ -50,10 +50,7 @@ function channelFor(
 }
 
 /** Each viewer's own view of the channel, as `ChannelsRepository.find` returns it. */
-function setup(
-  views: Record<string, Channel | null>,
-  memberIds: string[] = []
-) {
+function setup(views: Record<string, Room | null>, memberIds: string[] = []) {
   const stored = new Map<string, Message>();
   const sent: Parameters<MessagesRepository['send']>[0][] = [];
 
@@ -63,7 +60,7 @@ function setup(
       sent.push(input);
       const message = {
         id: `m${stored.size + 1}`,
-        channelId: input.channelId,
+        roomId: input.roomId,
         authorId: input.authorId,
         clientId: input.clientId,
         parentId: input.parentId ?? null,
@@ -130,10 +127,10 @@ function setup(
     remove: async (userId, messageId) => {
       bookmarks.get(userId)?.delete(messageId);
     },
-    list: async (userId, channelIds): Promise<SavedMessage[]> =>
+    list: async (userId, roomIds): Promise<SavedMessage[]> =>
       [...(bookmarks.get(userId) ?? [])]
         .map((id) => stored.get(id)!)
-        .filter((message) => channelIds.includes(message.channelId))
+        .filter((message) => roomIds.includes(message.roomId))
         .map((message) => ({
           message,
           channelName: 'design',
@@ -152,7 +149,7 @@ function setup(
     },
     listMembers: async () =>
       memberIds.map(
-        (userId): ChannelMember => ({
+        (userId): RoomMember => ({
           userId,
           name: userId,
           image: null,
@@ -179,7 +176,7 @@ const sendAs = (
   service: MessagesService,
   viewer: MessageViewer,
   body = 'hello'
-) => service.send(viewer, { channelId: 'c1', clientId: 'k1', body });
+) => service.send(viewer, { roomId: 'c1', clientId: 'k1', body });
 
 describe('MessagesService.send', () => {
   it('stores the trimmed body for a channel member', async () => {
@@ -240,7 +237,7 @@ describe('MessagesService threads', () => {
     extra: { alsoSentToChannel?: boolean } = {}
   ) =>
     service.send(viewer, {
-      channelId: 'c1',
+      roomId: 'c1',
       clientId: crypto.randomUUID(),
       body: 'reply',
       parentId,
@@ -265,7 +262,7 @@ describe('MessagesService threads', () => {
 
     await reply(service, other, root.id, { alsoSentToChannel: true });
     await service.send(other, {
-      channelId: 'c1',
+      roomId: 'c1',
       clientId: 'plain',
       body: 'hi',
       alsoSentToChannel: true,
@@ -301,7 +298,7 @@ describe('MessagesService threads', () => {
   it('refuses a root that belongs to another channel', async () => {
     const { service, stored } = setup(views);
     const { message: root } = await sendAs(service, author);
-    stored.set(root.id, { ...root, channelId: 'c2' });
+    stored.set(root.id, { ...root, roomId: 'c2' });
 
     await expect(reply(service, other, root.id)).rejects.toMatchObject({
       code: 'NOT_FOUND',
@@ -350,7 +347,7 @@ describe('MessagesService threads', () => {
 });
 
 describe('MessagesService in a DM', () => {
-  const dm = (role: 'member' | null, overrides: Partial<Channel> = {}) =>
+  const dm = (role: 'member' | null, overrides: Partial<Room> = {}) =>
     channelFor(role, { kind: 'dm', visibility: 'private', ...overrides });
 
   it('lets a DM member send, and reply in a thread', async () => {
@@ -358,7 +355,7 @@ describe('MessagesService in a DM', () => {
     const { message: root } = await sendAs(service, author);
 
     await service.send(author, {
-      channelId: 'c1',
+      roomId: 'c1',
       clientId: 'r1',
       body: 'reply',
       parentId: root.id,
@@ -383,7 +380,7 @@ describe('MessagesService in a DM', () => {
         code: 'NOT_FOUND',
       });
       await expect(
-        service.list(viewer, { channelId: 'c1' })
+        service.list(viewer, { roomId: 'c1' })
       ).rejects.toMatchObject({ code: 'NOT_FOUND' });
       await expect(
         service.listReplies(viewer, { messageId: message.id })
@@ -642,7 +639,7 @@ describe('MessagesService saved messages', () => {
   });
 
   it('hides a save once the viewer loses access to its channel', async () => {
-    const views: Record<string, Channel | null> = {
+    const views: Record<string, Room | null> = {
       author: channelFor('member'),
       other: channelFor('member', { visibility: 'private' }),
     };

@@ -23,11 +23,11 @@ describe.skipIf(!connectionString)('WorkspaceMembershipService', () => {
 
   const channelIdsOf = async (userId: string) =>
     (
-      await prisma.channelMember.findMany({
+      await prisma.roomMember.findMany({
         where: { userId, channel: { organizationId: workspace.id } },
-        select: { channelId: true },
+        select: { roomId: true },
       })
-    ).map((row) => row.channelId);
+    ).map((row) => row.roomId);
 
   beforeAll(async () => {
     await prisma.user.createMany({

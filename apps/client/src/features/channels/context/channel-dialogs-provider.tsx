@@ -1,6 +1,6 @@
 'use client';
 
-import type { Channel, ChannelSection } from '@conduit/contract';
+import type { ChannelSection, Room } from '@conduit/contract';
 import { createContext, type ReactNode, use, useMemo, useState } from 'react';
 
 import { AddDmPeopleDialog } from '../components/dialogs/add-dm-people-dialog';
@@ -20,18 +20,18 @@ import { SectionNameDialog } from '../components/dialogs/section-name-dialog';
 export type ChannelDialog =
   | { kind: 'create' }
   | { kind: 'browse' }
-  | { kind: 'rename'; channel: Channel }
-  | { kind: 'delete'; channel: Channel }
-  | { kind: 'details'; channel: Channel; tab?: 'about' | 'members' }
-  | { kind: 'add-members'; channel: Channel }
+  | { kind: 'rename'; channel: Room }
+  | { kind: 'delete'; channel: Room }
+  | { kind: 'details'; channel: Room; tab?: 'about' | 'members' }
+  | { kind: 'add-members'; channel: Room }
   /** Archives an active channel and unarchives an archived one. */
-  | { kind: 'archive'; channel: Channel }
-  | { kind: 'visibility'; channel: Channel }
+  | { kind: 'archive'; channel: Room }
+  | { kind: 'visibility'; channel: Room }
   | { kind: 'new-dm' }
-  | { kind: 'dm-add-people'; channelId: string }
-  | { kind: 'dm-convert'; channelId: string }
+  | { kind: 'dm-add-people'; roomId: string }
+  | { kind: 'dm-convert'; roomId: string }
   /** Renames `section`, or creates one (and moves `channel` into it) when there is no `section`. */
-  | { kind: 'section-name'; section?: ChannelSection; channel?: Channel };
+  | { kind: 'section-name'; section?: ChannelSection; channel?: Room };
 
 type ChannelDialogsValue = {
   open: (dialog: ChannelDialog) => void;
@@ -61,9 +61,9 @@ function OpenChannelDialog({ dialog }: { dialog: ChannelDialog }) {
     case 'new-dm':
       return <NewDmDialog />;
     case 'dm-add-people':
-      return <AddDmPeopleDialog channelId={dialog.channelId} />;
+      return <AddDmPeopleDialog roomId={dialog.roomId} />;
     case 'dm-convert':
-      return <ConvertDmDialog channelId={dialog.channelId} />;
+      return <ConvertDmDialog roomId={dialog.roomId} />;
     case 'section-name':
       return (
         <SectionNameDialog section={dialog.section} channel={dialog.channel} />

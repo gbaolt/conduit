@@ -18,10 +18,10 @@ describe.skipIf(!connectionString)('PrismaActivityRepository', () => {
   const run = crypto.randomUUID();
   const organizationId = run;
   const userId = `${run}-user`;
-  const channelId = `${run}-channel`;
+  const roomId = `${run}-channel`;
   const oldId = `${run}-old`;
   const newId = `${run}-new`;
-  const scope = { channelId, userId, parentId: '' };
+  const scope = { roomId, userId, parentId: '' };
 
   beforeAll(async () => {
     await prisma.user.create({
@@ -35,8 +35,8 @@ describe.skipIf(!connectionString)('PrismaActivityRepository', () => {
         createdAt: new Date(),
       },
     });
-    await prisma.channel.create({
-      data: { id: channelId, organizationId, name: 'design' },
+    await prisma.room.create({
+      data: { id: roomId, organizationId, name: 'design' },
     });
     for (const [id, minute] of [
       [oldId, 0],
@@ -45,7 +45,7 @@ describe.skipIf(!connectionString)('PrismaActivityRepository', () => {
       await prisma.message.create({
         data: {
           id,
-          channelId,
+          roomId,
           authorId: userId,
           clientId: id,
           body: id,
@@ -63,25 +63,25 @@ describe.skipIf(!connectionString)('PrismaActivityRepository', () => {
 
   const readState = () =>
     prisma.readState.findUniqueOrThrow({
-      where: { channelId_userId: { channelId, userId } },
+      where: { roomId_userId: { roomId, userId } },
     });
 
   it('creates the read position, moves it forward, and never moves it back', async () => {
     await expect(
-      repository.markRead({ channelId, userId, messageId: oldId })
+      repository.markRead({ roomId, userId, messageId: oldId })
     ).resolves.toBe(true);
     expect((await readState()).lastReadMessageId).toBe(oldId);
 
-    await repository.markRead({ channelId, userId, messageId: newId });
+    await repository.markRead({ roomId, userId, messageId: newId });
     expect((await readState()).lastReadMessageId).toBe(newId);
 
-    await repository.markRead({ channelId, userId, messageId: oldId });
+    await repository.markRead({ roomId, userId, messageId: oldId });
     expect((await readState()).lastReadMessageId).toBe(newId);
   });
 
   it('refuses a message that is not in the channel', async () => {
     await expect(
-      repository.markRead({ channelId, userId, messageId: 'missing' })
+      repository.markRead({ roomId, userId, messageId: 'missing' })
     ).resolves.toBe(false);
   });
 
@@ -118,7 +118,7 @@ describe.skipIf(!connectionString)('PrismaActivityRepository', () => {
       at: new Date(),
     });
 
-    expect(await prisma.typingState.count({ where: { channelId } })).toBe(1);
+    expect(await prisma.typingState.count({ where: { roomId } })).toBe(1);
     const presence = await prisma.presence.findMany({
       where: { organizationId },
     });

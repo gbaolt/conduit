@@ -15,10 +15,10 @@ import { ThreadPanel } from './thread-panel';
  * replaces the conversation, and its back button returns to it.
  */
 export function ThreadLayout({
-  channelId,
+  roomId,
   children,
 }: {
-  channelId: string;
+  roomId: string;
   /** The conversation: its header and its log. */
   children: ReactNode;
 }) {
@@ -44,14 +44,14 @@ export function ThreadLayout({
   const panel = threadId && (
     <ThreadPanel
       key={threadId}
-      channelId={channelId}
+      roomId={roomId}
       threadId={threadId}
       onClose={close}
     />
   );
 
   return (
-    <SummaryProvider target={{ kind: 'channel', channelId }}>
+    <SummaryProvider target={{ kind: 'channel', roomId }}>
       <OpenThread value={open}>
         <div className="relative h-full min-h-0">
           {children}

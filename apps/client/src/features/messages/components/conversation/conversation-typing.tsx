@@ -17,13 +17,13 @@ function typingText(names: readonly string[]) {
  * never jumps, and fades its text instead of swapping it.
  */
 export function ConversationTyping({
-  channelId,
+  roomId,
   parentId,
 }: {
-  channelId: string;
+  roomId: string;
   parentId?: string;
 }) {
-  const typers = useTypers(channelId, parentId);
+  const typers = useTypers(roomId, parentId);
   const { data: members } = useWorkspaceMembers();
   const names = typers.map(
     (userId) =>

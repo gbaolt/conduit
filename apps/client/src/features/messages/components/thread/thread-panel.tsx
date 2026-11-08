@@ -4,7 +4,7 @@ import { Button } from '@conduit/ui/components/button';
 import { IconArrowLeft, IconMessageDots, IconX } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 
-import { useConversationName } from '@/services/channels/hooks';
+import { useRoomName } from '@/services/channels/hooks';
 import { threadRootQuery } from '@/services/messages/queries';
 
 import { SummaryProvider } from '../../context/summary';
@@ -13,20 +13,20 @@ import { SummaryThreadMenu } from '../summary/summary-menu';
 
 /** One thread: its root, the replies, and a composer that replies in it. */
 export function ThreadPanel({
-  channelId,
+  roomId,
   threadId,
   onClose,
 }: {
-  channelId: string;
+  roomId: string;
   threadId: string;
   onClose: () => void;
 }) {
-  const { title } = useConversationName(channelId);
+  const { title } = useRoomName(roomId);
   const root = useQuery(threadRootQuery(threadId));
   // A link can name a message that is gone, in another channel, or itself a reply.
   const missing =
     root.isError ||
-    (root.data && (root.data.channelId !== channelId || root.data.parentId));
+    (root.data && (root.data.roomId !== roomId || root.data.parentId));
 
   return (
     <SummaryProvider target={{ kind: 'thread', messageId: threadId }}>
@@ -69,11 +69,7 @@ export function ThreadPanel({
             This thread isn&apos;t available.
           </p>
         ) : (
-          <Conversation
-            channelId={channelId}
-            parentId={threadId}
-            start={null}
-          />
+          <Conversation roomId={roomId} parentId={threadId} start={null} />
         )}
       </section>
     </SummaryProvider>

@@ -1,6 +1,6 @@
 'use client';
 
-import type { Channel } from '@conduit/contract';
+import type { Room } from '@conduit/contract';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -18,7 +18,7 @@ import { useDeleteChannel } from '@/services/channels/hooks';
 import { useChannelDialogs } from '../../context/channel-dialogs-provider';
 import { useExitOpenChannel } from '../../lib/use-exit-open-channel';
 
-export function DeleteChannelDialog({ channel }: { channel: Channel }) {
+export function DeleteChannelDialog({ channel }: { channel: Room }) {
   const { close } = useChannelDialogs();
   const exitOpenChannel = useExitOpenChannel();
   const deleteChannel = useDeleteChannel();
@@ -40,7 +40,7 @@ export function DeleteChannelDialog({ channel }: { channel: Channel }) {
             status={deleteChannel.isPending ? 'loading' : 'idle'}
             onClick={() =>
               deleteChannel.mutate(
-                { channelId: channel.id },
+                { roomId: channel.id },
                 {
                   onSuccess: () => {
                     close();

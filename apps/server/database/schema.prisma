@@ -16,28 +16,28 @@ datasource db {
 }
 
 model User {
-  id                 String           @id @default(cuid())
-  name               String
-  email              String           @unique
-  emailVerified      Boolean          @default(false)
-  image              String?
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-  sessions           Session[]
-  accounts           Account[]
-  members            Member[]
-  invitations        Invitation[]
-  channelsCreated    Channel[]        @relation("ChannelCreatedBy")
-  channelsArchived   Channel[]        @relation("ChannelArchivedBy")
-  channelMemberships ChannelMember[]
-  channelSections    ChannelSection[]
-  readStates         ReadState[]
-  drafts             Draft[]
-  typingStates       TypingState[]
-  presences          Presence[]
-  messages           Message[]
-  savedMessages      SavedMessage[]
-  summaries          Summary[]
+  id               String           @id @default(cuid())
+  name             String
+  email            String           @unique
+  emailVerified    Boolean          @default(false)
+  image            String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  sessions         Session[]
+  accounts         Account[]
+  members          Member[]
+  invitations      Invitation[]
+  channelsCreated  Room[]           @relation("ChannelCreatedBy")
+  channelsArchived Room[]           @relation("ChannelArchivedBy")
+  roomMemberships  RoomMember[]
+  channelSections  ChannelSection[]
+  readStates       ReadState[]
+  drafts           Draft[]
+  typingStates     TypingState[]
+  presences        Presence[]
+  messages         Message[]
+  savedMessages    SavedMessage[]
+  summaries        Summary[]
 }
 
 model Session {
@@ -64,7 +64,7 @@ model Organization {
   metadata        String?
   members         Member[]
   invitations     Invitation[]
-  channels        Channel[]
+  rooms           Room[]
   channelSections ChannelSection[]
   joinLink        WorkspaceJoinLink?
   allowedDomains  AllowedDomain[]
@@ -181,24 +181,28 @@ enum ChannelVisibility {
   PRIVATE
 }
 
-enum ChannelRole {
+enum RoomRole {
   MANAGER
   MEMBER
+
+  @@map("ChannelRole")
 }
 
-enum ChannelKind {
+enum RoomKind {
   CHANNEL
   DM
+
+  @@map("ChannelKind")
 }
 
-model Channel {
+model Room {
   id                       String            @id @default(cuid())
   organizationId           String
   organization             Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   name                     String // toChannelName output, shown with a # prefix
   topic                    String?
   description              String?
-  kind                     ChannelKind       @default(CHANNEL)
+  kind                     RoomKind          @default(CHANNEL)
   dmKey                    String?           @unique // `<organizationId>:<sorted user ids>`, set only on a DM
   lastMessageAt            DateTime?
   visibility               ChannelVisibility @default(PUBLIC)
@@ -210,7 +214,7 @@ model Channel {
   archivedBy               User?             @relation("ChannelArchivedBy", fields: [archivedById], references: [id], onDelete: SetNull)
   createdAt                DateTime          @default(now())
   updatedAt                DateTime          @updatedAt
-  members                  ChannelMember[]
+  members                  RoomMember[]
   readStates               ReadState[]
   drafts                   Draft[]
   typingStates             TypingState[]
@@ -218,33 +222,35 @@ model Channel {
   summaries                Summary[]
 
   @@unique([organizationId, name])
+  @@map("Channel")
 }
 
-model ChannelMember {
-  channelId String
-  channel   Channel         @relation(fields: [channelId], references: [id], onDelete: Cascade)
+model RoomMember {
+  roomId    String          @map("channelId")
+  room      Room            @relation(fields: [roomId], references: [id], onDelete: Cascade)
   userId    String
   user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role      ChannelRole     @default(MEMBER)
+  role      RoomRole        @default(MEMBER)
   starredAt DateTime?
   sectionId String?
   section   ChannelSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   joinedAt  DateTime        @default(now())
 
-  @@id([channelId, userId])
+  @@id([roomId, userId])
   @@index([userId])
+  @@map("ChannelMember")
 }
 
 model ChannelSection {
-  id             String          @id @default(cuid())
+  id             String       @id @default(cuid())
   organizationId String
-  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   userId         String
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   name           String
   position       Int
-  createdAt      DateTime        @default(now())
-  channels       ChannelMember[]
+  createdAt      DateTime     @default(now())
+  channels       RoomMember[]
 
   @@unique([userId, organizationId, name])
 }
@@ -252,8 +258,8 @@ model ChannelSection {
 /// App-owned. The live query reads `updatedAt`, so every change to a row must bump it.
 model Message {
   id                String         @id @default(cuid())
-  channelId         String
-  channel           Channel        @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  roomId            String         @map("channelId")
+  room              Room           @relation(fields: [roomId], references: [id], onDelete: Cascade)
   authorId          String
   author            User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
   /// Chosen by the sender's client, so a retried send is one row.
@@ -281,8 +287,8 @@ model Message {
   updatedAt         DateTime       @updatedAt
 
   @@unique([authorId, clientId])
-  @@index([channelId, parentId, createdAt, id])
-  @@index([channelId, updatedAt])
+  @@index([roomId, parentId, createdAt, id])
+  @@index([roomId, updatedAt])
 }
 
 /// App-owned. A member's private bookmark on a message.
@@ -304,8 +310,8 @@ model Summary {
   organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   requesterId      String
   requester        User         @relation(fields: [requesterId], references: [id], onDelete: Cascade)
-  channelId        String
-  channel          Channel      @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  roomId           String       @map("channelId")
+  room             Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
   /// The thread's root message. Null for a channel summary.
   parentId         String?
   from             DateTime?
@@ -325,22 +331,22 @@ model Summary {
 
 /// App-owned. How far a member has read a conversation. The sidebar compares it with `Channel.lastMessageAt`.
 model ReadState {
-  channelId         String
-  channel           Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  roomId            String   @map("channelId")
+  room              Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
   userId            String
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// The `createdAt` of `lastReadMessageId`. Moves forward only.
   lastReadAt        DateTime
   lastReadMessageId String?
 
-  @@id([channelId, userId])
+  @@id([roomId, userId])
   @@index([userId])
 }
 
 /// App-owned. One unsent message per member per conversation. A thread's draft sets `parentId`.
 model Draft {
-  channelId String
-  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  roomId    String   @map("channelId")
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// The thread root, or an empty string for the channel itself. Part of the key, so it cannot be null.
@@ -348,21 +354,21 @@ model Draft {
   body      String
   updatedAt DateTime @updatedAt
 
-  @@id([channelId, userId, parentId])
+  @@id([roomId, userId, parentId])
   @@index([userId])
 }
 
 /// App-owned. A member is typing until `until`. Clients hide rows that have passed it.
 model TypingState {
-  channelId String
-  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roomId   String   @map("channelId")
+  room     Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// The thread root, or an empty string for the channel itself.
-  parentId  String   @default("")
-  until     DateTime
+  parentId String   @default("")
+  until    DateTime
 
-  @@id([channelId, userId, parentId])
+  @@id([roomId, userId, parentId])
 }
 
 /// App-owned. A member is online when `lastActiveAt` is under 2 minutes old and `away` is false.

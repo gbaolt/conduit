@@ -13,7 +13,7 @@ function toStored(row: Prisma.SummaryGetPayload<object>): StoredSummary {
     id: row.id,
     organizationId: row.organizationId,
     requesterId: row.requesterId,
-    channelId: row.channelId,
+    roomId: row.roomId,
     parentId: row.parentId,
     from: row.from,
     to: row.to,

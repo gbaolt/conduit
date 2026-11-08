@@ -1,6 +1,6 @@
 'use client';
 
-import type { Channel } from '@conduit/contract';
+import type { Room } from '@conduit/contract';
 import { Button } from '@conduit/ui/components/button';
 import {
   Dialog,
@@ -26,7 +26,7 @@ const RenameChannelFormSchema = z.object({ name: ChannelNameInputSchema });
 type RenameChannelInput = z.input<typeof RenameChannelFormSchema>;
 type RenameChannelValues = z.output<typeof RenameChannelFormSchema>;
 
-export function RenameChannelDialog({ channel }: { channel: Channel }) {
+export function RenameChannelDialog({ channel }: { channel: Room }) {
   const { close } = useChannelDialogs();
   const renameChannel = useRenameChannel();
 
@@ -42,7 +42,7 @@ export function RenameChannelDialog({ channel }: { channel: Channel }) {
 
   const onSubmit = handleSubmit(({ name }) => {
     renameChannel.mutate(
-      { channelId: channel.id, name },
+      { roomId: channel.id, name },
       {
         onSuccess: close,
         onError: (error) => {

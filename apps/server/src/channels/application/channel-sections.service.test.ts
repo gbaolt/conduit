@@ -47,8 +47,8 @@ describe.skipIf(!connectionString)('star and sections', () => {
   const member = viewer(users.member, 'member');
   let defaultChannelId: string;
 
-  const membershipOf = async (v: ChannelViewer, channelId: string) =>
-    (await channels.get(v.userId, channelId)).membership;
+  const membershipOf = async (v: ChannelViewer, roomId: string) =>
+    (await channels.get(v.userId, roomId)).membership;
 
   beforeAll(async () => {
     await prisma.user.createMany({
@@ -76,7 +76,7 @@ describe.skipIf(!connectionString)('star and sections', () => {
       users.member,
     ]);
     defaultChannelId = (
-      await prisma.channel.findUniqueOrThrow({
+      await prisma.room.findUniqueOrThrow({
         where: { defaultForOrganizationId: organization.id },
       })
     ).id;

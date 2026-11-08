@@ -8,8 +8,8 @@ import { dmTitle } from '@/services/channels/dm-title';
 import { useDm } from '@/services/channels/hooks';
 
 /** The first thing in a DM's log, above its first message. */
-export function DmIntro({ channelId }: { channelId: string }) {
-  const dm = useDm(channelId);
+export function DmIntro({ roomId }: { roomId: string }) {
+  const dm = useDm(roomId);
   const { data: session } = useQuery(sessionQuery);
 
   if (!dm) return null;

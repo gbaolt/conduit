@@ -92,7 +92,7 @@ describe.skipIf(!connectionString)('ChannelsService', () => {
       users.member,
     ]);
     defaultChannelId = (
-      await prisma.channel.findUniqueOrThrow({
+      await prisma.room.findUniqueOrThrow({
         where: { defaultForOrganizationId: organization.id },
       })
     ).id;

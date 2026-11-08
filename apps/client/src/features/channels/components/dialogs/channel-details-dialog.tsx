@@ -2,9 +2,9 @@
 
 import {
   canChannel,
-  type Channel,
   CHANNEL_TEXT_MAX,
-  type ChannelMember,
+  type Room,
+  type RoomMember,
   UpdateChannelInputSchema,
 } from '@conduit/contract';
 import { Badge } from '@conduit/ui/components/badge';
@@ -45,7 +45,7 @@ import {
   useSetChannelMemberRole,
   useUpdateChannel,
 } from '@/services/channels/hooks';
-import { channelMembersQuery, channelQuery } from '@/services/channels/queries';
+import { roomMembersQuery, roomQuery } from '@/services/channels/queries';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
 import { useChannelDialogs } from '../../context/channel-dialogs-provider';
@@ -60,7 +60,7 @@ function EditableText({
   label,
   canEdit,
 }: {
-  channel: Channel;
+  channel: Room;
   field: TextField;
   label: string;
   canEdit: boolean;
@@ -78,7 +78,7 @@ function EditableText({
   const save = (event: FormEvent) => {
     event.preventDefault();
     updateChannel.mutate(
-      { channelId: channel.id, [field]: draft },
+      { roomId: channel.id, [field]: draft },
       {
         onSuccess: () => setDraft(null),
         onError: (e) => toast.error(e.message),
@@ -153,8 +153,8 @@ function AboutTab({
   channel,
   members,
 }: {
-  channel: Channel;
-  members: ChannelMember[];
+  channel: Room;
+  members: RoomMember[];
 }) {
   const { open, close } = useChannelDialogs();
   const workspaceRole = useWorkspaceRole();
@@ -219,7 +219,7 @@ function AboutTab({
             status={leaveChannel.isPending ? 'loading' : 'idle'}
             onClick={() =>
               leaveChannel.mutate(
-                { channelId: channel.id },
+                { roomId: channel.id },
                 {
                   onSuccess: () => {
                     close();
@@ -243,8 +243,8 @@ function MemberRow({
   member,
   viewerId,
 }: {
-  channel: Channel;
-  member: ChannelMember;
+  channel: Room;
+  member: RoomMember;
   viewerId: string | undefined;
 }) {
   const workspaceRole = useWorkspaceRole();
@@ -255,7 +255,7 @@ function MemberRow({
   const canRemove =
     canChannel('removeMember', workspaceRole, channel) &&
     member.userId !== viewerId;
-  const target = { channelId: channel.id, userId: member.userId };
+  const target = { roomId: channel.id, userId: member.userId };
 
   // mutateAsync, not mutate: the menu closes on click, and per-call callbacks die with it.
   const onError = (error: Error) => toast.error(error.message);
@@ -322,8 +322,8 @@ function MembersTab({
   members,
   isPending,
 }: {
-  channel: Channel;
-  members: ChannelMember[];
+  channel: Room;
+  members: RoomMember[];
   isPending: boolean;
 }) {
   const { open } = useChannelDialogs();
@@ -371,14 +371,14 @@ export function ChannelDetailsDialog({
   channel: opened,
   tab = 'about',
 }: {
-  channel: Channel;
+  channel: Room;
   tab?: 'about' | 'members';
 }) {
   const { close } = useChannelDialogs();
   // The dialog outlives edits, so it reads the live channel instead of the snapshot it opened with.
-  const { data: channel = opened } = useQuery(channelQuery(opened.id));
+  const { data: channel = opened } = useQuery(roomQuery(opened.id));
   const { data: members = [], isPending } = useQuery(
-    channelMembersQuery(opened.id)
+    roomMembersQuery(opened.id)
   );
 
   return (

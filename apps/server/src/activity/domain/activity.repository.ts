@@ -1,6 +1,6 @@
 /** A conversation, or one thread of it. `parentId` is an empty string for the conversation itself. */
 export type ConversationScope = {
-  channelId: string;
+  roomId: string;
   userId: string;
   parentId: string;
 };
@@ -12,7 +12,7 @@ export abstract class ActivityRepository {
    * changes nothing. Returns false when the message is not in the channel.
    */
   abstract markRead(input: {
-    channelId: string;
+    roomId: string;
     userId: string;
     messageId: string;
   }): Promise<boolean>;

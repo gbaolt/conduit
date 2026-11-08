@@ -41,13 +41,13 @@ export class ChannelsController {
       );
   }
 
-  @Implement(contract.channels.get)
+  @Implement(contract.rooms.get)
   get() {
-    return implement(contract.channels.get)
+    return implement(contract.rooms.get)
       .use(authorized)
       .use(arcjet.read)
       .handler(({ context, input }) =>
-        this.channelsService.get(context.user.id, input.channelId)
+        this.channelsService.get(context.user.id, input.roomId)
       );
   }
 
@@ -69,11 +69,7 @@ export class ChannelsController {
       .use(arcjet.write)
       .use(workspaceMember)
       .handler(({ context, input }) =>
-        this.channelsService.rename(
-          viewerOf(context),
-          input.channelId,
-          input.name
-        )
+        this.channelsService.rename(viewerOf(context), input.roomId, input.name)
       );
   }
 
@@ -84,7 +80,7 @@ export class ChannelsController {
       .use(arcjet.write)
       .use(workspaceMember)
       .handler(({ context, input }) =>
-        this.channelsService.delete(viewerOf(context), input.channelId)
+        this.channelsService.delete(viewerOf(context), input.roomId)
       );
   }
 
@@ -95,7 +91,7 @@ export class ChannelsController {
       .use(arcjet.write)
       .use(workspaceMember)
       .handler(({ context, input }) =>
-        this.channelsService.join(viewerOf(context), input.channelId)
+        this.channelsService.join(viewerOf(context), input.roomId)
       );
   }
 
@@ -106,7 +102,7 @@ export class ChannelsController {
       .use(arcjet.write)
       .use(workspaceMember)
       .handler(({ context, input }) =>
-        this.channelsService.leave(viewerOf(context), input.channelId)
+        this.channelsService.leave(viewerOf(context), input.roomId)
       );
   }
 
@@ -116,19 +112,19 @@ export class ChannelsController {
       .use(authorized)
       .use(arcjet.write)
       .use(workspaceMember)
-      .handler(({ context, input: { channelId, ...details } }) =>
-        this.channelsService.update(viewerOf(context), channelId, details)
+      .handler(({ context, input: { roomId, ...details } }) =>
+        this.channelsService.update(viewerOf(context), roomId, details)
       );
   }
 
-  @Implement(contract.channels.members.list)
+  @Implement(contract.rooms.members.list)
   listMembers() {
-    return implement(contract.channels.members.list)
+    return implement(contract.rooms.members.list)
       .use(authorized)
       .use(arcjet.read)
       .use(workspaceMember)
       .handler(({ context, input }) =>
-        this.channelsService.listMembers(viewerOf(context), input.channelId)
+        this.channelsService.listMembers(viewerOf(context), input.roomId)
       );
   }
 
@@ -141,7 +137,7 @@ export class ChannelsController {
       .handler(({ context, input }) =>
         this.channelsService.addMembers(
           viewerOf(context),
-          input.channelId,
+          input.roomId,
           input.userIds
         )
       );
@@ -156,7 +152,7 @@ export class ChannelsController {
       .handler(({ context, input }) =>
         this.channelsService.removeMember(
           viewerOf(context),
-          input.channelId,
+          input.roomId,
           input.userId
         )
       );
@@ -171,7 +167,7 @@ export class ChannelsController {
       .handler(({ context, input }) =>
         this.channelsService.setMemberRole(
           viewerOf(context),
-          input.channelId,
+          input.roomId,
           input.userId,
           input.role
         )
@@ -185,7 +181,7 @@ export class ChannelsController {
       .use(arcjet.write)
       .use(workspaceMember)
       .handler(({ context, input }) =>
-        this.channelsService.archive(viewerOf(context), input.channelId)
+        this.channelsService.archive(viewerOf(context), input.roomId)
       );
   }
 
@@ -196,7 +192,7 @@ export class ChannelsController {
       .use(arcjet.write)
       .use(workspaceMember)
       .handler(({ context, input }) =>
-        this.channelsService.unarchive(viewerOf(context), input.channelId)
+        this.channelsService.unarchive(viewerOf(context), input.roomId)
       );
   }
 
@@ -209,7 +205,7 @@ export class ChannelsController {
       .handler(({ context, input }) =>
         this.channelsService.setVisibility(
           viewerOf(context),
-          input.channelId,
+          input.roomId,
           input.visibility
         )
       );
@@ -222,7 +218,7 @@ export class ChannelsController {
       .use(arcjet.write)
       .use(workspaceMember)
       .handler(({ context, input }) =>
-        this.channelsService.star(viewerOf(context), input.channelId)
+        this.channelsService.star(viewerOf(context), input.roomId)
       );
   }
 
@@ -233,7 +229,7 @@ export class ChannelsController {
       .use(arcjet.write)
       .use(workspaceMember)
       .handler(({ context, input }) =>
-        this.channelsService.unstar(viewerOf(context), input.channelId)
+        this.channelsService.unstar(viewerOf(context), input.roomId)
       );
   }
 
@@ -246,7 +242,7 @@ export class ChannelsController {
       .handler(({ context, input }) =>
         this.channelsService.moveToSection(
           viewerOf(context),
-          input.channelId,
+          input.roomId,
           input.sectionId
         )
       );

@@ -19,7 +19,7 @@ describe.skipIf(!connectionString)('PrismaSavedMessagesRepository', () => {
   const organizationId = run;
   const owner = `${run}-owner`;
   const other = `${run}-other`;
-  const channelId = `${run}-channel`;
+  const roomId = `${run}-channel`;
   const messageId = `${run}-message`;
   const deletedId = `${run}-deleted`;
 
@@ -39,14 +39,14 @@ describe.skipIf(!connectionString)('PrismaSavedMessagesRepository', () => {
         createdAt: new Date(),
       },
     });
-    await prisma.channel.create({
-      data: { id: channelId, organizationId, name: 'design' },
+    await prisma.room.create({
+      data: { id: roomId, organizationId, name: 'design' },
     });
     await prisma.message.createMany({
       data: [
         { id: messageId, clientId: 'a', body: 'hello' },
         { id: deletedId, clientId: 'b', body: '', deletedAt: new Date() },
-      ].map((message) => ({ ...message, channelId, authorId: owner })),
+      ].map((message) => ({ ...message, roomId, authorId: owner })),
     });
   });
 
@@ -59,28 +59,28 @@ describe.skipIf(!connectionString)('PrismaSavedMessagesRepository', () => {
   it('keeps a save private to its owner', async () => {
     await repository.add(owner, messageId);
 
-    expect(await repository.list(owner, [channelId], 10)).toHaveLength(1);
-    expect(await repository.list(other, [channelId], 10)).toHaveLength(0);
+    expect(await repository.list(owner, [roomId], 10)).toHaveLength(1);
+    expect(await repository.list(other, [roomId], 10)).toHaveLength(0);
   });
 
   it('saves once however many times it is added', async () => {
     await repository.add(owner, messageId);
     await repository.add(owner, messageId);
 
-    expect(await repository.list(owner, [channelId], 10)).toHaveLength(1);
+    expect(await repository.list(owner, [roomId], 10)).toHaveLength(1);
   });
 
   it('leaves out channels the caller did not pass and deleted messages', async () => {
     await repository.add(owner, deletedId);
 
     expect(await repository.list(owner, [], 10)).toHaveLength(0);
-    const saved = await repository.list(owner, [channelId], 10);
+    const saved = await repository.list(owner, [roomId], 10);
     expect(saved.map((item) => item.message.id)).toEqual([messageId]);
     expect(saved[0]?.channelName).toBe('design');
   });
 
   it('names no conversation for a DM', async () => {
-    const dm = await prisma.channel.create({
+    const dm = await prisma.room.create({
       data: {
         organizationId,
         name: `${organizationId}:${owner}`,
@@ -92,7 +92,7 @@ describe.skipIf(!connectionString)('PrismaSavedMessagesRepository', () => {
     await prisma.message.create({
       data: {
         id: `${run}-dm`,
-        channelId: dm.id,
+        roomId: dm.id,
         authorId: owner,
         clientId: 'dm',
         body: 'note',
@@ -109,6 +109,6 @@ describe.skipIf(!connectionString)('PrismaSavedMessagesRepository', () => {
   it('removes a save', async () => {
     await repository.remove(owner, messageId);
 
-    expect(await repository.list(owner, [channelId], 10)).toHaveLength(0);
+    expect(await repository.list(owner, [roomId], 10)).toHaveLength(0);
   });
 });

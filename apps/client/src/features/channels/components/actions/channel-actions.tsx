@@ -1,6 +1,6 @@
 'use client';
 
-import type { Channel } from '@conduit/contract';
+import type { Room } from '@conduit/contract';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -65,7 +65,7 @@ import {
 import { useExitOpenChannel } from '../../lib/use-exit-open-channel';
 
 // Only the open menu mounts this, so a sidebar of rows pays for none of it until a menu opens.
-function useChannelActions(channel: Channel) {
+function useChannelActions(channel: Room) {
   const { open } = useChannelDialogs();
   const workspaceRole = useWorkspaceRole();
   const exitOpenChannel = useExitOpenChannel();
@@ -76,8 +76,8 @@ function useChannelActions(channel: Channel) {
   const { data: sections } = useQuery(channelSectionsQuery);
 
   // mutateAsync, not mutate: the menu closes on click, and per-call callbacks die with the menu.
-  const leave = (target: Channel) =>
-    leaveChannel({ channelId: target.id }).then(
+  const leave = (target: Room) =>
+    leaveChannel({ roomId: target.id }).then(
       () => exitOpenChannel(target.id),
       (error: Error) => toast.error(error.message)
     );
@@ -86,10 +86,10 @@ function useChannelActions(channel: Channel) {
   const context = {
     open,
     leave,
-    setStarred: (target: Channel, starred: boolean) =>
-      (starred ? star : unstar)({ channelId: target.id }),
-    moveToSection: (target: Channel, sectionId: string | null) =>
-      moveChannel({ channelId: target.id, sectionId }),
+    setStarred: (target: Room, starred: boolean) =>
+      (starred ? star : unstar)({ roomId: target.id }),
+    moveToSection: (target: Room, sectionId: string | null) =>
+      moveChannel({ roomId: target.id, sectionId }),
   };
   const actions = getChannelActions(channel, { workspaceRole, sections }).map(
     (action) =>
@@ -239,7 +239,7 @@ function NotifyRows() {
 }
 
 /** The channel's menu as separated groups; an empty group and its separator are left out. */
-function ChannelMenuItems({ channel }: { channel: Channel }) {
+function ChannelMenuItems({ channel }: { channel: Room }) {
   const Menu = use(MenuParts);
   const actions = useChannelActions(channel);
   const rows = (group: ChannelMenuGroup) => {
@@ -269,7 +269,7 @@ export function ChannelActionsDropdown({
   extra,
   children,
 }: {
-  channel: Channel;
+  channel: Room;
   trigger: ReactElement;
   /** Rows another feature adds after the channel's own, such as the summary menu. */
   extra?: ReactNode;
@@ -294,7 +294,7 @@ export function ChannelActionsContextMenu({
   render,
   children,
 }: {
-  channel: Channel;
+  channel: Room;
   render: ReactElement;
   children: ComponentProps<typeof ContextMenuTrigger>['children'];
 }) {

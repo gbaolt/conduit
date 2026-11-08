@@ -57,7 +57,7 @@ export function ChannelList() {
   // Empty lists stand in until WorkspaceProvider activates a workspace and the queries refetch.
   const { data: channels = [] } = useQuery(channelsQuery);
   const { data: sections = [] } = useQuery(channelSectionsQuery);
-  const { channelId } = useParams<{ channelId?: string }>();
+  const { roomId } = useParams<{ roomId?: string }>();
   const { isCollapsed, toggle } = useCollapsedGroups(activeWorkspace?.id);
   const { mutate: reorder } = useReorderChannelSections();
 
@@ -84,7 +84,7 @@ export function ChannelList() {
         <SidebarSection
           key={group.id}
           group={group}
-          activeChannelId={channelId}
+          activeChannelId={roomId}
           isCollapsed={isCollapsed(group.id)}
           onToggle={() => toggle(group.id)}
           action={

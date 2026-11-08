@@ -1,9 +1,9 @@
 import type { WorkspaceRole } from '@/schemas/organizations';
-import type { Channel } from '@/schemas/channels';
+import type { Room } from '@/schemas/channels';
 import type { WorkspaceSettings } from '@/schemas/workspace-settings';
 
 export type PolicyChannel = Pick<
-  Channel,
+  Room,
   'kind' | 'visibility' | 'isDefault' | 'archivedAt' | 'membership'
 >;
 
@@ -128,7 +128,7 @@ export function canChannel(
 /** Creating a channel has no channel yet, so it is decided by the workspace settings rather than `channelPolicy`. */
 export function canCreateChannel(
   workspaceRole: WorkspaceRole,
-  visibility: Channel['visibility'],
+  visibility: Room['visibility'],
   settings: WorkspaceSettings
 ) {
   if (isAdmin(workspaceRole)) return true;

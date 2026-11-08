@@ -1,9 +1,4 @@
-import type {
-  Channel,
-  Message,
-  ModelSummary,
-  Summary,
-} from '@conduit/contract';
+import type { Message, ModelSummary, Room, Summary } from '@conduit/contract';
 import { describe, expect, it } from 'vitest';
 
 import { AiAccessService } from '@/ai/application/ai-access.service';
@@ -40,8 +35,8 @@ const outsider = viewerOf('outsider');
 
 const channelFor = (
   role: 'member' | null,
-  overrides: Partial<Channel> = {}
-): Channel => ({
+  overrides: Partial<Room> = {}
+): Room => ({
   id: 'c1',
   organizationId,
   kind: 'channel',
@@ -67,7 +62,7 @@ const log: Message[] = [
   (message, index) =>
     ({
       ...message,
-      channelId: 'c1',
+      roomId: 'c1',
       clientId: message.id,
       parentId: null,
       alsoSentToChannel: false,
@@ -97,7 +92,7 @@ function setup({
     bullets: [{ text: 'Ship Friday.', sourceIds: ['m1', 'm2'] }],
   }).model,
 }: {
-  views: Record<string, Channel | null>;
+  views: Record<string, Room | null>;
   aiEnabled?: boolean;
   messages?: Message[];
   model?: ModelPort;
@@ -183,7 +178,7 @@ describe('SummariesService', () => {
 
     const events = await finish(
       await service.summarizeChannel(linh, {
-        channelId: 'c1',
+        roomId: 'c1',
         from: new Date(0).toISOString(),
       })
     );
@@ -203,7 +198,7 @@ describe('SummariesService', () => {
 
     const events = await finish(
       await service.summarizeChannel(linh, {
-        channelId: 'c1',
+        roomId: 'c1',
         from: new Date(0).toISOString(),
         to: to.toISOString(),
       })
@@ -283,7 +278,7 @@ describe('SummariesService', () => {
 
     const events = await finish(
       await service.summarizeChannel(linh, {
-        channelId: 'c1',
+        roomId: 'c1',
         from: new Date(0).toISOString(),
       })
     );
@@ -298,7 +293,7 @@ describe('SummariesService', () => {
 
     await expect(
       service.summarizeChannel(bao, {
-        channelId: 'c1',
+        roomId: 'c1',
         from: new Date(0).toISOString(),
       })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
@@ -320,7 +315,7 @@ describe('SummariesService', () => {
     });
     await expect(
       service.summarizeChannel(linh, {
-        channelId: 'c1',
+        roomId: 'c1',
         from: '2026-01-01T00:00:00Z',
       })
     ).rejects.toMatchObject({ code: 'AI_DISABLED' });
@@ -338,7 +333,7 @@ describe('SummariesService', () => {
     });
     await expect(
       service.summarizeChannel(linh, {
-        channelId: 'c1',
+        roomId: 'c1',
         from: '2026-01-01T00:00:00Z',
       })
     ).rejects.toMatchObject({ code: 'NOTHING_TO_SUMMARIZE' });
@@ -418,7 +413,7 @@ describe('SummariesService', () => {
       expect(shared.sharedMessageId).toBe('shared-1');
       expect(sent[0]).toMatchObject({
         authorId: 'linh',
-        channelId: 'c1',
+        roomId: 'c1',
         parentId: 'cm-1',
         clientId: `summary-${id}`,
       });

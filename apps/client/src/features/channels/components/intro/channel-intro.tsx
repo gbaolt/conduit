@@ -4,14 +4,14 @@ import { canChannel } from '@conduit/contract';
 import { Button } from '@conduit/ui/components/button';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
-import { channelQuery } from '@/services/channels/queries';
+import { roomQuery } from '@/services/channels/queries';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
 import { useChannelDialogs } from '../../context/channel-dialogs-provider';
 
 /** The first thing in a channel's log, above its first message. */
-export function ChannelIntro({ channelId }: { channelId: string }) {
-  const { data: channel } = useSuspenseQuery(channelQuery(channelId));
+export function ChannelIntro({ roomId }: { roomId: string }) {
+  const { data: channel } = useSuspenseQuery(roomQuery(roomId));
   const { open } = useChannelDialogs();
   const workspaceRole = useWorkspaceRole();
 

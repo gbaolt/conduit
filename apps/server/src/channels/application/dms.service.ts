@@ -40,25 +40,25 @@ export class DmsService {
     return this.dms.open(viewer, ids);
   }
 
-  async addPeople(viewer: DmViewer, channelId: string, userIds: string[]) {
-    await this.authorize(viewer, channelId, 'addDmPeople');
+  async addPeople(viewer: DmViewer, roomId: string, userIds: string[]) {
+    await this.authorize(viewer, roomId, 'addDmPeople');
     const ids = [...new Set(userIds)];
     await this.requireWorkspaceMembers(viewer, ids);
-    return this.dms.addPeople(viewer, channelId, ids);
+    return this.dms.addPeople(viewer, roomId, ids);
   }
 
-  async convertToChannel(viewer: DmViewer, channelId: string, name: string) {
-    await this.authorize(viewer, channelId, 'convertDm');
-    return this.dms.convertToChannel(viewer, channelId, name);
+  async convertToChannel(viewer: DmViewer, roomId: string, name: string) {
+    await this.authorize(viewer, roomId, 'convertDm');
+    return this.dms.convertToChannel(viewer, roomId, name);
   }
 
   /** Anything that is not a DM the viewer is in is NOT_FOUND, so a DM never leaks to a non-member. */
   private async authorize(
     viewer: DmViewer,
-    channelId: string,
+    roomId: string,
     action: ChannelAction
   ) {
-    const channel = await this.channels.find(viewer, channelId);
+    const channel = await this.channels.find(viewer, roomId);
     if (
       !channel ||
       channel.kind !== 'dm' ||

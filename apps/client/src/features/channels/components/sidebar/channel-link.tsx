@@ -1,4 +1,4 @@
-import type { Channel } from '@conduit/contract';
+import type { Room } from '@conduit/contract';
 import {
   SidebarMenuAction,
   SidebarMenuButton,
@@ -19,7 +19,7 @@ export function ChannelLink({
   channel,
   isActive,
 }: {
-  channel: Channel;
+  channel: Room;
   isActive: boolean;
 }) {
   const Glyph = channel.visibility === 'private' ? IconLock : IconHash;

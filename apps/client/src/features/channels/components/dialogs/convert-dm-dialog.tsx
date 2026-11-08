@@ -28,7 +28,7 @@ type ConvertDmInput = z.input<typeof ConvertDmFormSchema>;
 type ConvertDmValues = z.output<typeof ConvertDmFormSchema>;
 
 /** Turns the DM into a private channel with a name. The history and the people stay, and you manage it. */
-export function ConvertDmDialog({ channelId }: { channelId: string }) {
+export function ConvertDmDialog({ roomId }: { roomId: string }) {
   const { close } = useChannelDialogs();
   const router = useRouter();
   const convert = useConvertDm();
@@ -45,7 +45,7 @@ export function ConvertDmDialog({ channelId }: { channelId: string }) {
 
   const onSubmit = handleSubmit(({ name }) => {
     convert.mutate(
-      { channelId, name },
+      { roomId, name },
       {
         onSuccess: (channel) => {
           close();

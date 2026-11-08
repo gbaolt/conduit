@@ -23,9 +23,9 @@ const dmInclude = {
     },
     orderBy: { joinedAt: 'asc' },
   },
-} satisfies Prisma.ChannelInclude;
+} satisfies Prisma.RoomInclude;
 
-type DmRow = Prisma.ChannelGetPayload<{ include: typeof dmInclude }>;
+type DmRow = Prisma.RoomGetPayload<{ include: typeof dmInclude }>;
 
 function toDm(row: DmRow): Dm {
   return {
@@ -46,7 +46,7 @@ export class PrismaDmsRepository implements DmsRepository {
   constructor(@Inject(PrismaService) private readonly db: PrismaService) {}
 
   async list(scope: ChannelScope) {
-    const rows = await this.db.channel.findMany({
+    const rows = await this.db.room.findMany({
       where: {
         organizationId: scope.organizationId,
         kind: 'DM',
@@ -65,7 +65,7 @@ export class PrismaDmsRepository implements DmsRepository {
     const key = dmKey(scope.organizationId, userIds);
 
     // Both writes skip rows that exist, so two opens at once, or a retry, converge on one DM.
-    await this.db.channel.createMany({
+    await this.db.room.createMany({
       data: {
         organizationId: scope.organizationId,
         name: key,
@@ -76,29 +76,29 @@ export class PrismaDmsRepository implements DmsRepository {
       },
       skipDuplicates: true,
     });
-    const { id } = await this.db.channel.findUniqueOrThrow({
+    const { id } = await this.db.room.findUniqueOrThrow({
       where: { dmKey: key },
       select: { id: true },
     });
     // Also restores someone whose memberships a workspace removal deleted.
-    await this.db.channelMember.createMany({
-      data: userIds.map((userId) => ({ channelId: id, userId })),
+    await this.db.roomMember.createMany({
+      data: userIds.map((userId) => ({ roomId: id, userId })),
       skipDuplicates: true,
     });
 
     return toDm(
-      await this.db.channel.findUniqueOrThrow({
+      await this.db.room.findUniqueOrThrow({
         where: { id },
         include: dmInclude,
       })
     );
   }
 
-  async addPeople(scope: ChannelScope, channelId: string, userIds: string[]) {
+  async addPeople(scope: ChannelScope, roomId: string, userIds: string[]) {
     return this.db.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM "Channel" WHERE id = ${channelId} FOR UPDATE`;
-      const current = await tx.channelMember.findMany({
-        where: { channelId },
+      await tx.$queryRaw`SELECT id FROM "Channel" WHERE id = ${roomId} FOR UPDATE`;
+      const current = await tx.roomMember.findMany({
+        where: { roomId },
         select: { userId: true },
       });
       const everyone = [
@@ -110,8 +110,8 @@ export class PrismaDmsRepository implements DmsRepository {
       }
       if (everyone.length > current.length) {
         const key = dmKey(scope.organizationId, everyone);
-        await tx.channel
-          .update({ where: { id: channelId }, data: { dmKey: key, name: key } })
+        await tx.room
+          .update({ where: { id: roomId }, data: { dmKey: key, name: key } })
           .catch((error: unknown) => {
             if (
               error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -121,27 +121,27 @@ export class PrismaDmsRepository implements DmsRepository {
             }
             throw error;
           });
-        await tx.channelMember.createMany({
-          data: everyone.map((userId) => ({ channelId, userId })),
+        await tx.roomMember.createMany({
+          data: everyone.map((userId) => ({ roomId, userId })),
           skipDuplicates: true,
         });
       }
 
       return toDm(
-        await tx.channel.findUniqueOrThrow({
-          where: { id: channelId },
+        await tx.room.findUniqueOrThrow({
+          where: { id: roomId },
           include: dmInclude,
         })
       );
     });
   }
 
-  async convertToChannel(scope: ChannelScope, channelId: string, name: string) {
+  async convertToChannel(scope: ChannelScope, roomId: string, name: string) {
     return this.db.$transaction(async (tx) => {
       // Matching on `kind` makes a second conversion at once find nothing.
-      const { count } = await tx.channel
+      const { count } = await tx.room
         .updateMany({
-          where: { id: channelId, kind: 'DM' },
+          where: { id: roomId, kind: 'DM' },
           data: { kind: 'CHANNEL', visibility: 'PRIVATE', name, dmKey: null },
         })
         .catch(rethrowNameTaken);
@@ -149,14 +149,14 @@ export class PrismaDmsRepository implements DmsRepository {
         throw channelError('NOT_FOUND');
       }
       // A private channel needs a manager, and a DM has none.
-      await tx.channelMember.updateMany({
-        where: { channelId, userId: scope.userId },
+      await tx.roomMember.updateMany({
+        where: { roomId, userId: scope.userId },
         data: { role: 'MANAGER' },
       });
 
       return toChannel(
-        await tx.channel.findUniqueOrThrow({
-          where: { id: channelId },
+        await tx.room.findUniqueOrThrow({
+          where: { id: roomId },
           include: include(scope),
         })
       );

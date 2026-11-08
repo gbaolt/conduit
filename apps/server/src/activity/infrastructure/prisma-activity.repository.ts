@@ -6,8 +6,8 @@ import type {
 } from '@/activity/domain/activity.repository';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 
-const keyOf = ({ channelId, userId, parentId }: ConversationScope) => ({
-  channelId_userId_parentId: { channelId, userId, parentId },
+const keyOf = ({ roomId, userId, parentId }: ConversationScope) => ({
+  roomId_userId_parentId: { roomId, userId, parentId },
 });
 
 @Injectable()
@@ -15,19 +15,19 @@ export class PrismaActivityRepository implements ActivityRepository {
   constructor(@Inject(PrismaService) private readonly db: PrismaService) {}
 
   async markRead({
-    channelId,
+    roomId,
     userId,
     messageId,
   }: {
-    channelId: string;
+    roomId: string;
     userId: string;
     messageId: string;
   }) {
     const message = await this.db.message.findUnique({
       where: { id: messageId },
-      select: { channelId: true, createdAt: true },
+      select: { roomId: true, createdAt: true },
     });
-    if (message?.channelId !== channelId) {
+    if (message?.roomId !== roomId) {
       return false;
     }
 
@@ -36,7 +36,7 @@ export class PrismaActivityRepository implements ActivityRepository {
     // a concurrent call inserted just behind this message.
     const advance = () =>
       this.db.readState.updateMany({
-        where: { channelId, userId, lastReadAt: { lt: message.createdAt } },
+        where: { roomId, userId, lastReadAt: { lt: message.createdAt } },
         data: { lastReadAt: message.createdAt, lastReadMessageId: messageId },
       });
 
@@ -44,7 +44,7 @@ export class PrismaActivityRepository implements ActivityRepository {
       const inserted = await this.db.readState.createMany({
         data: [
           {
-            channelId,
+            roomId,
             userId,
             lastReadAt: message.createdAt,
             lastReadMessageId: messageId,

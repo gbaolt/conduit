@@ -1,6 +1,6 @@
 'use client';
 
-import type { Channel } from '@conduit/contract';
+import type { Room } from '@conduit/contract';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -17,7 +17,7 @@ import { useSetChannelVisibility } from '@/services/channels/hooks';
 
 import { useChannelDialogs } from '../../context/channel-dialogs-provider';
 
-export function ChangeVisibilityDialog({ channel }: { channel: Channel }) {
+export function ChangeVisibilityDialog({ channel }: { channel: Room }) {
   const { close } = useChannelDialogs();
   const setVisibility = useSetChannelVisibility();
   const toPrivate = channel.visibility === 'public';
@@ -42,7 +42,7 @@ export function ChangeVisibilityDialog({ channel }: { channel: Channel }) {
             status={setVisibility.isPending ? 'loading' : 'idle'}
             onClick={() =>
               setVisibility.mutate(
-                { channelId: channel.id, visibility },
+                { roomId: channel.id, visibility },
                 {
                   onSuccess: close,
                   onError: (error) => toast.error(error.message),

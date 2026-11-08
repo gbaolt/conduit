@@ -1,4 +1,4 @@
-import type { Channel, ChannelSection } from '@conduit/contract';
+import type { ChannelSection, Room } from '@conduit/contract';
 import { describe, expect, it } from 'vitest';
 
 import { groupSidebar } from '../group-sidebar';
@@ -6,9 +6,9 @@ import { groupSidebar } from '../group-sidebar';
 function channel(
   name: string,
 
-  membership: Partial<NonNullable<Channel['membership']>> | null = {},
+  membership: Partial<NonNullable<Room['membership']>> | null = {},
   isDefault = false
-): Channel {
+): Room {
   return {
     id: name,
     organizationId: 'o1',

@@ -3,14 +3,14 @@ import { z } from 'zod';
 import { MESSAGE_BODY_MAX } from '@/lib/message-body';
 
 export const MarkReadInputSchema = z.object({
-  channelId: z.string(),
+  roomId: z.string(),
   /** The newest message the member has seen. */
   messageId: z.string(),
 });
 
 /** A conversation, or one thread of it when `parentId` is set. */
 export const ConversationKeySchema = z.object({
-  channelId: z.string(),
+  roomId: z.string(),
   parentId: z.string().optional(),
 });
 
@@ -29,7 +29,7 @@ export const HeartbeatInputSchema = z.object({
 
 /** One row of the `sidebar` stream: the caller's view of a conversation they belong to. */
 export const SidebarEntrySchema = z.object({
-  channelId: z.string(),
+  roomId: z.string(),
   lastMessageAt: z.coerce.date().nullable(),
   /** When the caller joined. A conversation with no read state counts as read up to here. */
   joinedAt: z.coerce.date(),

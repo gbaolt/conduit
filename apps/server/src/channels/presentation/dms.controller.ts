@@ -53,7 +53,7 @@ export class DmsController {
       .handler(({ context, input }) =>
         this.dmsService.addPeople(
           viewerOf(context),
-          input.channelId,
+          input.roomId,
           input.userIds
         )
       );
@@ -68,7 +68,7 @@ export class DmsController {
       .handler(({ context, input }) =>
         this.dmsService.convertToChannel(
           viewerOf(context),
-          input.channelId,
+          input.roomId,
           input.name
         )
       );

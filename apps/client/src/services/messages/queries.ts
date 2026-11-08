@@ -6,9 +6,9 @@ import { orpc } from '@/lib/orpc';
 export type MessagePages = InfiniteData<ListMessagesOutput, string | undefined>;
 
 /** Pages of top-level messages. Page 0 holds the newest, and each page is newest first. */
-export const messagesQuery = (channelId: string) =>
+export const messagesQuery = (roomId: string) =>
   orpc.messages.list.infiniteOptions({
-    input: (before: string | undefined) => ({ channelId, before }),
+    input: (before: string | undefined) => ({ roomId, before }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) =>
       last.hasMore ? last.messages.at(-1)?.id : undefined,
@@ -125,7 +125,7 @@ export function cacheMessage(queryClient: QueryClient, message: Message) {
     upsertMessages(data, [message]);
 
   if (!message.parentId || message.alsoSentToChannel) {
-    queryClient.setQueryData(messagesQuery(message.channelId).queryKey, upsert);
+    queryClient.setQueryData(messagesQuery(message.roomId).queryKey, upsert);
   }
   if (message.parentId) {
     queryClient.setQueryData(repliesQuery(message.parentId).queryKey, upsert);
@@ -139,14 +139,14 @@ export function cacheMessage(queryClient: QueryClient, message: Message) {
 /** Changes one message by id wherever it is cached: the channel log, every loaded thread, and a thread root. */
 export function patchCachedMessage(
   queryClient: QueryClient,
-  channelId: string,
+  roomId: string,
   messageId: string,
   change: (message: Message) => Message
 ) {
   const patch = (data: MessagePages | undefined) =>
     mapMessage(data, messageId, change);
 
-  queryClient.setQueryData(messagesQuery(channelId).queryKey, patch);
+  queryClient.setQueryData(messagesQuery(roomId).queryKey, patch);
   queryClient.setQueriesData<MessagePages>(
     { queryKey: orpc.messages.listReplies.key({ type: 'infinite' }) },
     patch
@@ -157,8 +157,8 @@ export function patchCachedMessage(
   );
 }
 
-export const pinnedQuery = (channelId: string) =>
-  orpc.messages.listPinned.queryOptions({ input: { channelId } });
+export const pinnedQuery = (roomId: string) =>
+  orpc.messages.listPinned.queryOptions({ input: { roomId } });
 
 export const savedQuery = orpc.saved.list.queryOptions();
 

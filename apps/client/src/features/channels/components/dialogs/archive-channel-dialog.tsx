@@ -1,6 +1,6 @@
 'use client';
 
-import type { Channel } from '@conduit/contract';
+import type { Room } from '@conduit/contract';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -24,7 +24,7 @@ const members = (count: number) =>
   `${count} ${count === 1 ? 'member' : 'members'}`;
 
 /** Archives an active channel and unarchives an archived one. */
-export function ArchiveChannelDialog({ channel }: { channel: Channel }) {
+export function ArchiveChannelDialog({ channel }: { channel: Room }) {
   const { close } = useChannelDialogs();
   const archiveChannel = useArchiveChannel();
   const unarchiveChannel = useUnarchiveChannel();
@@ -50,7 +50,7 @@ export function ArchiveChannelDialog({ channel }: { channel: Channel }) {
             status={isPending ? 'loading' : 'idle'}
             onClick={() =>
               mutate(
-                { channelId: channel.id },
+                { roomId: channel.id },
                 {
                   onSuccess: close,
                   onError: (error) => toast.error(error.message),
