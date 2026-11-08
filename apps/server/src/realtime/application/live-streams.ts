@@ -5,7 +5,7 @@ import type { LiveQuery } from '@/realtime/domain/live-queries.port';
 /** The columns of `Message` that `MessageSchema` reads. */
 const MESSAGE_COLUMNS = [
   'id',
-  'roomId',
+  'channelId',
   'authorId',
   'clientId',
   'parentId',
