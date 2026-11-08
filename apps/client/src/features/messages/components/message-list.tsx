@@ -9,9 +9,16 @@ import {
   MessageScrollerItem,
   MessageScrollerProvider,
   MessageScrollerViewport,
+  useMessageScroller,
   useMessageScrollerVisibility,
 } from '@conduit/ui/components/message-scroller';
-import { type KeyboardEvent, type ReactNode, useEffect, useState } from 'react';
+import {
+  type KeyboardEvent,
+  type ReactNode,
+  useEffect,
+  useEffectEvent,
+  useState,
+} from 'react';
 
 import { usePendingMessages } from '@/services/messages/hooks';
 
@@ -66,6 +73,47 @@ function OlderPages({
   return null;
 }
 
+/**
+ * Scrolls to the message a source link or permalink named. A message in an older page that is not loaded yet
+ * is brought in by loading older pages until it shows up or none remain.
+ */
+function ScrollToTarget({
+  target,
+  loaded,
+  canLoadOlder,
+  onLoadOlder,
+  onReached,
+}: {
+  target: string | null;
+  loaded: boolean;
+  canLoadOlder: boolean;
+  onLoadOlder: () => void;
+  onReached: (messageId: string | null) => void;
+}) {
+  const { scrollToMessage } = useMessageScroller();
+  const loadOlder = useEffectEvent(onLoadOlder);
+  const reached = useEffectEvent(onReached);
+
+  useEffect(() => {
+    if (!target) return;
+    if (loaded) {
+      scrollToMessage(target, {
+        align: 'center',
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          ? 'auto'
+          : 'smooth',
+      });
+      reached(target);
+    } else if (canLoadOlder) {
+      loadOlder();
+    } else {
+      reached(null);
+    }
+  }, [target, loaded, canLoadOlder, scrollToMessage]);
+
+  return null;
+}
+
 /** Up and Down move between rows. Escape hands focus back to the composer. */
 function moveFocus(event: KeyboardEvent<HTMLElement>) {
   const row = (event.target as HTMLElement).closest<HTMLElement>(
@@ -102,6 +150,10 @@ export function MessageList({
   onEscape,
   retry,
   discard,
+  scrollTarget,
+  focusedId,
+  onScrollReached,
+  end,
 }: {
   channelId: string;
   /** Set when the list is a thread: `messages` then starts with its root. */
@@ -123,6 +175,14 @@ export function MessageList({
   onEscape: () => void;
   retry: (clientId: string) => void;
   discard: (clientId: string) => void;
+  /** A message to scroll to, such as a summary's source. Older pages load until it is found. */
+  scrollTarget: string | null;
+  /** The message to tint, for 1.5 s after the scroll. */
+  focusedId: string | null;
+  /** Called once the target is on screen, or null when it cannot be found. */
+  onScrollReached: (messageId: string | null) => void;
+  /** After the last message, such as the summary card. */
+  end?: ReactNode;
 }) {
   const pending = usePendingMessages(channelId, parentId);
   const entries = buildLog(messages, pending, viewerId ?? '').map(
@@ -170,6 +230,7 @@ export function MessageList({
                     canPost={canPost}
                     canModerate={canModerate}
                     fresh={entry.createdAt.getTime() > mountedAt}
+                    focused={focusedId === entry.message.id}
                     editing={editingId === entry.message.id}
                     onEdit={() => onEdit(entry.message.id)}
                     onStopEditing={onStopEditing}
@@ -189,9 +250,17 @@ export function MessageList({
                 )}
               </MessageScrollerItem>
             ))}
+            {end}
           </MessageScrollerContent>
         </MessageScrollerViewport>
         <MessageScrollerButton />
+        <ScrollToTarget
+          target={scrollTarget}
+          loaded={messages.some((message) => message.id === scrollTarget)}
+          canLoadOlder={hasOlder && !loadingOlder && !olderFailed}
+          onLoadOlder={onLoadOlder}
+          onReached={onScrollReached}
+        />
         <OlderPages
           oldestId={messages[0]?.id}
           enabled={hasOlder && !loadingOlder && !olderFailed}

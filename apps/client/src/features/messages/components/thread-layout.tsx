@@ -9,6 +9,7 @@ import { useIsMobile } from '@conduit/ui/hooks/use-mobile';
 import { useQueryState } from 'nuqs';
 import { type ReactNode, useCallback, useMemo } from 'react';
 
+import { SummaryProvider } from '../context/summary';
 import { OpenThread } from '../context/thread';
 import { ThreadPanel } from './thread-panel';
 
@@ -50,34 +51,36 @@ export function ThreadLayout({
   );
 
   return (
-    <OpenThread value={open}>
-      {isMobile ? (
-        <div className="relative h-full min-h-0">
-          {children}
-          {panel && (
-            <div className="bg-background absolute inset-0 z-20">{panel}</div>
-          )}
-        </div>
-      ) : (
-        <ResizablePanelGroup orientation="horizontal">
-          <ResizablePanel id="conversation" minSize="30%">
+    <SummaryProvider target={{ kind: 'channel', channelId }}>
+      <OpenThread value={open}>
+        {isMobile ? (
+          <div className="relative h-full min-h-0">
             {children}
-          </ResizablePanel>
-          {panel && (
-            <>
-              <ResizableHandle />
-              <ResizablePanel
-                id="thread"
-                defaultSize="380px"
-                minSize="320px"
-                maxSize="60%"
-              >
-                {panel}
-              </ResizablePanel>
-            </>
-          )}
-        </ResizablePanelGroup>
-      )}
-    </OpenThread>
+            {panel && (
+              <div className="bg-background absolute inset-0 z-20">{panel}</div>
+            )}
+          </div>
+        ) : (
+          <ResizablePanelGroup orientation="horizontal">
+            <ResizablePanel id="conversation" minSize="30%">
+              {children}
+            </ResizablePanel>
+            {panel && (
+              <>
+                <ResizableHandle />
+                <ResizablePanel
+                  id="thread"
+                  defaultSize="380px"
+                  minSize="320px"
+                  maxSize="60%"
+                >
+                  {panel}
+                </ResizablePanel>
+              </>
+            )}
+          </ResizablePanelGroup>
+        )}
+      </OpenThread>
+    </SummaryProvider>
   );
 }

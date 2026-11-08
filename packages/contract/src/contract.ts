@@ -79,6 +79,12 @@ import {
   updateOrganizationContract,
 } from './contracts/organizations';
 import { sealStreamContract } from './contracts/realtime';
+import {
+  getSummaryContract,
+  shareSummaryContract,
+  summarizeChannelContract,
+  summarizeThreadContract,
+} from './contracts/summaries';
 import { getSessionContract } from './contracts/users';
 import {
   getWorkspaceSettingsContract,
@@ -182,6 +188,12 @@ export const contract = {
   },
   realtime: {
     seal: sealStreamContract,
+  },
+  summaries: {
+    thread: summarizeThreadContract,
+    channel: summarizeChannelContract,
+    get: getSummaryContract,
+    share: shareSummaryContract,
   },
   channelSections: {
     list: listChannelSectionsContract,

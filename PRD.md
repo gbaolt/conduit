@@ -166,8 +166,8 @@ Every other feature reads or writes messages, so messaging comes first.
 | M1.15 | Group DMs of up to 10 people, including you                                             | Shipped     | [#62](https://github.com/gbaolt/conduit/pull/62) |
 | M1.16 | **Turn into a private channel**, offered when someone adds an 11th person to a group DM | Shipped     | [#62](https://github.com/gbaolt/conduit/pull/62) |
 | M1.17 | A DM with yourself, for notes                                                           | Shipped     | [#62](https://github.com/gbaolt/conduit/pull/62) |
-| M1.18 | AI: summarize a thread, or a channel over a time range                                  | Not started |                                                  |
-| M1.19 | AI admin control: turn AI on or off for the workspace                                   | Not started |                                                  |
+| M1.18 | AI: summarize a thread, or a channel over a time range                                  | Shipped     | [#63](https://github.com/gbaolt/conduit/pull/63) |
+| M1.19 | AI admin control: turn AI on or off for the workspace                                   | Shipped     | [#63](https://github.com/gbaolt/conduit/pull/63) |
 
 File attachments ship in M3, together with file storage.
 

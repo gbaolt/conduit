@@ -15,10 +15,13 @@ import { ChannelActionsDropdown } from './channel-actions-menu';
 export function ChannelHeader({
   channelId,
   children,
+  menu,
 }: {
   channelId: string;
   /** Buttons that other features add before the member count, such as the pinned list. */
   children?: ReactNode;
+  /** Rows that other features add to the actions menu, such as Summarize channel. */
+  menu?: ReactNode;
 }) {
   const { data: channel } = useSuspenseQuery(channelQuery(channelId));
   const { open } = useChannelDialogs();
@@ -59,6 +62,7 @@ export function ChannelHeader({
         </Button>
         <ChannelActionsDropdown
           channel={channel}
+          extra={menu}
           trigger={
             <Button
               variant="ghost"

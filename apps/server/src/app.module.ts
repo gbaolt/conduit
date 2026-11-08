@@ -15,6 +15,7 @@ import { arcjetAuthMiddleware } from '@/infrastructure/security/auth-routes.midd
 import { MessagesModule } from '@/messages/messages.module';
 import { OrganizationsModule } from '@/organizations/organizations.module';
 import { RealtimeModule } from '@/realtime/realtime.module';
+import { SummariesModule } from '@/summaries/summaries.module';
 import { UsersModule } from '@/users/users.module';
 import { WorkspaceMembersRepository } from '@/workspaces/domain/workspace-members.repository';
 import { WorkspacesModule } from '@/workspaces/workspaces.module';
@@ -28,6 +29,7 @@ import { WorkspacesModule } from '@/workspaces/workspaces.module';
     ChannelsModule,
     MessagesModule,
     RealtimeModule,
+    SummariesModule,
     ArcjetModule.forRoot({
       isGlobal: true,
       key: process.env.ARCJET_KEY!,

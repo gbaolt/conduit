@@ -7,6 +7,7 @@ import { ChannelIntro } from '@/features/channels/components/channel-intro';
 import { ChannelPageSkeleton } from '@/features/channels/components/channel-skeletons';
 import { Conversation } from '@/features/messages/components/conversation';
 import { PinnedButton } from '@/features/messages/components/pinned-list';
+import { SummarizeChannelItems } from '@/features/messages/components/summarize-menu';
 import { ThreadLayout } from '@/features/messages/components/thread-layout';
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
 import { channelQuery } from '@/services/channels/queries';
@@ -43,7 +44,10 @@ async function Channel({
     <HydrateClient client={client}>
       <ThreadLayout channelId={channelId}>
         <div className="flex h-full min-h-0 flex-col">
-          <ChannelHeader channelId={channelId}>
+          <ChannelHeader
+            channelId={channelId}
+            menu={<SummarizeChannelItems isDm={false} />}
+          >
             <PinnedButton channelId={channelId} />
           </ChannelHeader>
           <Conversation

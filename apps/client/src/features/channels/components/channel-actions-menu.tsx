@@ -266,10 +266,13 @@ function ChannelMenuItems({ channel }: { channel: Channel }) {
 export function ChannelActionsDropdown({
   channel,
   trigger,
+  extra,
   children,
 }: {
   channel: Channel;
   trigger: ReactElement;
+  /** Rows another feature adds after the channel's own, such as the summary menu. */
+  extra?: ReactNode;
   children: ComponentProps<typeof DropdownMenuTrigger>['children'];
 }) {
   return (
@@ -279,6 +282,7 @@ export function ChannelActionsDropdown({
         <MenuParts value={dropdownParts}>
           <ChannelMenuItems channel={channel} />
         </MenuParts>
+        {extra}
       </DropdownMenuContent>
     </DropdownMenu>
   );
