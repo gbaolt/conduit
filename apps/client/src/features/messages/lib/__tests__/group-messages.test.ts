@@ -87,6 +87,20 @@ describe('buildLog', () => {
     ]);
   });
 
+  it('starts a group at the New marker', () => {
+    const log = buildLog(
+      [message('a', 'u1', at(7, 9)), message('b', 'u1', at(7, 9, 1))],
+      [],
+      'me',
+      'b'
+    );
+
+    expect(log.map((row) => [row.grouped, row.startsNew])).toEqual([
+      [false, false],
+      [false, true],
+    ]);
+  });
+
   it('does not group a row under a deleted one', () => {
     const log = buildLog(
       [

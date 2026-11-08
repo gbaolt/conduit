@@ -47,6 +47,7 @@ async function Dm({
             <PinnedButton channelId={channelId} />
           </DmHeader>
           <Conversation
+            key={channelId}
             channelId={channelId}
             start={<DmIntro channelId={channelId} />}
           />

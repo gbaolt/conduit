@@ -6,6 +6,13 @@ import {
   reorderChannelSectionsContract,
 } from './contracts/channel-sections';
 import {
+  getDraftContract,
+  heartbeatContract,
+  markReadContract,
+  saveDraftContract,
+  typingPingContract,
+} from './contracts/activity';
+import {
   addChannelMembersContract,
   archiveChannelContract,
   createChannelContract,
@@ -174,6 +181,19 @@ export const contract = {
   },
   realtime: {
     seal: sealStreamContract,
+  },
+  readState: {
+    mark: markReadContract,
+  },
+  drafts: {
+    get: getDraftContract,
+    save: saveDraftContract,
+  },
+  typing: {
+    ping: typingPingContract,
+  },
+  presence: {
+    heartbeat: heartbeatContract,
   },
   channelSections: {
     list: listChannelSectionsContract,

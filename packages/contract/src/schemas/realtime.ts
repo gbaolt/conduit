@@ -15,6 +15,16 @@ export const LiveStreamSchema = z.discriminatedUnion('kind', [
     parentId: z.string(),
     since: z.coerce.date(),
   }),
+  /** Who is typing in a conversation, other than the caller. Rows from `since` on arrive live. */
+  z.object({
+    kind: z.literal('typing'),
+    channelId: z.string(),
+    since: z.coerce.date(),
+  }),
+  /** The caller's conversations with their read state and drafts. */
+  z.object({ kind: z.literal('sidebar') }),
+  /** Every member of the workspace with their last heartbeat. */
+  z.object({ kind: z.literal('presence') }),
 ]);
 export type LiveStream = z.infer<typeof LiveStreamSchema>;
 

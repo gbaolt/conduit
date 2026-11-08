@@ -28,8 +28,10 @@ import { useWorkspaceRole } from '@/services/workspaces/hooks';
 import { MentionNames, MentionSuggestions } from '../context/mention-names';
 import { useAuthors } from '../lib/use-authors';
 import { useIsClient } from '../lib/use-is-client';
-import { Composer } from './composer';
+import { useNewMarker } from '../lib/use-new-marker';
+import { ConversationComposer } from './conversation-composer';
 import { MessageList } from './message-list';
+import { TypingLine } from './typing-line';
 
 const OFFLINE_AFTER_MS = 10_000;
 // A normal connect takes a moment, so the line waits before it appears.
@@ -106,6 +108,14 @@ export function Conversation({
     // A deleted root stays visible even with no replies left, so the thread still says what it was.
     return parentId && root ? [root, ...loaded] : loaded;
   }, [history.data, parentId, root]);
+  const { markerId, markRead } = useNewMarker({
+    channelId,
+    messages,
+    viewerId: session?.user.id ?? null,
+    // A thread has no read state of its own.
+    ready: history.isSuccess && !parentId,
+    hasOlder: history.hasNextPage,
+  });
   const viewerId = session?.user.id ?? null;
 
   const { authors, names } = useAuthors();
@@ -169,6 +179,8 @@ export function Conversation({
               }
               retry={retry}
               discard={discard}
+              newMarkerId={markerId}
+              onRead={markRead}
             />
           ) : (
             <ConversationSkeleton />
@@ -180,39 +192,44 @@ export function Conversation({
                 The message that started this thread was deleted.
               </p>
             ) : canPost ? (
-              <Composer
-                placeholder={
-                  parentId
-                    ? 'Reply…'
-                    : isSelf
-                      ? 'Jot a note…'
-                      : `Message ${title}`
-                }
-                autoFocus={Boolean(parentId)}
-                onSubmit={(body) => {
-                  send(body, alsoSend);
-                  setAlsoSend(false);
-                }}
-                onEditLast={
-                  lastOwn ? () => setEditingId(lastOwn.id) : undefined
-                }
-              >
-                {parentId && (
-                  <div className="flex items-center gap-2 pt-2">
-                    <Checkbox
-                      id={`also-send-${parentId}`}
-                      checked={alsoSend}
-                      onCheckedChange={setAlsoSend}
-                    />
-                    <Label
-                      htmlFor={`also-send-${parentId}`}
-                      className="text-muted-foreground text-xs font-normal"
-                    >
-                      Also send to {title}
-                    </Label>
-                  </div>
-                )}
-              </Composer>
+              <>
+                <ConversationComposer
+                  channelId={channelId}
+                  parentId={parentId}
+                  placeholder={
+                    parentId
+                      ? 'Reply…'
+                      : isSelf
+                        ? 'Jot a note…'
+                        : `Message ${title}`
+                  }
+                  autoFocus={Boolean(parentId)}
+                  onSubmit={(body) => {
+                    send(body, alsoSend);
+                    setAlsoSend(false);
+                  }}
+                  onEditLast={
+                    lastOwn ? () => setEditingId(lastOwn.id) : undefined
+                  }
+                >
+                  {parentId && (
+                    <div className="flex items-center gap-2 pt-2">
+                      <Checkbox
+                        id={`also-send-${parentId}`}
+                        checked={alsoSend}
+                        onCheckedChange={setAlsoSend}
+                      />
+                      <Label
+                        htmlFor={`also-send-${parentId}`}
+                        className="text-muted-foreground text-xs font-normal"
+                      >
+                        Also send to {title}
+                      </Label>
+                    </div>
+                  )}
+                </ConversationComposer>
+                <TypingLine channelId={channelId} parentId={parentId} />
+              </>
             ) : (
               <div className="border-input flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
                 <p className="text-muted-foreground text-sm">
