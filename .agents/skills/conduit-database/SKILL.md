@@ -23,7 +23,7 @@ These commands write to a database: `prisma migrate dev`, `migrate deploy`, `mig
    npx prisma migrate diff --from-schema "$TEMP/old.prisma" --to-schema database/schema.prisma --script -o database/migrations/<N>_<name>/migration.sql
    ```
 
-   `<N>` is one more than the highest existing number, as in `0_init`, `1_organizations`, and `2_channels`. Prisma applies folders in name order, and the timestamped name that `migrate dev` generates sorts before `2_channels`.
+   `<N>` is the next two-digit number, as in `00_init`, `01_organizations`, and `10_summaries`. Prisma applies folders in text order, so the zero keeps `10_` after `09_`, and the timestamped name that `migrate dev` generates would sort among them. Keep a folder's name once it ships: every database records it in `_prisma_migrations`, and a renamed folder reads as a new migration there.
 
 3. Read the SQL. A diff writes a rename as a drop and an add, which loses the column's data. Rewrite it as `ALTER TABLE ... RENAME COLUMN`.
 4. Run `pnpm db:generate`, then `pnpm typecheck`.
@@ -39,7 +39,7 @@ Put a backfill in `apps/server/scripts/`, and add a `db:` script for it to `apps
 
 ## Debug a 500
 
-Run `npx prisma migrate status` in `apps/server` before you read code. In November 2026, every channel request returned 500 because `1_organizations` and `2_channels` had never been applied to the dev database. Report unapplied migrations to the user, and ask before you apply them.
+Run `npx prisma migrate status` in `apps/server` before you read code. In November 2026, every channel request returned 500 because `01_organizations` and `02_channels` had never been applied to the dev database. Report unapplied migrations to the user, and ask before you apply them.
 
 ## Test against a database
 
