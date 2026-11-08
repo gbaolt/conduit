@@ -29,6 +29,7 @@ const personas: [string, Persona][] = [
 ];
 
 const channel = (overrides: Partial<PolicyChannel> = {}): PolicyChannel => ({
+  kind: 'channel',
   visibility: 'public',
   isDefault: false,
   archivedAt: null,
@@ -56,6 +57,8 @@ const table: [ChannelAction, string, Partial<PolicyChannel>?][] = [
   ['moveToSection', 'nyyyn'],
   ['post', 'nyyyn'],
   ['deleteOthersMessages', 'yyynn'],
+  ['addDmPeople', 'nnnnn'],
+  ['convertDm', 'nnnnn'],
 ];
 
 const decide = (action: ChannelAction, persona: Persona, c: PolicyChannel) =>
@@ -146,6 +149,61 @@ describe('channelPolicy', () => {
       }
     }
   );
+});
+
+describe('channelPolicy for a DM', () => {
+  const dm = (membership: PolicyChannel['membership']) =>
+    channel({ kind: 'dm', visibility: 'private', membership });
+  const member = { role: 'member', ...joined } as const;
+  const dmActions = Object.keys(channelPolicy) as ChannelAction[];
+
+  it('lets a member read, post, and change who is in the DM', () => {
+    for (const action of [
+      'view',
+      'post',
+      'join',
+      'addDmPeople',
+      'convertDm',
+    ] as const) {
+      expect(checkChannel(action, 'member', dm(member))).toBeNull();
+    }
+  });
+
+  it.each(dmActions)(
+    'refuses %s to someone outside the DM, admin or not',
+    (action) => {
+      for (const role of ['member', 'admin', 'owner'] as const) {
+        expect(checkChannel(action, role, dm(null))).toBe('FORBIDDEN');
+      }
+    }
+  );
+
+  it.each([
+    'rename',
+    'editDetails',
+    'addMembers',
+    'removeMember',
+    'setManager',
+    'archive',
+    'unarchive',
+    'makePrivate',
+    'makePublic',
+    'delete',
+    'leave',
+    'star',
+    'moveToSection',
+    'deleteOthersMessages',
+  ] as const)('refuses %s even to an admin inside the DM', (action) => {
+    for (const role of ['member', 'admin', 'owner'] as const) {
+      expect(checkChannel(action, role, dm(member))).toBe('FORBIDDEN');
+    }
+  });
+
+  it('offers the DM actions only on a DM', () => {
+    const inChannel = channel({ membership: member });
+    expect(checkChannel('addDmPeople', 'admin', inChannel)).toBe('FORBIDDEN');
+    expect(checkChannel('convertDm', 'admin', inChannel)).toBe('FORBIDDEN');
+  });
 });
 
 describe('canCreateChannel', () => {

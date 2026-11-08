@@ -154,7 +154,7 @@ Every other feature reads or writes messages, so messaging comes first.
 | M1.3  | Rich text with Markdown shortcuts, built on the Lexical kit                             | Shipped     | [#59](https://github.com/gbaolt/conduit/pull/59) |
 | M1.4  | Mention a person, `@channel`, or `@here`                                                | Shipped     | [#61](https://github.com/gbaolt/conduit/pull/61) |
 | M1.5  | Emoji reactions                                                                         | Shipped     | [#61](https://github.com/gbaolt/conduit/pull/61) |
-| M1.6  | Threads, with **Also send to channel**                                                  | Not started |                                                  |
+| M1.6  | Threads, with **Also send to channel**                                                  | Shipped     | [#62](https://github.com/gbaolt/conduit/pull/62) |
 | M1.7  | Unread markers, and remembering where each member stopped reading                       | Not started |                                                  |
 | M1.8  | Typing indicators                                                                       | Not started |                                                  |
 | M1.9  | Online and away status                                                                  | Not started |                                                  |
@@ -162,10 +162,10 @@ Every other feature reads or writes messages, so messaging comes first.
 | M1.11 | Pin messages to a conversation                                                          | Shipped     | [#61](https://github.com/gbaolt/conduit/pull/61) |
 | M1.12 | **Save for later** on any message                                                       | Shipped     | [#61](https://github.com/gbaolt/conduit/pull/61) |
 | M1.13 | Link previews                                                                           | Shipped     | [#61](https://github.com/gbaolt/conduit/pull/61) |
-| M1.14 | One-on-one DMs                                                                          | Not started |                                                  |
-| M1.15 | Group DMs of up to 10 people, including you                                             | Not started |                                                  |
-| M1.16 | **Turn into a private channel**, offered when someone adds an 11th person to a group DM | Not started |                                                  |
-| M1.17 | A DM with yourself, for notes                                                           | Not started |                                                  |
+| M1.14 | One-on-one DMs                                                                          | Shipped     | [#62](https://github.com/gbaolt/conduit/pull/62) |
+| M1.15 | Group DMs of up to 10 people, including you                                             | Shipped     | [#62](https://github.com/gbaolt/conduit/pull/62) |
+| M1.16 | **Turn into a private channel**, offered when someone adds an 11th person to a group DM | Shipped     | [#62](https://github.com/gbaolt/conduit/pull/62) |
+| M1.17 | A DM with yourself, for notes                                                           | Shipped     | [#62](https://github.com/gbaolt/conduit/pull/62) |
 | M1.18 | AI: summarize a thread, or a channel over a time range                                  | Not started |                                                  |
 | M1.19 | AI admin control: turn AI on or off for the workspace                                   | Not started |                                                  |
 

@@ -79,6 +79,33 @@ describe.skipIf(!connectionString)('PrismaSavedMessagesRepository', () => {
     expect(saved[0]?.channelName).toBe('design');
   });
 
+  it('names no conversation for a DM', async () => {
+    const dm = await prisma.channel.create({
+      data: {
+        organizationId,
+        name: `${organizationId}:${owner}`,
+        dmKey: `${organizationId}:${owner}`,
+        kind: 'DM',
+        visibility: 'PRIVATE',
+      },
+    });
+    await prisma.message.create({
+      data: {
+        id: `${run}-dm`,
+        channelId: dm.id,
+        authorId: owner,
+        clientId: 'dm',
+        body: 'note',
+      },
+    });
+    await repository.add(owner, `${run}-dm`);
+
+    const saved = await repository.list(owner, [dm.id], 10);
+
+    expect(saved).toHaveLength(1);
+    expect(saved[0]?.channelName).toBeNull();
+  });
+
   it('removes a save', async () => {
     await repository.remove(owner, messageId);
 

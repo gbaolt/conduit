@@ -13,6 +13,7 @@ import {
 import { Inject, Injectable } from '@nestjs/common';
 
 import { ChannelsRepository } from '@/channels/domain/channels.repository';
+import { DmsRepository } from '@/channels/domain/dms.repository';
 import { messageError } from '@/messages/domain/message-errors';
 import { MessagesRepository } from '@/messages/domain/messages.repository';
 import { SavedMessagesRepository } from '@/messages/domain/saved-messages.repository';
@@ -29,7 +30,8 @@ export class MessagesService {
     @Inject(MessagesRepository) private readonly messages: MessagesRepository,
     @Inject(ChannelsRepository) private readonly channels: ChannelsRepository,
     @Inject(SavedMessagesRepository)
-    private readonly saved: SavedMessagesRepository
+    private readonly saved: SavedMessagesRepository,
+    @Inject(DmsRepository) private readonly dms: DmsRepository
   ) {}
 
   async list(
@@ -212,13 +214,14 @@ export class MessagesService {
 
   /** Only messages in conversations the viewer can still read, so leaving a private channel hides its saves. */
   async listSaved(viewer: MessageViewer) {
-    const [active, archived] = await Promise.all([
+    const [active, archived, dms] = await Promise.all([
       this.channels.list(viewer, false),
       this.channels.list(viewer, true),
+      this.dms.list(viewer),
     ]);
     return this.saved.list(
       viewer.userId,
-      [...active, ...archived].map((channel) => channel.id),
+      [...active, ...archived, ...dms].map((conversation) => conversation.id),
       SAVED_MESSAGES_MAX
     );
   }

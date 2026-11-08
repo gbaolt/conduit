@@ -61,7 +61,7 @@ A person's own named group of channels in the sidebar. Sections are per user, an
 _Avoid_: Folder, category
 
 **DM**:
-A conversation between specific Members with no name: one-on-one, a group DM of up to 10 people, or a Member alone.
+A conversation between specific Members with no name: one-on-one, a group DM of up to 10 people, or a Member alone. Opening a DM with the same people always finds the same DM. A DM has no managers, and only its people can see it. **Turn into a private channel** gives it a name and keeps every message and person.
 _Avoid_: Direct chat, private message
 
 **Message**:
@@ -83,6 +83,10 @@ _Avoid_: Star, bookmark (for a message)
 **Saved message**:
 A message a Member kept for themselves with **Save for later**. Only that Member sees it, on the Saved page.
 _Avoid_: Bookmark, favorite
+
+**Reply**:
+A message sent under a root message, in its thread. A reply to a reply is not allowed. The root counts its replies, and deleting a reply takes one off the count.
+_Avoid_: Comment (for a message), response
 
 **Thread**:
 The replies to one root, where the root is a message or a task. A reply stays in the thread unless its author also sends it to the channel.

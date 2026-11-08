@@ -1,6 +1,7 @@
 export { contract } from './contract';
 export * from './contracts/channel-sections';
 export * from './contracts/channels';
+export * from './contracts/dms';
 export * from './contracts/health';
 export * from './contracts/messages';
 export * from './contracts/organizations';
@@ -13,6 +14,7 @@ export * from './lib/names';
 export * from './lib/reactions';
 export * from './lib/workspace-policy';
 export * from './schemas/channels';
+export * from './schemas/dms';
 export * from './schemas/health';
 export * from './schemas/messages';
 export * from './schemas/organizations';

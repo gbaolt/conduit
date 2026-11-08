@@ -1,5 +1,5 @@
 import { ORPCError } from '@orpc/client';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { ChannelHeader } from '@/features/channels/components/channel-header';
@@ -29,7 +29,7 @@ async function Channel({
   const client = getQueryClient();
 
   // A prefetch never throws: if the first page fails, the log loads in the browser instead.
-  await Promise.all([
+  const [channel] = await Promise.all([
     client.fetchQuery(channelQuery(channelId)).catch((error: unknown) => {
       if (error instanceof ORPCError && error.code === 'NOT_FOUND') notFound();
       throw error;
@@ -37,6 +37,7 @@ async function Channel({
     client.prefetchInfiniteQuery(messagesQuery(channelId)),
     client.prefetchQuery(pinnedQuery(channelId)),
   ]);
+  if (channel.kind === 'dm') redirect(`/dms/${channelId}`);
 
   return (
     <HydrateClient client={client}>

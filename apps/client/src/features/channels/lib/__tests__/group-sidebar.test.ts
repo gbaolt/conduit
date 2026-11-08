@@ -12,6 +12,7 @@ function channel(
   return {
     id: name,
     organizationId: 'o1',
+    kind: 'channel',
     name,
     topic: null,
     description: null,

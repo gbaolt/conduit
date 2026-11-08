@@ -22,6 +22,7 @@ import { useChannelDialogs } from '../context/channel-dialogs-provider';
 import { CHANNELS_GROUP_ID, groupSidebar } from '../lib/group-sidebar';
 import { useCanCreateChannel } from '../lib/use-can-create-channel';
 import { useCollapsedGroups } from '../lib/use-collapsed-groups';
+import { DmList } from './dm-list';
 import { SectionMenu, SidebarSection } from './sidebar-section';
 
 function AddChannelsMenu() {
@@ -77,26 +78,31 @@ export function ChannelList() {
     };
   };
 
-  return groups.map((group) => (
-    <SidebarSection
-      key={group.id}
-      group={group}
-      activeChannelId={channelId}
-      isCollapsed={isCollapsed(group.id)}
-      onToggle={() => toggle(group.id)}
-      action={
-        group.section ? (
-          <SectionMenu
-            section={group.section}
-            onMove={{
-              up: moveBy(group.section.id, -1),
-              down: moveBy(group.section.id, 1),
-            }}
-          />
-        ) : group.id === CHANNELS_GROUP_ID ? (
-          <AddChannelsMenu />
-        ) : null
-      }
-    />
-  ));
+  return (
+    <>
+      {groups.map((group) => (
+        <SidebarSection
+          key={group.id}
+          group={group}
+          activeChannelId={channelId}
+          isCollapsed={isCollapsed(group.id)}
+          onToggle={() => toggle(group.id)}
+          action={
+            group.section ? (
+              <SectionMenu
+                section={group.section}
+                onMove={{
+                  up: moveBy(group.section.id, -1),
+                  down: moveBy(group.section.id, 1),
+                }}
+              />
+            ) : group.id === CHANNELS_GROUP_ID ? (
+              <AddChannelsMenu />
+            ) : null
+          }
+        />
+      ))}
+      <DmList />
+    </>
+  );
 }

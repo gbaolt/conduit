@@ -13,7 +13,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ConversationSkeleton } from '@/components/conversation-skeleton';
 import { sessionQuery } from '@/services/auth/queries';
-import { useJoinChannel } from '@/services/channels/hooks';
+import { useConversationName, useJoinChannel } from '@/services/channels/hooks';
 import { channelMembersQuery, channelQuery } from '@/services/channels/queries';
 import { useSendMessage } from '@/services/messages/hooks';
 import { type LiveStatus, useLiveStream } from '@/services/messages/live';
@@ -87,6 +87,7 @@ export function Conversation({
   const { data: channelMembers } = useQuery(channelMembersQuery(channelId));
   const workspaceRole = useWorkspaceRole();
   const joinChannel = useJoinChannel();
+  const { title, isDm, isSelf } = useConversationName(channelId);
   const history = useInfiniteQuery(
     parentId ? repliesQuery(parentId) : messagesQuery(channelId)
   );
@@ -111,14 +112,22 @@ export function Conversation({
 
   const suggestions = useMemo(
     () => [
-      { id: 'channel', name: 'channel', hint: 'Notify everyone here' },
-      { id: 'here', name: 'here', hint: 'Notify members who are online' },
+      ...(isDm
+        ? []
+        : [
+            { id: 'channel', name: 'channel', hint: 'Notify everyone here' },
+            {
+              id: 'here',
+              name: 'here',
+              hint: 'Notify members who are online',
+            },
+          ]),
       ...(channelMembers ?? []).map(({ userId, name }) => ({
         id: userId,
         name,
       })),
     ],
-    [channelMembers]
+    [channelMembers, isDm]
   );
 
   const lastOwn = messages
@@ -172,7 +181,13 @@ export function Conversation({
               </p>
             ) : canPost ? (
               <Composer
-                placeholder={parentId ? 'Reply…' : `Message #${channel.name}`}
+                placeholder={
+                  parentId
+                    ? 'Reply…'
+                    : isSelf
+                      ? 'Jot a note…'
+                      : `Message ${title}`
+                }
                 autoFocus={Boolean(parentId)}
                 onSubmit={(body) => {
                   send(body, alsoSend);
@@ -193,7 +208,7 @@ export function Conversation({
                       htmlFor={`also-send-${parentId}`}
                       className="text-muted-foreground text-xs font-normal"
                     >
-                      Also send to #{channel.name}
+                      Also send to {title}
                     </Label>
                   </div>
                 )}
@@ -201,7 +216,7 @@ export function Conversation({
             ) : (
               <div className="border-input flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
                 <p className="text-muted-foreground text-sm">
-                  Join #{channel.name} to send messages.
+                  Join {title} to send messages.
                 </p>
                 <Button
                   size="xs"

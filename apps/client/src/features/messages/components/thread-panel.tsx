@@ -4,7 +4,7 @@ import { Button } from '@conduit/ui/components/button';
 import { IconX } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 
-import { channelQuery } from '@/services/channels/queries';
+import { useConversationName } from '@/services/channels/hooks';
 import { threadRootQuery } from '@/services/messages/queries';
 
 import { Conversation } from './conversation';
@@ -19,7 +19,7 @@ export function ThreadPanel({
   threadId: string;
   onClose: () => void;
 }) {
-  const { data: channel } = useQuery(channelQuery(channelId));
+  const { title } = useConversationName(channelId);
   const root = useQuery(threadRootQuery(threadId));
   // A link can name a message that is gone, in another channel, or itself a reply.
   const missing =
@@ -36,11 +36,9 @@ export function ThreadPanel({
     >
       <header className="flex min-h-12 shrink-0 items-center gap-2 border-b px-4 py-1.5">
         <h2 className="text-sm font-semibold">Thread</h2>
-        {channel && (
-          <span className="text-muted-foreground min-w-0 flex-1 truncate text-[13px]">
-            {channel.name ? `#${channel.name}` : null}
-          </span>
-        )}
+        <span className="text-muted-foreground min-w-0 flex-1 truncate text-[13px]">
+          {title}
+        </span>
         <Button
           variant="ghost"
           size="icon-xs"
