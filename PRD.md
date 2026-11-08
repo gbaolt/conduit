@@ -97,8 +97,8 @@ Each milestone ships its core features first, then the AI feature that depends o
 | Milestone                                  | Core features                            | AI feature                  | Status      |
 | ------------------------------------------ | ---------------------------------------- | --------------------------- | ----------- |
 | [Foundations](#foundations)                | Sign-in, workspaces, channels, sections  | None                        | Shipped     |
-| [M0](#m0-workspace-admin)                  | Invitations, member management, settings | None                        | In progress |
-| [M1](#m1-messaging)                        | Messages, threads, DMs, realtime         | Summaries                   | In progress |
+| [M0](#m0-workspace-admin)                  | Invitations, member management, settings | None                        | Shipped     |
+| [M1](#m1-messaging)                        | Messages, threads, DMs, realtime         | Summaries                   | Shipped     |
 | [M2](#m2-activity-and-notifications)       | Activity feed, notifications             | Smart Activity, Catch me up | Not started |
 | [M3](#m3-files-and-search)                 | Files, search, quick switcher            | Ask Conduit                 | Not started |
 | [M4](#m4-canvas)                           | Canvas                                   | Thread to canvas            | Not started |
