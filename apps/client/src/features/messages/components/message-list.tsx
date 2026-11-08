@@ -262,7 +262,12 @@ export function MessageList({
             )}
             {!hasOlder && start}
             {entries.map((entry) => (
-              <MessageScrollerItem key={entry.key} messageId={entry.key}>
+              <MessageScrollerItem
+                key={entry.key}
+                messageId={entry.key}
+                // content-visibility clips paint to the row, so lift it while the action bar overlaps the row above.
+                className="focus-within:relative focus-within:z-10 focus-within:[content-visibility:visible] hover:relative hover:z-10 hover:[content-visibility:visible] has-aria-expanded:relative has-aria-expanded:z-10 has-aria-expanded:[content-visibility:visible]"
+              >
                 {entry.startsDay && <DayDivider date={entry.createdAt} />}
                 {entry.startsNew && <NewMarker />}
                 {entry.kind === 'message' ? (

@@ -15,6 +15,8 @@ import {
   type JSX,
   type ReactNode,
   useCallback,
+  useEffect,
+  useEffectEvent,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -135,11 +137,15 @@ class MentionOption extends MenuOption {
 /** Offers `source` after an `@` and inserts the pick as a `MentionNode`. */
 export function MentionsPlugin({
   source,
+  onOpenChange,
 }: {
   source: readonly MentionSuggestion[];
+  /** Whether the menu is showing, so the host can leave Enter and Escape to it. */
+  onOpenChange?: (open: boolean) => void;
 }): JSX.Element {
   const [editor] = useLexicalComposerContext();
   const [query, setQuery] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
   const options = useMemo(
     () =>
@@ -150,6 +156,11 @@ export function MentionsPlugin({
           ),
     [source, query]
   );
+
+  // Only a menu with something to pick takes Enter. With no match, Enter still sends.
+  const showing = open && options.length > 0;
+  const reportOpen = useEffectEvent((next: boolean) => onOpenChange?.(next));
+  useEffect(() => reportOpen(showing), [showing]);
 
   const onSelectOption = useCallback(
     (
@@ -171,6 +182,8 @@ export function MentionsPlugin({
   return (
     <LexicalTypeaheadMenuPlugin
       onQueryChange={setQuery}
+      onOpen={() => setOpen(true)}
+      onClose={() => setOpen(false)}
       onSelectOption={onSelectOption}
       triggerFn={triggerMatch}
       options={options}

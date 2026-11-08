@@ -8,6 +8,7 @@ import {
   $convertToMarkdownString,
   BOLD_STAR,
   CODE,
+  HEADING,
   INLINE_CODE,
   ITALIC_STAR,
   LINK,
@@ -33,23 +34,34 @@ import { editorTheme } from '@/components/editor/themes/editor-theme';
 
 import { createMentionTransformer } from './mention-transformer';
 
-/** The kit's theme sized for a chat row: body text, 20 px list indent, and a code block with no gutter. */
+/** The kit's theme sized to match a sent message, so the composer shows what the log will. */
 const composerTheme: EditorThemeClasses = {
   ...editorTheme,
-  paragraph: 'text-sm leading-[22px] [&:not(:first-child)]:mt-1.5',
-  quote: 'border-border border-l-[3px] pl-3 text-sm leading-[22px]',
+  paragraph: 'text-sm leading-[23px] [&:not(:first-child)]:mt-2',
+  heading: {
+    h1: 'text-[21px] leading-tight font-medium [&:not(:first-child)]:mt-3',
+    h2: 'text-lg leading-tight font-medium [&:not(:first-child)]:mt-3',
+    h3: 'text-base leading-tight font-medium [&:not(:first-child)]:mt-3',
+    h4: 'text-sm font-medium [&:not(:first-child)]:mt-3',
+    h5: 'text-sm font-medium [&:not(:first-child)]:mt-3',
+    h6: 'text-sm font-medium [&:not(:first-child)]:mt-3',
+  },
+  quote:
+    'border-border text-muted-foreground border-l-2 pl-3 text-sm leading-[23px] [&:not(:first-child)]:mt-2',
   list: {
     ...editorTheme.list,
-    ul: 'm-0 list-outside list-disc p-0',
-    ol: 'm-0 list-outside list-decimal p-0',
-    listitem: 'ml-5 text-sm leading-[22px]',
+    ul: 'm-0 list-outside list-disc p-0 [&:not(:first-child)]:mt-2',
+    ol: 'm-0 list-outside list-decimal p-0 [&:not(:first-child)]:mt-2',
+    listitem:
+      'ml-6 pl-1 text-sm leading-[23px] [&+li]:mt-1 marker:text-muted-foreground',
     nested: { listitem: 'list-none' },
   },
   code: 'bg-muted border-border my-1.5 block overflow-x-auto rounded-md border px-3 py-2 font-mono text-[13px] leading-5',
 };
 
-/** What Markdown can hold and the renderer shows. Headings are left out, since a chat row never shows one. */
+/** What Markdown can hold and the renderer shows, so typing `- ` or `# ` looks the same before and after send. */
 const composerTransformers: Transformer[] = [
+  HEADING,
   BOLD_STAR,
   ITALIC_STAR,
   STRIKETHROUGH,

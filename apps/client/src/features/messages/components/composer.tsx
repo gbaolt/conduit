@@ -1,6 +1,7 @@
 'use client';
 
 import { MESSAGE_BODY_MAX } from '@conduit/contract';
+import { $createCodeNode } from '@lexical/code';
 import { TOGGLE_LINK_COMMAND } from '@lexical/link';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
@@ -10,9 +11,11 @@ import {
   $createParagraphNode,
   $getRoot,
   $getSelection,
+  $isParagraphNode,
   $isRangeSelection,
   COMMAND_PRIORITY_HIGH,
   FORMAT_TEXT_COMMAND,
+  INSERT_PARAGRAPH_COMMAND,
   KEY_ARROW_UP_COMMAND,
   KEY_ENTER_COMMAND,
   KEY_ESCAPE_COMMAND,
@@ -20,10 +23,12 @@ import {
 } from 'lexical';
 import {
   type ReactNode,
+  type RefObject,
   use,
   useEffect,
   useEffectEvent,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -55,6 +60,22 @@ export type ComposerProps = {
   children?: ReactNode;
 };
 
+const FENCE = /^```([\w-]*)$/;
+
+/** Turns a paragraph that is only a fence, such as ```ts, into a code block, as the toolbar would. */
+function $openCodeFence() {
+  const selection = $getSelection();
+  if (!$isRangeSelection(selection) || !selection.isCollapsed()) return false;
+  const paragraph = selection.anchor.getNode().getTopLevelElement();
+  if (!$isParagraphNode(paragraph)) return false;
+  const fence = FENCE.exec(paragraph.getTextContent());
+  if (!fence) return false;
+  const code = $createCodeNode(fence[1] || undefined);
+  paragraph.replace(code);
+  code.select();
+  return true;
+}
+
 // On a phone Enter adds a line, and only the send button sends.
 const isCoarsePointer = () =>
   typeof window !== 'undefined' &&
@@ -68,6 +89,7 @@ function ComposerBehavior({
   isLinkEditMode,
   setIsLinkEditMode,
   initialMarkdown,
+  menuOpen,
   onSubmit,
   onCancel,
   onEditLast,
@@ -83,6 +105,7 @@ function ComposerBehavior({
     | 'initialMarkdown'
   > & {
     anchor: HTMLDivElement | null;
+    menuOpen: RefObject<boolean>;
     isLinkEditMode: boolean;
     setIsLinkEditMode: (editing: boolean) => void;
   }) {
@@ -135,7 +158,17 @@ function ComposerBehavior({
       editor.registerCommand(
         KEY_ENTER_COMMAND,
         (event) => {
-          if (!event || event.isComposing || event.shiftKey) return false;
+          // The mention menu takes Enter to pick a person.
+          if (!event || event.isComposing || menuOpen.current) return false;
+          if ($openCodeFence()) {
+            event.preventDefault();
+            return true;
+          }
+          // Shift+Enter starts a new paragraph, so `- `, `1. `, and `# ` convert at the start of each line.
+          if (event.shiftKey) {
+            event.preventDefault();
+            return editor.dispatchCommand(INSERT_PARAGRAPH_COMMAND, undefined);
+          }
 
           const modifier = event.ctrlKey || event.metaKey;
           if (!modifier) {
@@ -162,7 +195,7 @@ function ComposerBehavior({
       editor.registerCommand(
         KEY_ESCAPE_COMMAND,
         (event) => {
-          if (!canCancel) return false;
+          if (!canCancel || menuOpen.current) return false;
           event.preventDefault();
           handleCancel();
           return true;
@@ -200,13 +233,18 @@ function ComposerBehavior({
         COMMAND_PRIORITY_HIGH
       )
     );
-  }, [editor, canCancel, canEditLast, setIsLinkEditMode]);
+  }, [editor, canCancel, canEditLast, menuOpen, setIsLinkEditMode]);
 
   return (
     <>
       <CodeHighlightPlugin />
       <TabFocusPlugin />
-      <MentionsPlugin source={suggestions} />
+      <MentionsPlugin
+        source={suggestions}
+        onOpenChange={(open) => {
+          menuOpen.current = open;
+        }}
+      />
       <FloatingLinkEditorPlugin
         anchorElem={anchor}
         isLinkEditMode={isLinkEditMode}
@@ -237,11 +275,11 @@ function ComposerEditable({ placeholder }: { placeholder: string }) {
         aria-label={placeholder}
         aria-placeholder={placeholder}
         placeholder={
-          <div className="text-muted-foreground pointer-events-none absolute top-[11px] left-3 text-sm leading-[22px] select-none">
+          <div className="text-muted-foreground pointer-events-none absolute top-[11px] left-3 text-sm leading-[23px] select-none">
             {placeholder}
           </div>
         }
-        className="max-h-[40dvh] min-h-11 overflow-y-auto px-3 py-[11px] text-sm leading-[22px] outline-none"
+        className="max-h-[40dvh] min-h-11 overflow-y-auto px-3 py-[10.5px] text-sm leading-[23px] outline-none"
       />
     </div>
   );
@@ -249,7 +287,7 @@ function ComposerEditable({ placeholder }: { placeholder: string }) {
 
 /**
  * The one composer for a channel, a DM, a thread, and editing a sent message. Its value is Markdown text.
- * Enter sends and Shift+Enter adds a line. Inside a list or code block Enter continues it.
+ * Enter sends and Shift+Enter starts a new line. Inside a list or code block Enter continues it.
  */
 export function Composer({
   placeholder,
@@ -260,10 +298,33 @@ export function Composer({
 }: ComposerProps) {
   // Names only label the mentions in `initialMarkdown`, so a later members refresh must not rebuild the editor.
   const [namesAtMount] = useState(use(MentionNames));
+  const latest = useRef(initialMarkdown ?? '');
+  const hidden = useRef(false);
+  const menuOpen = useRef(false);
+  const [seed, setSeed] = useState({
+    markdown: initialMarkdown ?? '',
+    generation: 0,
+  });
+
+  // A hidden route runs effect cleanups, which dispose the editor. Coming back builds a new one from the text.
+  useEffect(() => {
+    if (hidden.current) {
+      hidden.current = false;
+      setSeed((current) => ({
+        markdown: latest.current,
+        generation: current.generation + 1,
+      }));
+    }
+    return () => {
+      hidden.current = true;
+    };
+  }, []);
+
   const extension = useMemo(
-    () => createComposerExtension(initialMarkdown ?? '', namesAtMount),
-    [initialMarkdown, namesAtMount]
+    () => createComposerExtension(seed.markdown, namesAtMount),
+    [seed, namesAtMount]
   );
+  const { onChange } = behavior;
   const [anchor, setAnchor] = useState<HTMLDivElement | null>(null);
   const [isLinkEditMode, setIsLinkEditMode] = useState(false);
 
@@ -271,15 +332,20 @@ export function Composer({
     <div>
       <div
         ref={setAnchor}
-        className="border-input bg-background focus-within:border-ring focus-within:ring-ring/50 relative flex flex-col rounded-lg border shadow-[0_1px_3px_rgb(0_0_0/0.08)] focus-within:ring-3"
+        className="border-input bg-surface relative flex flex-col rounded-lg border shadow-[0_1px_3px_rgb(0_0_0/0.08)]"
       >
         {/* Null keeps the editor from being rebuilt on every render, and lets the bars sit around the text. */}
         <LexicalExtensionComposer extension={extension} contentEditable={null}>
           <ComposerBehavior
             {...behavior}
+            onChange={(markdown) => {
+              latest.current = markdown;
+              onChange?.(markdown);
+            }}
             placeholder={placeholder}
             mode={mode}
-            initialMarkdown={initialMarkdown}
+            initialMarkdown={seed.markdown}
+            menuOpen={menuOpen}
             anchor={anchor}
             isLinkEditMode={isLinkEditMode}
             setIsLinkEditMode={setIsLinkEditMode}

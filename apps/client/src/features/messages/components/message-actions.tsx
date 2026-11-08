@@ -108,7 +108,7 @@ export function MessageActions({
   const pinned = Boolean(message.pinnedAt);
 
   return (
-    <div className="bg-background border-border absolute top-0 right-2 flex -translate-y-1/2 rounded-md border opacity-0 shadow-sm transition-opacity group-focus-within/row:opacity-100 group-hover/row:opacity-100 has-aria-expanded:opacity-100 motion-reduce:transition-none pointer-coarse:opacity-100">
+    <div className="bg-background border-border absolute top-0 right-2 flex -translate-y-1/2 rounded-md border p-px opacity-0 shadow-sm transition-opacity group-focus-within/row:opacity-100 group-hover/row:opacity-100 has-aria-expanded:opacity-100 motion-reduce:transition-none pointer-coarse:opacity-100">
       {canPost && (
         <EmojiPickerButton
           label="Add reaction"
