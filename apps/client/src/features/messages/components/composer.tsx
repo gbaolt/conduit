@@ -35,7 +35,7 @@ import { sanitizeUrl } from '@/components/editor/utils/url';
 
 import { MentionNames, MentionSuggestions } from '../context/mention-names';
 import { createComposerExtension, markdownOf } from '../lib/composer-extension';
-import { ComposerToolbar } from './composer-toolbar';
+import { ComposerActionBar, ComposerFormattingBar } from './composer-toolbar';
 
 export type ComposerProps = {
   placeholder: string;
@@ -61,6 +61,7 @@ const isCoarsePointer = () =>
   window.matchMedia('(pointer: coarse)').matches;
 
 function ComposerBehavior({
+  placeholder,
   mode,
   autoFocus,
   anchor,
@@ -71,7 +72,7 @@ function ComposerBehavior({
   onCancel,
   onEditLast,
   onChange,
-}: Required<Pick<ComposerProps, 'mode'>> &
+}: Required<Pick<ComposerProps, 'mode' | 'placeholder'>> &
   Pick<
     ComposerProps,
     | 'autoFocus'
@@ -88,6 +89,7 @@ function ComposerBehavior({
   const [editor] = useLexicalComposerContext();
   const suggestions = use(MentionSuggestions);
   const [markdown, setMarkdown] = useState(initialMarkdown ?? '');
+  const [formattingOpen, setFormattingOpen] = useState(false);
   const canSend =
     markdown.trim().length > 0 && markdown.length <= MESSAGE_BODY_MAX;
 
@@ -210,13 +212,19 @@ function ComposerBehavior({
         isLinkEditMode={isLinkEditMode}
         setIsLinkEditMode={setIsLinkEditMode}
       />
-      <ComposerToolbar
+      <ComposerFormattingBar
+        open={formattingOpen}
+        setIsLinkEditMode={setIsLinkEditMode}
+      />
+      <ComposerEditable placeholder={placeholder} />
+      <ComposerActionBar
         length={markdown.length}
         canSend={canSend}
         mode={mode}
+        formattingOpen={formattingOpen}
+        onToggleFormatting={() => setFormattingOpen((open) => !open)}
         onSubmit={submit}
         onCancel={onCancel}
-        setIsLinkEditMode={setIsLinkEditMode}
       />
     </>
   );
@@ -224,16 +232,18 @@ function ComposerBehavior({
 
 function ComposerEditable({ placeholder }: { placeholder: string }) {
   return (
-    <ContentEditable
-      aria-label={placeholder}
-      aria-placeholder={placeholder}
-      placeholder={
-        <div className="text-muted-foreground pointer-events-none absolute top-[11px] left-3 text-sm leading-[22px] select-none">
-          {placeholder}
-        </div>
-      }
-      className="max-h-[40dvh] min-h-11 overflow-y-auto px-3 py-[11px] text-sm leading-[22px] outline-none"
-    />
+    <div className="relative">
+      <ContentEditable
+        aria-label={placeholder}
+        aria-placeholder={placeholder}
+        placeholder={
+          <div className="text-muted-foreground pointer-events-none absolute top-[11px] left-3 text-sm leading-[22px] select-none">
+            {placeholder}
+          </div>
+        }
+        className="max-h-[40dvh] min-h-11 overflow-y-auto px-3 py-[11px] text-sm leading-[22px] outline-none"
+      />
+    </div>
   );
 }
 
@@ -263,12 +273,11 @@ export function Composer({
         ref={setAnchor}
         className="border-input bg-background focus-within:border-ring focus-within:ring-ring/50 relative flex flex-col rounded-lg border shadow-[0_1px_3px_rgb(0_0_0/0.08)] focus-within:ring-3"
       >
-        <LexicalExtensionComposer
-          extension={extension}
-          contentEditable={<ComposerEditable placeholder={placeholder} />}
-        >
+        {/* Null keeps the editor from being rebuilt on every render, and lets the bars sit around the text. */}
+        <LexicalExtensionComposer extension={extension} contentEditable={null}>
           <ComposerBehavior
             {...behavior}
+            placeholder={placeholder}
             mode={mode}
             initialMarkdown={initialMarkdown}
             anchor={anchor}

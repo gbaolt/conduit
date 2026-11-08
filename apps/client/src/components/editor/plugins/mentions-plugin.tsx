@@ -11,7 +11,15 @@ import {
   type MenuTextMatch,
 } from '@lexical/react/LexicalTypeaheadMenuPlugin';
 import type { TextNode } from 'lexical';
-import { type JSX, useCallback, useMemo, useState } from 'react';
+import {
+  type JSX,
+  type ReactNode,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { createPortal } from 'react-dom';
 
 import { $createMentionNode } from '@/components/editor/nodes/mention-node';
@@ -49,6 +57,73 @@ function triggerMatch(text: string): MenuTextMatch | null {
     matchingString: match[3] ?? '',
     replaceableString: match[2] ?? '',
   };
+}
+
+const EDGE = 8;
+const MAX_MENU_HEIGHT = 280;
+
+type Placement = {
+  above: boolean;
+  maxHeight: number;
+  shift: number;
+  line: number;
+};
+
+/**
+ * Lexical puts its anchor just under the caret line, with the line's height, and flips only when the editor
+ * itself has room above the caret, which a one-line composer never has. So the menu sits in a zero-height box
+ * that Lexical never flips, and places itself from the room left in the viewport.
+ */
+function MentionMenu({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [placement, setPlacement] = useState<Placement>({
+    above: false,
+    maxHeight: MAX_MENU_HEIGHT,
+    shift: 0,
+    line: 0,
+  });
+
+  useLayoutEffect(() => {
+    const menu = ref.current;
+    const anchor = menu?.parentElement?.parentElement;
+    if (!menu || !anchor) return;
+
+    const place = () => {
+      const line = anchor.getBoundingClientRect();
+      const below = window.innerHeight - line.top - EDGE;
+      // The caret line ends 3 px above the anchor.
+      const above = line.top - line.height - 3 - EDGE;
+      const wanted = Math.min(menu.scrollHeight, MAX_MENU_HEIGHT);
+      const flip = below < wanted && above > below;
+      const overflow =
+        line.left + menu.offsetWidth - (window.innerWidth - EDGE);
+      setPlacement({
+        above: flip,
+        maxHeight: Math.min(MAX_MENU_HEIGHT, flip ? above : below),
+        shift: Math.min(Math.max(overflow, 0), Math.max(line.left - EDGE, 0)),
+        line: line.height,
+      });
+    };
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
+  }, []);
+
+  return (
+    <div className="relative h-0">
+      <div
+        ref={ref}
+        style={{
+          maxHeight: placement.maxHeight,
+          left: -placement.shift,
+          ...(placement.above ? { bottom: placement.line + 6 } : { top: 0 }),
+        }}
+        className="bg-popover text-popover-foreground ring-foreground/10 absolute z-50 flex w-72 max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-lg shadow-md ring-1"
+      >
+        {children}
+      </div>
+    </div>
+  );
 }
 
 class MentionOption extends MenuOption {
@@ -105,8 +180,9 @@ export function MentionsPlugin({
       ) =>
         anchorElementRef.current && options.length
           ? createPortal(
-              <div className="bg-popover text-popover-foreground absolute z-50 w-64 rounded-md border shadow-md">
+              <MentionMenu>
                 <Command
+                  className="min-h-0"
                   onKeyDown={(event) => {
                     if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') {
                       return;
@@ -119,7 +195,7 @@ export function MentionsPlugin({
                     );
                   }}
                 >
-                  <CommandList>
+                  <CommandList className="max-h-none overflow-y-auto">
                     <CommandGroup>
                       {options.map((option, index) => (
                         <CommandItem
@@ -146,7 +222,7 @@ export function MentionsPlugin({
                     </CommandGroup>
                   </CommandList>
                 </Command>
-              </div>,
+              </MentionMenu>,
               anchorElementRef.current
             )
           : null

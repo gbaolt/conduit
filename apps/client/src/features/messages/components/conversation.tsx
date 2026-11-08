@@ -26,7 +26,11 @@ import {
 } from '@/services/messages/queries';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
-import { MentionNames, MentionSuggestions } from '../context/mention-names';
+import {
+  MentionNames,
+  MentionSuggestions,
+  MentionViewer,
+} from '../context/mention-names';
 import { useAuthors } from '../lib/use-authors';
 import { useIsClient } from '../lib/use-is-client';
 import { useNewMarker } from '../lib/use-new-marker';
@@ -174,123 +178,125 @@ export function Conversation({
 
   return (
     <MentionNames value={names}>
-      <MentionSuggestions value={suggestions}>
-        <div className="flex min-h-0 flex-1 flex-col">
-          {isClient && !history.isPending && !waitingForRoot ? (
-            <MessageList
-              channelId={channelId}
-              parentId={parentId}
-              messages={messages}
-              authors={authors}
-              viewerId={viewerId}
-              canPost={canPost}
-              canModerate={canChannel(
-                'deleteOthersMessages',
-                workspaceRole,
-                channel
-              )}
-              start={start}
-              hasOlder={history.hasNextPage}
-              loadingOlder={history.isFetchingNextPage}
-              olderFailed={history.isFetchNextPageError}
-              onLoadOlder={() => void history.fetchNextPage()}
-              editingId={editingId}
-              onEdit={setEditingId}
-              onStopEditing={() => setEditingId(null)}
-              onEscape={() =>
-                composerRef.current
-                  ?.querySelector<HTMLElement>('[contenteditable="true"]')
-                  ?.focus()
-              }
-              retry={retry}
-              discard={discard}
-              scrollTarget={scrollTarget}
-              focusedId={focusedId}
-              onScrollReached={(messageId) => {
-                setScrollTarget(null);
-                setFocusedId(messageId);
-              }}
-              end={
-                <SummaryCard
-                  shareLabel={
-                    parentId
-                      ? 'Share to thread'
-                      : isDm
-                        ? 'Share to conversation'
-                        : 'Share to channel'
-                  }
-                  canShare={canPost}
-                  onSource={setScrollTarget}
-                />
-              }
-              newMarkerId={markerId}
-              onRead={markRead}
-            />
-          ) : (
-            <ConversationSkeleton />
-          )}
-          <div ref={composerRef} className="px-4 pb-4 sm:px-5">
-            <ConnectionLine status={liveStatus} />
-            {channel.archivedAt ? null : rootDeleted ? (
-              <p className="text-muted-foreground text-sm">
-                The message that started this thread was deleted.
-              </p>
-            ) : canPost ? (
-              <>
-                <ConversationComposer
-                  channelId={channelId}
-                  parentId={parentId}
-                  placeholder={
-                    parentId
-                      ? 'Reply…'
-                      : isSelf
-                        ? 'Jot a note…'
-                        : `Message ${title}`
-                  }
-                  autoFocus={Boolean(parentId)}
-                  onSubmit={(body) => {
-                    send(body, alsoSend);
-                    setAlsoSend(false);
-                  }}
-                  onEditLast={
-                    lastOwn ? () => setEditingId(lastOwn.id) : undefined
-                  }
-                >
-                  {parentId && (
-                    <div className="flex items-center gap-2 pt-2">
-                      <Checkbox
-                        id={`also-send-${parentId}`}
-                        checked={alsoSend}
-                        onCheckedChange={setAlsoSend}
-                      />
-                      <Label
-                        htmlFor={`also-send-${parentId}`}
-                        className="text-muted-foreground text-xs font-normal"
-                      >
-                        Also send to {title}
-                      </Label>
-                    </div>
-                  )}
-                </ConversationComposer>
-                <TypingLine channelId={channelId} parentId={parentId} />
-              </>
+      <MentionViewer value={viewerId}>
+        <MentionSuggestions value={suggestions}>
+          <div className="flex min-h-0 flex-1 flex-col">
+            {isClient && !history.isPending && !waitingForRoot ? (
+              <MessageList
+                channelId={channelId}
+                parentId={parentId}
+                messages={messages}
+                authors={authors}
+                viewerId={viewerId}
+                canPost={canPost}
+                canModerate={canChannel(
+                  'deleteOthersMessages',
+                  workspaceRole,
+                  channel
+                )}
+                start={start}
+                hasOlder={history.hasNextPage}
+                loadingOlder={history.isFetchingNextPage}
+                olderFailed={history.isFetchNextPageError}
+                onLoadOlder={() => void history.fetchNextPage()}
+                editingId={editingId}
+                onEdit={setEditingId}
+                onStopEditing={() => setEditingId(null)}
+                onEscape={() =>
+                  composerRef.current
+                    ?.querySelector<HTMLElement>('[contenteditable="true"]')
+                    ?.focus()
+                }
+                retry={retry}
+                discard={discard}
+                scrollTarget={scrollTarget}
+                focusedId={focusedId}
+                onScrollReached={(messageId) => {
+                  setScrollTarget(null);
+                  setFocusedId(messageId);
+                }}
+                end={
+                  <SummaryCard
+                    shareLabel={
+                      parentId
+                        ? 'Share to thread'
+                        : isDm
+                          ? 'Share to conversation'
+                          : 'Share to channel'
+                    }
+                    canShare={canPost}
+                    onSource={setScrollTarget}
+                  />
+                }
+                newMarkerId={markerId}
+                onRead={markRead}
+              />
             ) : (
-              <div className="border-input flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
-                <p className="text-muted-foreground text-sm">
-                  Join {title} to send messages.
-                </p>
-                <Button
-                  size="xs"
-                  disabled={joinChannel.isPending}
-                  onClick={() => joinChannel.mutate({ channelId })}
-                >
-                  Join channel
-                </Button>
-              </div>
+              <ConversationSkeleton />
             )}
+            <div ref={composerRef} className="px-4 pb-4 sm:px-5">
+              <ConnectionLine status={liveStatus} />
+              {channel.archivedAt ? null : rootDeleted ? (
+                <p className="text-muted-foreground text-sm">
+                  The message that started this thread was deleted.
+                </p>
+              ) : canPost ? (
+                <>
+                  <ConversationComposer
+                    channelId={channelId}
+                    parentId={parentId}
+                    placeholder={
+                      parentId
+                        ? 'Reply…'
+                        : isSelf
+                          ? 'Jot a note…'
+                          : `Message ${title}`
+                    }
+                    autoFocus={Boolean(parentId)}
+                    onSubmit={(body) => {
+                      send(body, alsoSend);
+                      setAlsoSend(false);
+                    }}
+                    onEditLast={
+                      lastOwn ? () => setEditingId(lastOwn.id) : undefined
+                    }
+                  >
+                    {parentId && (
+                      <div className="flex items-center gap-2 pt-2">
+                        <Checkbox
+                          id={`also-send-${parentId}`}
+                          checked={alsoSend}
+                          onCheckedChange={setAlsoSend}
+                        />
+                        <Label
+                          htmlFor={`also-send-${parentId}`}
+                          className="text-muted-foreground text-xs font-normal"
+                        >
+                          Also send to {title}
+                        </Label>
+                      </div>
+                    )}
+                  </ConversationComposer>
+                  <TypingLine channelId={channelId} parentId={parentId} />
+                </>
+              ) : (
+                <div className="border-input flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
+                  <p className="text-muted-foreground text-sm">
+                    Join {title} to send messages.
+                  </p>
+                  <Button
+                    size="xs"
+                    disabled={joinChannel.isPending}
+                    onClick={() => joinChannel.mutate({ channelId })}
+                  >
+                    Join channel
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </MentionSuggestions>
+        </MentionSuggestions>
+      </MentionViewer>
     </MentionNames>
   );
 }

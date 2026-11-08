@@ -1,0 +1,70 @@
+/* The code block, adapted from giabao.dev. Shiki writes each token's light and dark colour as CSS variables. */
+@layer components {
+  figure.code-block {
+    @apply bg-surface text-surface-foreground inset-ring-border/64 relative my-2 flex max-w-full min-w-0 flex-col rounded-xl p-1 inset-ring-1;
+
+    &:has(> [data-slot='code-block-header']) {
+      @apply pt-0;
+    }
+
+    .code-block-panel {
+      @apply bg-background min-h-0 flex-1 overflow-hidden rounded-[10px] border;
+    }
+
+    pre {
+      @apply max-h-90 overflow-auto overscroll-x-contain py-3 text-start outline-none;
+    }
+
+    &:has(pre:focus-visible) {
+      @apply ring-ring/50 ring-3;
+    }
+
+    code {
+      @apply grid min-w-full font-mono text-[13px] leading-5;
+      width: max-content;
+    }
+
+    [data-line] {
+      @apply relative block min-h-5 pr-(--code-padding-right,1rem) pl-4;
+    }
+
+    [data-line] span {
+      @apply text-(--shiki-light) dark:text-(--shiki-dark);
+    }
+
+    [data-slot='code-block-header'] {
+      @apply text-muted-foreground flex min-w-0 shrink-0 items-center gap-3 py-1 pr-1 pl-3 font-mono text-xs;
+    }
+
+    [data-slot='code-block-title'] {
+      @apply min-w-0 flex-1 truncate;
+    }
+
+    [data-slot='code-block-actions'] {
+      @apply ml-auto flex shrink-0 items-center gap-0.5;
+    }
+
+    > [data-slot='code-block-actions'] {
+      @apply absolute top-2.5 right-2.5 z-10 opacity-0 transition-opacity pointer-coarse:opacity-100;
+    }
+
+    &:hover > [data-slot='code-block-actions'],
+    &:focus-within > [data-slot='code-block-actions'] {
+      @apply opacity-100;
+    }
+
+    &:has(> [data-slot='code-block-actions']) {
+      --code-padding-right: 5rem;
+    }
+
+    &[data-wrap] pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+
+      code {
+        width: auto;
+        min-width: 0;
+      }
+    }
+  }
+}

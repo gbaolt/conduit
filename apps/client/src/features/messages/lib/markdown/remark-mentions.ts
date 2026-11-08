@@ -38,7 +38,8 @@ export function remarkMentions() {
     visit(tree, 'text', (node, index, parent) => {
       if (!parent || index === undefined || !node.value.includes('<@')) return;
       const parts = split(node.value);
-      if (parts.length === 1 && parts[0]?.type === 'text') return;
+      // A mention is a text node too, so check for one rather than for a single part.
+      if (!parts.some((part) => part.data)) return;
       parent.children.splice(index, 1, ...(parts as typeof parent.children));
       return [SKIP, index + parts.length];
     });

@@ -1,2 +1,4 @@
 @import '@conduit/ui/globals.css';
 @import '../features/auth/styles/transition.css';
+@import '../styles/typeset.css';
+@import '../styles/code.css';
