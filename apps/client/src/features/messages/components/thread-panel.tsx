@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@conduit/ui/components/button';
-import { IconX } from '@tabler/icons-react';
+import { IconArrowLeft, IconMessageDots, IconX } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 
 import { useConversationName } from '@/services/channels/hooks';
@@ -37,17 +37,28 @@ export function ThreadPanel({
           if (event.key === 'Escape' && !event.defaultPrevented) onClose();
         }}
       >
-        <header className="flex min-h-12 shrink-0 items-center gap-2 border-b px-4 py-1.5">
-          <h2 className="text-sm font-semibold">Thread</h2>
-          <span className="text-muted-foreground min-w-0 flex-1 truncate text-[13px]">
+        <header className="flex min-h-12 shrink-0 items-center gap-2 border-b px-2">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Back to conversation"
+            className="-ms-2 xl:hidden pointer-coarse:size-11"
+            onClick={onClose}
+          >
+            <IconArrowLeft />
+          </Button>
+          <h2 className="ml-2 flex items-center gap-2 font-semibold">
+            <IconMessageDots className="size-4" /> Thread
+          </h2>
+          <span className="text-muted-foreground min-w-0 flex-1 truncate text-sm">
             {title}
           </span>
           <ThreadSummaryMenu />
           <Button
             variant="ghost"
-            size="icon-xs"
+            size="icon-sm"
             aria-label="Close thread"
-            className="pointer-coarse:size-11"
+            className="max-xl:hidden pointer-coarse:size-11"
             onClick={onClose}
           >
             <IconX />
