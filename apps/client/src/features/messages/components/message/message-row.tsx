@@ -1,14 +1,10 @@
 'use client';
 
-import type { LinkPreview, Message } from '@conduit/contract';
-import { Button } from '@conduit/ui/components/button';
-import { cn } from '@conduit/ui/lib/utils';
+import type { LinkPreview, Message as MessageData } from '@conduit/contract';
 import { IconCornerDownRight, IconPin } from '@tabler/icons-react';
-import { type ReactNode, use, useEffect, useState } from 'react';
+import { use } from 'react';
 
-import { UserAvatar } from '@/components/nav-user';
 import {
-  type PendingMessage,
   useEditMessage,
   useRemoveLinkPreview,
 } from '@/services/messages/hooks';
@@ -16,105 +12,19 @@ import {
 import { OpenThread } from '../../context/thread';
 import { MessageMarkdown } from '../../lib/markdown/message-markdown';
 import { Composer } from '../composer/composer';
+import {
+  type Author,
+  Message,
+  MessageAuthor,
+  MessageAvatar,
+  MessageContent,
+  MessageHeader,
+  MessageTime,
+  timeFormat,
+} from './message';
 import { MessageActions } from './message-actions';
 import { MessageLinkPreview } from './message-link-preview';
 import { MessageReactions } from './message-reactions';
-
-export type Author = { name: string; image: string | null };
-
-const timeFormat = new Intl.DateTimeFormat(undefined, {
-  hour: 'numeric',
-  minute: '2-digit',
-});
-const fullFormat = new Intl.DateTimeFormat(undefined, {
-  dateStyle: 'full',
-  timeStyle: 'medium',
-});
-
-const SENDING_LABEL_MS = 3000;
-
-function Time({ date, className }: { date: Date; className?: string }) {
-  return (
-    <time
-      dateTime={date.toISOString()}
-      title={fullFormat.format(date)}
-      className={cn('text-muted-foreground tabular-nums', className)}
-    >
-      {timeFormat.format(date)}
-    </time>
-  );
-}
-
-/** The row's frame: the avatar column, the name line, and the hover treatment. */
-function RowFrame({
-  label,
-  author,
-  createdAt,
-  grouped,
-  highlight,
-  focused,
-  fresh,
-  trailing,
-  actions,
-  children,
-}: {
-  label: string;
-  author: Author;
-  createdAt: Date;
-  grouped: boolean;
-  highlight?: boolean;
-  /** Tints the row for 1.5 s after a source link or permalink scrolled to it. */
-  focused?: boolean;
-  fresh?: boolean;
-  trailing?: ReactNode;
-  actions?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <article
-      aria-label={label}
-      data-message-row=""
-      data-focused={focused || undefined}
-      tabIndex={-1}
-      className={cn(
-        'group/row hover:bg-muted focus-visible:bg-muted relative flex gap-3 px-5 outline-none',
-        grouped ? 'pt-0.5' : 'pt-2',
-        highlight &&
-          'bg-primary/[0.06] shadow-[inset_2px_0_0_var(--color-primary)]',
-        'after:bg-primary/10 after:pointer-events-none after:absolute after:inset-0 after:opacity-0 after:transition-opacity after:duration-1500 data-focused:after:opacity-100 data-focused:after:duration-0 motion-reduce:after:transition-none',
-        fresh &&
-          'animate-in fade-in-0 slide-in-from-bottom-1 motion-reduce:slide-in-from-bottom-0 duration-150 ease-out'
-      )}
-    >
-      <div className="w-9 shrink-0">
-        {grouped ? (
-          <Time
-            date={createdAt}
-            className="invisible block pt-[5px] text-right text-[11px] group-focus-within/row:visible group-hover/row:visible"
-          />
-        ) : (
-          <UserAvatar
-            name={author.name}
-            image={author.image}
-            className="size-9 rounded-md"
-          />
-        )}
-      </div>
-      <div className="min-w-0 flex-1 pb-0.5">
-        {!grouped && (
-          <p className="flex items-baseline gap-2">
-            <span className="text-foreground text-sm font-semibold">
-              {author.name}
-            </span>
-            {trailing ?? <Time date={createdAt} className="text-xs" />}
-          </p>
-        )}
-        {children}
-      </div>
-      {actions}
-    </article>
-  );
-}
 
 function MessagePreview({
   messageId,
@@ -160,7 +70,7 @@ function ThreadLine({
       <span className="text-primary text-[13px] font-medium">{label}</span>
       {lastReplyAt && (
         <span className="text-muted-foreground text-xs">
-          Last reply <Time date={lastReplyAt} className="text-xs" />
+          Last reply <MessageTime date={lastReplyAt} className="text-xs" />
         </span>
       )}
     </button>
@@ -198,7 +108,7 @@ export function MessageRow({
   onStopEditing,
   inThread,
 }: {
-  message: Message;
+  message: MessageData;
   author: Author;
   grouped: boolean;
   viewerId: string | null;
@@ -220,73 +130,77 @@ export function MessageRow({
       message.mentionsHere);
 
   return (
-    <RowFrame
+    <Message
       label={`${author.name}, ${timeFormat.format(message.createdAt)}`}
-      author={author}
       createdAt={message.createdAt}
       grouped={grouped}
       highlight={mentionsViewer && !message.deletedAt}
       focused={focused}
       fresh={fresh && !isAuthor}
-      actions={
-        message.deletedAt || editing ? null : (
-          <MessageActions
-            message={message}
-            canPost={canPost}
-            canEdit={isAuthor}
-            canDelete={isAuthor || canModerate}
-            canReplyInThread={!inThread && !message.parentId}
-            onEdit={onEdit}
-          />
-        )
-      }
     >
-      {message.deletedAt && (
-        <p className="text-muted-foreground text-sm leading-[22px] italic">
-          This message was deleted.
-        </p>
-      )}
-      {!message.deletedAt && editing && (
-        <EditMessage message={message} onDone={onStopEditing} />
-      )}
+      <MessageAvatar author={author} />
+      <MessageContent className="pb-0.5">
+        <MessageHeader>
+          <MessageAuthor>{author.name}</MessageAuthor>
+          <MessageTime date={message.createdAt} className="text-xs" />
+        </MessageHeader>
+        {message.deletedAt && (
+          <p className="text-muted-foreground text-sm leading-[22px] italic">
+            This message was deleted.
+          </p>
+        )}
+        {!message.deletedAt && editing && (
+          <EditMessage message={message} onDone={onStopEditing} />
+        )}
+        {!message.deletedAt && !editing && (
+          <>
+            {message.pinnedAt && (
+              <p className="text-muted-foreground flex items-center gap-1 text-xs">
+                <IconPin className="size-3.5" aria-hidden />
+                Pinned
+              </p>
+            )}
+            {message.parentId && !inThread && (
+              <RepliedLine rootId={message.parentId} />
+            )}
+            <MessageMarkdown
+              id={message.id}
+              updatedAt={message.updatedAt}
+              body={message.body}
+            />
+            {message.linkPreview && (
+              <MessagePreview
+                messageId={message.id}
+                preview={message.linkPreview}
+                canRemove={isAuthor && canPost}
+              />
+            )}
+            <MessageReactions
+              message={message}
+              viewerId={viewerId}
+              canReact={canPost}
+            />
+            {!inThread && message.replyCount > 0 && (
+              <ThreadLine
+                rootId={message.id}
+                count={message.replyCount}
+                lastReplyAt={message.lastReplyAt}
+              />
+            )}
+          </>
+        )}
+      </MessageContent>
       {!message.deletedAt && !editing && (
-        <>
-          {message.pinnedAt && (
-            <p className="text-muted-foreground flex items-center gap-1 text-xs">
-              <IconPin className="size-3.5" aria-hidden />
-              Pinned
-            </p>
-          )}
-          {message.parentId && !inThread && (
-            <RepliedLine rootId={message.parentId} />
-          )}
-          <MessageMarkdown
-            id={message.id}
-            updatedAt={message.updatedAt}
-            body={message.body}
-          />
-          {message.linkPreview && (
-            <MessagePreview
-              messageId={message.id}
-              preview={message.linkPreview}
-              canRemove={isAuthor && canPost}
-            />
-          )}
-          <MessageReactions
-            message={message}
-            viewerId={viewerId}
-            canReact={canPost}
-          />
-          {!inThread && message.replyCount > 0 && (
-            <ThreadLine
-              rootId={message.id}
-              count={message.replyCount}
-              lastReplyAt={message.lastReplyAt}
-            />
-          )}
-        </>
+        <MessageActions
+          message={message}
+          canPost={canPost}
+          canEdit={isAuthor}
+          canDelete={isAuthor || canModerate}
+          canReplyInThread={!inThread && !message.parentId}
+          onEdit={onEdit}
+        />
       )}
-    </RowFrame>
+    </Message>
   );
 }
 
@@ -294,7 +208,7 @@ function EditMessage({
   message,
   onDone,
 }: {
-  message: Message;
+  message: MessageData;
   onDone: () => void;
 }) {
   const edit = useEditMessage();
@@ -323,75 +237,4 @@ function EditMessage({
       </Composer>
     </div>
   );
-}
-
-/** A message the member sent that the server has not stored yet. */
-export function MessagePending({
-  pending,
-  author,
-  grouped,
-  onRetry,
-  onDiscard,
-}: {
-  pending: PendingMessage;
-  author: Author;
-  grouped: boolean;
-  onRetry: () => void;
-  onDiscard: () => void;
-}) {
-  const failed = pending.status === 'failed';
-  const slow = useSlowSend(pending.status === 'sending');
-
-  return (
-    <RowFrame
-      label={`${author.name}, ${failed ? 'not sent' : 'sending'}`}
-      author={author}
-      createdAt={pending.createdAt}
-      grouped={grouped}
-      trailing={
-        (failed || slow) && (
-          <span
-            className={cn(
-              'text-xs',
-              failed ? 'text-destructive' : 'text-muted-foreground'
-            )}
-          >
-            {failed ? 'Not sent.' : 'Sending…'}
-          </span>
-        )
-      }
-    >
-      <MessageMarkdown
-        id={pending.clientId}
-        updatedAt={pending.createdAt}
-        body={pending.body}
-      />
-      {failed && (
-        <p className="flex gap-1">
-          <Button variant="link" size="xs" onClick={onRetry}>
-            Retry
-          </Button>
-          <Button variant="link" size="xs" onClick={onDiscard}>
-            Delete
-          </Button>
-        </p>
-      )}
-    </RowFrame>
-  );
-}
-
-/** True once a send has run longer than the quiet window, so a fast send never flashes a label. */
-function useSlowSend(sending: boolean) {
-  const [slow, setSlow] = useState(false);
-
-  useEffect(() => {
-    if (!sending) return;
-    const timer = setTimeout(() => setSlow(true), SENDING_LABEL_MS);
-    return () => {
-      clearTimeout(timer);
-      setSlow(false);
-    };
-  }, [sending]);
-
-  return slow;
 }

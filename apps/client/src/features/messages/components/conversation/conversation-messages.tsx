@@ -23,11 +23,9 @@ import {
 import { usePendingMessages } from '@/services/messages/hooks';
 
 import { buildLog, dayLabel } from '../../lib/group-messages';
-import {
-  type Author,
-  MessagePending,
-  MessageRow,
-} from '../message/message-row';
+import type { Author } from '../message/message';
+import { MessagePending } from '../message/message-pending';
+import { MessageRow } from '../message/message-row';
 
 const UNKNOWN_AUTHOR: Author = { name: 'Former member', image: null };
 

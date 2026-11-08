@@ -1,10 +1,15 @@
-import type { Message } from '@conduit/contract';
+import type { Message as MessageData } from '@conduit/contract';
 import type { ReactNode } from 'react';
 
-import { UserAvatar } from '@/components/nav-user';
-
 import { MessageMarkdown } from '../../lib/markdown/message-markdown';
-import type { Author } from './message-row';
+import {
+  type Author,
+  MessageAuthor,
+  MessageAvatar,
+  MessageContent,
+  MessageHeader,
+  MessageTime,
+} from './message';
 
 const sentFormat = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
@@ -18,7 +23,7 @@ export function MessageExcerpt({
   context,
   children,
 }: {
-  message: Message;
+  message: MessageData;
   author: Author;
   /** Where the message was sent, above the author line. */
   context?: ReactNode;
@@ -27,29 +32,24 @@ export function MessageExcerpt({
 }) {
   return (
     <article className="flex gap-3">
-      <UserAvatar
-        name={author.name}
-        image={author.image}
-        className="size-9 shrink-0 rounded-md"
-      />
-      <div className="min-w-0 flex-1">
+      <MessageAvatar author={author} />
+      <MessageContent>
         {context}
-        <p className="flex items-baseline gap-2">
-          <span className="text-sm font-semibold">{author.name}</span>
-          <time
-            dateTime={message.createdAt.toISOString()}
-            className="text-muted-foreground text-xs tabular-nums"
-          >
-            {sentFormat.format(message.createdAt)}
-          </time>
-        </p>
+        <MessageHeader>
+          <MessageAuthor>{author.name}</MessageAuthor>
+          <MessageTime
+            date={message.createdAt}
+            format={sentFormat}
+            className="text-xs"
+          />
+        </MessageHeader>
         <MessageMarkdown
           id={message.id}
           updatedAt={message.updatedAt}
           body={message.body}
         />
         {children}
-      </div>
+      </MessageContent>
     </article>
   );
 }

@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 
 import { useWorkspaceMembers } from '@/services/workspaces/hooks';
 
-import type { Author } from '../components/message/message-row';
+import type { Author } from '../components/message/message';
 
 /** The workspace's members by id: for the avatar and name on a row, and the name a `<@userId>` shows. */
 export function useAuthors() {
