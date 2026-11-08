@@ -12,9 +12,7 @@ export function ResizeHandle({
       className={cn(
         'z-10 after:w-2 focus-visible:ring-0',
         'before:bg-sidebar-ring before:absolute before:inset-y-0 before:left-1/2 before:w-0.5 before:-translate-x-1/2 before:rounded-full before:opacity-0 before:transition-opacity before:duration-150',
-        // A short wait before the rail shows, so a pointer passing over the edge doesn't flash it.
-        'data-[separator=hover]:before:opacity-100 data-[separator=hover]:before:delay-150',
-        'data-[separator=active]:before:opacity-100 data-[separator=focus]:before:opacity-100',
+        'data-[separator=active]:before:opacity-100 data-[separator=hover]:before:opacity-100',
         className
       )}
       {...props}
