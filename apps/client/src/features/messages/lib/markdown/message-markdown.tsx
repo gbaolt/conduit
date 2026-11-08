@@ -1,42 +1,18 @@
 import { memo, use } from 'react';
-import Markdown, { type Components } from 'react-markdown';
-import rehypeExternalLinks from 'rehype-external-links';
-import rehypeSanitize from 'rehype-sanitize';
+import type { Components } from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
-import remarkGfm from 'remark-gfm';
 
-import {
-  CodeBlock,
-  CodeBlockActions,
-  CodeBlockContent,
-  CodeBlockCopyButton,
-  CodeBlockHeader,
-  CodeBlockWrapButton,
-} from '@/components/code-block';
+import { dom, Markdown } from '@/components/markdown';
 import { MentionCard } from '@/features/messages/components/mention-card';
 import {
   MentionViewer,
   useMentionName,
 } from '@/features/messages/context/mention-names';
 
-import { rehypeCode } from './rehype-code';
-import { remarkHtmlAsText } from './remark-html-as-text';
 import { remarkMentions } from './remark-mentions';
-import { sanitizeSchema } from './sanitize-schema';
 
-const remarkPlugins = [
-  remarkGfm,
-  remarkBreaks,
-  remarkHtmlAsText,
-  remarkMentions,
-];
-
-// Sanitizing comes first so that only the tree Markdown made is checked, and later steps add only what they need.
-const rehypePlugins: React.ComponentProps<typeof Markdown>['rehypePlugins'] = [
-  [rehypeSanitize, sanitizeSchema],
-  rehypeCode,
-  [rehypeExternalLinks, { target: '_blank', rel: ['noopener', 'nofollow'] }],
-];
+// Chat keeps the line breaks people type, and turns <@id> into mentions.
+const remarkPlugins = [remarkBreaks, remarkMentions];
 
 function Mention({ target }: { target: string }) {
   const name = useMentionName(target);
@@ -53,13 +29,6 @@ function Mention({ target }: { target: string }) {
   );
 }
 
-/** react-markdown passes the syntax tree node as a prop, which must not reach the DOM. */
-function dom<T extends { node?: unknown }>({ node, ...props }: T) {
-  void node;
-  return props;
-}
-
-// Typeset styles everything else. These only add behaviour Markdown cannot carry.
 const components: Components = {
   span: (props) => {
     const { 'data-mention': target, ...rest } = dom(props) as Record<
@@ -72,37 +41,6 @@ const components: Components = {
       <span {...rest} />
     );
   },
-  pre: (props) => {
-    const { children, ...rest } = dom(props);
-    const { 'data-code': code, 'data-language': language } = rest as Record<
-      string,
-      unknown
-    >;
-    if (typeof code !== 'string') return <pre>{children}</pre>;
-
-    const lang = typeof language === 'string' ? language : undefined;
-    const actions = (
-      <>
-        <CodeBlockWrapButton />
-        <CodeBlockCopyButton value={code} />
-      </>
-    );
-    return (
-      <CodeBlock>
-        {lang ? (
-          <CodeBlockHeader language={lang}>{actions}</CodeBlockHeader>
-        ) : (
-          <CodeBlockActions>{actions}</CodeBlockActions>
-        )}
-        <CodeBlockContent code={code} language={lang} />
-      </CodeBlock>
-    );
-  },
-  table: (props) => (
-    <div className="typeset-scroll">
-      <table {...dom(props)} />
-    </div>
-  ),
 };
 
 type MessageMarkdownProps = { id: string; updatedAt: Date; body: string };
@@ -111,16 +49,13 @@ type MessageMarkdownProps = { id: string; updatedAt: Date; body: string };
 export const MessageMarkdown = memo(
   function MessageMarkdown({ body }: MessageMarkdownProps) {
     return (
-      // min-w-0: in a flex parent, a code block's longest line would otherwise set the message's width.
-      <div className="typeset typeset-chat max-w-[72ch] min-w-0">
-        <Markdown
-          remarkPlugins={remarkPlugins}
-          rehypePlugins={rehypePlugins}
-          components={components}
-        >
-          {body}
-        </Markdown>
-      </div>
+      <Markdown
+        className="typeset-chat max-w-[72ch]"
+        remarkPlugins={remarkPlugins}
+        components={components}
+      >
+        {body}
+      </Markdown>
     );
   },
   (a, b) => a.id === b.id && a.updatedAt.getTime() === b.updatedAt.getTime()
