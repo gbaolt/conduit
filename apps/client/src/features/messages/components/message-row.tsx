@@ -52,6 +52,7 @@ function RowFrame({
   createdAt,
   grouped,
   highlight,
+  focused,
   fresh,
   trailing,
   actions,
@@ -62,6 +63,8 @@ function RowFrame({
   createdAt: Date;
   grouped: boolean;
   highlight?: boolean;
+  /** Tints the row for 1.5 s after a source link or permalink scrolled to it. */
+  focused?: boolean;
   fresh?: boolean;
   trailing?: ReactNode;
   actions?: ReactNode;
@@ -71,12 +74,14 @@ function RowFrame({
     <article
       aria-label={label}
       data-message-row=""
+      data-focused={focused || undefined}
       tabIndex={-1}
       className={cn(
         'group/row hover:bg-muted focus-visible:bg-muted relative flex gap-3 px-5 outline-none',
         grouped ? 'pt-0.5' : 'pt-2',
         highlight &&
           'bg-primary/[0.06] shadow-[inset_2px_0_0_var(--color-primary)]',
+        'after:bg-primary/10 after:pointer-events-none after:absolute after:inset-0 after:opacity-0 after:transition-opacity after:duration-1500 data-focused:after:opacity-100 data-focused:after:duration-0 motion-reduce:after:transition-none',
         fresh &&
           'animate-in fade-in-0 slide-in-from-bottom-1 motion-reduce:slide-in-from-bottom-0 duration-150 ease-out'
       )}
@@ -191,6 +196,7 @@ export function MessageRow({
   canPost,
   canModerate,
   fresh,
+  focused,
   editing,
   onEdit,
   onStopEditing,
@@ -203,6 +209,7 @@ export function MessageRow({
   canPost: boolean;
   canModerate: boolean;
   fresh: boolean;
+  focused: boolean;
   editing: boolean;
   onEdit: () => void;
   onStopEditing: () => void;
@@ -223,6 +230,7 @@ export function MessageRow({
       createdAt={message.createdAt}
       grouped={grouped}
       highlight={mentionsViewer && !message.deletedAt}
+      focused={focused}
       fresh={fresh && !isAuthor}
       actions={
         message.deletedAt || editing ? null : (

@@ -122,6 +122,25 @@ export class PrismaMessagesRepository implements MessagesRepository {
     };
   }
 
+  async listForSummary(
+    channelId: string,
+    range: { threadId?: string; from?: Date; limit: number }
+  ) {
+    const rows = await this.db.message.findMany({
+      where: {
+        channelId,
+        deletedAt: null,
+        ...(range.from && { createdAt: { gte: range.from } }),
+        OR: range.threadId
+          ? [{ id: range.threadId }, { parentId: range.threadId }]
+          : [{ parentId: null }, { alsoSentToChannel: true }],
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: range.limit,
+    });
+    return rows.reverse().map(toMessage);
+  }
+
   async find(messageId: string) {
     const row = await this.db.message.findUnique({ where: { id: messageId } });
     return row && toMessage(row);

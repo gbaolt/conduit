@@ -37,6 +37,7 @@ model User {
   presences          Presence[]
   messages           Message[]
   savedMessages      SavedMessage[]
+  summaries          Summary[]
 }
 
 model Session {
@@ -68,6 +69,7 @@ model Organization {
   joinLink        WorkspaceJoinLink?
   allowedDomains  AllowedDomain[]
   settings        WorkspaceSettings?
+  summaries       Summary[]
   presences       Presence[]
 }
 
@@ -123,6 +125,7 @@ model WorkspaceSettings {
   organization          Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   channelCreators       ChannelCreators @default(EVERYONE)
   publicChannelCreators ChannelCreators @default(EVERYONE)
+  aiEnabled             Boolean         @default(true)
 }
 
 model Invitation {
@@ -212,6 +215,7 @@ model Channel {
   drafts                   Draft[]
   typingStates             TypingState[]
   messages                 Message[]
+  summaries                Summary[]
 
   @@unique([organizationId, name])
 }
@@ -291,6 +295,32 @@ model SavedMessage {
 
   @@id([userId, messageId])
   @@index([userId, savedAt])
+}
+
+/// App-owned. An AI summary of a thread or a channel's log. Only the requester reads it until `sharedMessageId` is set.
+model Summary {
+  id               String       @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  requesterId      String
+  requester        User         @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  channelId        String
+  channel          Channel      @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  /// The thread's root message. Null for a channel summary.
+  parentId         String?
+  from             DateTime?
+  to               DateTime?
+  /// How many messages the model read.
+  messageCount     Int
+  /// `{ text, sourceIds }[]`, with every source id a message the model read.
+  bullets          Json
+  /// The cited messages in order of first citation.
+  sourceMessageIds String[]
+  /// The message that shared this summary into the conversation.
+  sharedMessageId  String?
+  createdAt        DateTime     @default(now())
+
+  @@index([requesterId, createdAt])
 }
 
 /// App-owned. How far a member has read a conversation. The sidebar compares it with `Channel.lastMessageAt`.

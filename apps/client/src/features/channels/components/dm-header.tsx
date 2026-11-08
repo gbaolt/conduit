@@ -22,10 +22,13 @@ import { useChannelDialogs } from '../context/channel-dialogs-provider';
 export function DmHeader({
   channelId,
   children,
+  menu,
 }: {
   channelId: string;
   /** Buttons that other features add before the menu, such as the pinned list. */
   children?: ReactNode;
+  /** Rows that other features add to the menu, such as Summarize conversation. */
+  menu?: ReactNode;
 }) {
   const { data: channel } = useSuspenseQuery(channelQuery(channelId));
   const { data: session } = useQuery(sessionQuery);
@@ -72,6 +75,7 @@ export function DmHeader({
             <IconUsers />
             Turn into a private channel
           </DropdownMenuItem>
+          {menu}
         </DropdownMenuContent>
       </DropdownMenu>
     </header>

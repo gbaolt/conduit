@@ -5,6 +5,7 @@ import { onError } from '@orpc/server';
 import { AuthModule } from '@thallesp/nestjs-better-auth';
 
 import { ActivityModule } from '@/activity/activity.module';
+import { AiModule } from '@/ai/ai.module';
 import { ChannelsModule } from '@/channels/channels.module';
 import { HealthController } from '@/health/presentation/health.controller';
 import { auth } from '@/infrastructure/auth/auth.config';
@@ -15,6 +16,7 @@ import { arcjetAuthMiddleware } from '@/infrastructure/security/auth-routes.midd
 import { MessagesModule } from '@/messages/messages.module';
 import { OrganizationsModule } from '@/organizations/organizations.module';
 import { RealtimeModule } from '@/realtime/realtime.module';
+import { SummariesModule } from '@/summaries/summaries.module';
 import { UsersModule } from '@/users/users.module';
 import { WorkspaceMembersRepository } from '@/workspaces/domain/workspace-members.repository';
 import { WorkspacesModule } from '@/workspaces/workspaces.module';
@@ -24,10 +26,12 @@ import { WorkspacesModule } from '@/workspaces/workspaces.module';
     DatabaseModule,
     UsersModule,
     OrganizationsModule,
+    AiModule,
     ChannelsModule,
     MessagesModule,
     ActivityModule,
     RealtimeModule,
+    SummariesModule,
     ArcjetModule.forRoot({
       isGlobal: true,
       key: process.env.ARCJET_KEY!,

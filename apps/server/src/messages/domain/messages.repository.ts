@@ -30,6 +30,15 @@ export abstract class MessagesRepository {
     page: { before?: string; limit: number }
   ): Promise<{ messages: Message[]; hasMore: boolean } | null>;
 
+  /**
+   * The newest `limit` live messages of the channel's log, or of the thread with root `threadId`, root included,
+   * oldest first. `from` leaves out anything older. A deleted message is left out.
+   */
+  abstract listForSummary(
+    channelId: string,
+    range: { threadId?: string; from?: Date; limit: number }
+  ): Promise<Message[]>;
+
   abstract find(messageId: string): Promise<Message | null>;
 
   /**

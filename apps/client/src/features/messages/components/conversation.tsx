@@ -9,6 +9,7 @@ import {
   useQuery,
   useSuspenseQuery,
 } from '@tanstack/react-query';
+import { useQueryState } from 'nuqs';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ConversationSkeleton } from '@/components/conversation-skeleton';
@@ -31,11 +32,13 @@ import { useIsClient } from '../lib/use-is-client';
 import { useNewMarker } from '../lib/use-new-marker';
 import { ConversationComposer } from './conversation-composer';
 import { MessageList } from './message-list';
+import { SummaryCard } from './summary-card';
 import { TypingLine } from './typing-line';
 
 const OFFLINE_AFTER_MS = 10_000;
 // A normal connect takes a moment, so the line waits before it appears.
 const CONNECTING_GRACE_MS = 2000;
+const FOCUS_TINT_MS = 1500;
 
 /** True once `active` has held for `ms`. */
 function useHeldFor(active: boolean, ms: number) {
@@ -102,6 +105,28 @@ export function Conversation({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [alsoSend, setAlsoSend] = useState(false);
   const composerRef = useRef<HTMLDivElement>(null);
+  const [scrollTarget, setScrollTarget] = useState<string | null>(null);
+  const [focusedId, setFocusedId] = useState<string | null>(null);
+
+  // A shared summary links its sources as `?message=`. A thread's links also carry `?thread=`, which only the thread's own log follows.
+  const [messageParam, setMessageParam] = useQueryState('message');
+  const [threadParam] = useQueryState('thread');
+  const linkedMessage = parentId
+    ? messageParam
+    : threadParam
+      ? null
+      : messageParam;
+  useEffect(() => {
+    if (!linkedMessage) return;
+    setScrollTarget(linkedMessage);
+    void setMessageParam(null);
+  }, [linkedMessage, setMessageParam]);
+
+  useEffect(() => {
+    if (!focusedId) return;
+    const timer = setTimeout(() => setFocusedId(null), FOCUS_TINT_MS);
+    return () => clearTimeout(timer);
+  }, [focusedId]);
 
   const messages = useMemo(() => {
     const loaded = flattenMessages(history.data);
@@ -179,6 +204,25 @@ export function Conversation({
               }
               retry={retry}
               discard={discard}
+              scrollTarget={scrollTarget}
+              focusedId={focusedId}
+              onScrollReached={(messageId) => {
+                setScrollTarget(null);
+                setFocusedId(messageId);
+              }}
+              end={
+                <SummaryCard
+                  shareLabel={
+                    parentId
+                      ? 'Share to thread'
+                      : isDm
+                        ? 'Share to conversation'
+                        : 'Share to channel'
+                  }
+                  canShare={canPost}
+                  onSource={setScrollTarget}
+                />
+              }
               newMarkerId={markerId}
               onRead={markRead}
             />

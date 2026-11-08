@@ -8,6 +8,7 @@ import {
   parseMentions,
   removeReaction,
   SAVED_MESSAGES_MAX,
+  SUMMARY_MESSAGES_MAX,
   type WorkspaceRole,
 } from '@conduit/contract';
 import { Inject, Injectable } from '@nestjs/common';
@@ -76,6 +77,22 @@ export class MessagesService {
       throw messageError('NOT_FOUND');
     }
     return page;
+  }
+
+  /**
+   * What a summary reads: the channel's log, or one thread, behind the same view check as `list`.
+   * A viewer who cannot read the channel gets NOT_FOUND.
+   */
+  async listForSummary(
+    viewer: MessageViewer,
+    input: { channelId: string; threadId?: string; from?: Date }
+  ) {
+    await this.find(viewer, input.channelId);
+    return this.messages.listForSummary(input.channelId, {
+      threadId: input.threadId,
+      from: input.from,
+      limit: SUMMARY_MESSAGES_MAX,
+    });
   }
 
   async send(
@@ -246,7 +263,7 @@ export class MessagesService {
   }
 
   /** A channel the viewer cannot see is NOT_FOUND, so private channels do not leak. */
-  private async find(viewer: MessageViewer, channelId: string) {
+  async find(viewer: MessageViewer, channelId: string) {
     const channel = await this.channels.find(viewer, channelId);
     if (!channel || checkChannel('view', viewer.workspaceRole, channel)) {
       throw messageError('NOT_FOUND', 'Channel not found.');

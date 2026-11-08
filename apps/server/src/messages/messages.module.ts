@@ -28,5 +28,6 @@ import { MessagesController } from './presentation/messages.controller';
       useClass: PrismaSavedMessagesRepository,
     },
   ],
+  exports: [MessagesService],
 })
 export class MessagesModule {}

@@ -18,6 +18,17 @@ function toORPCError(error: unknown) {
   return error;
 }
 
+/** A stream is read after the procedure returns, so `translateErrors` never sees what it throws. */
+export async function* translateStreamErrors<T>(
+  stream: AsyncIterable<T>
+): AsyncGenerator<T> {
+  try {
+    yield* stream;
+  } catch (error) {
+    throw toORPCError(error);
+  }
+}
+
 /** Runs inside the procedure client, so oRPC still matches each error against the contract's error map. */
 export async function translateErrors<T>({
   next,

@@ -21,6 +21,7 @@
     "db:migrate-deploy": "npx prisma migrate deploy",
     "db:backfill-default-channels": "tsx scripts/backfill-default-channels.ts",
     "measure:delivery": "tsx scripts/measure-delivery.ts",
+    "eval:summaries": "tsx scripts/eval-summaries.ts",
     "measure:write-rate": "tsx scripts/measure-write-rate.ts",
     "upgrade:nest": "npx npm-check-updates \"/^@nestjs/\" -u"
   },
@@ -34,6 +35,7 @@
     "@nestjs/common": "^11.1.6",
     "@nestjs/core": "^11.1.6",
     "@nestjs/platform-express": "^11.1.6",
+    "@openrouter/ai-sdk-provider": "^3.1.0",
     "@orpc/nest": "catalog:",
     "@orpc/openapi": "catalog:",
     "@orpc/server": "catalog:",
@@ -42,6 +44,7 @@
     "@prisma/client": "^7.0.0",
     "@thallesp/nestjs-better-auth": "^2.7.0",
     "@vercel/functions": "^3.11.0",
+    "ai": "^7.0.164",
     "better-auth": "catalog:",
     "dotenv": "^17.4.2",
     "reflect-metadata": "^0.2.2",

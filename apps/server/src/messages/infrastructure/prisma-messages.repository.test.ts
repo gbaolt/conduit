@@ -319,4 +319,44 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
       expect(page?.messages.map((m) => m.id)).toContain(root.id);
     });
   });
+
+  describe('listForSummary', () => {
+    it('reads the channel log, or one thread with its root, oldest first, and leaves deleted messages out', async () => {
+      const summaryChannel = await prisma.channel.create({
+        data: { organizationId, name: 'summary' },
+      });
+      const post = (clientId: string, extra: { parentId?: string } = {}) =>
+        repository.send({
+          channelId: summaryChannel.id,
+          authorId: userId,
+          clientId,
+          body: clientId,
+          mentions,
+          ...extra,
+        });
+      const top = await post('top');
+      const quiet = await post('quiet', { parentId: top.message.id });
+      const gone = await post('gone');
+      await post('last');
+      await repository.markDeleted(gone.message.id);
+
+      const log = await repository.listForSummary(summaryChannel.id, {
+        limit: 100,
+      });
+      const thread = await repository.listForSummary(summaryChannel.id, {
+        threadId: top.message.id,
+        limit: 100,
+      });
+      const newest = await repository.listForSummary(summaryChannel.id, {
+        limit: 1,
+      });
+
+      expect(log.map((m) => m.body)).toEqual(['top', 'last']);
+      expect(thread.map((m) => m.id)).toEqual([
+        top.message.id,
+        quiet.message.id,
+      ]);
+      expect(newest.map((m) => m.body)).toEqual(['last']);
+    });
+  });
 });
