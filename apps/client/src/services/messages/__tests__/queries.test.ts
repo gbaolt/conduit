@@ -19,7 +19,7 @@ let counter = 0;
 function message(overrides: Partial<Message> & { id: string }): Message {
   counter += 1;
   return {
-    channelId: 'c1',
+    roomId: 'c1',
     authorId: 'u1',
     clientId: `k${counter}`,
     parentId: null,
@@ -144,7 +144,7 @@ describe('flattenMessages', () => {
 });
 
 describe('cacheMessage and patchCachedMessage', () => {
-  const root = message({ id: 'root', channelId: 'c1' });
+  const root = message({ id: 'root', roomId: 'c1' });
   const quiet = message({ id: 'quiet', parentId: 'root' });
   const loud = message({
     id: 'loud',
@@ -166,7 +166,7 @@ describe('cacheMessage and patchCachedMessage', () => {
     return client;
   }
 
-  const channelIds = (client: QueryClient) =>
+  const roomIds = (client: QueryClient) =>
     flattenMessages(client.getQueryData(messagesQuery('c1').queryKey)).map(
       (m) => m.id
     );
@@ -181,7 +181,7 @@ describe('cacheMessage and patchCachedMessage', () => {
     cacheMessage(client, quiet);
 
     expect(replyIds(client)).toEqual(['quiet']);
-    expect(channelIds(client)).toEqual(['root']);
+    expect(roomIds(client)).toEqual(['root']);
   });
 
   it('puts a reply sent to the channel in both lists', () => {
@@ -190,7 +190,7 @@ describe('cacheMessage and patchCachedMessage', () => {
     cacheMessage(client, loud);
 
     expect(replyIds(client)).toEqual(['loud']);
-    expect(channelIds(client)).toEqual(['root', 'loud']);
+    expect(roomIds(client)).toEqual(['root', 'loud']);
   });
 
   it('refreshes the thread panel root and the log when the root changes', () => {

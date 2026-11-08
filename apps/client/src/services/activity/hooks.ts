@@ -44,40 +44,40 @@ export function useSidebarStream() {
   return useLiveRows({ kind: 'sidebar' }, SidebarEntrySchema, (rows) => {
     queryClient.setQueryData(sidebarStateQuery.queryKey, rows);
 
-    const ids = new Set(rows.map((row) => row.channelId));
+    const ids = new Set(rows.map((row) => row.roomId));
     if (known.current && !sameIds(known.current, ids)) {
       void queryClient.invalidateQueries({ queryKey: orpc.channels.key() });
+      void queryClient.invalidateQueries({ queryKey: orpc.rooms.key() });
     }
     known.current = ids;
   });
 }
 
 /** The viewer's sidebar row for a conversation, or undefined until the stream delivers it. */
-export function useSidebarEntry(channelId: string): SidebarEntry | undefined {
+export function useSidebarEntry(roomId: string): SidebarEntry | undefined {
   return useQuery({
     ...sidebarStateQuery,
-    select: (rows) => rows.find((row) => row.channelId === channelId),
+    select: (rows) => rows.find((row) => row.roomId === roomId),
   }).data;
 }
 
 /** Whether a conversation, a channel or a DM, has messages the viewer has not read. */
-export function useIsUnread(channelId: string) {
+export function useIsUnread(roomId: string) {
   return (
     useQuery({
       ...sidebarStateQuery,
-      select: (rows) =>
-        isUnread(rows.find((row) => row.channelId === channelId)),
+      select: (rows) => isUnread(rows.find((row) => row.roomId === roomId)),
     }).data ?? false
   );
 }
 
 /** Whether the viewer has an unsent message in a conversation, a channel or a DM. */
-export function useHasDraft(channelId: string) {
+export function useHasDraft(roomId: string) {
   return (
     useQuery({
       ...sidebarStateQuery,
       select: (rows) =>
-        rows.find((row) => row.channelId === channelId)?.hasDraft ?? false,
+        rows.find((row) => row.roomId === roomId)?.hasDraft ?? false,
     }).data ?? false
   );
 }
@@ -86,15 +86,15 @@ export function useHasDraft(channelId: string) {
  * Records how far the viewer has read, at most once every few seconds. Push the newest message the viewer
  * has seen. The write for a conversation the viewer leaves goes out when the component unmounts.
  */
-export function useMarkRead(channelId: string) {
+export function useMarkRead(roomId: string) {
   const writer = useMemo(
     () =>
       createTrailingWriter(
         (messageId: string) =>
-          void client.readState.mark({ channelId, messageId }).catch(ignore),
+          void client.readState.mark({ roomId, messageId }).catch(ignore),
         { debounceMs: READ_DEBOUNCE_MS, minIntervalMs: READ_MIN_INTERVAL_MS }
       ),
-    [channelId]
+    [roomId]
   );
 
   useEffect(() => () => writer.flush(), [writer]);
@@ -106,8 +106,8 @@ export function useMarkRead(channelId: string) {
  * The viewer's saved draft for a conversation, or for one thread of it. Undefined while it loads.
  * It is read once, because the composer takes it as its starting text and must not restart on a refetch.
  */
-export function useDraft(channelId: string, parentId?: string) {
-  const { data, isError } = useQuery(draftQuery(channelId, parentId));
+export function useDraft(roomId: string, parentId?: string) {
+  const { data, isError } = useQuery(draftQuery(roomId, parentId));
   // A draft that fails to load starts the composer empty.
   const loaded = data?.body ?? (isError ? '' : undefined);
   const [initial, setInitial] = useState(loaded);
@@ -123,7 +123,7 @@ export function useDraft(channelId: string, parentId?: string) {
  * composer started from, so loading it does not count as a change.
  */
 export function useComposerActivity(
-  channelId: string,
+  roomId: string,
   saved: string,
   parentId?: string
 ) {
@@ -132,11 +132,10 @@ export function useComposerActivity(
       createComposerActivity({
         saved,
         saveDraft: (body) =>
-          void client.drafts.save({ channelId, parentId, body }).catch(ignore),
-        ping: () =>
-          void client.typing.ping({ channelId, parentId }).catch(ignore),
+          void client.drafts.save({ roomId, parentId, body }).catch(ignore),
+        ping: () => void client.typing.ping({ roomId, parentId }).catch(ignore),
       }),
-    [channelId, parentId, saved]
+    [roomId, parentId, saved]
   );
 
   useEffect(() => () => activity.flush(), [activity]);
@@ -150,13 +149,13 @@ type TypingSnapshot = { rows: TypingRow[]; now: number };
  * The user ids typing in a conversation now, other than the viewer. Rows past their `until` drop out on a
  * 1 s timer that runs only while someone is typing. Pass a thread's `parentId` for that thread.
  */
-export function useTypers(channelId: string, parentId = '') {
+export function useTypers(roomId: string, parentId = '') {
   const [snapshot, setSnapshot] = useState<TypingSnapshot>({
     rows: [],
     now: 0,
   });
 
-  useLiveRows({ kind: 'typing', channelId }, TypingRowSchema, (rows) =>
+  useLiveRows({ kind: 'typing', roomId }, TypingRowSchema, (rows) =>
     setSnapshot({ rows, now: Date.now() })
   );
 

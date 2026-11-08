@@ -8,7 +8,7 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import { ActivityRepository } from '@/activity/domain/activity.repository';
 import { activityError } from '@/activity/domain/activity-errors';
-import { ChannelsRepository } from '@/channels/domain/channels.repository';
+import { RoomsRepository } from '@/rooms/domain/rooms.repository';
 
 export type ActivityViewer = {
   userId: string;
@@ -16,22 +16,22 @@ export type ActivityViewer = {
   workspaceRole: WorkspaceRole;
 };
 
-type ConversationKey = { channelId: string; parentId?: string };
+type ConversationKey = { roomId: string; parentId?: string };
 
 @Injectable()
 export class ActivityService {
   constructor(
     @Inject(ActivityRepository) private readonly activity: ActivityRepository,
-    @Inject(ChannelsRepository) private readonly channels: ChannelsRepository
+    @Inject(RoomsRepository) private readonly channels: RoomsRepository
   ) {}
 
   async markRead(
     viewer: ActivityViewer,
-    input: { channelId: string; messageId: string }
+    input: { roomId: string; messageId: string }
   ) {
-    await this.authorize(viewer, input.channelId, 'view');
+    await this.authorize(viewer, input.roomId, 'view');
     const found = await this.activity.markRead({
-      channelId: input.channelId,
+      roomId: input.roomId,
       userId: viewer.userId,
       messageId: input.messageId,
     });
@@ -41,17 +41,17 @@ export class ActivityService {
   }
 
   async getDraft(viewer: ActivityViewer, key: ConversationKey) {
-    await this.authorize(viewer, key.channelId, 'view');
+    await this.authorize(viewer, key.roomId, 'view');
     return { body: await this.activity.getDraft(this.scope(viewer, key)) };
   }
 
   async saveDraft(viewer: ActivityViewer, key: ConversationKey, body: string) {
-    await this.authorize(viewer, key.channelId, 'post');
+    await this.authorize(viewer, key.roomId, 'post');
     await this.activity.saveDraft(this.scope(viewer, key), body);
   }
 
   async ping(viewer: ActivityViewer, key: ConversationKey) {
-    await this.authorize(viewer, key.channelId, 'post');
+    await this.authorize(viewer, key.roomId, 'post');
     await this.activity.setTyping(
       this.scope(viewer, key),
       new Date(Date.now() + TYPING_TTL_MS)
@@ -69,7 +69,7 @@ export class ActivityService {
 
   private scope(viewer: ActivityViewer, key: ConversationKey) {
     return {
-      channelId: key.channelId,
+      roomId: key.roomId,
       userId: viewer.userId,
       parentId: key.parentId ?? '',
     };
@@ -78,10 +78,10 @@ export class ActivityService {
   /** A channel the viewer cannot see is NOT_FOUND, so private channels do not leak. */
   private async authorize(
     viewer: ActivityViewer,
-    channelId: string,
+    roomId: string,
     action: ChannelAction
   ) {
-    const channel = await this.channels.find(viewer, channelId);
+    const channel = await this.channels.find(viewer, roomId);
     if (!channel || checkChannel('view', viewer.workspaceRole, channel)) {
       throw activityError('NOT_FOUND');
     }

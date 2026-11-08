@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  CHANNEL_TEXT_MAX,
-  ChannelNameSchema,
-  UpdateChannelInputSchema,
-} from './channels';
+import { CHANNEL_TEXT_MAX, UpdateChannelInputSchema } from './channels';
+import { ChannelNameSchema } from './rooms';
 
 describe('ChannelNameSchema', () => {
   it.each(['Hello World', 'xin-chào', '', '日本'])('rejects %j', (name) => {
@@ -25,7 +22,7 @@ describe('ChannelNameSchema', () => {
 
 describe('UpdateChannelInputSchema', () => {
   const parse = (topic: string | null | undefined) =>
-    UpdateChannelInputSchema.safeParse({ channelId: 'c1', topic });
+    UpdateChannelInputSchema.safeParse({ roomId: 'c1', topic });
 
   it('accepts a topic at the limit, null, and an omitted topic', () => {
     expect(parse('a'.repeat(CHANNEL_TEXT_MAX)).success).toBe(true);

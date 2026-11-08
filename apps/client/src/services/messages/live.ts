@@ -159,26 +159,23 @@ function openLiveStream({
  * The conversation stream, or the thread stream when `parentId` is set. Writes each change into the
  * cached message pages. History and sending still work while the status is `offline`.
  */
-export function useLiveStream(
-  channelId: string,
-  parentId?: string
-): LiveStatus {
+export function useLiveStream(roomId: string, parentId?: string): LiveStatus {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<LiveStatus>('connecting');
 
   useEffect(() => {
     const since = new Date(Date.now() - SINCE_MARGIN_MS);
-    const streamKey = parentId ? threadStreamKey(parentId) : channelId;
+    const streamKey = parentId ? threadStreamKey(parentId) : roomId;
 
     return openLiveStream({
       stream: parentId
-        ? { kind: 'thread', channelId, parentId, since }
-        : { kind: 'conversation', channelId, since },
+        ? { kind: 'thread', roomId, parentId, since }
+        : { kind: 'conversation', roomId, since },
       onStatus: setStatus,
       onRows: (rows) => {
         const messages = toMessages(rows);
         for (const message of messages) cacheMessage(queryClient, message);
-        const pinnedKey = pinnedQuery(channelId).queryKey;
+        const pinnedKey = pinnedQuery(roomId).queryKey;
         if (pinnedIsStale(queryClient.getQueryData(pinnedKey), messages)) {
           void queryClient.invalidateQueries({ queryKey: pinnedKey });
         }
@@ -188,7 +185,7 @@ export function useLiveStream(
         else if (subscriptions.get(streamKey)) subscriptions.delete(streamKey);
       },
     });
-  }, [channelId, parentId, queryClient]);
+  }, [roomId, parentId, queryClient]);
 
   return status;
 }
@@ -197,7 +194,7 @@ export function useLiveStream(
 export type LiveStreamSpec =
   | { kind: 'sidebar' }
   | { kind: 'presence' }
-  | { kind: 'typing'; channelId: string };
+  | { kind: 'typing'; roomId: string };
 
 /**
  * Any stream other than the conversation. `onRows` gets the rows that match `schema`,

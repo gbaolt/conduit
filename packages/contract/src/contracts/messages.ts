@@ -44,13 +44,13 @@ const {
 } = messageErrors;
 
 export const listMessagesContract = oc
-  .meta(openapi({ method: 'GET', path: '/channels/{channelId}/messages' }))
+  .meta(openapi({ method: 'GET', path: '/rooms/{roomId}/messages' }))
   .errors({ NOT_FOUND })
   .input(ListMessagesInputSchema)
   .output(ListMessagesOutputSchema);
 
 export const sendMessageContract = oc
-  .meta(openapi({ method: 'POST', path: '/channels/{channelId}/messages' }))
+  .meta(openapi({ method: 'POST', path: '/rooms/{roomId}/messages' }))
   .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED, REPLY_TO_REPLY })
   .input(SendMessageInputSchema)
   .output(SendMessageOutputSchema);
@@ -111,7 +111,7 @@ export const unpinMessageContract = oc
   .output(MessageSchema);
 
 export const listPinnedMessagesContract = oc
-  .meta(openapi({ method: 'GET', path: '/channels/{channelId}/pins' }))
+  .meta(openapi({ method: 'GET', path: '/rooms/{roomId}/pins' }))
   .errors({ NOT_FOUND })
   .input(ListPinnedInputSchema)
   .output(ListPinnedOutputSchema);

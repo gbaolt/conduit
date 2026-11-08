@@ -86,7 +86,7 @@ describe.skipIf(!connectionString)('WorkspaceMembersService', () => {
     ).toBe('deactivated');
     // Deactivation keeps the channel memberships.
     expect(
-      await prisma.channelMember.count({
+      await prisma.roomMember.count({
         where: { userId: people().other.userId },
       })
     ).toBeGreaterThan(0);

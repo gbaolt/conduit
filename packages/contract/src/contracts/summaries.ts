@@ -29,8 +29,8 @@ export const summarizeThreadContract = oc
   .input(ThreadSummaryInputSchema)
   .output(asyncIteratorObject(SummaryEventSchema));
 
-export const summarizeChannelContract = oc
-  .meta(openapi({ method: 'POST', path: '/channels/{channelId}/summary' }))
+export const summarizeRoomContract = oc
+  .meta(openapi({ method: 'POST', path: '/rooms/{roomId}/summary' }))
   .errors({ NOT_FOUND, NOTHING_TO_SUMMARIZE, AI_DISABLED, AI_UNAVAILABLE })
   .input(ChannelSummaryInputSchema)
   .output(asyncIteratorObject(SummaryEventSchema));

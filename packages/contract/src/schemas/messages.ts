@@ -19,7 +19,7 @@ export type LinkPreview = z.infer<typeof LinkPreviewSchema>;
 
 export const MessageSchema = z.object({
   id: z.string(),
-  channelId: z.string(),
+  roomId: z.string(),
   authorId: z.string(),
   clientId: z.string(),
   parentId: z.string().nullable(),
@@ -45,7 +45,7 @@ export const MESSAGE_PAGE_MAX = 100;
 export const MESSAGE_PAGE_DEFAULT = 50;
 
 export const ListMessagesInputSchema = z.object({
-  channelId: z.string(),
+  roomId: z.string(),
   /** The oldest message already loaded. The page ends just before it. */
   before: z.string().optional(),
   limit: z.number().int().min(1).max(MESSAGE_PAGE_MAX).optional(),
@@ -59,7 +59,7 @@ export const ListMessagesOutputSchema = z.object({
 export type ListMessagesOutput = z.infer<typeof ListMessagesOutputSchema>;
 
 export const SendMessageInputSchema = z.object({
-  channelId: z.string(),
+  roomId: z.string(),
   /** Chosen by the client for each new message, so a retry cannot post it twice. */
   clientId: z.string().min(1).max(64),
   body: MessageBodySchema,
@@ -108,7 +108,7 @@ export const UnreactInputSchema = z.object({
   emoji: z.string().min(1).max(32),
 });
 
-export const ListPinnedInputSchema = z.object({ channelId: z.string() });
+export const ListPinnedInputSchema = z.object({ roomId: z.string() });
 
 /** Newest pin first. */
 export const ListPinnedOutputSchema = z.array(MessageSchema);

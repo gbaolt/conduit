@@ -5,9 +5,9 @@ import {
 } from '@conduit/contract';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { ChannelsRepository } from '@/channels/domain/channels.repository';
 import { LiveQueries } from '@/realtime/domain/live-queries.port';
 import { realtimeError } from '@/realtime/domain/realtime-errors';
+import { RoomsRepository } from '@/rooms/domain/rooms.repository';
 
 import { queryFor } from './live-streams';
 
@@ -21,7 +21,7 @@ export type RealtimeViewer = {
 export class RealtimeService {
   constructor(
     @Inject(LiveQueries) private readonly liveQueries: LiveQueries,
-    @Inject(ChannelsRepository) private readonly channels: ChannelsRepository
+    @Inject(RoomsRepository) private readonly channels: RoomsRepository
   ) {}
 
   /**
@@ -29,8 +29,8 @@ export class RealtimeService {
    * so someone who loses access stops receiving changes within a minute.
    */
   async seal(viewer: RealtimeViewer, stream: LiveStream) {
-    if ('channelId' in stream) {
-      const channel = await this.channels.find(viewer, stream.channelId);
+    if ('roomId' in stream) {
+      const channel = await this.channels.find(viewer, stream.roomId);
       if (!channel || checkChannel('view', viewer.workspaceRole, channel)) {
         throw realtimeError('NOT_FOUND');
       }

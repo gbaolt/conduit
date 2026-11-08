@@ -3,7 +3,7 @@ import type { Components } from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 
 import { dom, Markdown } from '@/components/markdown';
-import { MentionCard } from '@/features/messages/components/mention-card';
+import { MentionCard } from '@/features/messages/components/message/mention-card';
 import {
   MentionViewer,
   useMentionName,

@@ -22,25 +22,25 @@ export const activityErrors = {
 const { NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED } = activityErrors;
 
 export const markReadContract = oc
-  .meta(openapi({ method: 'POST', path: '/channels/{channelId}/read' }))
+  .meta(openapi({ method: 'POST', path: '/rooms/{roomId}/read' }))
   .errors({ NOT_FOUND })
   .input(MarkReadInputSchema)
   .output(z.void());
 
 export const getDraftContract = oc
-  .meta(openapi({ method: 'GET', path: '/channels/{channelId}/draft' }))
+  .meta(openapi({ method: 'GET', path: '/rooms/{roomId}/draft' }))
   .errors({ NOT_FOUND })
   .input(ConversationKeySchema)
   .output(DraftSchema);
 
 export const saveDraftContract = oc
-  .meta(openapi({ method: 'PUT', path: '/channels/{channelId}/draft' }))
+  .meta(openapi({ method: 'PUT', path: '/rooms/{roomId}/draft' }))
   .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED })
   .input(SaveDraftInputSchema)
   .output(z.void());
 
 export const typingPingContract = oc
-  .meta(openapi({ method: 'POST', path: '/channels/{channelId}/typing' }))
+  .meta(openapi({ method: 'POST', path: '/rooms/{roomId}/typing' }))
   .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED })
   .input(ConversationKeySchema)
   .output(z.void());

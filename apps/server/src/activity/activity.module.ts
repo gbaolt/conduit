@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 
-import { ChannelsModule } from '@/channels/channels.module';
+import { RoomsModule } from '@/rooms/rooms.module';
 
 import { ActivityService } from './application/activity.service';
 import { ActivityRepository } from './domain/activity.repository';
@@ -8,7 +8,7 @@ import { PrismaActivityRepository } from './infrastructure/prisma-activity.repos
 import { ActivityController } from './presentation/activity.controller';
 
 @Module({
-  imports: [ChannelsModule],
+  imports: [RoomsModule],
   controllers: [ActivityController],
   providers: [
     ActivityService,

@@ -10,7 +10,7 @@ import { client } from '@/lib/orpc';
 /** What one summary covers: a thread, or a channel's or DM's log. */
 export type SummaryTarget =
   | { kind: 'thread'; messageId: string }
-  | { kind: 'channel'; channelId: string };
+  | { kind: 'channel'; roomId: string };
 
 export type SummaryState =
   | { status: 'idle' }
@@ -28,7 +28,7 @@ export function useSummaryRun(target: SummaryTarget) {
   const [state, setState] = useState<SummaryState>({ status: 'idle' });
   const running = useRef<AbortController | null>(null);
   const lastRange = useRef<SummaryRange | undefined>(undefined);
-  const id = target.kind === 'thread' ? target.messageId : target.channelId;
+  const id = target.kind === 'thread' ? target.messageId : target.roomId;
 
   const stop = useCallback(() => {
     running.current?.abort();
@@ -51,9 +51,9 @@ export function useSummaryRun(target: SummaryTarget) {
                 { messageId: id },
                 { signal: controller.signal }
               )
-            : await client.summaries.channel(
+            : await client.summaries.room(
                 {
-                  channelId: id,
+                  roomId: id,
                   from: (
                     range?.from ?? new Date(Date.now() - DAY_MS)
                   ).toISOString(),

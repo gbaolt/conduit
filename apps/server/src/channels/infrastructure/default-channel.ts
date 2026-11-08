@@ -10,12 +10,12 @@ export async function ensureDefaultChannel(
 ) {
   const where = { defaultForOrganizationId: organization.id };
   const select = { id: true };
-  let channel = await prisma.channel.findUnique({ where, select });
+  let channel = await prisma.room.findUnique({ where, select });
   let created = 0;
 
   if (!channel) {
     // skipDuplicates is ON CONFLICT DO NOTHING, so a concurrent call that lost the race reads the winner's row.
-    const rows = await prisma.channel.createManyAndReturn({
+    const rows = await prisma.room.createManyAndReturn({
       data: {
         organizationId: organization.id,
         name: toChannelName(
@@ -28,11 +28,11 @@ export async function ensureDefaultChannel(
     });
     created = rows.length;
     channel =
-      rows[0] ?? (await prisma.channel.findUniqueOrThrow({ where, select }));
+      rows[0] ?? (await prisma.room.findUniqueOrThrow({ where, select }));
   }
 
-  const { count: added } = await prisma.channelMember.createMany({
-    data: userIds.map((userId) => ({ channelId: channel.id, userId })),
+  const { count: added } = await prisma.roomMember.createMany({
+    data: userIds.map((userId) => ({ roomId: channel.id, userId })),
     skipDuplicates: true,
   });
 

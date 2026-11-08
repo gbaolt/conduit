@@ -4,7 +4,7 @@ import { queryOptions, skipToken } from '@tanstack/react-query';
 import { orpc } from '@/lib/orpc';
 
 /**
- * The `sidebar` stream's rows, one per conversation the viewer belongs to. Keyed by `channelId`, so a DM
+ * The `sidebar` stream's rows, one per conversation the viewer belongs to. Keyed by `roomId`, so a DM
  * reads the same way as a channel. Only the stream writes it, so there is no fetch.
  */
 export const sidebarStateQuery = queryOptions<SidebarEntry[]>({
@@ -24,9 +24,9 @@ export const presenceQuery = queryOptions<PresenceRow[]>({
  * The saved draft of a conversation, or of one thread of it. Never kept after the composer closes, so
  * opening the conversation again, here or on another device, reads the draft as it is now.
  */
-export const draftQuery = (channelId: string, parentId?: string) =>
+export const draftQuery = (roomId: string, parentId?: string) =>
   orpc.drafts.get.queryOptions({
-    input: { channelId, parentId },
+    input: { roomId, parentId },
     gcTime: 0,
   });
 

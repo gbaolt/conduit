@@ -1,4 +1,4 @@
-import type { Channel, WorkspaceRole } from '@conduit/contract';
+import type { Room, WorkspaceRole } from '@conduit/contract';
 import { describe, expect, it } from 'vitest';
 
 import { getChannelActions } from '../channel-actions';
@@ -9,7 +9,7 @@ function channel(
   kind: Kind,
   membership: 'manager' | 'member' | null,
   archivedAt: Date | null = null
-): Channel {
+): Room {
   return {
     id: 'c1',
     organizationId: 'o1',
@@ -170,7 +170,7 @@ describe('getChannelActions', () => {
       ...plain,
       membership: { ...plain.membership!, starredAt: new Date(0) },
     };
-    const idsOf = (c: Channel) =>
+    const idsOf = (c: Room) =>
       getChannelActions(c, { workspaceRole: 'member' }).map((a) => a.id);
 
     expect(idsOf(plain)).toContain('star');

@@ -19,7 +19,7 @@ import {
 /** A message the member sent that the server has not stored yet, or could not store. */
 export type PendingMessage = {
   clientId: string;
-  channelId: string;
+  roomId: string;
   /** The root of the thread this reply goes to, or null for a message in the channel. */
   parentId: string | null;
   alsoSentToChannel: boolean;
@@ -43,7 +43,7 @@ const subscribe = (listener: () => void) => {
 };
 
 /** The unsent messages of the channel's log, or of one thread when `parentId` is set. */
-export function usePendingMessages(channelId: string, parentId?: string) {
+export function usePendingMessages(roomId: string, parentId?: string) {
   const all = useSyncExternalStore(
     subscribe,
     () => pending,
@@ -53,12 +53,12 @@ export function usePendingMessages(channelId: string, parentId?: string) {
     () =>
       all.filter(
         (message) =>
-          message.channelId === channelId &&
+          message.roomId === roomId &&
           (parentId
             ? message.parentId === parentId
             : !message.parentId || message.alsoSentToChannel)
       ),
-    [all, channelId, parentId]
+    [all, roomId, parentId]
   );
 }
 
@@ -76,7 +76,7 @@ const removePending = (clientId: string) =>
  * Sends optimistically: the row shows at once, keyed by `clientId`, and the stored message replaces it.
  * With `parentId` the message is a reply in that thread.
  */
-export function useSendMessage(channelId: string, parentId?: string) {
+export function useSendMessage(roomId: string, parentId?: string) {
   const queryClient = useQueryClient();
 
   const deliver = useCallback(
@@ -85,7 +85,7 @@ export function useSendMessage(channelId: string, parentId?: string) {
       patchPending(clientId, { status: 'sending' });
       try {
         const sent = await client.messages.send({
-          channelId,
+          roomId,
           clientId,
           body,
           parentId: message.parentId ?? undefined,
@@ -93,7 +93,7 @@ export function useSendMessage(channelId: string, parentId?: string) {
         });
         if (sent.txid) {
           await awaitLiveTransaction(
-            message.parentId ? threadStreamKey(message.parentId) : channelId,
+            message.parentId ? threadStreamKey(message.parentId) : roomId,
             sent.txid
           );
         }
@@ -103,14 +103,14 @@ export function useSendMessage(channelId: string, parentId?: string) {
         patchPending(clientId, { status: 'failed' });
       }
     },
-    [channelId, queryClient]
+    [roomId, queryClient]
   );
 
   const send = useCallback(
     (body: string, alsoSentToChannel = false) => {
       const message: PendingMessage = {
         clientId: crypto.randomUUID(),
-        channelId,
+        roomId,
         parentId: parentId ?? null,
         alsoSentToChannel: Boolean(parentId) && alsoSentToChannel,
         body,
@@ -120,7 +120,7 @@ export function useSendMessage(channelId: string, parentId?: string) {
       setPending([...pending, message]);
       void deliver(message);
     },
-    [channelId, parentId, deliver]
+    [roomId, parentId, deliver]
   );
 
   const retry = useCallback(
@@ -144,14 +144,14 @@ export function useEditMessage() {
   );
 }
 
-export function useDeleteMessage(channelId: string) {
+export function useDeleteMessage(roomId: string) {
   const queryClient = useQueryClient();
 
   return useMutation(
     orpc.messages.delete.mutationOptions({
       // Clears the row ahead of the live row that confirms it.
       onSuccess: (_, { messageId }) =>
-        patchCachedMessage(queryClient, channelId, messageId, (message) => ({
+        patchCachedMessage(queryClient, roomId, messageId, (message) => ({
           ...message,
           body: '',
           deletedAt: new Date(),
@@ -164,7 +164,7 @@ export function useDeleteMessage(channelId: string) {
 type ReactionChange = typeof addReaction | typeof removeReaction;
 
 /** Adds the viewer's reaction or takes it back. The row changes at once, and the stored message replaces it. */
-export function useToggleReaction(channelId: string) {
+export function useToggleReaction(roomId: string) {
   const queryClient = useQueryClient();
   const { data: session } = useQuery(sessionQuery);
   const viewerId = session?.user.id;
@@ -173,7 +173,7 @@ export function useToggleReaction(channelId: string) {
     onMutate: ({ messageId, emoji }: { messageId: string; emoji: string }) => {
       let previous: Message | undefined;
       if (viewerId) {
-        patchCachedMessage(queryClient, channelId, messageId, (message) => {
+        patchCachedMessage(queryClient, roomId, messageId, (message) => {
           previous ??= message;
           return {
             ...message,
@@ -192,7 +192,7 @@ export function useToggleReaction(channelId: string) {
     ) => {
       const previous = context?.previous;
       if (previous) {
-        patchCachedMessage(queryClient, channelId, messageId, () => previous);
+        patchCachedMessage(queryClient, roomId, messageId, () => previous);
       }
       toast.error(error.message);
     },
@@ -226,14 +226,14 @@ export function useRemoveLinkPreview() {
 }
 
 /** Pins an unpinned message and unpins a pinned one. */
-export function useTogglePin(channelId: string) {
+export function useTogglePin(roomId: string) {
   const queryClient = useQueryClient();
 
   const mutationOptions = {
     onSuccess: (message: Message) => {
       cacheMessage(queryClient, message);
       return queryClient.invalidateQueries({
-        queryKey: pinnedQuery(channelId).queryKey,
+        queryKey: pinnedQuery(roomId).queryKey,
       });
     },
     onError: (error: Error) => toast.error(error.message),

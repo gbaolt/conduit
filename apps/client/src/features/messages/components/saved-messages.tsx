@@ -13,7 +13,7 @@ import { savedQuery } from '@/services/messages/queries';
 
 import { MentionNames } from '../context/mention-names';
 import { useAuthors } from '../lib/use-authors';
-import { MessageExcerpt } from './message-excerpt';
+import { MessageExcerpt } from './message/message-excerpt';
 
 const FORMER_MEMBER = { name: 'Former member', image: null };
 
@@ -28,7 +28,7 @@ function SavedItem({ item }: { item: SavedMessage }) {
       author={authors.get(message.authorId) ?? FORMER_MEMBER}
       context={
         <Link
-          href={`${channelName === null ? '/dms' : '/channels'}/${message.channelId}${
+          href={`${channelName === null ? '/dms' : '/channels'}/${message.roomId}${
             message.parentId ? `?thread=${message.parentId}` : ''
           }`}
           className="text-primary mb-0.5 flex w-fit items-center gap-0.5 text-xs hover:underline"

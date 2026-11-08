@@ -29,6 +29,10 @@ These commands write to a database: `prisma migrate dev`, `migrate deploy`, `mig
 4. Run `pnpm db:generate`, then `pnpm typecheck`.
 5. Ship the migration in the same PR as the schema change. Every schema change goes through a migration, so `prisma db push` stays unused.
 
+## Mapped names
+
+The models `Room` and `RoomMember` and the enums `RoomKind` and `RoomRole` keep their old database names through `@@map`: the tables are `Channel` and `ChannelMember`. Every `roomId` field is a `channelId` column through `@map`. Raw SQL uses the database names, so a raw query whose rows reach the client aliases `"channelId" AS "roomId"`, as `src/realtime/application/live-streams.ts` does.
+
 ## Backfill data
 
 Put a backfill in `apps/server/scripts/`, and add a `db:` script for it to `apps/server/package.json`. Make it idempotent, so a second run changes nothing. `ensureDefaultChannel` in `src/channels/infrastructure/default-channel.ts` is the reference. It uses `createMany` with `skipDuplicates`, and reads the winner's row after it loses a race.

@@ -30,7 +30,7 @@ import {
 import { summaryMessageBody } from '@/summaries/domain/summary-share';
 
 type Scope = {
-  channelId: string;
+  roomId: string;
   parentId: string | null;
   from: Date | null;
   to: Date | null;
@@ -67,12 +67,12 @@ export class SummariesService {
     }
 
     const messages = await this.messages.listForSummary(viewer, {
-      channelId: root.channelId,
+      roomId: root.roomId,
       threadId: root.id,
     });
     return this.start(
       viewer,
-      { channelId: root.channelId, parentId: root.id, from: null, to: null },
+      { roomId: root.roomId, parentId: root.id, from: null, to: null },
       messages,
       signal
     );
@@ -81,7 +81,7 @@ export class SummariesService {
   /** Summarizes the channel's log, or a DM's, from `from` until `to`, or until now without one. */
   async summarizeChannel(
     viewer: MessageViewer,
-    input: { channelId: string; from: string; to?: string },
+    input: { roomId: string; from: string; to?: string },
     signal?: AbortSignal
   ) {
     await this.access.assertEnabled(viewer.organizationId);
@@ -89,13 +89,13 @@ export class SummariesService {
     const to = input.to ? new Date(input.to) : null;
 
     const messages = await this.messages.listForSummary(viewer, {
-      channelId: input.channelId,
+      roomId: input.roomId,
       from,
       to: to ?? undefined,
     });
     return this.start(
       viewer,
-      { channelId: input.channelId, parentId: null, from, to },
+      { roomId: input.roomId, parentId: null, from, to },
       messages,
       signal
     );
@@ -122,10 +122,10 @@ export class SummariesService {
       return toSummary(stored);
     }
 
-    const channel = await this.messages.find(viewer, stored.channelId);
+    const channel = await this.messages.find(viewer, stored.roomId);
     const path = `${channel.kind === 'dm' ? '/dms' : '/channels'}/${channel.id}`;
     const { message } = await this.messages.send(viewer, {
-      channelId: stored.channelId,
+      roomId: stored.roomId,
       clientId: `summary-${stored.id}`,
       body: summaryMessageBody(toSummary(stored), path),
       parentId: stored.parentId ?? undefined,
@@ -139,7 +139,7 @@ export class SummariesService {
     if (!stored || stored.organizationId !== viewer.organizationId) {
       throw summaryError('NOT_FOUND');
     }
-    await this.messages.find(viewer, stored.channelId);
+    await this.messages.find(viewer, stored.roomId);
     return stored;
   }
 
@@ -197,7 +197,7 @@ export class SummariesService {
     const stored = await this.summaries.create({
       organizationId: viewer.organizationId,
       requesterId: viewer.userId,
-      channelId: scope.channelId,
+      roomId: scope.roomId,
       parentId: scope.parentId,
       from: scope.from,
       to: scope.to ?? new Date(),

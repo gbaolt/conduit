@@ -24,7 +24,7 @@ import {
 
 import { ActivityService } from '@/activity/application/activity.service';
 import { InMemoryActivityRepository } from '@/activity/testing/in-memory-activity.repository';
-import type { ChannelsRepository } from '@/channels/domain/channels.repository';
+import type { RoomsRepository } from '@/rooms/domain/rooms.repository';
 
 const MEMBERS = 10;
 const MINUTES = 10;
@@ -52,11 +52,11 @@ async function run(profile: keyof typeof PROFILES) {
   const { typeMs, pauseMs } = PROFILES[profile];
   mock.timers.enable({ apis: ['setTimeout', 'setInterval', 'Date'], now: 0 });
 
-  const messages = new Map<string, { channelId: string; createdAt: Date }>();
+  const messages = new Map<string, { roomId: string; createdAt: Date }>();
   const repository = new InMemoryActivityRepository(messages);
   const service = new ActivityService(repository, {
     find: async () => channel,
-  } as unknown as ChannelsRepository);
+  } as unknown as RoomsRepository);
 
   const members = Array.from({ length: MEMBERS }, (_, index) => {
     const viewer = {
@@ -64,7 +64,7 @@ async function run(profile: keyof typeof PROFILES) {
       organizationId: 'org',
       workspaceRole: 'member' as const,
     };
-    const key = { channelId: 'c1' };
+    const key = { roomId: 'c1' };
     const activity = createComposerActivity({
       saved: '',
       saveDraft: (body) => void service.saveDraft(viewer, key, body),
@@ -72,7 +72,7 @@ async function run(profile: keyof typeof PROFILES) {
     });
     const markRead = createTrailingWriter(
       (messageId: string) =>
-        void service.markRead(viewer, { channelId: 'c1', messageId }),
+        void service.markRead(viewer, { roomId: 'c1', messageId }),
       { debounceMs: READ_DEBOUNCE_MS, minIntervalMs: READ_MIN_INTERVAL_MS }
     );
     // Members start at different moments, as real tabs do.
@@ -95,7 +95,7 @@ async function run(profile: keyof typeof PROFILES) {
       if (elapsed >= sendDueAt) {
         member.sent++;
         const id = `m-${index}-${member.sent}`;
-        messages.set(id, { channelId: 'c1', createdAt: new Date(elapsed) });
+        messages.set(id, { roomId: 'c1', createdAt: new Date(elapsed) });
         member.text = '';
         member.activity.change('');
         members.forEach((other, otherIndex) => {

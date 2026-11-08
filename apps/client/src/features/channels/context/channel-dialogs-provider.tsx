@@ -1,37 +1,31 @@
 'use client';
 
-import type { Channel, ChannelSection } from '@conduit/contract';
+import type { ChannelSection, Room } from '@conduit/contract';
 import { createContext, type ReactNode, use, useMemo, useState } from 'react';
 
-import { AddDmPeopleDialog } from '../components/add-dm-people-dialog';
-import { AddMembersDialog } from '../components/add-members-dialog';
-import { ArchiveChannelDialog } from '../components/archive-channel-dialog';
-import { BrowseChannelsDialog } from '../components/browse-channels-dialog';
-import { ChangeVisibilityDialog } from '../components/change-visibility-dialog';
-import { ChannelDetailsDialog } from '../components/channel-details-dialog';
-import { ConvertDmDialog } from '../components/convert-dm-dialog';
-import { CreateChannelDialog } from '../components/create-channel-dialog';
-import { DeleteChannelDialog } from '../components/delete-channel-dialog';
-import { NewDmDialog } from '../components/new-dm-dialog';
-import { RenameChannelDialog } from '../components/rename-channel-dialog';
-import { SectionNameDialog } from '../components/section-name-dialog';
+import { AddMembersDialog } from '../components/dialogs/add-members-dialog';
+import { ArchiveChannelDialog } from '../components/dialogs/archive-channel-dialog';
+import { BrowseChannelsDialog } from '../components/dialogs/browse-channels-dialog';
+import { ChangeVisibilityDialog } from '../components/dialogs/change-visibility-dialog';
+import { ChannelDetailsDialog } from '../components/dialogs/channel-details-dialog';
+import { CreateChannelDialog } from '../components/dialogs/create-channel-dialog';
+import { DeleteChannelDialog } from '../components/dialogs/delete-channel-dialog';
+import { RenameChannelDialog } from '../components/dialogs/rename-channel-dialog';
+import { SectionNameDialog } from '../components/dialogs/section-name-dialog';
 
 /** Every dialog the channel UI can open. A new dialog adds one member here and one case in `OpenChannelDialog`. */
 export type ChannelDialog =
   | { kind: 'create' }
   | { kind: 'browse' }
-  | { kind: 'rename'; channel: Channel }
-  | { kind: 'delete'; channel: Channel }
-  | { kind: 'details'; channel: Channel; tab?: 'about' | 'members' }
-  | { kind: 'add-members'; channel: Channel }
+  | { kind: 'rename'; channel: Room }
+  | { kind: 'delete'; channel: Room }
+  | { kind: 'details'; channel: Room; tab?: 'about' | 'members' }
+  | { kind: 'add-members'; channel: Room }
   /** Archives an active channel and unarchives an archived one. */
-  | { kind: 'archive'; channel: Channel }
-  | { kind: 'visibility'; channel: Channel }
-  | { kind: 'new-dm' }
-  | { kind: 'dm-add-people'; channelId: string }
-  | { kind: 'dm-convert'; channelId: string }
+  | { kind: 'archive'; channel: Room }
+  | { kind: 'visibility'; channel: Room }
   /** Renames `section`, or creates one (and moves `channel` into it) when there is no `section`. */
-  | { kind: 'section-name'; section?: ChannelSection; channel?: Channel };
+  | { kind: 'section-name'; section?: ChannelSection; channel?: Room };
 
 type ChannelDialogsValue = {
   open: (dialog: ChannelDialog) => void;
@@ -58,12 +52,6 @@ function OpenChannelDialog({ dialog }: { dialog: ChannelDialog }) {
       return <ArchiveChannelDialog channel={dialog.channel} />;
     case 'visibility':
       return <ChangeVisibilityDialog channel={dialog.channel} />;
-    case 'new-dm':
-      return <NewDmDialog />;
-    case 'dm-add-people':
-      return <AddDmPeopleDialog channelId={dialog.channelId} />;
-    case 'dm-convert':
-      return <ConvertDmDialog channelId={dialog.channelId} />;
     case 'section-name':
       return (
         <SectionNameDialog section={dialog.section} channel={dialog.channel} />

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { ChannelNameSchema } from '@/schemas/channels';
+import { ChannelNameSchema } from '@/schemas/rooms';
 
 /** The most people one DM holds, the caller included. */
 export const DM_MEMBERS_MAX = 10;
@@ -12,7 +12,7 @@ export const DmMemberSchema = z.object({
 });
 export type DmMember = z.infer<typeof DmMemberSchema>;
 
-/** A direct conversation. Its `id` is a channel id, so messages, threads, and live streams treat it as any channel. */
+/** A direct conversation. Its `id` is a room id, so messages, threads, and live streams treat it as any room. */
 export const DmSchema = z.object({
   id: z.string(),
   /** Everyone in it, the caller included. A DM with only the caller is the self DM. */
@@ -28,12 +28,12 @@ export const OpenDmInputSchema = z.object({
 });
 
 export const AddDmPeopleInputSchema = z.object({
-  channelId: z.string(),
+  roomId: z.string(),
   userIds: z.array(z.string()).min(1).max(DM_MEMBERS_MAX),
 });
 
 export const ConvertDmInputSchema = z.object({
-  channelId: z.string(),
+  roomId: z.string(),
   name: ChannelNameSchema,
 });
 

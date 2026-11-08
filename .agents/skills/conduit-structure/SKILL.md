@@ -16,6 +16,20 @@ A new feature touches the layers in this order. Each step builds on the one befo
 3. Client data. Add query options and hooks to `apps/client/src/services/<domain>/`.
 4. Client UI. Add components to `apps/client/src/features/<domain>/` and the route to `app/`.
 
+## Rooms: one base, two kinds
+
+A **room** is a channel or a DM: one record with a `kind`. Every layer splits room code into a **base** and two **kinds**:
+
+| Layer    | Base                                     | Kinds                                                                              |
+| -------- | ---------------------------------------- | ---------------------------------------------------------------------------------- |
+| Contract | `schemas/rooms.ts`, `contracts/rooms.ts` | `channels.ts` and `channel-sections.ts`, `dms.ts`                                  |
+| Server   | `rooms/`                                 | `channels/`, `dms/`                                                                |
+| Client   | `services/rooms/`, `features/rooms/`     | `services/channels/` and `features/channels/`, `services/dms/` and `features/dms/` |
+
+Place room code by who needs it. Code that both kinds need goes in the base, and code that one kind needs goes in that kind. Imports run from a kind to the base: the base imports neither kind, and the two kinds never import each other. A domain that serves every room, such as `messages`, may import the base and both kinds.
+
+Name the shared record `Room` and its id `roomId`. Keep `channel` and `dm` in names that only one kind uses, such as `createChannel` and `useOpenDm`. Sidebar rows of both kinds compose `RoomGroup` and `RoomItem` from `features/rooms/components/room-sidebar.tsx`.
+
 ## `packages/contract/src`
 
 | Path                    | Holds                                                                                             |
@@ -32,8 +46,8 @@ The server follows Clean Architecture. Each feature folder holds four layers, an
 
 | Path                                       | Holds                                                                                                                                                                                                                 |
 | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `<domain>/<domain>.module.ts`              | the feature module, imported by `app.module.ts`. It binds each port to its implementation: `{ provide: ChannelsRepository, useClass: PrismaChannelsRepository }`                                                      |
-| `<domain>/domain/*.repository.ts`          | ports for data the app owns: abstract classes that take and return contract types, such as `ChannelsRepository`                                                                                                       |
+| `<domain>/<domain>.module.ts`              | the feature module, imported by `app.module.ts`. It binds each port to its implementation: `{ provide: RoomsRepository, useClass: PrismaRoomsRepository }`                                                            |
+| `<domain>/domain/*.repository.ts`          | ports for data the app owns: abstract classes that take and return contract types, such as `RoomsRepository`                                                                                                          |
 | `<domain>/domain/*.gateway.ts`             | ports for Better Auth, such as `OrganizationsGateway` and `SessionsGateway`. Methods take web `Headers`, which carry the caller's session                                                                             |
 | `<domain>/domain/*-errors.ts`              | error helpers such as `channelError('NOT_FOUND')`. They build a `DomainError` from the contract's error map                                                                                                           |
 | `<domain>/application/*.service.ts`        | use cases: business rules and permission checks, written against the ports. Tests beside them run against `TEST_DATABASE_URL` or a fake port                                                                          |
@@ -77,10 +91,10 @@ Import rules. `apps/server/eslint.config.js` enforces the first three, so lint f
 | `lib/query/hydration.tsx`            | `getQueryClient` and `HydrateClient`                                                                                                                                                |
 | `@conduit/ui/components/*`           | shadcn primitives from `packages/ui`. Build every control and table from them; when one is missing, add the shadcn component to `packages/ui` first. Leave existing files unchanged |
 
-A feature folder is a domain, not a screen. The domains are `workspace`, `channels`, `auth`, and `onboarding`. Before you add a folder under `features/`, name the domain whose data the new code shows. When that domain already has a folder, the code goes inside it: settings, dialogs, and pages of the workspace live in `features/workspace/components/<area>/`. A new top-level feature folder is a new domain, with its own `services/<domain>/` or its own flow.
+A feature folder is a domain, not a screen. The domains are `workspace`, `rooms`, `channels`, `dms`, `messages`, `auth`, and `onboarding`. Before you add a folder under `features/`, name the domain whose data the new code shows. When that domain already has a folder, the code goes inside it: settings, dialogs, and pages of the workspace live in `features/workspace/components/<area>/`. A new top-level feature folder is a new domain, with its own `services/<domain>/` or its own flow.
 
 Import rules:
 
 - Only `services/` and `features/auth` import `authClient`.
 - Components reach the API through `services/`, not through `lib/orpc.ts`.
-- A server component fetches inside a `<Suspense>` boundary, then wraps its children in `HydrateClient`. `app/(dashboard)/(home)/channels/[channelId]/page.tsx` is the reference.
+- A server component fetches inside a `<Suspense>` boundary, then wraps its children in `HydrateClient`. `app/(dashboard)/(home)/channels/[roomId]/page.tsx` is the reference.

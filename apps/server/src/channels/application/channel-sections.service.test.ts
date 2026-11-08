@@ -2,8 +2,12 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { ensureDefaultChannel } from '@/channels/infrastructure/default-channel';
 import { PrismaChannelSectionsRepository } from '@/channels/infrastructure/prisma-channel-sections.repository';
-import { PrismaChannelsRepository } from '@/channels/infrastructure/prisma-channels.repository';
 import { prisma } from '@/infrastructure/database/prisma.service';
+import {
+  RoomsService,
+  type RoomViewer,
+} from '@/rooms/application/rooms.service';
+import { PrismaRoomsRepository } from '@/rooms/infrastructure/prisma-rooms.repository';
 import { PrismaWorkspaceMembersRepository } from '@/workspaces/infrastructure/prisma-workspace-members.repository';
 import { PrismaWorkspaceSettingsRepository } from '@/workspaces/infrastructure/prisma-workspace-settings.repository';
 
@@ -11,7 +15,7 @@ import {
   ChannelSectionsService,
   type SectionViewer,
 } from './channel-sections.service';
-import { ChannelsService, type ChannelViewer } from './channels.service';
+import { ChannelsService } from './channels.service';
 
 // vi.hoisted runs before the imports above.
 vi.hoisted(() => {
@@ -25,11 +29,16 @@ const connectionString = process.env.TEST_DATABASE_URL;
 describe.skipIf(!connectionString)('star and sections', () => {
   const sectionsRepository = new PrismaChannelSectionsRepository(prisma);
   const settings = new PrismaWorkspaceSettingsRepository(prisma);
+  const rooms = new RoomsService(
+    new PrismaRoomsRepository(prisma),
+    new PrismaWorkspaceMembersRepository(prisma)
+  );
   const channels = new ChannelsService(
-    new PrismaChannelsRepository(prisma),
+    new PrismaRoomsRepository(prisma),
     sectionsRepository,
     new PrismaWorkspaceMembersRepository(prisma),
-    settings
+    settings,
+    rooms
   );
   const sections = new ChannelSectionsService(sectionsRepository);
   const run = crypto.randomUUID();
@@ -37,8 +46,8 @@ describe.skipIf(!connectionString)('star and sections', () => {
   const users = { owner: `${run}-owner`, member: `${run}-member` };
   const viewer = (
     userId: string,
-    workspaceRole: ChannelViewer['workspaceRole']
-  ): ChannelViewer & SectionViewer => ({
+    workspaceRole: RoomViewer['workspaceRole']
+  ): RoomViewer & SectionViewer => ({
     userId,
     organizationId: organization.id,
     workspaceRole,
@@ -47,8 +56,8 @@ describe.skipIf(!connectionString)('star and sections', () => {
   const member = viewer(users.member, 'member');
   let defaultChannelId: string;
 
-  const membershipOf = async (v: ChannelViewer, channelId: string) =>
-    (await channels.get(v.userId, channelId)).membership;
+  const membershipOf = async (v: RoomViewer, roomId: string) =>
+    (await rooms.get(v.userId, roomId)).membership;
 
   beforeAll(async () => {
     await prisma.user.createMany({
@@ -76,7 +85,7 @@ describe.skipIf(!connectionString)('star and sections', () => {
       users.member,
     ]);
     defaultChannelId = (
-      await prisma.channel.findUniqueOrThrow({
+      await prisma.room.findUniqueOrThrow({
         where: { defaultForOrganizationId: organization.id },
       })
     ).id;

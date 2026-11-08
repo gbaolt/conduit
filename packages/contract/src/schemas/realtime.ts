@@ -4,13 +4,13 @@ import { z } from 'zod';
 export const LiveStreamSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('conversation'),
-    channelId: z.string(),
+    roomId: z.string(),
     /** Rows changed at or after this time arrive live. Fixed for a subscription, so a renewal seals the same query. */
     since: z.coerce.date(),
   }),
   z.object({
     kind: z.literal('thread'),
-    channelId: z.string(),
+    roomId: z.string(),
     /** The thread's root. The stream carries the root and its replies. */
     parentId: z.string(),
     since: z.coerce.date(),
@@ -18,7 +18,7 @@ export const LiveStreamSchema = z.discriminatedUnion('kind', [
   /** Who is typing in a conversation, other than the caller. Rows from `since` on arrive live. */
   z.object({
     kind: z.literal('typing'),
-    channelId: z.string(),
+    roomId: z.string(),
     since: z.coerce.date(),
   }),
   /** The caller's conversations with their read state and drafts. */

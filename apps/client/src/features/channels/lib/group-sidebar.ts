@@ -1,4 +1,4 @@
-import type { Channel, ChannelSection } from '@conduit/contract';
+import type { ChannelSection, Room } from '@conduit/contract';
 
 export const STARRED_GROUP_ID = 'starred';
 export const CHANNELS_GROUP_ID = 'channels';
@@ -9,10 +9,10 @@ export type SidebarGroup = {
   name: string;
   /** Set only on a user's own section. */
   section: ChannelSection | null;
-  channels: Channel[];
+  channels: Room[];
 };
 
-const byDefaultThenName = (a: Channel, b: Channel) =>
+const byDefaultThenName = (a: Room, b: Room) =>
   Number(b.isDefault) - Number(a.isDefault) || a.name.localeCompare(b.name);
 
 /**
@@ -20,7 +20,7 @@ const byDefaultThenName = (a: Channel, b: Channel) =>
  * Starred, then the viewer's sections by position, then Channels. A starred channel shows only under Starred.
  */
 export function groupSidebar(
-  channels: Channel[],
+  channels: Room[],
   sections: ChannelSection[]
 ): SidebarGroup[] {
   const joined = channels.filter((channel) => channel.membership !== null);

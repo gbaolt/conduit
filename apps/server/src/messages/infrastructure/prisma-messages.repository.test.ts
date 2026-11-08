@@ -19,11 +19,11 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
   const run = crypto.randomUUID();
   const organizationId = run;
   const userId = `${run}-user`;
-  const channelId = `${run}-channel`;
+  const roomId = `${run}-channel`;
   const mentions = { userIds: [], channel: false, here: false };
 
   const send = (clientId: string, body = clientId) =>
-    repository.send({ channelId, authorId: userId, clientId, body, mentions });
+    repository.send({ roomId, authorId: userId, clientId, body, mentions });
 
   beforeAll(async () => {
     await prisma.user.create({
@@ -37,8 +37,8 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
         createdAt: new Date(),
       },
     });
-    await prisma.channel.create({
-      data: { id: channelId, organizationId, name: 'design' },
+    await prisma.room.create({
+      data: { id: roomId, organizationId, name: 'design' },
     });
   });
 
@@ -52,8 +52,8 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
     const { message, txid } = await send('first');
 
     expect(txid).toMatch(/^\d+$/);
-    const channel = await prisma.channel.findUniqueOrThrow({
-      where: { id: channelId },
+    const channel = await prisma.room.findUniqueOrThrow({
+      where: { id: roomId },
     });
     expect(channel.lastMessageAt).toEqual(message.createdAt);
   });
@@ -66,19 +66,19 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
     expect(again.message.id).toBe(first.message.id);
     expect(again.message.body).toBe('one');
     expect(
-      await prisma.message.count({ where: { channelId, clientId: 'retry' } })
+      await prisma.message.count({ where: { roomId, clientId: 'retry' } })
     ).toBe(1);
   });
 
   it('pages newest first without skipping or repeating rows that share a createdAt', async () => {
-    const paging = await prisma.channel.create({
+    const paging = await prisma.room.create({
       data: { organizationId, name: 'paging' },
     });
     const createdAt = new Date('2026-01-01T00:00:00.000Z');
     await prisma.message.createMany({
       data: ['a', 'b', 'c', 'd', 'e'].map((id) => ({
         id: `${run}-${id}`,
-        channelId: paging.id,
+        roomId: paging.id,
         authorId: userId,
         clientId: id,
         body: id,
@@ -109,7 +109,7 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
 
   it('refuses a cursor from another channel', async () => {
     const { message } = await send('cursor');
-    const other = await prisma.channel.create({
+    const other = await prisma.room.create({
       data: { organizationId, name: 'other' },
     });
 
@@ -122,7 +122,7 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
     const { message } = await send('to-delete');
     await repository.markDeleted(message.id);
 
-    const page = await repository.list(channelId, { limit: 100 });
+    const page = await repository.list(roomId, { limit: 100 });
 
     expect(page?.messages.map((m) => m.id)).not.toContain(message.id);
   });
@@ -168,14 +168,14 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
     await repository.setPinned(first.message.id, userId);
     await repository.setPinned(second.message.id, userId);
 
-    const pinned = await repository.listPinned(channelId);
+    const pinned = await repository.listPinned(roomId);
     expect(pinned.map((m) => m.id)).toEqual([
       second.message.id,
       first.message.id,
     ]);
 
     await repository.setPinned(second.message.id, null);
-    const after = await repository.listPinned(channelId);
+    const after = await repository.listPinned(roomId);
     expect(after.map((m) => m.id)).toEqual([first.message.id]);
   });
 
@@ -202,7 +202,7 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
       alsoSentToChannel = false
     ) =>
       repository.send({
-        channelId,
+        roomId,
         authorId: userId,
         clientId,
         body: clientId,
@@ -241,7 +241,7 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
       const quiet = await reply(root.id, 'quiet');
       const loud = await reply(root.id, 'loud', true);
 
-      const page = await repository.list(channelId, { limit: 100 });
+      const page = await repository.list(roomId, { limit: 100 });
       const ids = page!.messages.map((message) => message.id);
 
       expect(ids).not.toContain(quiet.message.id);
@@ -250,14 +250,14 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
 
     it('leaves lastMessageAt alone for a reply that stays in the thread', async () => {
       const { message: root } = await send('quiet-root');
-      const before = await prisma.channel.findUniqueOrThrow({
-        where: { id: channelId },
+      const before = await prisma.room.findUniqueOrThrow({
+        where: { id: roomId },
       });
 
       await reply(root.id, 'quiet-reply');
 
-      const after = await prisma.channel.findUniqueOrThrow({
-        where: { id: channelId },
+      const after = await prisma.room.findUniqueOrThrow({
+        where: { id: roomId },
       });
       expect(after.lastMessageAt).toEqual(before.lastMessageAt);
     });
@@ -269,10 +269,10 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
       const c = await reply(root.id, 'c');
       await repository.markDeleted(b.message.id);
 
-      const first = await repository.listReplies(channelId, root.id, {
+      const first = await repository.listReplies(roomId, root.id, {
         limit: 1,
       });
-      const second = await repository.listReplies(channelId, root.id, {
+      const second = await repository.listReplies(roomId, root.id, {
         limit: 1,
         before: first?.messages.at(-1)?.id,
       });
@@ -289,7 +289,7 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
       const inOne = await reply(one.id, 'in-one');
 
       await expect(
-        repository.listReplies(channelId, two.id, {
+        repository.listReplies(roomId, two.id, {
           limit: 10,
           before: inOne.message.id,
         })
@@ -314,7 +314,7 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
       await reply(root.id, 'tomb-reply');
       await repository.markDeleted(root.id);
 
-      const page = await repository.list(channelId, { limit: 100 });
+      const page = await repository.list(roomId, { limit: 100 });
 
       expect(page?.messages.map((m) => m.id)).toContain(root.id);
     });
@@ -322,12 +322,12 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
 
   describe('listForSummary', () => {
     it('reads the channel log, or one thread with its root, oldest first, and leaves deleted messages out', async () => {
-      const summaryChannel = await prisma.channel.create({
+      const summaryChannel = await prisma.room.create({
         data: { organizationId, name: 'summary' },
       });
       const post = (clientId: string, extra: { parentId?: string } = {}) =>
         repository.send({
-          channelId: summaryChannel.id,
+          roomId: summaryChannel.id,
           authorId: userId,
           clientId,
           body: clientId,

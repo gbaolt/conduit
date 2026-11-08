@@ -5,7 +5,7 @@ import type { LiveQuery } from '@/realtime/domain/live-queries.port';
 /** The columns of `Message` that `MessageSchema` reads. */
 const MESSAGE_COLUMNS = [
   'id',
-  'channelId',
+  'roomId',
   'authorId',
   'clientId',
   'parentId',
@@ -25,7 +25,10 @@ const MESSAGE_COLUMNS = [
   'createdAt',
   'updatedAt',
 ]
-  .map((column) => `"${column}"`)
+  // Raw rows carry database column names; the client parses them with `MessageSchema`.
+  .map((column) =>
+    column === 'channelId' ? '"channelId" AS "roomId"' : `"${column}"`
+  )
   .join(', ');
 
 /** Who is asking. The server fills the viewer's ids into a query, so a client can only ask for its own rows. */
@@ -41,23 +44,23 @@ export function queryFor(stream: LiveStream, viewer: StreamViewer): LiveQuery {
     case 'conversation':
       return {
         sql: `SELECT ${MESSAGE_COLUMNS} FROM "Message" WHERE "channelId" = $1 AND ("parentId" IS NULL OR "alsoSentToChannel") AND "updatedAt" >= $2`,
-        parameters: [stream.channelId, stream.since],
+        parameters: [stream.roomId, stream.since],
       };
     case 'thread':
-      // The root rides along so its edits and reactions reach the open panel. `channelId` stays in the
+      // The root rides along so its edits and reactions reach the open panel. `roomId` stays in the
       // predicate, so a `parentId` from another channel matches nothing.
       return {
         sql: `SELECT ${MESSAGE_COLUMNS} FROM "Message" WHERE "channelId" = $1 AND ("parentId" = $2 OR "id" = $2) AND "updatedAt" >= $3`,
-        parameters: [stream.channelId, stream.parentId, stream.since],
+        parameters: [stream.roomId, stream.parentId, stream.since],
       };
     case 'typing':
       return {
         sql: 'SELECT "userId", "parentId", "until" FROM "TypingState" WHERE "channelId" = $1 AND "until" >= $2 AND "userId" <> $3',
-        parameters: [stream.channelId, stream.since, viewer.userId],
+        parameters: [stream.roomId, stream.since, viewer.userId],
       };
     case 'sidebar':
       return {
-        sql: `SELECT cm."channelId", c."lastMessageAt", cm."joinedAt", rs."lastReadAt", (d."channelId" IS NOT NULL) AS "hasDraft"
+        sql: `SELECT cm."channelId" AS "roomId", c."lastMessageAt", cm."joinedAt", rs."lastReadAt", (d."channelId" IS NOT NULL) AS "hasDraft"
 FROM "ChannelMember" cm
 JOIN "Channel" c ON c."id" = cm."channelId"
 LEFT JOIN "ReadState" rs ON rs."channelId" = cm."channelId" AND rs."userId" = cm."userId"

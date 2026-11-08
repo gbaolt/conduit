@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
-import { ChannelsModule } from '@/channels/channels.module';
+import { DmsModule } from '@/dms/dms.module';
+import { RoomsModule } from '@/rooms/rooms.module';
 
 import { LinkPreviewsService } from './application/link-previews.service';
 import { MessagesService } from './application/messages.service';
@@ -13,7 +14,7 @@ import { PrismaSavedMessagesRepository } from './infrastructure/prisma-saved-mes
 import { MessagesController } from './presentation/messages.controller';
 
 @Module({
-  imports: [ChannelsModule],
+  imports: [RoomsModule, DmsModule],
   controllers: [MessagesController],
   providers: [
     MessagesService,

@@ -1,7 +1,7 @@
 import { oc } from '@orpc/contract';
 import { openapi } from '@orpc/openapi';
 
-import { ChannelSchema } from '@/schemas/channels';
+import { RoomSchema } from '@/schemas/rooms';
 import {
   AddDmPeopleInputSchema,
   ConvertDmInputSchema,
@@ -40,13 +40,13 @@ export const openDmContract = oc
   .output(DmSchema);
 
 export const addDmPeopleContract = oc
-  .meta(openapi({ method: 'POST', path: '/dms/{channelId}/people' }))
+  .meta(openapi({ method: 'POST', path: '/dms/{roomId}/people' }))
   .errors({ NOT_FOUND, FORBIDDEN, DM_FULL, DM_EXISTS })
   .input(AddDmPeopleInputSchema)
   .output(DmSchema);
 
 export const convertDmContract = oc
-  .meta(openapi({ method: 'POST', path: '/dms/{channelId}/convert' }))
+  .meta(openapi({ method: 'POST', path: '/dms/{roomId}/convert' }))
   .errors({ NOT_FOUND, FORBIDDEN, NAME_TAKEN })
   .input(ConvertDmInputSchema)
-  .output(ChannelSchema);
+  .output(RoomSchema);

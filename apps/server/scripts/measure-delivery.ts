@@ -12,7 +12,7 @@
 import { createRealtimeClient, pgTypeOids } from '@neon/realtime/client';
 
 const apiUrl = required('API_URL').replace(/\/$/, '');
-const channelId = required('CHANNEL_ID');
+const roomId = required('CHANNEL_ID');
 const cookie = required('COOKIE');
 const count = Number(process.env.COUNT ?? 500);
 const intervalMs = Number(process.env.INTERVAL_MS ?? 200);
@@ -59,7 +59,7 @@ const sealed = await call<{
 }>('/realtime/seal', {
   stream: {
     kind: 'conversation',
-    channelId,
+    roomId,
     since: new Date(Date.now() - 60_000).toISOString(),
   },
 });
@@ -93,8 +93,8 @@ await subscription.awaitRows(() => true, 15_000);
 for (let index = 0; index < count; index += 1) {
   const clientId = `${run}-${index}`;
   sentAt.set(clientId, Date.now());
-  void call('/channels/' + channelId + '/messages', {
-    channelId,
+  void call('/channels/' + roomId + '/messages', {
+    roomId,
     clientId,
     body: `delivery probe ${index}`,
   }).catch((error: unknown) => console.error(error));

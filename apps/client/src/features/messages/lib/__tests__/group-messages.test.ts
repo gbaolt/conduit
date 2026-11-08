@@ -16,7 +16,7 @@ function message(
 ): Message {
   return {
     id,
-    channelId: 'c1',
+    roomId: 'c1',
     authorId,
     clientId: `k-${id}`,
     parentId: null,
@@ -117,7 +117,7 @@ describe('buildLog', () => {
   it('appends a pending message as the viewer and drops one the server returned', () => {
     const pending = (clientId: string): PendingMessage => ({
       clientId,
-      channelId: 'c1',
+      roomId: 'c1',
       parentId: null,
       alsoSentToChannel: false,
       body: clientId,

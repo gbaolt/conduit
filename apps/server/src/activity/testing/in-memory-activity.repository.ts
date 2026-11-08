@@ -3,8 +3,8 @@ import type {
   ConversationScope,
 } from '@/activity/domain/activity.repository';
 
-const keyOf = ({ channelId, userId, parentId }: ConversationScope) =>
-  `${channelId}|${userId}|${parentId}`;
+const keyOf = ({ roomId, userId, parentId }: ConversationScope) =>
+  `${roomId}|${userId}|${parentId}`;
 
 /** An in-memory `ActivityRepository` for tests and the write-rate script. `counts` tallies the calls that would write. */
 export class InMemoryActivityRepository implements ActivityRepository {
@@ -23,7 +23,7 @@ export class InMemoryActivityRepository implements ActivityRepository {
   constructor(
     private readonly messages: ReadonlyMap<
       string,
-      { channelId: string; createdAt: Date }
+      { roomId: string; createdAt: Date }
     > = new Map()
   ) {}
 
@@ -32,16 +32,12 @@ export class InMemoryActivityRepository implements ActivityRepository {
   }
 
   // shortcut: counts one write per call, while the Prisma version needs two statements the first time a row is created
-  async markRead(input: {
-    channelId: string;
-    userId: string;
-    messageId: string;
-  }) {
+  async markRead(input: { roomId: string; userId: string; messageId: string }) {
     const message = this.messages.get(input.messageId);
-    if (message?.channelId !== input.channelId) return false;
+    if (message?.roomId !== input.roomId) return false;
 
     this.counts.markRead++;
-    const key = `${input.channelId}|${input.userId}`;
+    const key = `${input.roomId}|${input.userId}`;
     const current = this.reads.get(key);
     if (!current || current.at < message.createdAt) {
       this.reads.set(key, {
