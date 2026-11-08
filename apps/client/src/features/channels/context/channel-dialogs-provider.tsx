@@ -3,18 +3,18 @@
 import type { Channel, ChannelSection } from '@conduit/contract';
 import { createContext, type ReactNode, use, useMemo, useState } from 'react';
 
-import { AddDmPeopleDialog } from '../components/add-dm-people-dialog';
-import { AddMembersDialog } from '../components/add-members-dialog';
-import { ArchiveChannelDialog } from '../components/archive-channel-dialog';
-import { BrowseChannelsDialog } from '../components/browse-channels-dialog';
-import { ChangeVisibilityDialog } from '../components/change-visibility-dialog';
-import { ChannelDetailsDialog } from '../components/channel-details-dialog';
-import { ConvertDmDialog } from '../components/convert-dm-dialog';
-import { CreateChannelDialog } from '../components/create-channel-dialog';
-import { DeleteChannelDialog } from '../components/delete-channel-dialog';
-import { NewDmDialog } from '../components/new-dm-dialog';
-import { RenameChannelDialog } from '../components/rename-channel-dialog';
-import { SectionNameDialog } from '../components/section-name-dialog';
+import { AddDmPeopleDialog } from '../components/dialogs/add-dm-people-dialog';
+import { AddMembersDialog } from '../components/dialogs/add-members-dialog';
+import { ArchiveChannelDialog } from '../components/dialogs/archive-channel-dialog';
+import { BrowseChannelsDialog } from '../components/dialogs/browse-channels-dialog';
+import { ChangeVisibilityDialog } from '../components/dialogs/change-visibility-dialog';
+import { ChannelDetailsDialog } from '../components/dialogs/channel-details-dialog';
+import { ConvertDmDialog } from '../components/dialogs/convert-dm-dialog';
+import { CreateChannelDialog } from '../components/dialogs/create-channel-dialog';
+import { DeleteChannelDialog } from '../components/dialogs/delete-channel-dialog';
+import { NewDmDialog } from '../components/dialogs/new-dm-dialog';
+import { RenameChannelDialog } from '../components/dialogs/rename-channel-dialog';
+import { SectionNameDialog } from '../components/dialogs/section-name-dialog';
 
 /** Every dialog the channel UI can open. A new dialog adds one member here and one case in `OpenChannelDialog`. */
 export type ChannelDialog =

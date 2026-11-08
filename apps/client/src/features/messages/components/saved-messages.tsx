@@ -13,7 +13,7 @@ import { savedQuery } from '@/services/messages/queries';
 
 import { MentionNames } from '../context/mention-names';
 import { useAuthors } from '../lib/use-authors';
-import { MessageExcerpt } from './message-excerpt';
+import { MessageExcerpt } from './message/message-excerpt';
 
 const FORMER_MEMBER = { name: 'Former member', image: null };
 

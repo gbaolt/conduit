@@ -8,8 +8,8 @@ import type { ReactNode } from 'react';
 
 import { useAtList } from '@/components/list-view';
 import { ResizeHandle } from '@/components/resize-handle';
-import { ChannelList } from '@/features/channels/components/channel-list';
 import { ChannelListSkeleton } from '@/features/channels/components/channel-skeletons';
+import { ChannelList } from '@/features/channels/components/sidebar/channel-list';
 
 import {
   type Layout,

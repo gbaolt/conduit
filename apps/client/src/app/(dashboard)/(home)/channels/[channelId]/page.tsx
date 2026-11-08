@@ -2,13 +2,13 @@ import { ORPCError } from '@orpc/client';
 import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
-import { ChannelHeader } from '@/features/channels/components/channel-header';
-import { ChannelIntro } from '@/features/channels/components/channel-intro';
 import { ChannelPageSkeleton } from '@/features/channels/components/channel-skeletons';
-import { Conversation } from '@/features/messages/components/conversation';
-import { PinnedButton } from '@/features/messages/components/pinned-list';
-import { SummarizeChannelItems } from '@/features/messages/components/summarize-menu';
-import { ThreadLayout } from '@/features/messages/components/thread-layout';
+import { ChannelHeader } from '@/features/channels/components/header/channel-header';
+import { ChannelIntro } from '@/features/channels/components/intro/channel-intro';
+import { Conversation } from '@/features/messages/components/conversation/conversation';
+import { PinnedButton } from '@/features/messages/components/pinned';
+import { SummaryChannelItems } from '@/features/messages/components/summary/summary-menu';
+import { ThreadLayout } from '@/features/messages/components/thread/thread-layout';
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
 import { channelQuery } from '@/services/channels/queries';
 import { messagesQuery, pinnedQuery } from '@/services/messages/queries';
@@ -46,7 +46,7 @@ async function Channel({
         <div className="flex h-full min-h-0 flex-col">
           <ChannelHeader
             channelId={channelId}
-            menu={<SummarizeChannelItems isDm={false} />}
+            menu={<SummaryChannelItems isDm={false} />}
           >
             <PinnedButton channelId={channelId} />
           </ChannelHeader>

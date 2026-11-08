@@ -3,12 +3,12 @@ import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { ChannelPageSkeleton } from '@/features/channels/components/channel-skeletons';
-import { DmHeader } from '@/features/channels/components/dm-header';
-import { DmIntro } from '@/features/channels/components/dm-intro';
-import { Conversation } from '@/features/messages/components/conversation';
-import { PinnedButton } from '@/features/messages/components/pinned-list';
-import { SummarizeChannelItems } from '@/features/messages/components/summarize-menu';
-import { ThreadLayout } from '@/features/messages/components/thread-layout';
+import { DmHeader } from '@/features/channels/components/header/dm-header';
+import { DmIntro } from '@/features/channels/components/intro/dm-intro';
+import { Conversation } from '@/features/messages/components/conversation/conversation';
+import { PinnedButton } from '@/features/messages/components/pinned';
+import { SummaryChannelItems } from '@/features/messages/components/summary/summary-menu';
+import { ThreadLayout } from '@/features/messages/components/thread/thread-layout';
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
 import { channelQuery, dmsQuery } from '@/services/channels/queries';
 import { messagesQuery, pinnedQuery } from '@/services/messages/queries';
@@ -44,7 +44,7 @@ async function Dm({
     <HydrateClient client={client}>
       <ThreadLayout channelId={channelId}>
         <div className="flex h-full min-h-0 flex-col">
-          <DmHeader channelId={channelId} menu={<SummarizeChannelItems isDm />}>
+          <DmHeader channelId={channelId} menu={<SummaryChannelItems isDm />}>
             <PinnedButton channelId={channelId} />
           </DmHeader>
           <Conversation
