@@ -83,6 +83,36 @@ describe('RealtimeService.seal', () => {
     expect(sealed).toEqual([]);
   });
 
+  it('seals the sidebar and presence streams without a channel check', async () => {
+    const { service, sealed } = setup(null);
+
+    await service.seal(viewer, { kind: 'sidebar' });
+    await service.seal(viewer, { kind: 'presence' });
+
+    expect(sealed.map((query) => query.parameters)).toEqual([
+      ['u1', 'org'],
+      ['org'],
+    ]);
+  });
+
+  it('seals the typing stream for the viewer, leaving their own rows out', async () => {
+    const { service, sealed } = setup({});
+
+    await service.seal(viewer, { kind: 'typing', channelId: 'c1', since });
+
+    expect(sealed[0]?.parameters).toEqual(['c1', since, 'u1']);
+    expect(sealed[0]?.sql).toContain('"userId" <> $3');
+  });
+
+  it('refuses the typing stream of a channel the viewer cannot read', async () => {
+    const { service, sealed } = setup({ visibility: 'private' });
+
+    await expect(
+      service.seal(viewer, { kind: 'typing', channelId: 'c1', since })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(sealed).toEqual([]);
+  });
+
   it('refuses a private channel the viewer is not in', async () => {
     const { service, sealed } = setup({ visibility: 'private' });
 

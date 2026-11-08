@@ -22,6 +22,7 @@ import type { ReactNode } from 'react';
 
 import { NavUser, type NavUserInfo } from '@/components/nav-user';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { WorkspaceActivity } from '@/features/workspace/components/workspace-activity';
 import { WorkspaceSwitcher } from '@/features/workspace/components/workspace-switcher';
 import { WorkspaceProvider } from '@/features/workspace/context/workspace-provider';
 
@@ -111,6 +112,7 @@ export function AppShell({
 }) {
   return (
     <WorkspaceProvider>
+      <WorkspaceActivity />
       <SidebarProvider
         className="bg-sidebar"
         style={

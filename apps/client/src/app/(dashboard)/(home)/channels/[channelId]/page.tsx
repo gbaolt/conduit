@@ -51,6 +51,7 @@ async function Channel({
             <PinnedButton channelId={channelId} />
           </ChannelHeader>
           <Conversation
+            key={channelId}
             channelId={channelId}
             start={<ChannelIntro channelId={channelId} />}
           />

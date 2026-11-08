@@ -10,6 +10,13 @@ import {
   reorderChannelSectionsContract,
 } from './contracts/channel-sections';
 import {
+  getDraftContract,
+  heartbeatContract,
+  markReadContract,
+  saveDraftContract,
+  typingPingContract,
+} from './contracts/activity';
+import {
   addChannelMembersContract,
   archiveChannelContract,
   createChannelContract,
@@ -194,6 +201,19 @@ export const contract = {
     channel: summarizeChannelContract,
     get: getSummaryContract,
     share: shareSummaryContract,
+  },
+  readState: {
+    mark: markReadContract,
+  },
+  drafts: {
+    get: getDraftContract,
+    save: saveDraftContract,
+  },
+  typing: {
+    ping: typingPingContract,
+  },
+  presence: {
+    heartbeat: heartbeatContract,
   },
   channelSections: {
     list: listChannelSectionsContract,
