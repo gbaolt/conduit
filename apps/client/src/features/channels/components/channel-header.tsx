@@ -3,6 +3,7 @@
 import { Button } from '@conduit/ui/components/button';
 import { IconDots, IconHash, IconLock, IconUsers } from '@tabler/icons-react';
 import { useSuspenseQuery } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
 
 import { useActivateChannelWorkspace } from '@/services/channels/hooks';
 import { channelQuery } from '@/services/channels/queries';
@@ -11,7 +12,14 @@ import { useChannelDialogs } from '../context/channel-dialogs-provider';
 import { ArchivedBanner } from './archived-banner';
 import { ChannelActionsDropdown } from './channel-actions-menu';
 
-export function ChannelHeader({ channelId }: { channelId: string }) {
+export function ChannelHeader({
+  channelId,
+  children,
+}: {
+  channelId: string;
+  /** Buttons that other features add before the member count, such as the pinned list. */
+  children?: ReactNode;
+}) {
   const { data: channel } = useSuspenseQuery(channelQuery(channelId));
   const { open } = useChannelDialogs();
   const Glyph = channel.visibility === 'private' ? IconLock : IconHash;
@@ -39,6 +47,7 @@ export function ChannelHeader({ channelId }: { channelId: string }) {
             </p>
           )}
         </div>
+        {children}
         <Button
           variant="ghost"
           size="xs"

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  firstLink,
   MESSAGE_BODY_MAX,
   MessageBodySchema,
   parseMentions,
@@ -51,5 +52,26 @@ describe('parseMentions', () => {
       channel: false,
       here: false,
     });
+  });
+});
+
+describe('firstLink', () => {
+  it.each([
+    ['see https://example.com/a?b=1 now', 'https://example.com/a?b=1'],
+    ['end of sentence https://example.com.', 'https://example.com'],
+    [
+      '[docs](https://example.com/docs) and https://other.dev',
+      'https://example.com/docs',
+    ],
+    ['http://example.com first, https://later.dev', 'http://example.com'],
+    ['<https://example.com>', 'https://example.com'],
+  ])('finds the link in %j', (body, link) => {
+    expect(firstLink(body)).toBe(link);
+  });
+
+  it('is null without an http or https link', () => {
+    expect(
+      firstLink('mail me at a@b.co or ftp://x.dev or example.com')
+    ).toBeNull();
   });
 });

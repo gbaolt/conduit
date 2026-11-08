@@ -104,3 +104,43 @@ export function markDeleted(
     })),
   };
 }
+
+/** Message pages with one message changed. */
+export function mapMessage(
+  data: MessagePages | undefined,
+  messageId: string,
+  change: (message: Message) => Message
+): MessagePages | undefined {
+  if (!data) return data;
+  return {
+    ...data,
+    pages: data.pages.map((page) => ({
+      ...page,
+      messages: page.messages.map((message) =>
+        message.id === messageId ? change(message) : message
+      ),
+    })),
+  };
+}
+
+export const pinnedQuery = (channelId: string) =>
+  orpc.messages.listPinned.queryOptions({ input: { channelId } });
+
+export const savedQuery = orpc.saved.list.queryOptions();
+
+/**
+ * True when a changed message means the pinned list no longer matches: a message pinned that the list
+ * lacks, or one in the list that was unpinned or changed since. The list is not a live stream.
+ */
+export function pinnedIsStale(
+  pinned: readonly Message[] | undefined,
+  incoming: readonly Message[]
+) {
+  if (!pinned) return false;
+  const known = new Map(pinned.map((message) => [message.id, message]));
+  return incoming.some((message) => {
+    const listed = known.get(message.id);
+    if (listed) return message.updatedAt > listed.updatedAt;
+    return Boolean(message.pinnedAt) && !message.deletedAt;
+  });
+}

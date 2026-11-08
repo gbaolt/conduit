@@ -152,16 +152,16 @@ Every other feature reads or writes messages, so messaging comes first.
 | M1.1  | Deliver messages in realtime to every open client                                       | Shipped     | [#59](https://github.com/gbaolt/conduit/pull/59) |
 | M1.2  | Send, edit, and delete messages                                                         | Shipped     | [#59](https://github.com/gbaolt/conduit/pull/59) |
 | M1.3  | Rich text with Markdown shortcuts, built on the Lexical kit                             | Shipped     | [#59](https://github.com/gbaolt/conduit/pull/59) |
-| M1.4  | Mention a person, `@channel`, or `@here`                                                | Not started |                                                  |
-| M1.5  | Emoji reactions                                                                         | Not started |                                                  |
+| M1.4  | Mention a person, `@channel`, or `@here`                                                | Shipped     | [#61](https://github.com/gbaolt/conduit/pull/61) |
+| M1.5  | Emoji reactions                                                                         | Shipped     | [#61](https://github.com/gbaolt/conduit/pull/61) |
 | M1.6  | Threads, with **Also send to channel**                                                  | Not started |                                                  |
-| M1.7  | Unread markers, and remembering where each member stopped reading                       | Not started |                                                  |
-| M1.8  | Typing indicators                                                                       | Not started |                                                  |
-| M1.9  | Online and away status                                                                  | Not started |                                                  |
-| M1.10 | Keep a saved draft for each conversation                                                | Not started |                                                  |
-| M1.11 | Pin messages to a conversation                                                          | Not started |                                                  |
-| M1.12 | **Save for later** on any message                                                       | Not started |                                                  |
-| M1.13 | Link previews                                                                           | Not started |                                                  |
+| M1.7  | Unread markers, and remembering where each member stopped reading                       | Shipped     | [#60](https://github.com/gbaolt/conduit/pull/60) |
+| M1.8  | Typing indicators                                                                       | Shipped     | [#60](https://github.com/gbaolt/conduit/pull/60) |
+| M1.9  | Online and away status                                                                  | Shipped     | [#60](https://github.com/gbaolt/conduit/pull/60) |
+| M1.10 | Keep a saved draft for each conversation                                                | Shipped     | [#60](https://github.com/gbaolt/conduit/pull/60) |
+| M1.11 | Pin messages to a conversation                                                          | Shipped     | [#61](https://github.com/gbaolt/conduit/pull/61) |
+| M1.12 | **Save for later** on any message                                                       | Shipped     | [#61](https://github.com/gbaolt/conduit/pull/61) |
+| M1.13 | Link previews                                                                           | Shipped     | [#61](https://github.com/gbaolt/conduit/pull/61) |
 | M1.14 | One-on-one DMs                                                                          | Not started |                                                  |
 | M1.15 | Group DMs of up to 10 people, including you                                             | Not started |                                                  |
 | M1.16 | **Turn into a private channel**, offered when someone adds an 11th person to a group DM | Not started |                                                  |

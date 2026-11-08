@@ -28,7 +28,10 @@ import {
 import { AutoLinkExtension } from '@/components/editor/extensions/auto-link-extension';
 import { MarkdownShortcutsExtension } from '@/components/editor/extensions/markdown-shortcuts-extension';
 import { MaxLengthExtension } from '@/components/editor/extensions/max-length-extension';
+import { MentionNode } from '@/components/editor/nodes/mention-node';
 import { editorTheme } from '@/components/editor/themes/editor-theme';
+
+import { createMentionTransformer } from './mention-transformer';
 
 /** The kit's theme sized for a chat row: body text, 20 px list indent, and a code block with no gutter. */
 const composerTheme: EditorThemeClasses = {
@@ -46,7 +49,7 @@ const composerTheme: EditorThemeClasses = {
 };
 
 /** What Markdown can hold and the renderer shows. Headings are left out, since a chat row never shows one. */
-export const composerTransformers: Transformer[] = [
+const composerTransformers: Transformer[] = [
   BOLD_STAR,
   ITALIC_STAR,
   STRIKETHROUGH,
@@ -58,25 +61,40 @@ export const composerTransformers: Transformer[] = [
   CODE,
 ];
 
+const exportTransformers = [
+  ...composerTransformers,
+  createMentionTransformer(new Map()),
+];
+
 /** The Markdown to send. A list the member left open on an empty item would otherwise end in a bare bullet. */
 export function markdownOf(editor: LexicalEditor) {
   return editor
-    .read(() => $convertToMarkdownString(composerTransformers))
+    .read(() => $convertToMarkdownString(exportTransformers))
     .replace(/(?:\n[ \t]*(?:[-*+]|\d+\.)[ \t]*)+$/, '');
 }
 
-/** Stable per `initialMarkdown`: the editor is rebuilt when it changes, so create it once per composer. */
-export function createComposerExtension(initialMarkdown: string) {
+/**
+ * Stable per `initialMarkdown`: the editor is rebuilt when it changes, so create it once per composer.
+ * `names` labels the mentions in `initialMarkdown`.
+ */
+export function createComposerExtension(
+  initialMarkdown: string,
+  names: ReadonlyMap<string, string> = new Map()
+) {
   return defineExtension({
     name: '@conduit/composer',
     namespace: 'composer',
     theme: composerTheme,
+    nodes: [MentionNode],
     onError: (error) => {
       throw error;
     },
     $initialEditorState: initialMarkdown
       ? () => {
-          $convertFromMarkdownString(initialMarkdown, composerTransformers);
+          $convertFromMarkdownString(initialMarkdown, [
+            ...composerTransformers,
+            createMentionTransformer(names),
+          ]);
         }
       : undefined,
     dependencies: [

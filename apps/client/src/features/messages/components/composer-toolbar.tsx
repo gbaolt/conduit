@@ -21,6 +21,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { $setBlocksType } from '@lexical/selection';
 import { $findMatchingParent, mergeRegister } from '@lexical/utils';
 import {
+  IconAt,
   IconBold,
   IconBraces,
   IconCode,
@@ -28,12 +29,14 @@ import {
   IconLink,
   IconList,
   IconListNumbers,
+  IconMoodSmile,
   IconSend2,
   IconStrikethrough,
   IconTextSize,
 } from '@tabler/icons-react';
 import {
   $createParagraphNode,
+  $getRoot,
   $getSelection,
   $isRangeSelection,
   COMMAND_PRIORITY_LOW,
@@ -46,6 +49,8 @@ import { type ReactNode, useEffect, useState } from 'react';
 
 import { getSelectedNode } from '@/components/editor/utils/get-selected-node';
 import { sanitizeUrl } from '@/components/editor/utils/url';
+
+import { EmojiPickerButton } from './emoji-picker';
 
 type Block = 'paragraph' | 'code' | ListType;
 
@@ -84,6 +89,24 @@ function readActive(): Active {
     link: $isLinkNode(node) || $isLinkNode(node.getParent()),
     block: isCode ? 'code' : list ? list.getListType() : 'paragraph',
   };
+}
+
+/** Inserts text at the caret. An `@` after a word gets a space first, so it opens the mention menu. */
+function insertAtCaret(editor: LexicalEditor, text: string) {
+  editor.focus(() =>
+    editor.update(() => {
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection)) {
+        $getRoot().selectEnd().insertText(text);
+        return;
+      }
+      const before = selection.anchor
+        .getNode()
+        .getTextContent()
+        .slice(0, selection.anchor.offset);
+      selection.insertText(text === '@' && /\S$/.test(before) ? ' @' : text);
+    })
+  );
 }
 
 function useActiveFormats(editor: LexicalEditor) {
@@ -292,6 +315,21 @@ export function ComposerToolbar({
           <IconTextSize />
         </ToolbarButton>
         <div className="hidden items-center gap-0.5 sm:flex">{formatting}</div>
+        <EmojiPickerButton
+          label="Emoji"
+          variant="ghost"
+          size="icon-xs"
+          className="text-muted-foreground size-7 pointer-coarse:size-11"
+          onPick={(emoji) => insertAtCaret(editor, emoji)}
+        >
+          <IconMoodSmile />
+        </EmojiPickerButton>
+        <ToolbarButton
+          label="Mention someone"
+          onClick={() => insertAtCaret(editor, '@')}
+        >
+          <IconAt />
+        </ToolbarButton>
         <div className="ml-auto flex items-center gap-2">
           {length >= MESSAGE_BODY_MAX - 200 && (
             <span

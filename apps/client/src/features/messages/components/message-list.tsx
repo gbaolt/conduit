@@ -30,6 +30,43 @@ function DayDivider({ date }: { date: Date }) {
   );
 }
 
+function NewMarker() {
+  return (
+    <div
+      role="separator"
+      className="text-destructive flex items-center gap-3 px-5 pt-2 pb-1"
+    >
+      <div className="bg-destructive h-px flex-1" />
+      <span className="text-xs font-medium">New</span>
+    </div>
+  );
+}
+
+/** Reports the newest message once the viewer has scrolled to it with the tab in front. */
+function ReadThrough({
+  newestId,
+  onRead,
+}: {
+  newestId: string | undefined;
+  onRead: ((messageId: string) => void) | undefined;
+}) {
+  const { visibleMessageIds } = useMessageScrollerVisibility();
+  const atEnd = newestId !== undefined && visibleMessageIds.includes(newestId);
+
+  useEffect(() => {
+    if (!atEnd || !newestId || !onRead) return;
+
+    const read = () => {
+      if (document.visibilityState === 'visible') onRead(newestId);
+    };
+    read();
+    document.addEventListener('visibilitychange', read);
+    return () => document.removeEventListener('visibilitychange', read);
+  }, [atEnd, newestId, onRead]);
+
+  return null;
+}
+
 /** Loads the next older page once the oldest loaded message scrolls into view. */
 function OlderPages({
   oldestId,
@@ -73,6 +110,7 @@ export function MessageList({
   messages,
   authors,
   viewerId,
+  canPost,
   canModerate,
   start,
   hasOlder,
@@ -85,11 +123,14 @@ export function MessageList({
   onEscape,
   retry,
   discard,
+  newMarkerId,
+  onRead,
 }: {
   channelId: string;
   messages: readonly Message[];
   authors: ReadonlyMap<string, Author>;
   viewerId: string | null;
+  canPost: boolean;
   canModerate: boolean;
   /** The conversation's opening block, shown once nothing older remains. */
   start: ReactNode;
@@ -103,9 +144,13 @@ export function MessageList({
   onEscape: () => void;
   retry: (clientId: string) => void;
   discard: (clientId: string) => void;
+  /** The message the New marker sits above. */
+  newMarkerId: string | null;
+  /** Called with the newest message once the viewer has read to the end. */
+  onRead: ((messageId: string) => void) | undefined;
 }) {
   const pending = usePendingMessages(channelId);
-  const entries = buildLog(messages, pending, viewerId ?? '');
+  const entries = buildLog(messages, pending, viewerId ?? '', newMarkerId);
   const [mountedAt] = useState(() => Date.now());
   const viewer = authors.get(viewerId ?? '') ?? UNKNOWN_AUTHOR;
 
@@ -137,12 +182,14 @@ export function MessageList({
             {entries.map((entry) => (
               <MessageScrollerItem key={entry.key} messageId={entry.key}>
                 {entry.startsDay && <DayDivider date={entry.createdAt} />}
+                {entry.startsNew && <NewMarker />}
                 {entry.kind === 'message' ? (
                   <MessageRow
                     message={entry.message}
                     author={authors.get(entry.authorId) ?? UNKNOWN_AUTHOR}
                     grouped={entry.grouped}
                     viewerId={viewerId}
+                    canPost={canPost}
                     canModerate={canModerate}
                     fresh={entry.createdAt.getTime() > mountedAt}
                     editing={editingId === entry.message.id}
@@ -163,6 +210,7 @@ export function MessageList({
           </MessageScrollerContent>
         </MessageScrollerViewport>
         <MessageScrollerButton />
+        <ReadThrough newestId={messages.at(-1)?.id} onRead={onRead} />
         <OlderPages
           oldestId={messages[0]?.id}
           enabled={hasOlder && !loadingOlder && !olderFailed}

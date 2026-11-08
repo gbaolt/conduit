@@ -6,9 +6,10 @@ import { ChannelHeader } from '@/features/channels/components/channel-header';
 import { ChannelIntro } from '@/features/channels/components/channel-intro';
 import { ChannelPageSkeleton } from '@/features/channels/components/channel-skeletons';
 import { Conversation } from '@/features/messages/components/conversation';
+import { PinnedButton } from '@/features/messages/components/pinned-list';
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
 import { channelQuery } from '@/services/channels/queries';
-import { messagesQuery } from '@/services/messages/queries';
+import { messagesQuery, pinnedQuery } from '@/services/messages/queries';
 
 export default function ChannelPage({
   params,
@@ -33,13 +34,17 @@ async function Channel({
       throw error;
     }),
     client.prefetchInfiniteQuery(messagesQuery(channelId)),
+    client.prefetchQuery(pinnedQuery(channelId)),
   ]);
 
   return (
     <HydrateClient client={client}>
       <div className="flex h-full min-h-0 flex-col">
-        <ChannelHeader channelId={channelId} />
+        <ChannelHeader channelId={channelId}>
+          <PinnedButton channelId={channelId} />
+        </ChannelHeader>
         <Conversation
+          key={channelId}
           channelId={channelId}
           start={<ChannelIntro channelId={channelId} />}
         />

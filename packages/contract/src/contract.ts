@@ -6,6 +6,13 @@ import {
   reorderChannelSectionsContract,
 } from './contracts/channel-sections';
 import {
+  getDraftContract,
+  heartbeatContract,
+  markReadContract,
+  saveDraftContract,
+  typingPingContract,
+} from './contracts/activity';
+import {
   addChannelMembersContract,
   archiveChannelContract,
   createChannelContract,
@@ -30,7 +37,16 @@ import {
   deleteMessageContract,
   editMessageContract,
   listMessagesContract,
+  listPinnedMessagesContract,
+  listSavedMessagesContract,
+  pinMessageContract,
+  reactMessageContract,
+  removeLinkPreviewContract,
+  saveMessageContract,
   sendMessageContract,
+  unpinMessageContract,
+  unreactMessageContract,
+  unsaveMessageContract,
 } from './contracts/messages';
 import {
   acceptInvitationContract,
@@ -135,9 +151,33 @@ export const contract = {
     send: sendMessageContract,
     edit: editMessageContract,
     delete: deleteMessageContract,
+    react: reactMessageContract,
+    unreact: unreactMessageContract,
+    pin: pinMessageContract,
+    unpin: unpinMessageContract,
+    listPinned: listPinnedMessagesContract,
+    removeLinkPreview: removeLinkPreviewContract,
+  },
+  saved: {
+    add: saveMessageContract,
+    remove: unsaveMessageContract,
+    list: listSavedMessagesContract,
   },
   realtime: {
     seal: sealStreamContract,
+  },
+  readState: {
+    mark: markReadContract,
+  },
+  drafts: {
+    get: getDraftContract,
+    save: saveDraftContract,
+  },
+  typing: {
+    ping: typingPingContract,
+  },
+  presence: {
+    heartbeat: heartbeatContract,
   },
   channelSections: {
     list: listChannelSectionsContract,
