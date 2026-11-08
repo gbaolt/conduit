@@ -109,6 +109,21 @@ export function Conversation({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [alsoSend, setAlsoSend] = useState(false);
   const composerRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+
+  // The log pads its end and lifts its jump button by the composer's height, which grows with a long draft.
+  useEffect(() => {
+    const composer = composerRef.current;
+    const frame = frameRef.current;
+    if (!composer || !frame) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const height =
+        entry?.borderBoxSize[0]?.blockSize ?? composer.offsetHeight;
+      frame.style.setProperty('--composer-height', `${height}px`);
+    });
+    observer.observe(composer);
+    return () => observer.disconnect();
+  }, []);
   const [scrollTarget, setScrollTarget] = useState<string | null>(null);
   const [focusedId, setFocusedId] = useState<string | null>(null);
 
@@ -180,7 +195,7 @@ export function Conversation({
     <MentionNames value={names}>
       <MentionViewer value={viewerId}>
         <MentionSuggestions value={suggestions}>
-          <div className="flex min-h-0 flex-1 flex-col">
+          <div ref={frameRef} className="relative flex min-h-0 flex-1 flex-col">
             {isClient && !history.isPending && !waitingForRoot ? (
               <MessageList
                 channelId={channelId}
@@ -232,9 +247,15 @@ export function Conversation({
                 onRead={markRead}
               />
             ) : (
-              <ConversationSkeleton />
+              <div className="flex min-h-0 flex-1 flex-col pb-(--composer-height,8rem)">
+                <ConversationSkeleton />
+              </div>
             )}
-            <div ref={composerRef} className="px-4 pb-4 sm:px-5">
+            <ComposerFade />
+            <div
+              ref={composerRef}
+              className="absolute inset-x-0 bottom-0 z-20 px-4 pb-4 sm:px-5"
+            >
               <ConnectionLine status={liveStatus} />
               {channel.archivedAt ? null : rootDeleted ? (
                 <p className="text-muted-foreground text-sm">
@@ -298,5 +319,18 @@ export function Conversation({
         </MentionSuggestions>
       </MentionViewer>
     </MentionNames>
+  );
+}
+
+/** Messages fade out as they scroll under the composer, after giabao.dev's bottom fade, made taller. */
+function ComposerFade() {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-x-0 bottom-0 z-10"
+    >
+      <div className="to-background h-32 bg-linear-to-b from-transparent mask-linear-[to_top,var(--background)_25%,transparent] backdrop-blur-[1px]" />
+      <div className="bg-background h-[calc(var(--composer-height,8rem)-1rem)]" />
+    </div>
   );
 }

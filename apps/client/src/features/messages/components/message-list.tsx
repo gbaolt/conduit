@@ -250,7 +250,8 @@ export function MessageList({
         >
           <MessageScrollerContent
             aria-live="polite"
-            className="gap-0 pt-2 pb-3"
+            // The composer floats over the log, so the end of the log clears its height.
+            className="gap-0 pt-2 pb-[calc(var(--composer-height,8rem)+0.75rem)]"
           >
             {olderFailed && (
               <p className="text-muted-foreground px-5 py-2 text-xs">
@@ -302,7 +303,7 @@ export function MessageList({
             {end}
           </MessageScrollerContent>
         </MessageScrollerViewport>
-        <MessageScrollerButton />
+        <MessageScrollerButton className="data-[direction=end]:bottom-[calc(var(--composer-height,8rem)+0.5rem)]" />
         <ScrollToTarget
           target={scrollTarget}
           loaded={messages.some((message) => message.id === scrollTarget)}
