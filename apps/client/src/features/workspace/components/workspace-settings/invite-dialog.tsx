@@ -108,12 +108,11 @@ export function InviteDialog({
   const [result, setResult] = useState<CreateInvitationsResult | null>(null);
 
   const { emails, invalid } = parseEmails(text);
+  const invalidError = invalid ? `Not a valid email: ${invalid}` : null;
   const error =
     emails.length > MAX_EMAILS
       ? `Invite up to ${MAX_EMAILS} people at a time.`
-      : invalid
-        ? `Not a valid email: ${invalid}`
-        : null;
+      : invalidError;
 
   const reset = () => {
     setText('');

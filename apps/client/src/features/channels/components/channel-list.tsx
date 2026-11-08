@@ -88,17 +88,18 @@ export function ChannelList() {
           isCollapsed={isCollapsed(group.id)}
           onToggle={() => toggle(group.id)}
           action={
-            group.section ? (
-              <SectionMenu
-                section={group.section}
-                onMove={{
-                  up: moveBy(group.section.id, -1),
-                  down: moveBy(group.section.id, 1),
-                }}
-              />
-            ) : group.id === CHANNELS_GROUP_ID ? (
-              <AddChannelsMenu />
-            ) : null
+            <>
+              {group.section && (
+                <SectionMenu
+                  section={group.section}
+                  onMove={{
+                    up: moveBy(group.section.id, -1),
+                    down: moveBy(group.section.id, 1),
+                  }}
+                />
+              )}
+              {group.id === CHANNELS_GROUP_ID && <AddChannelsMenu />}
+            </>
           }
         />
       ))}

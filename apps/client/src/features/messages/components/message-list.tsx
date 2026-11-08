@@ -37,15 +37,16 @@ function DayDivider({ date }: { date: Date }) {
   );
 }
 
+function repliesLabel(count: number) {
+  if (count === 0) return 'No replies yet';
+  return count === 1 ? '1 reply' : `${count} replies`;
+}
+
 function ReplyDivider({ count }: { count: number }) {
   return (
     <div role="separator" className="flex items-center gap-3 px-5 pt-3 pb-1">
       <span className="text-muted-foreground text-xs font-medium">
-        {count === 0
-          ? 'No replies yet'
-          : count === 1
-            ? '1 reply'
-            : `${count} replies`}
+        {repliesLabel(count)}
       </span>
       <div className="bg-border h-px flex-1" />
     </div>

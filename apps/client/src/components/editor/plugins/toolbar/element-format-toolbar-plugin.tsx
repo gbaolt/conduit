@@ -78,12 +78,9 @@ export function ElementFormatToolbarPlugin({
           (parentNode) => $isElementNode(parentNode) && !parentNode.isInline()
         );
       }
+      const formatted = [matchingParent, node].find($isElementNode);
       setElementFormat(
-        $isElementNode(matchingParent)
-          ? matchingParent.getFormatType()
-          : $isElementNode(node)
-            ? node.getFormatType()
-            : parent?.getFormatType() || 'left'
+        formatted?.getFormatType() ?? (parent?.getFormatType() || 'left')
       );
     }
   };

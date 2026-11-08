@@ -15,7 +15,7 @@ import { type SyntheticEvent, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
 
-import { StatusButton } from '@/components/async/status-button';
+import { buttonStatus, StatusButton } from '@/components/async/status-button';
 import { FormInput } from '@/components/form/form-input';
 import { useCreateWorkspace } from '@/services/workspaces/hooks';
 
@@ -101,13 +101,7 @@ export function CreateWorkspaceForm() {
         type="submit"
         size="lg"
         className="w-full"
-        status={
-          createWorkspace.isPending
-            ? 'loading'
-            : createWorkspace.isSuccess
-              ? 'success'
-              : 'idle'
-        }
+        status={buttonStatus(createWorkspace)}
         successLabel="Workspace created"
       >
         Create workspace

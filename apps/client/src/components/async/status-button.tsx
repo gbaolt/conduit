@@ -17,6 +17,15 @@ import { cn } from '@/lib/utils';
 
 export type ButtonStatus = 'idle' | 'loading' | 'success';
 
+/** The status a mutation shows on its button. */
+export function buttonStatus(mutation: {
+  isPending: boolean;
+  isSuccess: boolean;
+}): ButtonStatus {
+  if (mutation.isPending) return 'loading';
+  return mutation.isSuccess ? 'success' : 'idle';
+}
+
 const DEFAULT_SUCCESS_DURATION = 1000;
 
 const swapVariants: Variants = {

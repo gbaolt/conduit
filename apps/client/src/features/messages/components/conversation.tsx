@@ -44,6 +44,39 @@ const OFFLINE_AFTER_MS = 10_000;
 const CONNECTING_GRACE_MS = 2000;
 const FOCUS_TINT_MS = 1500;
 
+type ConversationKind = 'thread' | 'self' | 'dm' | 'channel';
+
+function conversationKind(
+  parentId: string | undefined,
+  isDm: boolean,
+  isSelf: boolean
+): ConversationKind {
+  if (parentId) return 'thread';
+  if (isSelf) return 'self';
+  return isDm ? 'dm' : 'channel';
+}
+
+const SHARE_LABELS: Record<ConversationKind, string> = {
+  thread: 'Share to thread',
+  self: 'Share to conversation',
+  dm: 'Share to conversation',
+  channel: 'Share to channel',
+};
+
+const PLACEHOLDERS: Record<ConversationKind, (title: string) => string> = {
+  thread: () => 'Reply…',
+  self: () => 'Jot a note…',
+  dm: (title) => `Message ${title}`,
+  channel: (title) => `Message ${title}`,
+};
+
+/** What sits under the log: nothing in an archived channel, a notice, the composer, or a prompt to join. */
+function footerFor(archived: boolean, rootDeleted: boolean, canPost: boolean) {
+  if (archived) return 'none';
+  if (rootDeleted) return 'deleted';
+  return canPost ? 'composer' : 'join';
+}
+
 /** True once `active` has held for `ms`. */
 function useHeldFor(active: boolean, ms: number) {
   const [held, setHeld] = useState(false);
@@ -130,11 +163,8 @@ export function Conversation({
   // A shared summary links its sources as `?message=`. A thread's links also carry `?thread=`, which only the thread's own log follows.
   const [messageParam, setMessageParam] = useQueryState('message');
   const [threadParam] = useQueryState('thread');
-  const linkedMessage = parentId
-    ? messageParam
-    : threadParam
-      ? null
-      : messageParam;
+  const linkedMessage = parentId || !threadParam ? messageParam : null;
+
   useEffect(() => {
     if (!linkedMessage) return;
     setScrollTarget(linkedMessage);
@@ -190,6 +220,8 @@ export function Conversation({
   const canPost = canChannel('post', workspaceRole, channel);
   const rootDeleted = Boolean(parentId && root?.deletedAt);
   const waitingForRoot = Boolean(parentId) && !root;
+  const kind = conversationKind(parentId, isDm, isSelf);
+  const footer = footerFor(Boolean(channel.archivedAt), rootDeleted, canPost);
 
   return (
     <MentionNames value={names}>
@@ -232,13 +264,7 @@ export function Conversation({
                 }}
                 end={
                   <SummaryCard
-                    shareLabel={
-                      parentId
-                        ? 'Share to thread'
-                        : isDm
-                          ? 'Share to conversation'
-                          : 'Share to channel'
-                    }
+                    shareLabel={SHARE_LABELS[kind]}
                     canShare={canPost}
                     onSource={setScrollTarget}
                   />
@@ -251,28 +277,25 @@ export function Conversation({
                 <ConversationSkeleton />
               </div>
             )}
+
             <ComposerFade />
+
             <div
               ref={composerRef}
-              className="absolute inset-x-0 bottom-0 z-20 px-4 pb-4 sm:px-5"
+              className="absolute inset-x-0 bottom-0 z-20 px-4 sm:px-5"
             >
               <ConnectionLine status={liveStatus} />
-              {channel.archivedAt ? null : rootDeleted ? (
+              {footer === 'deleted' && (
                 <p className="text-muted-foreground text-sm">
                   The message that started this thread was deleted.
                 </p>
-              ) : canPost ? (
+              )}
+              {footer === 'composer' && (
                 <>
                   <ConversationComposer
                     channelId={channelId}
                     parentId={parentId}
-                    placeholder={
-                      parentId
-                        ? 'Reply…'
-                        : isSelf
-                          ? 'Jot a note…'
-                          : `Message ${title}`
-                    }
+                    placeholder={PLACEHOLDERS[kind](title)}
                     autoFocus={Boolean(parentId)}
                     onSubmit={(body) => {
                       send(body, alsoSend);
@@ -300,7 +323,8 @@ export function Conversation({
                   </ConversationComposer>
                   <TypingLine channelId={channelId} parentId={parentId} />
                 </>
-              ) : (
+              )}
+              {footer === 'join' && (
                 <div className="border-input flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
                   <p className="text-muted-foreground text-sm">
                     Join {title} to send messages.
@@ -329,7 +353,7 @@ function ComposerFade() {
       aria-hidden
       className="pointer-events-none absolute inset-x-0 bottom-0 z-10"
     >
-      <div className="to-background h-32 bg-linear-to-b from-transparent mask-linear-[to_top,var(--background)_25%,transparent] backdrop-blur-[1px]" />
+      <div className="to-background h-16 bg-linear-to-b from-transparent mask-linear-[to_top,var(--background)_25%,transparent] backdrop-blur-[1px]" />
       <div className="bg-background h-[calc(var(--composer-height,8rem)-1rem)]" />
     </div>
   );

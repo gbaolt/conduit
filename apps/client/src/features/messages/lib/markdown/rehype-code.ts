@@ -3,13 +3,10 @@ import { visit } from 'unist-util-visit';
 
 function textOf(nodes: ElementContent[]): string {
   return nodes
-    .map((node) =>
-      node.type === 'text'
-        ? node.value
-        : node.type === 'element'
-          ? textOf(node.children)
-          : ''
-    )
+    .map((node) => {
+      if (node.type === 'text') return node.value;
+      return node.type === 'element' ? textOf(node.children) : '';
+    })
     .join('');
 }
 

@@ -45,11 +45,8 @@ export function useWorkspaceRole(): WorkspaceRole {
   // Better Auth stores multiple roles comma-separated; same mapping as the server's findWorkspaceRole.
   const roles = data?.role.split(',').map((role) => role.trim()) ?? [];
 
-  return roles.includes('owner')
-    ? 'owner'
-    : roles.includes('admin')
-      ? 'admin'
-      : 'member';
+  if (roles.includes('owner')) return 'owner';
+  return roles.includes('admin') ? 'admin' : 'member';
 }
 
 export function useCreateWorkspace() {

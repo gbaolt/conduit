@@ -8,6 +8,15 @@ const signupPaths = new Set([
 
 const maxBodyBytes = 16 * 1024;
 
+// The first email problem found picks the message.
+const EMAIL_MESSAGES = [
+  ['DISPOSABLE', 'We do not allow disposable email addresses.'],
+  [
+    'NO_MX_RECORDS',
+    'Your email domain does not have an MX record. Is there a typo?',
+  ],
+] as const;
+
 // Better Auth skips Nest's body parser, so read the JSON body here; better-call reuses `req.body` once the stream is consumed.
 async function readJsonBody(req: Request): Promise<unknown> {
   let text = '';
@@ -75,11 +84,9 @@ export function arcjetAuthMiddleware(aj: ArcjetNest) {
 
         if (decision.reason.isEmail()) {
           const { emailTypes } = decision.reason;
-          const message = emailTypes.includes('DISPOSABLE')
-            ? 'We do not allow disposable email addresses.'
-            : emailTypes.includes('NO_MX_RECORDS')
-              ? 'Your email domain does not have an MX record. Is there a typo?'
-              : 'Email address format is invalid. Is there a typo?';
+          const message =
+            EMAIL_MESSAGES.find(([type]) => emailTypes.includes(type))?.[1] ??
+            'Email address format is invalid. Is there a typo?';
           res.status(400).json({ message });
           return;
         }

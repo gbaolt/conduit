@@ -11,18 +11,28 @@ const bots = detectBot({
 
 type Subject = 'user' | 'ip' | 'workspace';
 
+const CHARACTERISTICS = {
+  user: 'userId',
+  ip: 'ip.src',
+  workspace: 'workspaceId',
+} as const satisfies Record<Subject, string>;
+
+function characteristicsOf(
+  subject: Subject,
+  context: { user?: User; organizationId?: string }
+) {
+  if (subject === 'workspace') {
+    return { workspaceId: context.organizationId ?? '' };
+  }
+  return context.user ? { userId: context.user.id } : {};
+}
+
 // One protect() per request: bot detection and the tier's rate limit share a call so neither double-counts.
 // An anonymous tier has no user, so it limits by IP. A workspace tier chains after `workspaceMember`.
 function security(maxPerMinute: number, subject: Subject = 'user') {
   const rateLimit = slidingWindow({
     mode: 'LIVE',
-    characteristics: [
-      subject === 'ip'
-        ? 'ip.src'
-        : subject === 'workspace'
-          ? 'workspaceId'
-          : 'userId',
-    ],
+    characteristics: [CHARACTERISTICS[subject]],
     interval: '1m',
     max: maxPerMinute,
   });
@@ -41,11 +51,10 @@ function security(maxPerMinute: number, subject: Subject = 'user') {
         .protect(
           context.request,
           // The characteristics type demands every field of every tier, so each tier sends its own through a cast.
-          (subject === 'workspace'
-            ? { workspaceId: context.organizationId ?? '' }
-            : context.user
-              ? { userId: context.user.id }
-              : {}) as unknown as { userId: string; workspaceId: string }
+          characteristicsOf(subject, context) as unknown as {
+            userId: string;
+            workspaceId: string;
+          }
         );
 
       if (decision.isErrored()) {

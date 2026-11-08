@@ -63,6 +63,11 @@ type Active = {
   block: Block;
 };
 
+const INSERT_LIST_COMMANDS = {
+  bullet: INSERT_UNORDERED_LIST_COMMAND,
+  number: INSERT_ORDERED_LIST_COMMAND,
+} as const;
+
 const IDLE: Active = {
   bold: false,
   italic: false,
@@ -87,7 +92,7 @@ function readActive(): Active {
     strikethrough: selection.hasFormat('strikethrough'),
     code: selection.hasFormat('code'),
     link: $isLinkNode(node) || $isLinkNode(node.getParent()),
-    block: isCode ? 'code' : list ? list.getListType() : 'paragraph',
+    block: isCode ? 'code' : (list?.getListType() ?? 'paragraph'),
   };
 }
 
@@ -198,13 +203,9 @@ export function ComposerFormattingBar({
   const format = (type: TextFormatType) =>
     editor.dispatchCommand(FORMAT_TEXT_COMMAND, type);
 
-  const toggleList = (type: ListType) =>
+  const toggleList = (type: keyof typeof INSERT_LIST_COMMANDS) =>
     editor.dispatchCommand(
-      active.block === type
-        ? REMOVE_LIST_COMMAND
-        : type === 'bullet'
-          ? INSERT_UNORDERED_LIST_COMMAND
-          : INSERT_ORDERED_LIST_COMMAND,
+      active.block === type ? REMOVE_LIST_COMMAND : INSERT_LIST_COMMANDS[type],
       undefined
     );
 
