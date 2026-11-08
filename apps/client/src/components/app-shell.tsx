@@ -4,7 +4,6 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarInset,
   SidebarProvider,
 } from '@conduit/ui/components/sidebar';
 import { Skeleton } from '@conduit/ui/components/skeleton';
@@ -21,7 +20,9 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { NavUser, type NavUserInfo } from '@/components/nav-user';
+import { SidePanelLayout } from '@/components/side-panel';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { WorkspaceActivity } from '@/features/workspace/components/workspace-activity';
 import { WorkspaceSwitcher } from '@/features/workspace/components/workspace-switcher';
 import { WorkspaceProvider } from '@/features/workspace/context/workspace-provider';
 
@@ -74,7 +75,7 @@ export function AppShellSkeleton() {
     <div
       role="status"
       aria-label="Loading workspace"
-      className="bg-sidebar flex min-h-svh"
+      className="bg-sidebar flex h-svh"
     >
       <div aria-hidden className="flex h-svh w-16 shrink-0 flex-col">
         <div className="flex flex-col items-center p-2 pt-4 pb-2">
@@ -111,8 +112,10 @@ export function AppShell({
 }) {
   return (
     <WorkspaceProvider>
+      <WorkspaceActivity />
+      {/* A fixed height, not shadcn's min-h-svh, so a long log scrolls inside the page instead of growing it. */}
       <SidebarProvider
-        className="bg-sidebar"
+        className="bg-sidebar h-svh"
         style={
           {
             '--sidebar-width': 'calc(var(--spacing) * 16)',
@@ -137,11 +140,7 @@ export function AppShell({
             <NavUser user={user} />
           </SidebarFooter>
         </Sidebar>
-        <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden py-2 pe-2">
-          <SidebarInset className="border-sidebar-border min-h-0 overflow-hidden rounded-xl border">
-            {children}
-          </SidebarInset>
-        </div>
+        <SidePanelLayout>{children}</SidePanelLayout>
       </SidebarProvider>
     </WorkspaceProvider>
   );

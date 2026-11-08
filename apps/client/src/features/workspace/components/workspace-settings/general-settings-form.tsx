@@ -19,7 +19,7 @@ import { type ChangeEvent, type SyntheticEvent, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
 
-import { StatusButton } from '@/components/async/status-button';
+import { buttonStatus, StatusButton } from '@/components/async/status-button';
 import { FormInput } from '@/components/form/form-input';
 import { WorkspaceIcon } from '@/features/workspace/components/workspace-icon';
 import {
@@ -144,9 +144,7 @@ function Form({ workspace }: { workspace: Workspace }) {
       <StatusButton
         type="submit"
         className="self-end"
-        status={
-          update.isPending ? 'loading' : update.isSuccess ? 'success' : 'idle'
-        }
+        status={buttonStatus(update)}
         successLabel="Saved"
       >
         Save changes

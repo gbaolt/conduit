@@ -9,28 +9,52 @@ const bots = detectBot({
   allow: ['CATEGORY:SEARCH_ENGINE', 'CATEGORY:PREVIEW', 'CATEGORY:MONITOR'],
 });
 
+type Subject = 'user' | 'ip' | 'workspace';
+
+const CHARACTERISTICS = {
+  user: 'userId',
+  ip: 'ip.src',
+  workspace: 'workspaceId',
+} as const satisfies Record<Subject, string>;
+
+function characteristicsOf(
+  subject: Subject,
+  context: { user?: User; organizationId?: string }
+) {
+  if (subject === 'workspace') {
+    return { workspaceId: context.organizationId ?? '' };
+  }
+  return context.user ? { userId: context.user.id } : {};
+}
+
 // One protect() per request: bot detection and the tier's rate limit share a call so neither double-counts.
-// An anonymous tier has no user, so it limits by IP.
-function security(maxPerMinute: number, anonymous = false) {
+// An anonymous tier has no user, so it limits by IP. A workspace tier chains after `workspaceMember`.
+function security(maxPerMinute: number, subject: Subject = 'user') {
   const rateLimit = slidingWindow({
     mode: 'LIVE',
-    characteristics: [anonymous ? 'ip.src' : 'userId'],
+    characteristics: [CHARACTERISTICS[subject]],
     interval: '1m',
     max: maxPerMinute,
   });
 
   return os
-    .$context<{ request: Request; arcjet: ArcjetNest; user?: User }>()
+    .$context<{
+      request: Request;
+      arcjet: ArcjetNest;
+      user?: User;
+      organizationId?: string;
+    }>()
     .middleware(async ({ context, next }) => {
       const decision = await context.arcjet
         .withRule(bots)
         .withRule(rateLimit)
         .protect(
           context.request,
-          context.user
-            ? { userId: context.user.id }
-            : // The anonymous tier limits by ip.src and sends no field; the type models only userId.
-              ({} as { userId: string })
+          // The characteristics type demands every field of every tier, so each tier sends its own through a cast.
+          characteristicsOf(subject, context) as unknown as {
+            userId: string;
+            workspaceId: string;
+          }
         );
 
       if (decision.isErrored()) {
@@ -58,5 +82,7 @@ export const arcjet = {
   read: security(180),
   write: security(40),
   heavyWrite: security(5),
-  readAnonymous: security(30, true),
+  /** Chain after `workspaceMember`. For work that spends a shared provider quota, so it limits the workspace, not the member. */
+  heavyWriteByWorkspace: security(10, 'workspace'),
+  readAnonymous: security(30, 'ip'),
 };

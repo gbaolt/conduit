@@ -61,12 +61,52 @@ A person's own named group of channels in the sidebar. Sections are per user, an
 _Avoid_: Folder, category
 
 **DM**:
-A conversation between specific Members with no name: one-on-one, a group DM of up to 10 people, or a Member alone.
+A conversation between specific Members with no name: one-on-one, a group DM of up to 10 people, or a Member alone. Opening a DM with the same people always finds the same DM. A DM has no managers, and only its people can see it. **Turn into a private channel** gives it a name and keeps every message and person.
 _Avoid_: Direct chat, private message
+
+**Message**:
+One post in a conversation, written in Markdown text. Its author can edit it, and its author, a channel manager, or a workspace admin can delete it.
+_Avoid_: Post, chat
+
+**Mention**:
+A message that names a Member, `@channel`, or `@here`. It stores the Member's id, so a rename does not break it. A mention of someone outside the conversation stays plain text.
+_Avoid_: Tag, ping
+
+**Reaction**:
+An emoji a Member puts on a message. A message holds at most 50 different emoji, and each Member reacts with an emoji once.
+_Avoid_: Emoji response, like
+
+**Pin**:
+A message kept in a conversation's pinned list. Any Member who can post in the conversation can pin and unpin.
+_Avoid_: Star, bookmark (for a message)
+
+**Saved message**:
+A message a Member kept for themselves with **Save for later**. Only that Member sees it, on the Saved page.
+_Avoid_: Bookmark, favorite
+
+**Reply**:
+A message sent under a root message, in its thread. A reply to a reply is not allowed. The root counts its replies, and deleting a reply takes one off the count.
+_Avoid_: Comment (for a message), response
 
 **Thread**:
 The replies to one root, where the root is a message or a task. A reply stays in the thread unless its author also sends it to the channel.
 _Avoid_: Reply chain, comments (for a thread on a task)
+
+**Draft**:
+The half-written message a Member has left in a conversation or a thread. It is saved to their account, so it is there after a reload and on another device, and sending the message deletes it.
+_Avoid_: Unsent message, autosave
+
+**Online**:
+A Member is online while a Conduit tab in front of them has checked in within the last 2 minutes.
+_Avoid_: Active, available, present
+
+**Away**:
+A Member who is not online: their tabs are hidden or closed, or they have not checked in for 2 minutes. Conduit does not tell offline from away, and a Member cannot set a status by hand.
+_Avoid_: Offline, idle
+
+**Unread marker**:
+The line labelled "New" above the first message a Member has not read, shown when they open a conversation and kept until they leave it. A conversation with messages the Member has not read is also bold in the sidebar.
+_Avoid_: Unread badge (a badge is a count, and plain unread has none), read receipt (nobody else sees where a Member stopped)
 
 ### Work
 

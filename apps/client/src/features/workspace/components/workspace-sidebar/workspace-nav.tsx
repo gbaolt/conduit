@@ -11,19 +11,26 @@ import {
 } from '@conduit/ui/components/sidebar';
 import {
   IconAddressBook,
+  IconBookmark,
   IconListSearch,
   IconMessages,
   IconSend,
 } from '@tabler/icons-react';
+import type { Route } from 'next';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
-const LINKS = [
+const LINKS: { label: string; icon: typeof IconMessages; href?: Route }[] = [
   { label: 'Threads', icon: IconMessages },
+  { label: 'Saved', icon: IconBookmark, href: '/saved' },
   { label: 'Drafts & sent', icon: IconSend },
   { label: 'Directories', icon: IconAddressBook },
 ];
 
 /** The workspace-wide entries above the channel list. */
 export function WorkspaceNav() {
+  const pathname = usePathname();
+
   return (
     <>
       <SidebarGroup className="gap-2">
@@ -38,9 +45,12 @@ export function WorkspaceNav() {
         </div>
         <SidebarGroupContent>
           <SidebarMenu>
-            {LINKS.map(({ label, icon: Icon }) => (
+            {LINKS.map(({ label, icon: Icon, href }) => (
               <SidebarMenuItem key={label}>
-                <SidebarMenuButton>
+                <SidebarMenuButton
+                  isActive={href === pathname}
+                  render={href ? <Link href={href} /> : undefined}
+                >
                   <Icon />
                   <span>{label}</span>
                 </SidebarMenuButton>

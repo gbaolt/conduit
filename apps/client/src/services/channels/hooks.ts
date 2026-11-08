@@ -1,41 +1,16 @@
 'use client';
 
-import type { Channel } from '@conduit/contract';
+import type { Room } from '@conduit/contract';
 import {
   partialMatchKey,
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
-import { useWorkspace } from '@/features/workspace/context/workspace-provider';
 import { orpc } from '@/lib/orpc';
-import { useSwitchWorkspace } from '@/services/workspaces/hooks';
 
 import { channelsQuery } from './queries';
-
-/** A channel link can point into another workspace the viewer belongs to: make that workspace active, once per channel. */
-export function useActivateChannelWorkspace(
-  channelId: string,
-  organizationId: string
-) {
-  const { activeWorkspace, isPending } = useWorkspace();
-  const { mutate: switchWorkspace } = useSwitchWorkspace();
-  const checkedChannelId = useRef<string | null>(null);
-  const activeId = activeWorkspace?.id;
-
-  useEffect(() => {
-    // An empty active workspace is WorkspaceProvider's job to fill.
-    if (isPending || !activeId || checkedChannelId.current === channelId) {
-      return;
-    }
-
-    // Checked once per channel, so a later manual workspace switch is not undone.
-    checkedChannelId.current = channelId;
-    if (activeId !== organizationId) switchWorkspace(organizationId);
-  }, [activeId, channelId, isPending, organizationId, switchWorkspace]);
-}
 
 function useInvalidateChannels() {
   const queryClient = useQueryClient();
@@ -44,13 +19,19 @@ function useInvalidateChannels() {
   return (removedChannelId?: string) => {
     const removedKey =
       removedChannelId &&
-      orpc.channels.get.key({ input: { channelId: removedChannelId } });
+      orpc.rooms.get.key({ input: { roomId: removedChannelId } });
 
-    return queryClient.invalidateQueries({
-      queryKey: orpc.channels.key(),
-      predicate: ({ queryKey }) =>
-        !removedKey || !partialMatchKey(queryKey, removedKey),
-    });
+    const predicate = ({ queryKey }: { queryKey: readonly unknown[] }) =>
+      !removedKey || !partialMatchKey(queryKey, removedKey);
+
+    // A channel's own record and members live under `rooms`, beside the channel list.
+    return Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: orpc.channels.key(),
+        predicate,
+      }),
+      queryClient.invalidateQueries({ queryKey: orpc.rooms.key(), predicate }),
+    ]);
   };
 }
 
@@ -83,7 +64,7 @@ export function useLeaveChannel() {
 
   return useMutation(
     orpc.channels.leave.mutationOptions({
-      onSuccess: (_, { channelId }) => invalidate(channelId),
+      onSuccess: (_, { roomId }) => invalidate(roomId),
     })
   );
 }
@@ -93,7 +74,7 @@ export function useDeleteChannel() {
 
   return useMutation(
     orpc.channels.delete.mutationOptions({
-      onSuccess: (_, { channelId }) => invalidate(channelId),
+      onSuccess: (_, { roomId }) => invalidate(roomId),
     })
   );
 }
@@ -160,10 +141,10 @@ export function useSetChannelVisibility() {
   );
 }
 
-type Membership = NonNullable<Channel['membership']>;
+type Membership = NonNullable<Room['membership']>;
 
 /** Per-user state can't conflict, so the cache moves first and rolls back if the server refuses. */
-function useOptimisticMembership<TInput extends { channelId: string }>(
+function useOptimisticMembership<TInput extends { roomId: string }>(
   patchOf: (input: TInput) => Partial<Membership>
 ) {
   const queryClient = useQueryClient();
@@ -176,7 +157,7 @@ function useOptimisticMembership<TInput extends { channelId: string }>(
       const previous = queryClient.getQueryData(queryKey);
       queryClient.setQueryData(queryKey, (channels) =>
         channels?.map((channel) =>
-          channel.id === input.channelId && channel.membership
+          channel.id === input.roomId && channel.membership
             ? {
                 ...channel,
                 membership: { ...channel.membership, ...patchOf(input) },
@@ -189,7 +170,7 @@ function useOptimisticMembership<TInput extends { channelId: string }>(
     onError: (
       error: Error,
       _input: TInput,
-      context: { previous: Channel[] | undefined } | undefined
+      context: { previous: Room[] | undefined } | undefined
     ) => {
       queryClient.setQueryData(queryKey, context?.previous);
       toast.error(error.message);
@@ -218,7 +199,7 @@ export function useMoveChannelToSection() {
   return useMutation(
     orpc.channels.moveToSection.mutationOptions(
       useOptimisticMembership(
-        ({ sectionId }: { channelId: string; sectionId: string | null }) => ({
+        ({ sectionId }: { roomId: string; sectionId: string | null }) => ({
           sectionId,
         })
       )

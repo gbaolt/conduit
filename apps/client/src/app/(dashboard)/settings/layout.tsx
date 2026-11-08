@@ -5,7 +5,11 @@ import { type ReactNode, Suspense } from 'react';
 
 import { SettingsNav } from '@/features/workspace/components/workspace-settings/settings-nav';
 import { SettingsPageSkeleton } from '@/features/workspace/components/workspace-settings/settings-skeletons';
-import { WorkspaceSidebar } from '@/features/workspace/components/workspace-sidebar';
+import {
+  WorkspaceSidebar,
+  WorkspaceSidebarMain,
+  WorkspaceSidebarPanel,
+} from '@/features/workspace/components/workspace-sidebar';
 import {
   LAYOUT_COOKIE,
   parseLayout,
@@ -29,11 +33,15 @@ async function AdminGate({ children }: { children: ReactNode }) {
     <HydrateClient client={client}>
       <WorkspaceSidebar
         defaultLayout={parseLayout(cookieStore.get(LAYOUT_COOKIE)?.value)}
-        sidebar={<SettingsNav />}
       >
-        <main className="mx-auto max-w-4xl px-4 py-8 md:px-10 md:py-10">
-          {children}
-        </main>
+        <WorkspaceSidebarPanel>
+          <SettingsNav />
+        </WorkspaceSidebarPanel>
+        <WorkspaceSidebarMain>
+          <main className="mx-auto max-w-4xl px-4 py-8 md:px-10 md:py-10">
+            {children}
+          </main>
+        </WorkspaceSidebarMain>
       </WorkspaceSidebar>
     </HydrateClient>
   );
@@ -43,10 +51,15 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
   return (
     <Suspense
       fallback={
-        <WorkspaceSidebar defaultLayout={undefined} sidebar={<SettingsNav />}>
-          <main className="mx-auto max-w-4xl px-4 py-8 md:px-10 md:py-10">
-            <SettingsPageSkeleton />
-          </main>
+        <WorkspaceSidebar defaultLayout={undefined}>
+          <WorkspaceSidebarPanel>
+            <SettingsNav />
+          </WorkspaceSidebarPanel>
+          <WorkspaceSidebarMain>
+            <main className="mx-auto max-w-4xl px-4 py-8 md:px-10 md:py-10">
+              <SettingsPageSkeleton />
+            </main>
+          </WorkspaceSidebarMain>
         </WorkspaceSidebar>
       }
     >

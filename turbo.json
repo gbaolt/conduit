@@ -22,6 +22,8 @@
     "AUTH_EMAIL_FROM",
     "ARCJET_KEY",
     "ARCJET_ENV",
+    "NEON_REALTIME_URL",
+    "NEON_REALTIME_SECRET",
     "NODE_ENV",
     "HOST",
     "PORTLESS_URL"

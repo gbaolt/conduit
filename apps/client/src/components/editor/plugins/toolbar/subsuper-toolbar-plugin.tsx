@@ -30,9 +30,10 @@ export function SubSuperToolbarPlugin() {
 
   return (
     <ToggleGroup
-      defaultValue={
-        isSubscript ? ['subscript'] : isSuperscript ? ['superscript'] : []
-      }
+      defaultValue={[
+        isSubscript && 'subscript',
+        isSuperscript && 'superscript',
+      ].filter((value) => value !== false)}
     >
       <ToggleGroupItem
         value="subscript"

@@ -220,7 +220,7 @@ function FloatingLinkEditor({
       ref={editorRef}
       className="absolute top-0 left-0 w-full max-w-sm opacity-0"
     >
-      {!isLink ? null : isLinkEditMode ? (
+      {isLink && isLinkEditMode && (
         <div className="bg-popover text-popover-foreground flex items-center gap-2 rounded-md border p-1 pl-2 shadow-md">
           <Input
             ref={inputRef}
@@ -250,7 +250,8 @@ function FloatingLinkEditor({
             <Check />
           </Button>
         </div>
-      ) : (
+      )}
+      {isLink && !isLinkEditMode && (
         <div className="bg-popover text-popover-foreground flex items-center justify-between gap-2 rounded-md border p-1 pl-2 shadow-md">
           <a
             href={sanitizeUrl(linkUrl)}

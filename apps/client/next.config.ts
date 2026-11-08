@@ -39,6 +39,11 @@ const nextConfig: NextConfig = {
         hostname: 'assets.giabao.dev',
         port: '',
       },
+      {
+        protocol: 'https',
+        hostname: 'assets.conduit.giabao.dev',
+        port: '',
+      },
     ],
   },
   transpilePackages: ['@conduit/contract', '@conduit/ui'],

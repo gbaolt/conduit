@@ -8,7 +8,7 @@ import { translateErrors } from './errors';
 
 describe('translateErrors', () => {
   it('turns a domain error into the contract error the client expects', async () => {
-    const procedure = implement(contract.channels.get).handler(() => {
+    const procedure = implement(contract.rooms.get).handler(() => {
       throw channelError('NOT_FOUND', 'Gone.');
     });
     const client = createProcedureClient(procedure, {
@@ -16,7 +16,7 @@ describe('translateErrors', () => {
       interceptors: [translateErrors],
     });
 
-    const error = await client({ channelId: 'c1' }).catch((e: unknown) => e);
+    const error = await client({ roomId: 'c1' }).catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ORPCError);
     const { code, message, defined } = error as ORPCError<string, unknown>;

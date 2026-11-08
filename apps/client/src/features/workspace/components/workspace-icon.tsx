@@ -19,8 +19,6 @@ export function WorkspaceIcon({
       alt=""
       width={size}
       height={size}
-      // The bucket host is deployment config, so skip the optimizer's host allowlist.
-      unoptimized
       className={cn('shrink-0 rounded-lg object-cover', className)}
     />
   ) : (

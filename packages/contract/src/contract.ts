@@ -1,4 +1,8 @@
 import {
+  getAiSettingsContract,
+  updateAiSettingsContract,
+} from './contracts/ai-settings';
+import {
   createChannelSectionContract,
   deleteChannelSectionContract,
   listChannelSectionsContract,
@@ -6,14 +10,19 @@ import {
   reorderChannelSectionsContract,
 } from './contracts/channel-sections';
 import {
+  getDraftContract,
+  heartbeatContract,
+  markReadContract,
+  saveDraftContract,
+  typingPingContract,
+} from './contracts/activity';
+import {
   addChannelMembersContract,
   archiveChannelContract,
   createChannelContract,
   deleteChannelContract,
-  getChannelContract,
   joinChannelContract,
   leaveChannelContract,
-  listChannelMembersContract,
   listChannelsContract,
   moveChannelToSectionContract,
   removeChannelMemberContract,
@@ -25,7 +34,30 @@ import {
   setChannelVisibilityContract,
   unarchiveChannelContract,
 } from './contracts/channels';
+import {
+  addDmPeopleContract,
+  convertDmContract,
+  listDmsContract,
+  openDmContract,
+} from './contracts/dms';
 import { healthCheckContract } from './contracts/health';
+import {
+  deleteMessageContract,
+  editMessageContract,
+  getMessageContract,
+  listMessagesContract,
+  listPinnedMessagesContract,
+  listRepliesContract,
+  listSavedMessagesContract,
+  pinMessageContract,
+  reactMessageContract,
+  removeLinkPreviewContract,
+  saveMessageContract,
+  sendMessageContract,
+  unpinMessageContract,
+  unreactMessageContract,
+  unsaveMessageContract,
+} from './contracts/messages';
 import {
   acceptInvitationContract,
   createInvitationsContract,
@@ -51,6 +83,14 @@ import {
   updateMemberRoleContract,
   updateOrganizationContract,
 } from './contracts/organizations';
+import { sealStreamContract } from './contracts/realtime';
+import { getRoomContract, listRoomMembersContract } from './contracts/rooms';
+import {
+  getSummaryContract,
+  shareSummaryContract,
+  summarizeRoomContract,
+  summarizeThreadContract,
+} from './contracts/summaries';
 import { getSessionContract } from './contracts/users';
 import {
   getWorkspaceSettingsContract,
@@ -93,6 +133,10 @@ export const contract = {
     get: getWorkspaceSettingsContract,
     update: updateWorkspaceSettingsContract,
   },
+  aiSettings: {
+    get: getAiSettingsContract,
+    update: updateAiSettingsContract,
+  },
   invitations: {
     list: listInvitationsContract,
     accept: acceptInvitationContract,
@@ -101,9 +145,15 @@ export const contract = {
     listForWorkspace: listWorkspaceInvitationsContract,
     revoke: revokeInvitationContract,
   },
+  rooms: {
+    get: getRoomContract,
+    members: {
+      list: listRoomMembersContract,
+    },
+  },
   channels: {
     list: listChannelsContract,
-    get: getChannelContract,
+
     create: createChannelContract,
     rename: renameChannelContract,
     delete: deleteChannelContract,
@@ -111,7 +161,6 @@ export const contract = {
     leave: leaveChannelContract,
     update: updateChannelContract,
     members: {
-      list: listChannelMembersContract,
       add: addChannelMembersContract,
       remove: removeChannelMemberContract,
       setRole: setChannelMemberRoleContract,
@@ -122,6 +171,53 @@ export const contract = {
     star: starChannelContract,
     unstar: unstarChannelContract,
     moveToSection: moveChannelToSectionContract,
+  },
+  messages: {
+    list: listMessagesContract,
+    get: getMessageContract,
+    listReplies: listRepliesContract,
+    send: sendMessageContract,
+    edit: editMessageContract,
+    delete: deleteMessageContract,
+    react: reactMessageContract,
+    unreact: unreactMessageContract,
+    pin: pinMessageContract,
+    unpin: unpinMessageContract,
+    listPinned: listPinnedMessagesContract,
+    removeLinkPreview: removeLinkPreviewContract,
+  },
+  dms: {
+    list: listDmsContract,
+    open: openDmContract,
+    addPeople: addDmPeopleContract,
+    convertToChannel: convertDmContract,
+  },
+  saved: {
+    add: saveMessageContract,
+    remove: unsaveMessageContract,
+    list: listSavedMessagesContract,
+  },
+  realtime: {
+    seal: sealStreamContract,
+  },
+  summaries: {
+    thread: summarizeThreadContract,
+    room: summarizeRoomContract,
+    get: getSummaryContract,
+    share: shareSummaryContract,
+  },
+  readState: {
+    mark: markReadContract,
+  },
+  drafts: {
+    get: getDraftContract,
+    save: saveDraftContract,
+  },
+  typing: {
+    ping: typingPingContract,
+  },
+  presence: {
+    heartbeat: heartbeatContract,
   },
   channelSections: {
     list: listChannelSectionsContract,

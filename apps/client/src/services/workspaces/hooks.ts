@@ -7,6 +7,7 @@ import { client, orpc } from '@/lib/orpc';
 import { authClient } from '@/services/auth/client';
 
 import {
+  aiSettingsQuery,
   allowedDomainsQuery,
   joinLinkQuery,
   membersQuery,
@@ -22,8 +23,10 @@ function useActiveWorkspaceChanged() {
     void queryClient.invalidateQueries({ queryKey: orpc.organizations.key() });
     void queryClient.invalidateQueries({ queryKey: orpc.users.key() });
     void queryClient.invalidateQueries({ queryKey: orpc.channels.key() });
+    void queryClient.invalidateQueries({ queryKey: orpc.rooms.key() });
     void queryClient.invalidateQueries({ queryKey: orpc.members.key() });
     void queryClient.invalidateQueries({ queryKey: orpc.invitations.key() });
+    void queryClient.invalidateQueries({ queryKey: orpc.aiSettings.key() });
 
     // Better Auth's own atoms don't see changes made through oRPC.
     authClient.$store.notify('$activeOrgSignal');
@@ -43,11 +46,8 @@ export function useWorkspaceRole(): WorkspaceRole {
   // Better Auth stores multiple roles comma-separated; same mapping as the server's findWorkspaceRole.
   const roles = data?.role.split(',').map((role) => role.trim()) ?? [];
 
-  return roles.includes('owner')
-    ? 'owner'
-    : roles.includes('admin')
-      ? 'admin'
-      : 'member';
+  if (roles.includes('owner')) return 'owner';
+  return roles.includes('admin') ? 'admin' : 'member';
 }
 
 export function useCreateWorkspace() {
@@ -130,6 +130,21 @@ export function useUpdateWorkspaceSettings() {
         queryClient.invalidateQueries({
           queryKey: orpc.workspaceSettings.key(),
         }),
+    })
+  );
+}
+
+export function useAiSettings() {
+  return useQuery(aiSettingsQuery);
+}
+
+export function useUpdateAiSettings() {
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    orpc.aiSettings.update.mutationOptions({
+      onSuccess: () =>
+        queryClient.invalidateQueries({ queryKey: orpc.aiSettings.key() }),
     })
   );
 }

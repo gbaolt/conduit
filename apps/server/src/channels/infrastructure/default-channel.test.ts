@@ -43,7 +43,7 @@ describe.skipIf(!connectionString)('ensureDefaultChannel', () => {
       ensureDefaultChannel(prisma, organization, userIds),
     ]);
 
-    const channels = await prisma.channel.findMany({
+    const channels = await prisma.room.findMany({
       where: { organizationId: organization.id },
       include: { members: true },
     });

@@ -4,14 +4,21 @@ import { ORPCModule } from '@orpc/nest';
 import { onError } from '@orpc/server';
 import { AuthModule } from '@thallesp/nestjs-better-auth';
 
+import { ActivityModule } from '@/activity/activity.module';
+import { AiModule } from '@/ai/ai.module';
 import { ChannelsModule } from '@/channels/channels.module';
+import { DmsModule } from '@/dms/dms.module';
 import { HealthController } from '@/health/presentation/health.controller';
 import { auth } from '@/infrastructure/auth/auth.config';
 import { DatabaseModule } from '@/infrastructure/database/database.module';
 import { createORPCContext } from '@/infrastructure/orpc/context';
 import { translateErrors } from '@/infrastructure/orpc/errors';
 import { arcjetAuthMiddleware } from '@/infrastructure/security/auth-routes.middleware';
+import { MessagesModule } from '@/messages/messages.module';
 import { OrganizationsModule } from '@/organizations/organizations.module';
+import { RealtimeModule } from '@/realtime/realtime.module';
+import { RoomsModule } from '@/rooms/rooms.module';
+import { SummariesModule } from '@/summaries/summaries.module';
 import { UsersModule } from '@/users/users.module';
 import { WorkspaceMembersRepository } from '@/workspaces/domain/workspace-members.repository';
 import { WorkspacesModule } from '@/workspaces/workspaces.module';
@@ -21,7 +28,14 @@ import { WorkspacesModule } from '@/workspaces/workspaces.module';
     DatabaseModule,
     UsersModule,
     OrganizationsModule,
+    AiModule,
+    RoomsModule,
     ChannelsModule,
+    DmsModule,
+    MessagesModule,
+    ActivityModule,
+    RealtimeModule,
+    SummariesModule,
     ArcjetModule.forRoot({
       isGlobal: true,
       key: process.env.ARCJET_KEY!,
