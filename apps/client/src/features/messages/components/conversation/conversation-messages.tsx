@@ -26,6 +26,7 @@ import { buildLog, dayLabel } from '../../lib/group-messages';
 import type { Author } from '../message/message';
 import { MessagePending } from '../message/message-pending';
 import { MessageRow } from '../message/message-row';
+import { NewMarker } from './new-marker';
 
 const UNKNOWN_AUTHOR: Author = { name: 'Former member', image: null };
 
@@ -51,18 +52,6 @@ function ReplyDivider({ count }: { count: number }) {
         {repliesLabel(count)}
       </span>
       <div className="bg-border h-px flex-1" />
-    </div>
-  );
-}
-
-function NewMarker() {
-  return (
-    <div
-      role="separator"
-      className="text-destructive flex items-center gap-3 px-5 pt-2 pb-1"
-    >
-      <div className="bg-destructive h-px flex-1" />
-      <span className="text-xs font-medium">New</span>
     </div>
   );
 }
@@ -271,8 +260,8 @@ export function ConversationMessages({
                 messageId={entry.key}
                 className="[content-visibility:visible]"
               >
+                {entry.startsNew && <NewMarker messageId={entry.key} />}
                 {entry.startsDay && <DayDivider date={entry.createdAt} />}
-                {entry.startsNew && <NewMarker />}
                 {entry.kind === 'message' ? (
                   <MessageRow
                     message={entry.message}
