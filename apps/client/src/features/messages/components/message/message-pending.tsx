@@ -27,7 +27,7 @@ export function MessagePending({
   onDiscard,
 }: {
   pending: PendingMessage;
-  author: Author;
+  author: Author | null;
   grouped: boolean;
   onRetry: () => void;
   onDiscard: () => void;
@@ -37,14 +37,14 @@ export function MessagePending({
 
   return (
     <Message
-      label={`${author.name}, ${failed ? 'not sent' : 'sending'}`}
+      label={`${author?.name ?? 'Loading author'}, ${failed ? 'not sent' : 'sending'}`}
       createdAt={pending.createdAt}
       grouped={grouped}
     >
       <MessageAvatar author={author} />
       <MessageContent className="pb-0.5">
         <MessageHeader>
-          <MessageAuthor>{author.name}</MessageAuthor>
+          <MessageAuthor author={author} />
           {(failed || slow) && (
             <span
               className={cn(

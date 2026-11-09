@@ -15,17 +15,15 @@ import { MentionNames } from '../context/mention-names';
 import { useAuthors } from '../lib/use-authors';
 import { MessageExcerpt } from './message/message-excerpt';
 
-const FORMER_MEMBER = { name: 'Former member', image: null };
-
 function SavedItem({ item }: { item: SavedMessage }) {
-  const { authors } = useAuthors();
+  const { authorOf } = useAuthors();
   const { saved, toggle } = useSavedMessage(item.message.id);
   const { message, channelName } = item;
 
   return (
     <MessageExcerpt
       message={message}
-      author={authors.get(message.authorId) ?? FORMER_MEMBER}
+      author={authorOf(message.authorId)}
       context={
         <Link
           href={`${channelName === null ? '/dms' : '/channels'}/${message.roomId}${

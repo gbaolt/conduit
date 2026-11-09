@@ -25,7 +25,7 @@ export function MessageExcerpt({
   children,
 }: {
   message: MessageData;
-  author: Author;
+  author: Author | null;
   /** Where the message was sent, above the author line. */
   context?: ReactNode;
   /** Controls at the end of the excerpt. */
@@ -37,7 +37,7 @@ export function MessageExcerpt({
       <MessageContent>
         {context}
         <MessageHeader>
-          <MessageAuthor>{author.name}</MessageAuthor>
+          <MessageAuthor author={author} />
           <MessageTime
             date={message.createdAt}
             format={sentFormat}

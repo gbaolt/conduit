@@ -22,6 +22,7 @@ import {
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
 import { channelsQuery } from '@/services/channels/queries';
 import { dmsQuery } from '@/services/dms/queries';
+import { membersQuery } from '@/services/workspaces/queries';
 
 export default function HomeLayout({ children }: { children: ReactNode }) {
   return (
@@ -52,9 +53,10 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
 
 async function RoomPanel({ children }: { children: ReactNode }) {
   const client = getQueryClient();
-  const [, , cookieStore] = await Promise.all([
+  const [, , , cookieStore] = await Promise.all([
     client.prefetchQuery(channelsQuery),
     client.prefetchQuery(dmsQuery),
+    client.prefetchQuery(membersQuery),
     cookies(),
   ]);
 

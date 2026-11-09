@@ -2,6 +2,7 @@
 
 import type { WorkspaceMember } from '@conduit/contract';
 import * as UI from '@conduit/ui/components/message';
+import { Skeleton } from '@conduit/ui/components/skeleton';
 import { cn } from '@conduit/ui/lib/utils';
 import { createContext, type ReactNode, use } from 'react';
 
@@ -76,8 +77,17 @@ export function Message({
 }
 
 /** The avatar column. A grouped row shows its time there on hover instead. */
-export function MessageAvatar({ author }: { author: Author }) {
+export function MessageAvatar({ author }: { author: Author | null }) {
   const { grouped, createdAt } = use(MessageContext);
+  const avatar = author ? (
+    <UserAvatar
+      name={author.name}
+      image={author.image}
+      className="size-9 rounded-md"
+    />
+  ) : (
+    <Skeleton className="size-9 rounded-md" />
+  );
 
   return (
     <UI.MessageAvatar className="relative">
@@ -88,11 +98,7 @@ export function MessageAvatar({ author }: { author: Author }) {
           className="invisible absolute top-0 right-0 text-[11px] leading-[calc(0.875rem*1.65)] whitespace-nowrap group-focus-within/message:visible group-hover/message:visible"
         />
       ) : (
-        <UserAvatar
-          name={author.name}
-          image={author.image}
-          className="size-9 rounded-md"
-        />
+        avatar
       )}
     </UI.MessageAvatar>
   );
@@ -119,9 +125,12 @@ export function MessageHeader({ children }: { children: ReactNode }) {
   return <UI.MessageHeader>{children}</UI.MessageHeader>;
 }
 
-export function MessageAuthor({ children }: { children: ReactNode }) {
+/** The author's name, or a placeholder the width of a short name while the members load. */
+export function MessageAuthor({ author }: { author: Author | null }) {
+  if (!author) return <Skeleton className="h-3.5 w-24 self-center" />;
+
   return (
-    <span className="text-foreground text-sm font-semibold">{children}</span>
+    <span className="text-foreground text-sm font-semibold">{author.name}</span>
   );
 }
 

@@ -194,7 +194,7 @@ export function Conversation({
   });
   const viewerId = session?.user.id ?? null;
 
-  const { authors, names } = useAuthors();
+  const { authorOf, names } = useAuthors();
 
   const suggestions = useMemo(
     () => [
@@ -235,7 +235,7 @@ export function Conversation({
                 roomId={roomId}
                 parentId={parentId}
                 messages={messages}
-                authors={authors}
+                authorOf={authorOf}
                 viewerId={viewerId}
                 canPost={canPost}
                 canModerate={canChannel(
