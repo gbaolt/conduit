@@ -2,7 +2,6 @@ import type { Message as MessageData } from '@conduit/contract';
 import { Message } from '@conduit/ui/components/message';
 import type { ReactNode } from 'react';
 
-import { MessageMarkdown } from '../../lib/markdown/message-markdown';
 import {
   type Author,
   MessageAuthor,
@@ -11,6 +10,7 @@ import {
   MessageHeader,
   MessageTime,
 } from './message';
+import { MessageMarkdown } from './message-markdown';
 
 const sentFormat = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
