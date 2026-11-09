@@ -30,7 +30,7 @@ export function SettingsPageSkeleton() {
 const ROWS = ['w-48', 'w-40', 'w-56'];
 
 /** Stands in for `InvitationsTable`: its real header row and three 49px rows. */
-export function InvitationsTableSkeleton() {
+export function SettingsInvitationsSkeleton() {
   return (
     <SettingsPanel>
       <Table aria-label="Loading invitations">

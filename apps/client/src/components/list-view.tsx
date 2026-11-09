@@ -21,7 +21,7 @@ export const useAtList = () => {
 };
 
 /** The page header's way back to the list. Only a phone shows it, since wider screens keep the list beside the page. */
-export function BackToList() {
+export function ListBackLink() {
   const href = listHref(usePathname());
 
   return (
@@ -39,7 +39,7 @@ export function BackToList() {
 }
 
 /** Replaces a list route with `href` from tablet width up, where the list has no screen of its own. */
-export function DesktopRedirect({ href }: { href: Route }) {
+export function ListDesktopRedirect({ href }: { href: Route }) {
   const router = useRouter();
 
   useEffect(() => {

@@ -10,7 +10,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@conduit/ui/components/dropdown-menu';
-import { cn } from '@conduit/ui/lib/utils';
 import {
   IconBell,
   IconLogout,
@@ -19,8 +18,8 @@ import {
   IconSettings,
   IconUser,
 } from '@tabler/icons-react';
-import Image from 'next/image';
 
+import { UserAvatar } from '@/components/user-avatar';
 import { useWorkspace } from '@/features/workspace/context/workspace-provider';
 import { useSignOut } from '@/services/auth/hooks';
 
@@ -28,41 +27,6 @@ export type NavUserInfo = Pick<
   NonNullable<SessionOutput>['user'],
   'name' | 'email' | 'image'
 >;
-
-export function UserAvatar({
-  name,
-  image,
-  className,
-}: {
-  name: string;
-  image?: string | null;
-  className?: string;
-}) {
-  if (image) {
-    return (
-      <Image
-        src={image}
-        alt="User avatar"
-        width={32}
-        height={32}
-        className={cn('size-8 rounded-full object-cover', className)}
-      />
-    );
-  }
-
-  const initial = name.trim().charAt(0).toUpperCase() || '?';
-
-  return (
-    <span
-      className={cn(
-        'bg-muted text-muted-foreground flex size-8 items-center justify-center rounded-full text-xs font-medium',
-        className
-      )}
-    >
-      {initial}
-    </span>
-  );
-}
 
 export function NavUser({ user }: { user: NavUserInfo }) {
   const { activeWorkspace } = useWorkspace();

@@ -11,11 +11,11 @@ import { IconDots, IconUserPlus, IconUsers } from '@tabler/icons-react';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
-import { BackToList } from '@/components/list-view';
+import { ListBackLink } from '@/components/list-view';
+import { useActivateRoomWorkspace } from '@/features/rooms/lib/use-activate-room-workspace';
 import { sessionQuery } from '@/services/auth/queries';
 import { dmTitle } from '@/services/dms/dm-title';
 import { useDm } from '@/services/dms/hooks';
-import { useActivateRoomWorkspace } from '@/services/rooms/hooks';
 import { roomQuery } from '@/services/rooms/queries';
 
 import { useDmDialogs } from '../context/dm-dialogs-provider';
@@ -43,7 +43,7 @@ export function DmHeader({
 
   return (
     <header className="flex min-h-12 shrink-0 items-center gap-1.5 border-b px-4 py-1.5">
-      <BackToList />
+      <ListBackLink />
       <h1 className="min-w-0 flex-1 truncate text-sm font-semibold">{title}</h1>
       {children}
       {count > 1 && (

@@ -25,7 +25,7 @@ const rowClass =
   'flex min-h-14 w-full items-center gap-3 px-4 py-2.5 text-left outline-none';
 const buttonRowClass = cn(
   rowClass,
-  'hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-inset disabled:pointer-events-none'
+  'hover:bg-muted focus-visible:bg-muted focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-inset rounded-none active:not-aria-[haspopup]:scale-none disabled:pointer-events-none'
 );
 
 // A stable hue per workspace, so the same workspace always wears the same tint.
@@ -193,7 +193,8 @@ export function WorkspacePicker({ onCreate }: { onCreate: () => void }) {
           <Section title="Your workspaces">
             {workspaces.data.map((workspace) => (
               <li key={workspace.id}>
-                <button
+                <Button
+                  variant="ghost"
                   type="button"
                   disabled={leaving}
                   onClick={() =>
@@ -208,7 +209,7 @@ export function WorkspacePicker({ onCreate }: { onCreate: () => void }) {
                   ) : (
                     <IconChevronRight className="text-muted-foreground size-4" />
                   )}
-                </button>
+                </Button>
               </li>
             ))}
             {open.isError && <ErrorLine>{open.error.message}</ErrorLine>}
@@ -216,7 +217,8 @@ export function WorkspacePicker({ onCreate }: { onCreate: () => void }) {
         )}
 
         <div className="py-1.5">
-          <button
+          <Button
+            variant="ghost"
             type="button"
             disabled={leaving}
             onClick={onCreate}
@@ -230,20 +232,21 @@ export function WorkspacePicker({ onCreate }: { onCreate: () => void }) {
               detail="Start a new one and invite your team."
             />
             <IconChevronRight className="text-muted-foreground size-4" />
-          </button>
+          </Button>
         </div>
       </div>
 
       {invitations.isError && (
-        <p className="text-muted-foreground text-[13px]">
+        <p className="text-muted-foreground text-sm">
           Couldn&apos;t load your invitations.{' '}
-          <button
+          <Button
+            size="sm"
+            variant="link"
             type="button"
             onClick={() => void invitations.refetch()}
-            className="text-foreground font-medium underline-offset-4 hover:underline"
           >
             Try again
-          </button>
+          </Button>
         </p>
       )}
       {invitations.data?.length === 0 && (

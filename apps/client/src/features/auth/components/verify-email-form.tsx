@@ -21,16 +21,13 @@ import {
 import { FormInput } from '@/components/form/form-input';
 import { FormInputOTP } from '@/components/form/form-otp';
 import {
-  isSafeInternalPath,
-  withCallbackURL,
-} from '@/features/auth/lib/callback-url';
-import {
   emailOtpCopyFor,
   type EmailOtpType,
 } from '@/features/auth/lib/email-otp-type';
 import { navigateWithTransition } from '@/features/auth/lib/navigate-with-transition';
 import { stashResetPasswordOtp } from '@/features/auth/lib/reset-password-otp';
 import { EmailOtpSchema } from '@/features/auth/lib/validations';
+import { isSafeInternalPath, withCallbackURL } from '@/lib/callback-url';
 import { authClient } from '@/services/auth/client';
 
 type VerifyEmailFormValues = z.infer<typeof EmailOtpSchema>;

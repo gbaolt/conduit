@@ -8,7 +8,7 @@ import {
 import { IconPlus, IconUsers } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 
-import { UserAvatar } from '@/components/nav-user';
+import { UserAvatar } from '@/components/user-avatar';
 import {
   RoomGroup,
   RoomGroupContent,

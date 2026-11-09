@@ -20,10 +20,10 @@ import {
 } from '@/components/async/status-button';
 import { FormCheckbox } from '@/components/form/form-checkbox';
 import { FormInput } from '@/components/form/form-input';
-import { withCallbackURL } from '@/features/auth/lib/callback-url';
 import { verifyEmailPath } from '@/features/auth/lib/email-otp-type';
 import { navigateWithTransition } from '@/features/auth/lib/navigate-with-transition';
 import { SignUpSchema } from '@/features/auth/lib/validations';
+import { withCallbackURL } from '@/lib/callback-url';
 import { authClient } from '@/services/auth/client';
 
 type SignUpFormValues = z.infer<typeof SignUpSchema>;

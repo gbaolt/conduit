@@ -1,7 +1,7 @@
 import { Skeleton } from '@conduit/ui/components/skeleton';
 
 import {
-  ComposerSkeleton,
+  ConversationComposerSkeleton,
   ConversationSkeleton,
 } from '@/components/conversation-skeleton';
 
@@ -29,7 +29,7 @@ export function RoomPageSkeleton() {
       <RoomHeaderSkeleton />
       <ConversationSkeleton />
       <div className="px-4 pb-4 sm:px-5">
-        <ComposerSkeleton />
+        <ConversationComposerSkeleton />
       </div>
     </div>
   );

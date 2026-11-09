@@ -27,7 +27,6 @@ export const config = [
         },
       ],
       '@typescript-eslint/no-import-type-side-effects': 'error',
-      // A ternary stays flat. Pick between more than two outcomes with a lookup table, early returns, or a component.
       'no-nested-ternary': 'error',
     },
   },

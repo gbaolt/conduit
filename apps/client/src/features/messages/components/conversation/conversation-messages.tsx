@@ -242,7 +242,6 @@ export function ConversationMessages({
         >
           <MessageScrollerContent
             aria-live="polite"
-            // The composer floats over the log, so the end of the log clears its height.
             className="gap-0 pt-2 pb-[calc(var(--composer-height,8rem)+0.75rem)]"
           >
             {olderFailed && (

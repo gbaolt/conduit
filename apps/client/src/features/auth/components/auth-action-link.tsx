@@ -1,7 +1,7 @@
 import type { Route } from 'next';
 import Link from 'next/link';
 
-import { withCallbackURL } from '@/features/auth/lib/callback-url';
+import { withCallbackURL } from '@/lib/callback-url';
 import { cn } from '@/lib/utils';
 
 type AuthActionLinkProps = {

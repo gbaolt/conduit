@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 
-import { UserAvatar } from '@/components/nav-user';
+import { UserAvatar } from '@/components/user-avatar';
 import { sessionQuery } from '@/services/auth/queries';
 import { dmTitle } from '@/services/dms/dm-title';
 import { useDm } from '@/services/dms/hooks';
