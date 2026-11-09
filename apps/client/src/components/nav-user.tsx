@@ -1,5 +1,6 @@
 'use client';
 
+import type { SessionOutput } from '@conduit/contract';
 import { Button } from '@conduit/ui/components/button';
 import {
   DropdownMenu,
@@ -23,11 +24,10 @@ import Image from 'next/image';
 import { useWorkspace } from '@/features/workspace/context/workspace-provider';
 import { useSignOut } from '@/services/auth/hooks';
 
-export type NavUserInfo = {
-  name: string;
-  email: string;
-  image?: string | null;
-};
+export type NavUserInfo = Pick<
+  NonNullable<SessionOutput>['user'],
+  'name' | 'email' | 'image'
+>;
 
 export function UserAvatar({
   name,

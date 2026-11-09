@@ -4,6 +4,7 @@ import {
   CreateOrganizationInputSchema,
   ICON_CONTENT_TYPES,
   ICON_MAX_BYTES,
+  type Organization,
 } from '@conduit/contract';
 import {
   Alert,
@@ -22,10 +23,7 @@ import type { z } from 'zod';
 import { buttonStatus, StatusButton } from '@/components/async/status-button';
 import { FormInput } from '@/components/form/form-input';
 import { WorkspaceIcon } from '@/features/workspace/components/workspace-icon';
-import {
-  useWorkspace,
-  type Workspace,
-} from '@/features/workspace/context/workspace-provider';
+import { useWorkspace } from '@/features/workspace/context/workspace-provider';
 import {
   useUpdateWorkspace,
   useUploadWorkspaceIcon,
@@ -88,7 +86,7 @@ function IconPicker({ logo }: { logo?: string | null }) {
   );
 }
 
-function Form({ workspace }: { workspace: Workspace }) {
+function Form({ workspace }: { workspace: Organization }) {
   const update = useUpdateWorkspace();
   const { control, handleSubmit, setError } = useForm<Values>({
     resolver: standardSchemaResolver(CreateOrganizationInputSchema),

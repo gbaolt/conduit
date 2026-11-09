@@ -1,12 +1,13 @@
 'use client';
 
+import type { WorkspaceMember } from '@conduit/contract';
 import * as UI from '@conduit/ui/components/message';
 import { cn } from '@conduit/ui/lib/utils';
 import { createContext, type ReactNode, use } from 'react';
 
 import { UserAvatar } from '@/components/nav-user';
 
-export type Author = { name: string; image: string | null };
+export type Author = Pick<WorkspaceMember, 'name' | 'image'>;
 
 export const timeFormat = new Intl.DateTimeFormat(undefined, {
   hour: 'numeric',
