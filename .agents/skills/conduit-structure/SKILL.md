@@ -91,10 +91,8 @@ Import rules. `apps/server/eslint.config.js` enforces the first three, so lint f
 | `lib/query/hydration.tsx`            | `getQueryClient` and `HydrateClient`                                                                                                                                                |
 | `@conduit/ui/components/*`           | shadcn primitives from `packages/ui`. Build every control and table from them; when one is missing, add the shadcn component to `packages/ui` first. Leave existing files unchanged |
 
-A feature folder is a domain, not a screen. The domains are `workspace`, `rooms`, `channels`, `dms`, `messages`, `auth`, and `onboarding`. Before you add a folder under `features/`, name the domain whose data the new code shows. When that domain already has a folder, the code goes inside it: settings, dialogs, and pages of the workspace live in `features/workspace/components/<area>/`. A new top-level feature folder is a new domain, with its own `services/<domain>/` or its own flow.
+A feature folder is a domain, not a screen. The domains are `workspace`, `rooms`, `channels`, `dms`, `messages`, `auth`, and `onboarding`. Before you add a folder under `features/`, name the domain whose data the new code shows. When that domain already has a folder, the code goes inside it: settings, dialogs, and pages of the workspace live in `features/workspace/components/<area>/`. A new top-level feature folder is a new domain, with its own `services/<domain>/` and a row in `featureDeps`.
 
-Import rules:
+Import rules. `apps/client/eslint.config.mjs` enforces the layer, room, and feature boundaries, and each error names its fix. Its `featureDeps` table lists the features each feature may import. Treat a new edge there as a design decision: add it in the same change that needs it, or move the shared code up a level.
 
-- Only `services/` and `features/auth` import `authClient`.
-- Components reach the API through `services/`, not through `lib/orpc.ts`.
 - A server component fetches inside a `<Suspense>` boundary, then wraps its children in `HydrateClient`. `app/(dashboard)/(home)/channels/[roomId]/page.tsx` is the reference.

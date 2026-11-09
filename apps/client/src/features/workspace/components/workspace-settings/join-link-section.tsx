@@ -22,7 +22,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { StatusButton } from '@/components/async/status-button';
-import { toAbsoluteAppUrl } from '@/features/auth/lib/callback-url';
+import { toAbsoluteAppUrl } from '@/lib/callback-url';
 import { useJoinLink, useResetJoinLink } from '@/services/workspaces/hooks';
 
 /** The workspace's join link as a full URL, and a way to copy it. */

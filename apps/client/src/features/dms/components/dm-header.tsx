@@ -12,10 +12,10 @@ import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
 import { BackToList } from '@/components/list-view';
+import { useActivateRoomWorkspace } from '@/features/rooms/lib/use-activate-room-workspace';
 import { sessionQuery } from '@/services/auth/queries';
 import { dmTitle } from '@/services/dms/dm-title';
 import { useDm } from '@/services/dms/hooks';
-import { useActivateRoomWorkspace } from '@/services/rooms/hooks';
 import { roomQuery } from '@/services/rooms/queries';
 
 import { useDmDialogs } from '../context/dm-dialogs-provider';
