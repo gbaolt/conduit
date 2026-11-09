@@ -10,7 +10,6 @@ import {
 } from '@/services/messages/hooks';
 
 import { OpenThread } from '../../context/thread';
-import { MessageMarkdown } from '../../lib/markdown/message-markdown';
 import { Composer } from '../composer/composer';
 import {
   type Author,
@@ -24,6 +23,7 @@ import {
 } from './message';
 import { MessageActions } from './message-actions';
 import { MessageLinkPreview } from './message-link-preview';
+import { MessageMarkdown } from './message-markdown';
 import { MessageReactions } from './message-reactions';
 
 function MessagePreview({

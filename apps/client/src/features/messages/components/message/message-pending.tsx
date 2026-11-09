@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 
 import type { PendingMessage } from '@/services/messages/hooks';
 
-import { MessageMarkdown } from '../../lib/markdown/message-markdown';
 import {
   type Author,
   Message,
@@ -15,6 +14,7 @@ import {
   MessageContent,
   MessageHeader,
 } from './message';
+import { MessageMarkdown } from './message-markdown';
 
 const SENDING_LABEL_MS = 3000;
 

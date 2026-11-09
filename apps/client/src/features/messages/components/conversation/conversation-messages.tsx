@@ -26,6 +26,7 @@ import { buildLog, dayLabel } from '../../lib/group-messages';
 import type { Author } from '../message/message';
 import { MessagePending } from '../message/message-pending';
 import { MessageRow } from '../message/message-row';
+import { NewMarker } from './new-marker';
 
 const UNKNOWN_AUTHOR: Author = { name: 'Former member', image: null };
 
@@ -51,18 +52,6 @@ function ReplyDivider({ count }: { count: number }) {
         {repliesLabel(count)}
       </span>
       <div className="bg-border h-px flex-1" />
-    </div>
-  );
-}
-
-function NewMarker() {
-  return (
-    <div
-      role="separator"
-      className="text-destructive flex items-center gap-3 px-5 pt-2 pb-1"
-    >
-      <div className="bg-destructive h-px flex-1" />
-      <span className="text-xs font-medium">New</span>
     </div>
   );
 }
@@ -157,12 +146,12 @@ function ScrollToTarget({
 /** Up and Down move between rows. Escape hands focus back to the composer. */
 function moveFocus(event: KeyboardEvent<HTMLElement>) {
   const row = (event.target as HTMLElement).closest<HTMLElement>(
-    '[data-message-row]'
+    '[data-slot="message"]'
   );
   if (!row || event.target !== row) return;
 
   const rows = Array.from(
-    event.currentTarget.querySelectorAll<HTMLElement>('[data-message-row]')
+    event.currentTarget.querySelectorAll<HTMLElement>('[data-slot="message"]')
   );
   const next = rows[rows.indexOf(row) + (event.key === 'ArrowUp' ? -1 : 1)];
   if (next) {
@@ -269,11 +258,10 @@ export function ConversationMessages({
               <MessageScrollerItem
                 key={entry.key}
                 messageId={entry.key}
-                // The action bar overlaps the row above, which content-visibility:auto would clip. Toggling it on hover moved the row 1px (pixel snapping) and cut the bar mid fade-out.
                 className="[content-visibility:visible]"
               >
+                {entry.startsNew && <NewMarker messageId={entry.key} />}
                 {entry.startsDay && <DayDivider date={entry.createdAt} />}
-                {entry.startsNew && <NewMarker />}
                 {entry.kind === 'message' ? (
                   <MessageRow
                     message={entry.message}
