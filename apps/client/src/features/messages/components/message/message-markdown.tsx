@@ -3,13 +3,10 @@ import type { Components } from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 
 import { dom, Markdown } from '@/components/markdown';
-import { MentionCard } from '@/features/messages/components/message/mention-card';
-import {
-  MentionViewer,
-  useMentionName,
-} from '@/features/messages/context/mention-names';
 
-import { remarkMentions } from './remark-mentions';
+import { MentionViewer, useMentionName } from '../../context/mention-names';
+import { remarkMentions } from '../../lib/remark-mentions';
+import { MentionCard } from '../mention-card';
 
 // Chat keeps the line breaks people type, and turns <@id> into mentions.
 const remarkPlugins = [remarkBreaks, remarkMentions];

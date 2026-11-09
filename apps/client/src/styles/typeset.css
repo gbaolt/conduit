@@ -525,11 +525,14 @@
 
 /* A member, @channel, or @here. A mention of the viewer is filled, so it stands out in a busy log. */
 .typeset .mention {
-  border-radius: 0.25em;
-  padding: 0 0.2em;
+  border-radius: 0.375em;
+  padding: 0.1em 0.25em;
   font-weight: 500;
   color: var(--color-primary);
   background-color: color-mix(in oklab, var(--color-primary) 10%, transparent);
+  border-color: var(--color-primary);
+  border-style: solid;
+  border-width: 1px;
   cursor: default;
   outline: none;
 

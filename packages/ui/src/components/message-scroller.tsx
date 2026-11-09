@@ -8,7 +8,7 @@ import {
   useMessageScrollerScrollable,
   useMessageScrollerVisibility,
 } from '@shadcn/react/message-scroller';
-import { IconArrowDown } from '@tabler/icons-react';
+import { IconChevronsDown } from '@tabler/icons-react';
 import * as React from 'react';
 
 function MessageScrollerProvider(
@@ -35,8 +35,24 @@ function MessageScroller({
 
 function MessageScrollerViewport({
   className,
+  onKeyDown,
+  onTouchMove,
+  onWheel,
   ...props
 }: React.ComponentProps<typeof MessageScrollerPrimitive.Viewport>) {
+  const { scrollToEnd } = useMessageScroller();
+
+  // The primitive stops following on every wheel, touch or scroll key, even one that cannot move the
+  // viewport because it already sits at the end, and only a later scroll event would resume it.
+  function followIfAtEnd(event: React.UIEvent<HTMLDivElement>) {
+    const viewport = event.currentTarget;
+    window.requestAnimationFrame(() => {
+      const remaining =
+        viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
+      if (remaining <= 1) scrollToEnd();
+    });
+  }
+
   return (
     <MessageScrollerPrimitive.Viewport
       data-slot="message-scroller-viewport"
@@ -44,6 +60,18 @@ function MessageScrollerViewport({
         'scroll-fade-b size-full min-h-0 min-w-0 scrollbar-thin scrollbar-gutter-stable overflow-y-auto overscroll-contain contain-content data-autoscrolling:scrollbar-thumb-transparent data-autoscrolling:scrollbar-track-transparent',
         className
       )}
+      onKeyDown={(event) => {
+        onKeyDown?.(event);
+        followIfAtEnd(event);
+      }}
+      onTouchMove={(event) => {
+        onTouchMove?.(event);
+        followIfAtEnd(event);
+      }}
+      onWheel={(event) => {
+        onWheel?.(event);
+        followIfAtEnd(event);
+      }}
       {...props}
     />
   );
@@ -106,7 +134,7 @@ function MessageScrollerButton({
     >
       {children ?? (
         <>
-          <IconArrowDown />
+          <IconChevronsDown />
           <span className="sr-only">
             {direction === 'end' ? 'Scroll to end' : 'Scroll to start'}
           </span>
