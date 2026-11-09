@@ -11,8 +11,8 @@ import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { toast } from 'sonner';
 
-import { UserAvatar } from '@/components/nav-user';
 import { PresenceDot } from '@/components/presence-dot';
+import { UserAvatar } from '@/components/user-avatar';
 import { useOpenDm } from '@/services/dms/hooks';
 import { useWorkspaceMembers } from '@/services/workspaces/hooks';
 

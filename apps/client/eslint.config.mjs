@@ -1,5 +1,7 @@
 import { nextJsConfig } from '@conduit/config/eslint/next-js';
 
+import conduit from './eslint-rules/family-prefix.mjs';
+
 // Each feature lists the features it may import. Adding an edge here is the
 // review point for a new cross-feature dependency.
 const featureDeps = {
@@ -95,6 +97,12 @@ export default [
   ...services.map((service) =>
     restrict([`src/services/${service}/**`], serviceRules(service))
   ),
+  {
+    files: ['src/features/**/components/**/*.tsx', 'src/components/**/*.tsx'],
+    ignores: ['src/components/editor/**'],
+    plugins: { conduit },
+    rules: { 'conduit/family-prefix': 'error' },
+  },
   {
     files: ['src/features/**/*.tsx'],
     rules: {

@@ -5,7 +5,7 @@ import * as UI from '@conduit/ui/components/message';
 import { cn } from '@conduit/ui/lib/utils';
 import { createContext, type ReactNode, use } from 'react';
 
-import { UserAvatar } from '@/components/nav-user';
+import { UserAvatar } from '@/components/user-avatar';
 
 export type Author = Pick<WorkspaceMember, 'name' | 'image'>;
 
