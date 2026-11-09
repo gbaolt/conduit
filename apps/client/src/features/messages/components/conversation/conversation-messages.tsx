@@ -157,12 +157,12 @@ function ScrollToTarget({
 /** Up and Down move between rows. Escape hands focus back to the composer. */
 function moveFocus(event: KeyboardEvent<HTMLElement>) {
   const row = (event.target as HTMLElement).closest<HTMLElement>(
-    '[data-message-row]'
+    '[data-slot="message"]'
   );
   if (!row || event.target !== row) return;
 
   const rows = Array.from(
-    event.currentTarget.querySelectorAll<HTMLElement>('[data-message-row]')
+    event.currentTarget.querySelectorAll<HTMLElement>('[data-slot="message"]')
   );
   const next = rows[rows.indexOf(row) + (event.key === 'ArrowUp' ? -1 : 1)];
   if (next) {
@@ -269,7 +269,6 @@ export function ConversationMessages({
               <MessageScrollerItem
                 key={entry.key}
                 messageId={entry.key}
-                // The action bar overlaps the row above, which content-visibility:auto would clip. Toggling it on hover moved the row 1px (pixel snapping) and cut the bar mid fade-out.
                 className="[content-visibility:visible]"
               >
                 {entry.startsDay && <DayDivider date={entry.createdAt} />}

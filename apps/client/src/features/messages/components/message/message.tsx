@@ -1,5 +1,6 @@
 'use client';
 
+import * as UI from '@conduit/ui/components/message';
 import { cn } from '@conduit/ui/lib/utils';
 import { createContext, type ReactNode, use } from 'react';
 
@@ -43,23 +44,22 @@ export function Message({
 }) {
   return (
     <MessageContext value={{ grouped, createdAt }}>
-      <article
+      <UI.Message
+        variant="log"
+        role="article"
         aria-label={label}
-        data-message-row=""
-        data-focused={focused || undefined}
         tabIndex={-1}
+        data-highlighted={highlight || undefined}
+        data-focused={focused || undefined}
         className={cn(
-          'group/row hover:bg-muted focus-visible:bg-muted relative flex gap-3 px-5 outline-none',
+          'px-5',
           grouped ? 'pt-0.5' : 'pt-2',
-          highlight &&
-            'bg-primary/[0.06] shadow-[inset_2px_0_0_var(--color-primary)]',
-          'after:bg-primary/10 after:pointer-events-none after:absolute after:inset-0 after:opacity-0 after:transition-opacity after:duration-1500 data-focused:after:opacity-100 data-focused:after:duration-0 motion-reduce:after:transition-none',
           fresh &&
             'animate-in fade-in-0 slide-in-from-bottom-1 motion-reduce:slide-in-from-bottom-0 duration-150 ease-out'
         )}
       >
         {children}
-      </article>
+      </UI.Message>
     </MessageContext>
   );
 }
@@ -69,11 +69,11 @@ export function MessageAvatar({ author }: { author: Author }) {
   const { grouped, createdAt } = use(MessageContext);
 
   return (
-    <div className="w-9 shrink-0">
+    <UI.MessageAvatar>
       {grouped && createdAt ? (
         <MessageTime
           date={createdAt}
-          className="invisible block pt-[5px] text-right text-[11px] group-focus-within/row:visible group-hover/row:visible"
+          className="invisible block pt-[5px] text-right text-[11px] group-focus-within/message:visible group-hover/message:visible"
         />
       ) : (
         <UserAvatar
@@ -82,7 +82,7 @@ export function MessageAvatar({ author }: { author: Author }) {
           className="size-9 rounded-md"
         />
       )}
-    </div>
+    </UI.MessageAvatar>
   );
 }
 
@@ -94,7 +94,9 @@ export function MessageContent({
   className?: string;
   children: ReactNode;
 }) {
-  return <div className={cn('min-w-0 flex-1', className)}>{children}</div>;
+  return (
+    <UI.MessageContent className={className}>{children}</UI.MessageContent>
+  );
 }
 
 /** The author line. Hidden on a grouped row. */
@@ -102,7 +104,7 @@ export function MessageHeader({ children }: { children: ReactNode }) {
   const { grouped } = use(MessageContext);
   if (grouped) return null;
 
-  return <p className="flex items-baseline gap-2">{children}</p>;
+  return <UI.MessageHeader>{children}</UI.MessageHeader>;
 }
 
 export function MessageAuthor({ children }: { children: ReactNode }) {
