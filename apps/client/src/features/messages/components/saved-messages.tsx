@@ -7,7 +7,7 @@ import { IconBookmark, IconHash, IconMessage } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 
-import { BackToList } from '@/components/list-view';
+import { ListBackLink } from '@/components/list-view';
 import { useSavedMessage } from '@/services/messages/hooks';
 import { savedQuery } from '@/services/messages/queries';
 
@@ -15,17 +15,15 @@ import { MentionNames } from '../context/mention-names';
 import { useAuthors } from '../lib/use-authors';
 import { MessageExcerpt } from './message/message-excerpt';
 
-const FORMER_MEMBER = { name: 'Former member', image: null };
-
 function SavedItem({ item }: { item: SavedMessage }) {
-  const { authors } = useAuthors();
+  const { authorOf } = useAuthors();
   const { saved, toggle } = useSavedMessage(item.message.id);
   const { message, channelName } = item;
 
   return (
     <MessageExcerpt
       message={message}
-      author={authors.get(message.authorId) ?? FORMER_MEMBER}
+      author={authorOf(message.authorId)}
       context={
         <Link
           href={`${channelName === null ? '/dms' : '/channels'}/${message.roomId}${
@@ -115,7 +113,7 @@ export function SavedMessages() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <header className="flex min-h-12 shrink-0 items-center gap-2 border-b px-4 py-1.5">
-        <BackToList />
+        <ListBackLink />
         <IconBookmark className="size-4" aria-hidden />
         <h1 className="text-sm font-semibold">Saved</h1>
       </header>

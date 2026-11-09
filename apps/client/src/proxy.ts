@@ -2,7 +2,7 @@ import { getSessionCookie } from 'better-auth/cookies';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-import { isSafeInternalPath } from '@/features/auth/lib/callback-url';
+import { isSafeInternalPath } from '@/lib/callback-url';
 
 const protectedRoutes = ['/', '/onboarding', '/accept-invitation'];
 const authRoutes = [

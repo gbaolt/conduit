@@ -34,8 +34,8 @@ const sameIds = (a: ReadonlySet<string>, b: ReadonlySet<string>) =>
 
 /**
  * Opens the `sidebar` stream and keeps its rows in the cache. When the set of conversations changes
- * after the first result, such as someone adding the viewer to a channel or a DM, the channel list refetches.
- * Mount it once per workspace.
+ * after the first result, such as someone adding the viewer to a channel or a DM, the channel and DM lists
+ * refetch. Mount it once per workspace.
  */
 export function useSidebarStream() {
   const queryClient = useQueryClient();
@@ -48,6 +48,7 @@ export function useSidebarStream() {
     if (known.current && !sameIds(known.current, ids)) {
       void queryClient.invalidateQueries({ queryKey: orpc.channels.key() });
       void queryClient.invalidateQueries({ queryKey: orpc.rooms.key() });
+      void queryClient.invalidateQueries({ queryKey: orpc.dms.key() });
     }
     known.current = ids;
   });

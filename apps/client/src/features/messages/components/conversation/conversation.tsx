@@ -194,7 +194,7 @@ export function Conversation({
   });
   const viewerId = session?.user.id ?? null;
 
-  const { authors, names } = useAuthors();
+  const { authorOf, names } = useAuthors();
 
   const suggestions = useMemo(
     () => [
@@ -235,7 +235,7 @@ export function Conversation({
                 roomId={roomId}
                 parentId={parentId}
                 messages={messages}
-                authors={authors}
+                authorOf={authorOf}
                 viewerId={viewerId}
                 canPost={canPost}
                 canModerate={canChannel(
@@ -362,7 +362,7 @@ function ComposerFade() {
       aria-hidden
       className="pointer-events-none absolute inset-x-0 bottom-0 z-10"
     >
-      <div className="to-background h-16 bg-linear-to-b from-transparent mask-linear-[to_top,var(--background)_25%,transparent] backdrop-blur-[1px]" />
+      <div className="to-background h-15 bg-linear-to-b from-transparent mask-linear-[to_top,var(--background)_25%,transparent] backdrop-blur-[1px]" />
       <div className="bg-background h-[calc(var(--composer-height,8rem)-1rem)]" />
     </div>
   );

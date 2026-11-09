@@ -28,8 +28,6 @@ import { MessagePending } from '../message/message-pending';
 import { MessageRow } from '../message/message-row';
 import { NewMarker } from './new-marker';
 
-const UNKNOWN_AUTHOR: Author = { name: 'Former member', image: null };
-
 function DayDivider({ date }: { date: Date }) {
   return (
     <div role="separator" className="flex items-center gap-3 px-5 pt-3 pb-1">
@@ -164,7 +162,7 @@ export function ConversationMessages({
   roomId,
   parentId,
   messages,
-  authors,
+  authorOf,
   viewerId,
   canPost,
   canModerate,
@@ -190,7 +188,7 @@ export function ConversationMessages({
   /** Set when the list is a thread: `messages` then starts with its root. */
   parentId?: string;
   messages: readonly Message[];
-  authors: ReadonlyMap<string, Author>;
+  authorOf: (userId: string) => Author | null;
   viewerId: string | null;
   canPost: boolean;
   canModerate: boolean;
@@ -226,7 +224,7 @@ export function ConversationMessages({
       parentId && index === 1 ? { ...entry, grouped: false } : entry
   );
   const [mountedAt] = useState(() => Date.now());
-  const viewer = authors.get(viewerId ?? '') ?? UNKNOWN_AUTHOR;
+  const viewer = authorOf(viewerId ?? '');
 
   return (
     <MessageScrollerProvider autoScroll defaultScrollPosition="end">
@@ -242,7 +240,6 @@ export function ConversationMessages({
         >
           <MessageScrollerContent
             aria-live="polite"
-            // The composer floats over the log, so the end of the log clears its height.
             className="gap-0 pt-2 pb-[calc(var(--composer-height,8rem)+0.75rem)]"
           >
             {olderFailed && (
@@ -265,7 +262,7 @@ export function ConversationMessages({
                 {entry.kind === 'message' ? (
                   <MessageRow
                     message={entry.message}
-                    author={authors.get(entry.authorId) ?? UNKNOWN_AUTHOR}
+                    author={authorOf(entry.authorId)}
                     grouped={entry.grouped}
                     viewerId={viewerId}
                     canPost={canPost}

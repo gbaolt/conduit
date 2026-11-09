@@ -20,9 +20,7 @@ const messageVariants = cva(
         bubble: 'gap-2 data-[align=end]:flex-row-reverse',
         log: [
           'gap-3 outline-none focus-visible:bg-muted',
-          // Only a focusable row tints on hover. An excerpt has no actions to reveal.
-          '[&[tabindex]]:hover:bg-muted',
-          'data-highlighted:not-hover:not-focus-visible:bg-primary/[0.06] data-highlighted:shadow-[inset_2px_0_0_var(--color-primary)]',
+          '[&[tabindex]]:hover:bg-muted dark:[&[tabindex]]:hover:bg-muted/50',
           'after:pointer-events-none after:absolute after:inset-0 after:bg-primary/10 after:opacity-0 after:transition-opacity after:duration-1500 data-focused:after:opacity-100 data-focused:after:duration-0 motion-reduce:after:transition-none',
         ],
       },

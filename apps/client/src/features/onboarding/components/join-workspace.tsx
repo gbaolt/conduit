@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { StatusButton } from '@/components/async/status-button';
-import { withCallbackURL } from '@/features/auth/lib/callback-url';
+import { withCallbackURL } from '@/lib/callback-url';
 import { useJoinWithLink } from '@/services/workspaces/hooks';
 import { joinLinkPreviewQuery } from '@/services/workspaces/queries';
 

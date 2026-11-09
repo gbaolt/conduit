@@ -1,6 +1,7 @@
 'use client';
 
 import type { LinkPreview, Message as MessageData } from '@conduit/contract';
+import { Button } from '@conduit/ui/components/button';
 import { IconCornerDownRight, IconPin } from '@tabler/icons-react';
 import { use } from 'react';
 
@@ -59,21 +60,23 @@ function ThreadLine({
   const label = count === 1 ? '1 reply' : `${count} replies`;
 
   return (
-    <button
+    <Button
+      size="xs"
+      variant="outline"
       type="button"
       data-thread-line={rootId}
       disabled={!openThread}
       aria-label={`${label}. Open thread`}
-      className="hover:bg-background focus-visible:ring-ring/50 -ml-1 flex w-fit items-baseline gap-2 rounded-md px-1 py-0.5 text-left outline-none focus-visible:ring-3 pointer-coarse:min-h-11"
+      className="h-6 rounded-sm px-1.5 outline-none pointer-coarse:min-h-11"
       onClick={() => openThread?.(rootId)}
     >
-      <span className="text-primary text-[13px] font-medium">{label}</span>
+      <span className="text-link text-[13px] font-medium">{label}</span>
       {lastReplyAt && (
         <span className="text-muted-foreground text-xs">
           Last reply <MessageTime date={lastReplyAt} className="text-xs" />
         </span>
       )}
-    </button>
+    </Button>
   );
 }
 
@@ -82,15 +85,17 @@ function RepliedLine({ rootId }: { rootId: string }) {
   const openThread = use(OpenThread);
 
   return (
-    <button
+    <Button
+      size="xs"
+      variant="link"
       type="button"
       disabled={!openThread}
-      className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 flex items-center gap-1 rounded text-xs outline-none focus-visible:ring-3"
+      className="h-6 rounded-sm px-1.5 outline-none pointer-coarse:min-h-11"
       onClick={() => openThread?.(rootId)}
     >
-      <IconCornerDownRight className="size-3.5" aria-hidden />
+      <IconCornerDownRight data-icon="inlin-start" aria-hidden />
       Replied to a thread
-    </button>
+    </Button>
   );
 }
 
@@ -109,7 +114,7 @@ export function MessageRow({
   inThread,
 }: {
   message: MessageData;
-  author: Author;
+  author: Author | null;
   grouped: boolean;
   viewerId: string | null;
   canPost: boolean;
@@ -119,7 +124,6 @@ export function MessageRow({
   editing: boolean;
   onEdit: () => void;
   onStopEditing: () => void;
-  /** Rendered inside the thread panel, which already shows the thread. */
   inThread: boolean;
 }) {
   const isAuthor = message.authorId === viewerId;
@@ -131,7 +135,7 @@ export function MessageRow({
 
   return (
     <Message
-      label={`${author.name}, ${timeFormat.format(message.createdAt)}`}
+      label={`${author?.name ?? 'Loading author'}, ${timeFormat.format(message.createdAt)}`}
       createdAt={message.createdAt}
       grouped={grouped}
       highlight={mentionsViewer && !message.deletedAt}
@@ -141,7 +145,7 @@ export function MessageRow({
       <MessageAvatar author={author} />
       <MessageContent className="pb-0.5">
         <MessageHeader>
-          <MessageAuthor>{author.name}</MessageAuthor>
+          <MessageAuthor author={author} />
           <MessageTime date={message.createdAt} className="text-xs" />
         </MessageHeader>
         {message.deletedAt && (
@@ -149,9 +153,11 @@ export function MessageRow({
             This message was deleted.
           </p>
         )}
+
         {!message.deletedAt && editing && (
           <EditMessage message={message} onDone={onStopEditing} />
         )}
+
         {!message.deletedAt && !editing && (
           <>
             {message.pinnedAt && (
@@ -190,6 +196,7 @@ export function MessageRow({
           </>
         )}
       </MessageContent>
+
       {!message.deletedAt && !editing && (
         <MessageActions
           message={message}

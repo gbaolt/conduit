@@ -528,17 +528,24 @@
   border-radius: 0.375em;
   padding: 0.1em 0.25em;
   font-weight: 500;
-  color: var(--color-primary);
-  background-color: color-mix(in oklab, var(--color-primary) 10%, transparent);
-  border-color: var(--color-primary);
+  color: var(--color-link);
+  background-color: color-mix(in oklab, var(--color-link) 20%, transparent);
+  border-color: var(--color-link);
   border-style: solid;
   border-width: 1px;
   cursor: default;
   outline: none;
 
   &[data-self] {
-    color: var(--color-primary-foreground);
-    background-color: var(--color-primary);
+    color: var(--color-warning);
+    background-color: color-mix(
+      in oklab,
+      var(--color-warning) 20%,
+      transparent
+    );
+    border-color: var(--color-warning);
+    border-style: solid;
+    border-width: 1px;
   }
   &:focus-visible {
     box-shadow: 0 0 0 2px var(--color-ring);

@@ -36,8 +36,8 @@ import { type FormEvent, useState } from 'react';
 import { toast } from 'sonner';
 
 import { StatusButton } from '@/components/async/status-button';
-import { UserAvatar } from '@/components/nav-user';
 import { PresenceDot } from '@/components/presence-dot';
+import { UserAvatar } from '@/components/user-avatar';
 import { sessionQuery } from '@/services/auth/queries';
 import {
   useLeaveChannel,

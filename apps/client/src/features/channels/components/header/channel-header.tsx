@@ -5,8 +5,8 @@ import { IconDots, IconHash, IconLock, IconUsers } from '@tabler/icons-react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
-import { BackToList } from '@/components/list-view';
-import { useActivateRoomWorkspace } from '@/services/rooms/hooks';
+import { ListBackLink } from '@/components/list-view';
+import { useActivateRoomWorkspace } from '@/features/rooms/lib/use-activate-room-workspace';
 import { roomQuery } from '@/services/rooms/queries';
 
 import { useChannelDialogs } from '../../context/channel-dialogs-provider';
@@ -33,7 +33,7 @@ export function ChannelHeader({
   return (
     <>
       <header className="flex min-h-12 shrink-0 items-center gap-1.5 border-b px-2">
-        <BackToList />
+        <ListBackLink />
         <div className="min-w-0 flex-1">
           <h1 className="min-w-0 text-sm font-semibold">
             <Button

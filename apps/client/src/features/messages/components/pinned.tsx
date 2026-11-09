@@ -22,8 +22,6 @@ import { MentionNames } from '../context/mention-names';
 import { useAuthors } from '../lib/use-authors';
 import { MessageExcerpt } from './message/message-excerpt';
 
-const FORMER_MEMBER = { name: 'Former member', image: null };
-
 /** The channel header's Pinned count, which opens the list. It renders nothing while no message is pinned. */
 export function PinnedButton({ roomId }: { roomId: string }) {
   const { data: pinned } = useQuery(pinnedQuery(roomId));
@@ -58,7 +56,7 @@ function PinnedList({ roomId }: { roomId: string }) {
   const { data: pinned = [] } = useQuery(pinnedQuery(roomId));
   const { data: channel } = useQuery(roomQuery(roomId));
   const workspaceRole = useWorkspaceRole();
-  const { authors, names } = useAuthors();
+  const { authorOf, names } = useAuthors();
   const togglePin = useTogglePin(roomId);
   const canUnpin = channel ? canChannel('post', workspaceRole, channel) : false;
 
@@ -69,7 +67,7 @@ function PinnedList({ roomId }: { roomId: string }) {
           <li key={message.id}>
             <MessageExcerpt
               message={message}
-              author={authors.get(message.authorId) ?? FORMER_MEMBER}
+              author={authorOf(message.authorId)}
             >
               {canUnpin && (
                 <Button

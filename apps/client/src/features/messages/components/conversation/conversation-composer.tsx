@@ -1,6 +1,6 @@
 'use client';
 
-import { ComposerSkeleton } from '@/components/conversation-skeleton';
+import { ConversationComposerSkeleton } from '@/components/conversation-skeleton';
 import { useComposerActivity, useDraft } from '@/services/activity/hooks';
 
 import { Composer, type ComposerProps } from '../composer/composer';
@@ -20,7 +20,7 @@ export function ConversationComposer({
   const draft = useDraft(roomId, parentId);
   const onChange = useComposerActivity(roomId, draft ?? '', parentId);
 
-  if (draft === undefined) return <ComposerSkeleton />;
+  if (draft === undefined) return <ConversationComposerSkeleton />;
 
   return <Composer {...composer} initialMarkdown={draft} onChange={onChange} />;
 }

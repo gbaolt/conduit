@@ -1,5 +1,6 @@
 'use client';
 
+import type { Organization } from '@conduit/contract';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createContext, type ReactNode, use, useEffect, useMemo } from 'react';
 
@@ -9,16 +10,9 @@ import {
 } from '@/services/workspaces/hooks';
 import { workspacesQuery } from '@/services/workspaces/queries';
 
-export type Workspace = {
-  id: string;
-  name: string;
-  slug: string;
-  logo?: string | null;
-};
-
 type WorkspaceContextValue = {
-  workspaces: Workspace[];
-  activeWorkspace: Workspace | null;
+  workspaces: Organization[];
+  activeWorkspace: Organization | null;
   isPending: boolean;
 };
 
@@ -45,14 +39,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const value = useMemo<WorkspaceContextValue>(
     () => ({
       workspaces,
-      activeWorkspace: activeOrganization
-        ? {
-            id: activeOrganization.id,
-            name: activeOrganization.name,
-            slug: activeOrganization.slug,
-            logo: activeOrganization.logo,
-          }
-        : null,
+      activeWorkspace: activeOrganization ?? null,
       isPending,
     }),
     [activeOrganization, isPending, workspaces]

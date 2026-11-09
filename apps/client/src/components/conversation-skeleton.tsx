@@ -52,7 +52,7 @@ const FORMAT_GROUPS = [
 ];
 
 /** The composer's frame, bars, and icons with nothing wired up, so the page keeps its shape while it loads. */
-export function ComposerSkeleton() {
+export function ConversationComposerSkeleton() {
   return (
     <div
       aria-hidden

@@ -1,5 +1,6 @@
 'use client';
 
+import type { WorkspaceMember } from '@conduit/contract';
 import {
   Combobox,
   ComboboxChip,
@@ -13,7 +14,7 @@ import {
   useComboboxAnchor,
 } from '@conduit/ui/components/combobox';
 
-export type Person = { id: string; name: string };
+export type Person = Pick<WorkspaceMember, 'userId' | 'name'>;
 
 /** Chips and a search box over `people`. */
 export function PeoplePicker({
@@ -37,14 +38,14 @@ export function PeoplePicker({
       value={selected}
       onValueChange={onChange}
       itemToStringLabel={(person: Person) => person.name}
-      isItemEqualToValue={(a: Person, b: Person) => a.id === b.id}
+      isItemEqualToValue={(a: Person, b: Person) => a.userId === b.userId}
     >
       <ComboboxChips ref={anchor}>
         <ComboboxValue>
           {(values: Person[]) => (
             <>
               {values.map((person) => (
-                <ComboboxChip key={person.id}>{person.name}</ComboboxChip>
+                <ComboboxChip key={person.userId}>{person.name}</ComboboxChip>
               ))}
               <ComboboxChipsInput
                 autoFocus
@@ -59,7 +60,7 @@ export function PeoplePicker({
         <ComboboxEmpty>{emptyText}</ComboboxEmpty>
         <ComboboxList>
           {(person: Person) => (
-            <ComboboxItem key={person.id} value={person}>
+            <ComboboxItem key={person.userId} value={person}>
               {person.name}
             </ComboboxItem>
           )}

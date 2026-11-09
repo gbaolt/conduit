@@ -1,6 +1,6 @@
 'use client';
 
-import type { Room } from '@conduit/contract';
+import type { Room, WorkspaceMember } from '@conduit/contract';
 import { Button } from '@conduit/ui/components/button';
 import {
   Combobox,
@@ -32,7 +32,7 @@ import { useWorkspaceMembers } from '@/services/workspaces/hooks';
 
 import { useChannelDialogs } from '../../context/channel-dialogs-provider';
 
-type Person = { id: string; name: string };
+type Person = Pick<WorkspaceMember, 'userId' | 'name'>;
 
 export function AddMembersDialog({ channel }: { channel: Room }) {
   const { close } = useChannelDialogs();
@@ -43,11 +43,9 @@ export function AddMembersDialog({ channel }: { channel: Room }) {
   const [selected, setSelected] = useState<Person[]>([]);
 
   const inChannel = new Set(channelMembers.map((member) => member.userId));
-  const people: Person[] = workspaceMembers
-    .filter(
-      (member) => member.status === 'active' && !inChannel.has(member.userId)
-    )
-    .map((member) => ({ id: member.userId, name: member.name }));
+  const people: Person[] = workspaceMembers.filter(
+    (member) => member.status === 'active' && !inChannel.has(member.userId)
+  );
 
   return (
     <Dialog open onOpenChange={(open) => !open && close()}>
@@ -62,14 +60,16 @@ export function AddMembersDialog({ channel }: { channel: Room }) {
           value={selected}
           onValueChange={setSelected}
           itemToStringLabel={(person: Person) => person.name}
-          isItemEqualToValue={(a: Person, b: Person) => a.id === b.id}
+          isItemEqualToValue={(a: Person, b: Person) => a.userId === b.userId}
         >
           <ComboboxChips ref={anchor}>
             <ComboboxValue>
               {(values: Person[]) => (
                 <>
                   {values.map((person) => (
-                    <ComboboxChip key={person.id}>{person.name}</ComboboxChip>
+                    <ComboboxChip key={person.userId}>
+                      {person.name}
+                    </ComboboxChip>
                   ))}
                   <ComboboxChipsInput
                     autoFocus
@@ -84,7 +84,7 @@ export function AddMembersDialog({ channel }: { channel: Room }) {
             <ComboboxEmpty>No one left to add.</ComboboxEmpty>
             <ComboboxList>
               {(person: Person) => (
-                <ComboboxItem key={person.id} value={person}>
+                <ComboboxItem key={person.userId} value={person}>
                   {person.name}
                 </ComboboxItem>
               )}
@@ -102,7 +102,7 @@ export function AddMembersDialog({ channel }: { channel: Room }) {
               addMembers.mutate(
                 {
                   roomId: channel.id,
-                  userIds: selected.map((person) => person.id),
+                  userIds: selected.map((person) => person.userId),
                 },
                 {
                   onSuccess: close,

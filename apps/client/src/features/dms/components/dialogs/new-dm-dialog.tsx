@@ -32,12 +32,9 @@ export function NewDmDialog() {
   const { data: workspaceMembers = [] } = useWorkspaceMembers();
   const [selected, setSelected] = useState<Person[]>([]);
 
-  const people: Person[] = workspaceMembers
-    .filter(
-      (member) =>
-        member.status === 'active' && member.userId !== session?.user.id
-    )
-    .map((member) => ({ id: member.userId, name: member.name }));
+  const people: Person[] = workspaceMembers.filter(
+    (member) => member.status === 'active' && member.userId !== session?.user.id
+  );
   const full = selected.length >= DM_MEMBERS_MAX - 1;
 
   return (
@@ -69,7 +66,7 @@ export function NewDmDialog() {
             status={openDm.isPending ? 'loading' : 'idle'}
             onClick={() =>
               openDm.mutate(
-                { userIds: selected.map((person) => person.id) },
+                { userIds: selected.map((person) => person.userId) },
                 {
                   onSuccess: (dm) => {
                     close();

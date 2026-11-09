@@ -38,9 +38,9 @@ export function AddDmPeopleDialog({ roomId }: { roomId: string }) {
   const inDm = new Set(
     dms.find((dm) => dm.id === roomId)?.members.map((m) => m.userId)
   );
-  const people: Person[] = workspaceMembers
-    .filter((member) => member.status === 'active' && !inDm.has(member.userId))
-    .map((member) => ({ id: member.userId, name: member.name }));
+  const people: Person[] = workspaceMembers.filter(
+    (member) => member.status === 'active' && !inDm.has(member.userId)
+  );
 
   return (
     <Dialog open onOpenChange={(isOpen) => !isOpen && close()}>
@@ -83,7 +83,7 @@ export function AddDmPeopleDialog({ roomId }: { roomId: string }) {
               status={addPeople.isPending ? 'loading' : 'idle'}
               onClick={() =>
                 addPeople.mutate(
-                  { roomId, userIds: selected.map((person) => person.id) },
+                  { roomId, userIds: selected.map((person) => person.userId) },
                   {
                     onSuccess: close,
                     onError: (error) => {
