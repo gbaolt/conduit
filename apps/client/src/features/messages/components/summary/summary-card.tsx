@@ -19,15 +19,17 @@ function Sources({
     const number = order.indexOf(id) + 1;
 
     return (
-      <button
+      <Button
         key={id}
+        size="xs"
+        variant="link"
         type="button"
         aria-label={`Source ${number}`}
-        className="text-primary focus-visible:ring-ring/50 mr-1.5 rounded text-xs outline-none hover:underline focus-visible:ring-3 pointer-coarse:inline-block pointer-coarse:min-h-11 pointer-coarse:min-w-6"
+        className="pointer-coarse:inline-block pointer-coarse:min-h-11 pointer-coarse:min-w-6"
         onClick={() => onSource(id)}
       >
         {number}
-      </button>
+      </Button>
     );
   });
 }
