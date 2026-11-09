@@ -16,6 +16,16 @@ const fullFormat = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'full',
   timeStyle: 'medium',
 });
+/** The gutter time drops AM/PM: the group's header above already shows it. */
+const gutterFormat = {
+  format: (date: Date) =>
+    timeFormat
+      .formatToParts(date)
+      .filter((part) => part.type !== 'dayPeriod')
+      .map((part) => part.value)
+      .join('')
+      .trim(),
+};
 
 /** A grouped row follows one by the same author: it hides the header and shows the time in the gutter. */
 const MessageContext = createContext<{
@@ -69,11 +79,12 @@ export function MessageAvatar({ author }: { author: Author }) {
   const { grouped, createdAt } = use(MessageContext);
 
   return (
-    <UI.MessageAvatar>
+    <UI.MessageAvatar className="relative">
       {grouped && createdAt ? (
         <MessageTime
           date={createdAt}
-          className="invisible block pt-[5px] text-right text-[11px] group-focus-within/message:visible group-hover/message:visible"
+          format={gutterFormat}
+          className="invisible absolute top-0 right-0 text-[11px] leading-[calc(0.875rem*1.65)] whitespace-nowrap group-focus-within/message:visible group-hover/message:visible"
         />
       ) : (
         <UserAvatar
@@ -119,7 +130,7 @@ export function MessageTime({
   className,
 }: {
   date: Date;
-  format?: Intl.DateTimeFormat;
+  format?: { format: (date: Date) => string };
   className?: string;
 }) {
   return (
