@@ -14,7 +14,7 @@ export function useAuthors() {
     const authors = new Map<string, Author>();
     const names = new Map<string, string>();
     for (const member of members ?? []) {
-      authors.set(member.userId, { name: member.name, image: member.image });
+      authors.set(member.userId, member);
       names.set(member.userId, member.name);
     }
     return { authors, names };
