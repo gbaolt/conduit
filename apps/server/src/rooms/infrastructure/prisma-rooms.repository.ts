@@ -237,13 +237,14 @@ export class PrismaRoomsRepository implements RoomsRepository {
   async listMembers(scope: RoomScope, roomId: string): Promise<RoomMember[]> {
     const rows = await this.db.roomMember.findMany({
       where: { roomId, ...stillInWorkspace(scope) },
-      include: { user: { select: { name: true, image: true } } },
+      include: { user: { select: { name: true, email: true, image: true } } },
       // MANAGER is declared first in the enum, so managers sort first.
       orderBy: [{ role: 'asc' }, { joinedAt: 'asc' }],
     });
     return rows.map((row) => ({
       userId: row.userId,
       name: row.user.name,
+      email: row.user.email,
       image: row.user.image,
       role: row.role === 'MANAGER' ? 'manager' : 'member',
       joinedAt: row.joinedAt,

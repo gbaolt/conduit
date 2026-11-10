@@ -2,7 +2,7 @@
 
 import { createContext, use } from 'react';
 
-import type { MentionSuggestion } from '@/components/editor/plugins/mentions-plugin';
+import type { MentionSuggestion } from '@/components/editor/plugins/mention';
 
 const EMPTY: ReadonlyMap<string, string> = new Map();
 

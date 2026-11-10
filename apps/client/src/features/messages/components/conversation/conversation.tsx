@@ -208,12 +208,15 @@ export function Conversation({
               hint: 'Notify members who are online',
             },
           ]),
-      ...(channelMembers ?? []).map(({ userId, name }) => ({
+      ...(channelMembers ?? []).map(({ userId, name, email, image }) => ({
         id: userId,
         name,
+        email,
+        image,
+        hint: userId === viewerId ? 'You' : undefined,
       })),
     ],
-    [channelMembers, isDm]
+    [channelMembers, isDm, viewerId]
   );
 
   const lastOwn = messages

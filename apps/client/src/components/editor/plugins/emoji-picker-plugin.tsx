@@ -1,9 +1,9 @@
 import {
-  Command,
-  CommandGroup,
-  CommandItem,
-  CommandList,
-} from '@conduit/ui/components/command';
+  MentionItem,
+  MentionItemLabel,
+  MentionList,
+  MentionPopup,
+} from '@conduit/ui/components/mention';
 import { Twemoji } from '@conduit/ui/components/twemoji';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
@@ -21,9 +21,6 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
-
-import { MentionMenu } from '@/components/editor/plugins/mentions-plugin';
-import { cn } from '@/lib/utils';
 
 class EmojiOption extends MenuOption {
   constructor(
@@ -135,45 +132,25 @@ export function EmojiPickerPlugin({
       ) =>
         anchorElementRef.current && options.length
           ? createPortal(
-              <MentionMenu>
-                <Command
-                  className="min-h-0"
-                  onKeyDown={(event) => {
-                    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') {
-                      return;
-                    }
-                    event.preventDefault();
-                    const step = event.key === 'ArrowUp' ? -1 : 1;
-                    setHighlightedIndex(
-                      ((selectedIndex ?? 0) + step + options.length) %
-                        options.length
-                    );
-                  }}
-                >
-                  <CommandList className="max-h-none overflow-y-auto">
-                    <CommandGroup>
-                      {options.map((option, index) => (
-                        <CommandItem
-                          key={option.key}
-                          value={option.title}
-                          onSelect={() => selectOptionAndCleanUp(option)}
-                          className={cn(
-                            'flex items-center gap-2',
-                            selectedIndex === index
-                              ? 'bg-accent text-accent-foreground'
-                              : 'bg-transparent'
-                          )}
-                        >
-                          <Twemoji className="m-0 size-5">
-                            {option.emoji}
-                          </Twemoji>
-                          <span className="truncate">:{option.title}:</span>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </MentionMenu>,
+              <MentionPopup>
+                <MentionList aria-label="Emoji suggestions">
+                  {options.map((option, index) => (
+                    <MentionItem
+                      key={option.key}
+                      ref={option.setRefElement}
+                      highlighted={selectedIndex === index}
+                      onMouseEnter={() => setHighlightedIndex(index)}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => selectOptionAndCleanUp(option)}
+                    >
+                      <Twemoji className="m-0 size-5">{option.emoji}</Twemoji>
+                      <MentionItemLabel className="font-normal">
+                        :{option.title}:
+                      </MentionItemLabel>
+                    </MentionItem>
+                  ))}
+                </MentionList>
+              </MentionPopup>,
               anchorElementRef.current
             )
           : null
