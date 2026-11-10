@@ -4,7 +4,7 @@ import { cn } from '@conduit/ui/lib/utils';
 import * as React from 'react';
 
 const EDGE = 8;
-const MAX_HEIGHT = 280;
+const MAX_HEIGHT = 288;
 
 type Placement = {
   above: boolean;
@@ -85,7 +85,7 @@ function MentionList({ className, ...props }: React.ComponentProps<'ul'>) {
     <ul
       role="listbox"
       data-slot="mention-list"
-      className={cn('overflow-y-auto p-1', className)}
+      className={cn('min-h-0 overflow-y-auto p-1', className)}
       {...props}
     />
   );
@@ -157,7 +157,56 @@ function MentionItemDescription({
   );
 }
 
+/**
+ * A strip under the list for the highlighted item's full detail. Its height is fixed at three lines, so the
+ * popup never resizes as the highlight moves.
+ */
+function MentionFooter({ className, ...props }: React.ComponentProps<'div'>) {
+  return (
+    <div
+      data-slot="mention-footer"
+      className={cn(
+        'bg-muted/50 flex shrink-0 flex-col justify-center px-2 py-1.5 text-xs',
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
+function MentionFooterTitle({
+  className,
+  ...props
+}: React.ComponentProps<'span'>) {
+  return (
+    <span
+      data-slot="mention-footer-title"
+      className={cn('truncate font-medium', className)}
+      {...props}
+    />
+  );
+}
+
+function MentionFooterDescription({
+  className,
+  ...props
+}: React.ComponentProps<'span'>) {
+  return (
+    <span
+      data-slot="mention-footer-description"
+      className={cn(
+        'text-muted-foreground line-clamp-2 wrap-anywhere',
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
 export {
+  MentionFooter,
+  MentionFooterDescription,
+  MentionFooterTitle,
   MentionItem,
   MentionItemDescription,
   MentionItemIcon,

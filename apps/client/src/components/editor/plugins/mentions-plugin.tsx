@@ -28,14 +28,17 @@ import { UserAvatar } from '@/components/user-avatar';
 export type MentionSuggestion = {
   id: string;
   name: string;
-  /** Muted text at the row's end: what a broadcast does, or "You". */
+  /** Muted text at the row's end, as "You" is. */
   hint?: string;
-  /** Replaces the hint while the row is highlighted, so members who share a name can be told apart. */
-  email?: string;
+  /** Shown in full under the list while the row is highlighted: a member's email, or what a broadcast does. */
+  detail?: string;
   image?: string | null;
 };
 
 const BROADCASTS = new Set(['channel', 'here']);
+
+const labelOf = ({ id, name }: MentionSuggestion) =>
+  BROADCASTS.has(id) ? `@${name}` : name;
 
 const SUGGESTION_LIST_LENGTH_LIMIT = 6;
 const TRIGGER = /(^|\s|\()(@([^@\n]{0,50}))$/;
@@ -245,22 +248,39 @@ export function MentionAvatar() {
 }
 
 export function MentionLabel() {
-  const { id, name } = useMentionItem().option.suggestion;
+  const { suggestion } = useMentionItem().option;
   return (
     <Primitives.MentionItemLabel>
-      {BROADCASTS.has(id) ? `@${name}` : name}
+      {labelOf(suggestion)}
     </Primitives.MentionItemLabel>
   );
 }
 
 export function MentionHint() {
-  const { selectedIndex } = useMentionMenu();
-  const { option, index } = useMentionItem();
-  const { hint, email } = option.suggestion;
-  const text = selectedIndex === index && email ? email : hint;
-  return text ? (
+  const { hint } = useMentionItem().option.suggestion;
+  return hint ? (
     <Primitives.MentionItemDescription>
-      {text}
+      {hint}
     </Primitives.MentionItemDescription>
   ) : null;
+}
+
+/** The highlighted row's name and detail in full, so rows can stay one short line each. */
+export function MentionFooter() {
+  const { options, selectedIndex } = useMentionMenu();
+  const suggestion = options[selectedIndex ?? -1]?.suggestion;
+  return (
+    <Primitives.MentionFooter>
+      {suggestion && (
+        <>
+          <Primitives.MentionFooterTitle>
+            {labelOf(suggestion)}
+          </Primitives.MentionFooterTitle>
+          <Primitives.MentionFooterDescription>
+            {suggestion.detail}
+          </Primitives.MentionFooterDescription>
+        </>
+      )}
+    </Primitives.MentionFooter>
+  );
 }

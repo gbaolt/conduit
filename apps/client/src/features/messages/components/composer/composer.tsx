@@ -45,11 +45,12 @@ import {
   Mention,
   MentionAvatar,
   MentionContent,
+  MentionFooter,
   MentionHint,
   MentionItem,
   MentionLabel,
   MentionPortal,
-} from '@/components/editor/plugins/mention';
+} from '@/components/editor/plugins/mentions-plugin';
 import { TabFocusPlugin } from '@/components/editor/plugins/tab-focus-plugin';
 import { sanitizeUrl } from '@/components/editor/utils/url';
 
@@ -304,6 +305,7 @@ function ComposerBehavior({
               </MentionItem>
             )}
           </MentionContent>
+          <MentionFooter />
         </MentionPortal>
       </Mention>
       <EmojiPickerPlugin

@@ -201,17 +201,17 @@ export function Conversation({
       ...(isDm
         ? []
         : [
-            { id: 'channel', name: 'channel', hint: 'Notify everyone here' },
+            { id: 'channel', name: 'channel', detail: 'Notify everyone here' },
             {
               id: 'here',
               name: 'here',
-              hint: 'Notify members who are online',
+              detail: 'Notify members who are online',
             },
           ]),
       ...(channelMembers ?? []).map(({ userId, name, email, image }) => ({
         id: userId,
         name,
-        email,
+        detail: email,
         image,
         hint: userId === viewerId ? 'You' : undefined,
       })),
