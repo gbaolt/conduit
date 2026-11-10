@@ -2,6 +2,7 @@ import { buildEditorFromExtensions } from '@lexical/extension';
 import { $nodesOfType } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
+import { EmojiNode } from '@/components/editor/nodes/emoji-node';
 import { MentionNode } from '@/components/editor/nodes/mention-node';
 
 import { createComposerExtension, markdownOf } from '../composer-extension';
@@ -45,6 +46,30 @@ describe('composer Markdown', () => {
 
   it('starts empty without an initial message', () => {
     expect(roundTrip('')).toBe('');
+  });
+});
+
+describe('composer emoji', () => {
+  it.each([
+    ['a flag', 'hello 🇻🇳 there'],
+    ['a skin tone', '👍🏽'],
+    ['two in a row', '🎉🚀 shipped'],
+    ['bold', '**done ✅ now**'],
+    ['inline code', 'run `echo 🚀` here'],
+    ['fenced code', '```\n🚀\n```'],
+  ])('keeps %s as typed', (_name, markdown) => {
+    expect(roundTrip(markdown)).toBe(markdown);
+  });
+
+  it('holds each emoji in its own node', () => {
+    const editor = buildEditorFromExtensions(
+      createComposerExtension('hi 🇻🇳 and 👍🏽!')
+    );
+    const emoji = editor.read(() =>
+      $nodesOfType(EmojiNode).map((node) => node.getTextContent())
+    );
+    editor.dispose();
+    expect(emoji).toEqual(['🇻🇳', '👍🏽']);
   });
 });
 

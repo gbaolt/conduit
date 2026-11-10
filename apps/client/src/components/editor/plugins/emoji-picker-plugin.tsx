@@ -4,99 +4,105 @@ import {
   CommandItem,
   CommandList,
 } from '@conduit/ui/components/command';
+import { Twemoji } from '@conduit/ui/components/twemoji';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
+  LexicalTypeaheadMenuPlugin,
   MenuOption,
   useBasicTypeaheadTriggerMatch,
 } from '@lexical/react/LexicalTypeaheadMenuPlugin';
-import { LexicalTypeaheadMenuPlugin } from '@lexical/react/LexicalTypeaheadMenuPlugin';
 import type { TextNode } from 'lexical';
 import { $createTextNode, $getSelection, $isRangeSelection } from 'lexical';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useState,
+} from 'react';
 import { createPortal } from 'react-dom';
 
+import { MentionMenu } from '@/components/editor/plugins/mentions-plugin';
 import { cn } from '@/lib/utils';
 
-// const LexicalTypeaheadMenuPlugin = dynamic(
-//   () =>
-//     import("@lexical/react/LexicalTypeaheadMenuPlugin").then(
-//       (mod) => mod.LexicalTypeaheadMenuPlugin<EmojiOption>
-//     ),
-//   { ssr: false }
-// )
-
 class EmojiOption extends MenuOption {
-  title: string;
-  emoji: string;
-  keywords: Array<string>;
-
   constructor(
-    title: string,
-    emoji: string,
-    options: {
-      keywords?: Array<string>;
-    }
+    readonly title: string,
+    readonly emoji: string,
+    readonly keywords: string[]
   ) {
     super(title);
-    this.title = title;
-    this.emoji = emoji;
-    this.keywords = options.keywords || [];
   }
 }
 
-type Emoji = {
-  emoji: string;
-  description: string;
-  category: string;
-  aliases: Array<string>;
-  tags: Array<string>;
-  unicode_version: string;
-  ios_version: string;
-  skin_tones?: boolean;
-};
+type Emoji = { emoji: string; aliases: string[]; tags: string[] };
 
 const MAX_EMOJI_SUGGESTION_COUNT = 10;
 
-export function EmojiPickerPlugin() {
+/** Options whose shortcode or keyword contains the query, shortcodes that start with it first. */
+export function matchEmojiOptions<
+  T extends { title: string; keywords: string[] },
+>(options: readonly T[], query: string) {
+  const needle = query.toLowerCase();
+  const starts: T[] = [];
+  const contains: T[] = [];
+  for (const option of options) {
+    if (option.title.startsWith(needle)) starts.push(option);
+    else if (option.keywords.some((keyword) => keyword.includes(needle))) {
+      contains.push(option);
+    }
+  }
+  return [...starts, ...contains].slice(0, MAX_EMOJI_SUGGESTION_COUNT);
+}
+
+/** Offers emoji after a `:` and two letters, as `:sm` does, and inserts the pick. */
+export function EmojiPickerPlugin({
+  onOpenChange,
+}: {
+  /** Whether the menu is showing, so the host can leave Enter and Escape to it. */
+  onOpenChange?: (open: boolean) => void;
+}) {
   const [editor] = useLexicalComposerContext();
   const [queryString, setQueryString] = useState<string | null>(null);
-  const [emojis, setEmojis] = useState<Array<Emoji>>([]);
+  const [open, setOpen] = useState(false);
+  const [emojis, setEmojis] = useState<Emoji[]>([]);
+
+  // The list is large, so it loads on the first `:`.
+  const wanted = queryString !== null;
   useEffect(() => {
-    import('@/components/editor/utils/emoji-list').then((file) =>
-      setEmojis(file.default)
-    );
-  }, []);
+    if (!wanted) return;
+    let cancelled = false;
+    void import('@/components/editor/utils/emoji-list').then((file) => {
+      if (!cancelled) setEmojis(file.default);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [wanted]);
 
   const emojiOptions = useMemo(
     () =>
-      emojis != null
-        ? emojis.map(
-            ({ emoji, aliases, tags }) =>
-              new EmojiOption(aliases[0] ?? emoji, emoji, {
-                keywords: [...aliases, ...tags],
-              })
-          )
-        : [],
+      emojis.map(
+        ({ emoji, aliases, tags }) =>
+          new EmojiOption(aliases[0] ?? emoji, emoji, [...aliases, ...tags])
+      ),
     [emojis]
   );
 
+  // Two letters, so a bare `:` or a `:)` never takes Enter away from sending.
   const checkForTriggerMatch = useBasicTypeaheadTriggerMatch(':', {
-    minLength: 0,
+    minLength: 2,
   });
 
-  const options: Array<EmojiOption> = useMemo(() => {
-    return emojiOptions
-      .filter((option: EmojiOption) => {
-        if (queryString == null) return true;
-        return (
-          Boolean(new RegExp(queryString, 'gi').exec(option.title)) ||
-          option.keywords.some((keyword: string) =>
-            new RegExp(queryString, 'gi').exec(keyword)
-          )
-        );
-      })
-      .slice(0, MAX_EMOJI_SUGGESTION_COUNT);
-  }, [emojiOptions, queryString]);
+  const options = useMemo(
+    () =>
+      queryString === null ? [] : matchEmojiOptions(emojiOptions, queryString),
+    [emojiOptions, queryString]
+  );
+
+  const showing = open && options.length > 0;
+  const reportOpen = useEffectEvent((next: boolean) => onOpenChange?.(next));
+  useEffect(() => reportOpen(showing), [showing]);
 
   const onSelectOption = useCallback(
     (
@@ -106,17 +112,9 @@ export function EmojiPickerPlugin() {
     ) => {
       editor.update(() => {
         const selection = $getSelection();
-
-        if (!$isRangeSelection(selection) || selectedOption == null) {
-          return;
-        }
-
-        if (nodeToRemove) {
-          nodeToRemove.remove();
-        }
-
+        if (!$isRangeSelection(selection)) return;
+        nodeToRemove?.remove();
         selection.insertNodes([$createTextNode(selectedOption.emoji)]);
-
         closeMenu();
       });
     },
@@ -126,63 +124,60 @@ export function EmojiPickerPlugin() {
   return (
     <LexicalTypeaheadMenuPlugin
       onQueryChange={setQueryString}
+      onOpen={() => setOpen(true)}
+      onClose={() => setOpen(false)}
       onSelectOption={onSelectOption}
       triggerFn={checkForTriggerMatch}
       options={options}
       menuRenderFn={(
         anchorElementRef,
         { selectedIndex, selectOptionAndCleanUp, setHighlightedIndex }
-      ) => {
-        return anchorElementRef.current && options.length
+      ) =>
+        anchorElementRef.current && options.length
           ? createPortal(
-              <div className="bg-popover text-popover-foreground absolute min-w-36 rounded-md border shadow-md">
+              <MentionMenu>
                 <Command
-                  onKeyDown={(e) => {
-                    if (e.key === 'ArrowUp') {
-                      e.preventDefault();
-                      setHighlightedIndex(
-                        selectedIndex !== null
-                          ? (selectedIndex - 1 + options.length) %
-                              options.length
-                          : options.length - 1
-                      );
-                    } else if (e.key === 'ArrowDown') {
-                      e.preventDefault();
-                      setHighlightedIndex(
-                        selectedIndex !== null
-                          ? (selectedIndex + 1) % options.length
-                          : 0
-                      );
+                  className="min-h-0"
+                  onKeyDown={(event) => {
+                    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') {
+                      return;
                     }
+                    event.preventDefault();
+                    const step = event.key === 'ArrowUp' ? -1 : 1;
+                    setHighlightedIndex(
+                      ((selectedIndex ?? 0) + step + options.length) %
+                        options.length
+                    );
                   }}
                 >
-                  <CommandList>
+                  <CommandList className="max-h-none overflow-y-auto">
                     <CommandGroup>
                       {options.map((option, index) => (
                         <CommandItem
                           key={option.key}
                           value={option.title}
-                          onSelect={() => {
-                            selectOptionAndCleanUp(option);
-                          }}
+                          onSelect={() => selectOptionAndCleanUp(option)}
                           className={cn(
                             'flex items-center gap-2',
                             selectedIndex === index
                               ? 'bg-accent text-accent-foreground'
-                              : '!bg-transparent'
+                              : 'bg-transparent'
                           )}
                         >
-                          {option.emoji} {option.title}
+                          <Twemoji className="m-0 size-5">
+                            {option.emoji}
+                          </Twemoji>
+                          <span className="truncate">:{option.title}:</span>
                         </CommandItem>
                       ))}
                     </CommandGroup>
                   </CommandList>
                 </Command>
-              </div>,
+              </MentionMenu>,
               anchorElementRef.current
             )
-          : null;
-      }}
+          : null
+      }
     />
   );
 }

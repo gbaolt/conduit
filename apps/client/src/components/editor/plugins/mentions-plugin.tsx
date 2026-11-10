@@ -76,7 +76,7 @@ type Placement = {
  * itself has room above the caret, which a one-line composer never has. So the menu sits in a zero-height box
  * that Lexical never flips, and places itself from the room left in the viewport.
  */
-function MentionMenu({ children }: { children: ReactNode }) {
+export function MentionMenu({ children }: { children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const [placement, setPlacement] = useState<Placement>({
     above: false,

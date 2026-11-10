@@ -6,6 +6,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@conduit/ui/components/tooltip';
+import { Twemoji } from '@conduit/ui/components/twemoji';
 import { cn } from '@conduit/ui/lib/utils';
 import { IconMoodPlus } from '@tabler/icons-react';
 import { use } from 'react';
@@ -54,7 +55,7 @@ export function MessageReactions({
                 />
               }
             >
-              <span aria-hidden>{emoji}</span>
+              <Twemoji className="m-0 size-4 align-middle">{emoji}</Twemoji>
               {userIds.length}
             </TooltipTrigger>
             <TooltipContent>

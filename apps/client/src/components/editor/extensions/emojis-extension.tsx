@@ -1,3 +1,4 @@
+import { EMOJI_PATTERN } from '@conduit/ui/components/twemoji';
 import { defineExtension, TextNode } from 'lexical';
 
 import {
@@ -5,48 +6,31 @@ import {
   EmojiNode,
 } from '@/components/editor/nodes/emoji-node';
 
-const emojis: Map<string, [string, string]> = new Map([
-  [':)', ['emoji happysmile', '🙂']],
-  [':D', ['emoji veryhappysmile', '😀']],
-  [':(', ['emoji unhappysmile', '🙁']],
-  ['<3', ['emoji heart', '❤']],
-]);
-
 function $findAndTransformEmoji(node: TextNode): null | TextNode {
-  const text = node.getTextContent();
+  const match = EMOJI_PATTERN.exec(node.getTextContent());
+  if (!match) return null;
 
-  for (let i = 0; i < text.length; i++) {
-    const emojiData =
-      emojis.get(text.slice(i, i + 1)) || emojis.get(text.slice(i, i + 2));
+  const end = match.index + match[0].length;
+  const targetNode =
+    match.index === 0
+      ? node.splitText(end)[0]
+      : node.splitText(match.index, end)[1];
+  if (!targetNode) return null;
 
-    if (emojiData !== undefined) {
-      const [emojiStyle, emojiText] = emojiData;
-      let targetNode;
-
-      if (i === 0) {
-        [targetNode] = node.splitText(i + 2);
-      } else {
-        [, targetNode] = node.splitText(i, i + 2);
-      }
-
-      if (!targetNode) {
-        return null;
-      }
-
-      const emojiNode = $createEmojiNode(emojiStyle, emojiText);
-      targetNode.replace(emojiNode);
-      return emojiNode;
-    }
-  }
-
-  return null;
+  // Bold around the emoji must survive, or the Markdown export splits the run.
+  const emojiNode = $createEmojiNode('emoji', match[0]).setFormat(
+    targetNode.getFormat()
+  );
+  targetNode.replace(emojiNode);
+  return emojiNode;
 }
 
 function $textNodeTransform(node: TextNode): void {
   let targetNode: TextNode | null = node;
 
   while (targetNode !== null) {
-    if (!targetNode.isSimpleText()) {
+    // Code stays as typed, as it does in a sent message.
+    if (!targetNode.isSimpleText() || targetNode.hasFormat('code')) {
       return;
     }
 
@@ -54,6 +38,7 @@ function $textNodeTransform(node: TextNode): void {
   }
 }
 
+/** Turns each emoji typed, pasted, or picked into an `EmojiNode`, which draws it with Twemoji. */
 export const EmojisExtension = defineExtension({
   name: '@shadcn-editor/Emojis',
   nodes: [EmojiNode],

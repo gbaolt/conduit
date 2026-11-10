@@ -39,6 +39,7 @@ import {
 } from 'react';
 
 import { CodeHighlightPlugin } from '@/components/editor/plugins/code-highlight-plugin';
+import { EmojiPickerPlugin } from '@/components/editor/plugins/emoji-picker-plugin';
 import { FloatingLinkEditorPlugin } from '@/components/editor/plugins/floating-link-editor-plugin';
 import { MentionsPlugin } from '@/components/editor/plugins/mentions-plugin';
 import { TabFocusPlugin } from '@/components/editor/plugins/tab-focus-plugin';
@@ -281,6 +282,11 @@ function ComposerBehavior({
       <TabFocusPlugin />
       <MentionsPlugin
         source={suggestions}
+        onOpenChange={(open) => {
+          menuOpen.current = open;
+        }}
+      />
+      <EmojiPickerPlugin
         onOpenChange={(open) => {
           menuOpen.current = open;
         }}
