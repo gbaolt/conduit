@@ -39,8 +39,18 @@ import {
 } from 'react';
 
 import { CodeHighlightPlugin } from '@/components/editor/plugins/code-highlight-plugin';
+import { EmojiPickerPlugin } from '@/components/editor/plugins/emoji-picker-plugin';
 import { FloatingLinkEditorPlugin } from '@/components/editor/plugins/floating-link-editor-plugin';
-import { MentionsPlugin } from '@/components/editor/plugins/mentions-plugin';
+import {
+  Mention,
+  MentionAvatar,
+  MentionContent,
+  MentionFooter,
+  MentionHint,
+  MentionItem,
+  MentionLabel,
+  MentionPortal,
+} from '@/components/editor/plugins/mentions-plugin';
 import { TabFocusPlugin } from '@/components/editor/plugins/tab-focus-plugin';
 import { sanitizeUrl } from '@/components/editor/utils/url';
 
@@ -279,8 +289,26 @@ function ComposerBehavior({
     <>
       <CodeHighlightPlugin />
       <TabFocusPlugin />
-      <MentionsPlugin
+      <Mention
         source={suggestions}
+        onOpenChange={(open) => {
+          menuOpen.current = open;
+        }}
+      >
+        <MentionPortal>
+          <MentionContent>
+            {() => (
+              <MentionItem>
+                <MentionAvatar />
+                <MentionLabel />
+                <MentionHint />
+              </MentionItem>
+            )}
+          </MentionContent>
+          <MentionFooter />
+        </MentionPortal>
+      </Mention>
+      <EmojiPickerPlugin
         onOpenChange={(open) => {
           menuOpen.current = open;
         }}

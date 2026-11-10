@@ -15,6 +15,8 @@ export const sanitizeSchema: Options = {
     span: [
       ...(defaultSchema.attributes?.span ?? []),
       ['dataMention', /^[\w-]+$/],
+      // A remark plugin marks an emoji this way, for the renderer to draw as an image.
+      ['dataEmoji', ''],
     ],
   },
 };

@@ -27,6 +27,7 @@ import {
 } from 'lexical';
 
 import { AutoLinkExtension } from '@/components/editor/extensions/auto-link-extension';
+import { EmojisExtension } from '@/components/editor/extensions/emojis-extension';
 import { MarkdownShortcutsExtension } from '@/components/editor/extensions/markdown-shortcuts-extension';
 import { MaxLengthExtension } from '@/components/editor/extensions/max-length-extension';
 import { MentionNode } from '@/components/editor/nodes/mention-node';
@@ -116,6 +117,7 @@ export function createComposerExtension(
       LinkExtension,
       AutoLinkExtension,
       CodeExtension,
+      EmojisExtension,
       configExtension(MarkdownShortcutsExtension, {
         transformers: composerTransformers,
       }),

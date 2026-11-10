@@ -152,6 +152,7 @@ function setup(views: Record<string, Room | null>, memberIds: string[] = []) {
         (userId): RoomMember => ({
           userId,
           name: userId,
+          email: `${userId}@example.com`,
           image: null,
           role: 'member',
           joinedAt: new Date(0),

@@ -218,6 +218,28 @@
   }
 }
 
+@layer components {
+  .twemoji {
+    display: inline-block;
+    height: 1em;
+    width: 1em;
+    margin: 0 0.05em 0 0.1em;
+    vertical-align: -0.1em;
+  }
+
+  /* An emoji in the composer: its text stays, hidden, under the Twemoji image. */
+  .emoji {
+    color: transparent;
+    caret-color: var(--foreground);
+    background-size: 1.15em;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  .emoji-inner::selection {
+    color: transparent;
+  }
+}
+
 @utility ease-out-cubic {
   @apply ease-[cubic-bezier(0.32,0.72,0,1)];
 }

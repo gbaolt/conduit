@@ -73,9 +73,7 @@ export function ConversationComposerSkeleton() {
           </div>
         ))}
       </div>
-      <div className="flex min-h-11 items-center px-3">
-        <Skeleton className="h-3.5 w-40" />
-      </div>
+      <div className="h-11" />
       <div className="flex items-center gap-0.5 px-1.5 pb-1.5">
         {[IconMoodSmile, IconAt].map((Icon, index) => (
           <span key={index} className="flex size-8 items-center justify-center">

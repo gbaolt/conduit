@@ -59,6 +59,7 @@ export const RoomIdInputSchema = z.object({ roomId: z.string() });
 export const RoomMemberSchema = z.object({
   userId: z.string(),
   name: z.string(),
+  email: z.string(),
   image: z.string().nullable(),
   role: RoomRoleSchema,
   joinedAt: z.coerce.date(),

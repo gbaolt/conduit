@@ -1,3 +1,4 @@
+import { twemojiUrl } from '@conduit/ui/components/twemoji';
 import type {
   EditorConfig,
   LexicalNode,
@@ -34,6 +35,7 @@ export class EmojiNode extends TextNode {
     const dom = document.createElement('span');
     const inner = super.createDOM(config);
     dom.className = this.__className;
+    dom.style.backgroundImage = `url(${twemojiUrl(this.__text)})`;
     inner.className = 'emoji-inner';
     dom.appendChild(inner);
     return dom;

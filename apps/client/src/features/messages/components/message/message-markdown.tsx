@@ -1,3 +1,4 @@
+import { Twemoji } from '@conduit/ui/components/twemoji';
 import { memo, use } from 'react';
 import type { Components } from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
@@ -6,10 +7,11 @@ import { dom, Markdown } from '@/components/markdown';
 
 import { MentionViewer, useMentionName } from '../../context/mention-names';
 import { remarkMentions } from '../../lib/remark-mentions';
+import { remarkTwemoji } from '../../lib/remark-twemoji';
 import { MentionCard } from '../mention-card';
 
-// Chat keeps the line breaks people type, and turns <@id> into mentions.
-const remarkPlugins = [remarkBreaks, remarkMentions];
+// Chat keeps the line breaks people type, turns <@id> into mentions, and draws emoji with Twemoji.
+const remarkPlugins = [remarkBreaks, remarkMentions, remarkTwemoji];
 
 function Mention({ target }: { target: string }) {
   const name = useMentionName(target);
@@ -28,10 +30,14 @@ function Mention({ target }: { target: string }) {
 
 const components: Components = {
   span: (props) => {
-    const { 'data-mention': target, ...rest } = dom(props) as Record<
-      string,
-      unknown
-    >;
+    const {
+      'data-mention': target,
+      'data-emoji': emoji,
+      ...rest
+    } = dom(props) as Record<string, unknown>;
+    if (emoji !== undefined && typeof rest.children === 'string') {
+      return <Twemoji>{rest.children}</Twemoji>;
+    }
     return typeof target === 'string' ? (
       <Mention target={target} />
     ) : (

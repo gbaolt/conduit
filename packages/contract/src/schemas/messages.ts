@@ -98,7 +98,9 @@ export const ReactionInputSchema = z.object({
     .min(1)
     .max(32)
     .refine(
-      (emoji) => /\p{Extended_Pictographic}/u.test(emoji),
+      // Country flags are pairs of regional indicators, and keycaps end in U+20E3. Neither is pictographic.
+      (emoji) =>
+        /\p{Extended_Pictographic}|\p{Regional_Indicator}{2}|⃣/u.test(emoji),
       'Pick an emoji.'
     ),
 });
