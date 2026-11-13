@@ -11,6 +11,10 @@ export const ActivityKindSchema = z.enum([
 ]);
 export type ActivityKind = z.infer<typeof ActivityKindSchema>;
 
+/** How urgent an unread mention or reply is for its recipient. The model judges it. */
+export const ActivityUrgencySchema = z.enum(['urgent', 'normal', 'low']);
+export type ActivityUrgency = z.infer<typeof ActivityUrgencySchema>;
+
 export const FEED_PAGE_DEFAULT = 30;
 export const FEED_PAGE_MAX = 100;
 /** A message body in an entry is cut to this many characters. */
@@ -46,6 +50,9 @@ export const FeedEntrySchema = z.object({
     .optional(),
   /** Set for a reaction. */
   emoji: z.string().optional(),
+  /** What the model judged, once it did. Only mentions and replies are judged. */
+  urgency: ActivityUrgencySchema.optional(),
+  urgencyReason: z.string().optional(),
   readAt: z.coerce.date().nullable(),
   createdAt: z.coerce.date(),
 });

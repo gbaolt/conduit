@@ -1,6 +1,6 @@
 'use client';
 
-import type { FeedEntry as FeedEntryData } from '@conduit/contract';
+import type { FeedEntry as FeedEntryData, FeedGroup } from '@conduit/contract';
 import { Twemoji } from '@conduit/ui/components/twemoji';
 import { cn } from '@conduit/ui/lib/utils';
 import Link from 'next/link';
@@ -11,6 +11,7 @@ import { MessageMarkdown } from '@/features/messages/components/message/message-
 import { useMarkFeedRead } from '@/services/feed/hooks';
 
 import { feedEntryHref } from '../lib/feed-entry-href';
+import { nameList } from '../lib/name-list';
 
 const whenFormat = new Intl.DateTimeFormat(undefined, {
   month: 'short',
@@ -23,12 +24,16 @@ function roomLabel(room: FeedEntryData['room']) {
   return room.kind === 'dm' ? 'a direct message' : `#${room.name}`;
 }
 
-/** The sentence that names who did what, such as "Linh mentioned you in #design". */
-function FeedEntryTitle({ entry }: { entry: FeedEntryData }) {
+const unique = <T,>(values: readonly T[]) => [...new Set(values)];
+
+/** The sentence that names who did what, such as "Linh mentioned you in #design". A folded group names everyone. */
+function FeedEntryTitle({ group }: { group: FeedGroup }) {
+  const [entry] = group.entries;
   const room = roomLabel(entry.room);
+  const unread = group.entries.some((e) => !e.readAt);
   const actor = (
-    <span className={cn(!entry.readAt && 'font-semibold')}>
-      {entry.actor.name}
+    <span className={cn(unread && 'font-semibold')}>
+      {nameList(unique(group.entries.map((e) => e.actor.name)))}
     </span>
   );
 
@@ -48,26 +53,32 @@ function FeedEntryTitle({ entry }: { entry: FeedEntryData }) {
     case 'reaction':
       return (
         <>
-          {actor} reacted <Twemoji>{entry.emoji ?? ''}</Twemoji> to your message
-          in {room}
+          {actor} reacted{' '}
+          {unique(group.entries.map((e) => e.emoji ?? '')).map((emoji) => (
+            <Twemoji key={emoji}>{emoji}</Twemoji>
+          ))}{' '}
+          to your message in {room}
         </>
       );
     case 'room_add':
       return (
         <>
-          {actor} added you to {room}
+          {actor} added you to{' '}
+          {nameList(unique(group.entries.map((e) => roomLabel(e.room))))}
         </>
       );
   }
 }
 
 /**
- * One Activity item. The title is the row's link, stretched over the whole row, so the row opens
- * with a click or Enter and marks itself read on the way.
+ * One Activity row, which is a group of one or more entries. The title is the row's link, stretched over
+ * the whole row, so the row opens its newest entry with a click or Enter and marks the group read on the way.
  */
-export function FeedEntry({ entry }: { entry: FeedEntryData }) {
+export function FeedEntry({ group }: { group: FeedGroup }) {
   const markRead = useMarkFeedRead();
-  const unread = !entry.readAt;
+  const [entry] = group.entries;
+  const unreadIds = group.entries.filter((e) => !e.readAt).map((e) => e.id);
+  const unread = unreadIds.length > 0;
   const { message } = entry;
 
   return (
@@ -90,12 +101,12 @@ export function FeedEntry({ entry }: { entry: FeedEntryData }) {
             href={feedEntryHref(entry)}
             data-feed-link
             onClick={() => {
-              if (unread) markRead.mutate([entry.id]);
+              if (unread) markRead.mutate(unreadIds);
             }}
             className="focus-visible:after:ring-ring min-w-0 text-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:after:ring-2"
           >
             {unread && <span className="sr-only">Unread. </span>}
-            <FeedEntryTitle entry={entry} />
+            <FeedEntryTitle group={group} />
           </Link>
           <MessageTime
             date={entry.createdAt}
