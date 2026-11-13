@@ -40,7 +40,18 @@ import {
   listDmsContract,
   openDmContract,
 } from './contracts/dms';
+import {
+  listFeedContract,
+  markAllFeedReadContract,
+  markFeedReadContract,
+  markFeedUnreadContract,
+  rankFeedContract,
+} from './contracts/feed';
 import { healthCheckContract } from './contracts/health';
+import {
+  getNotificationSettingsContract,
+  updateNotificationSettingsContract,
+} from './contracts/notification-settings';
 import {
   deleteMessageContract,
   editMessageContract,
@@ -83,9 +94,20 @@ import {
   updateMemberRoleContract,
   updateOrganizationContract,
 } from './contracts/organizations';
-import { sealStreamContract } from './contracts/realtime';
-import { getRoomContract, listRoomMembersContract } from './contracts/rooms';
 import {
+  subscribePushContract,
+  unsubscribePushContract,
+} from './contracts/push';
+import { sealStreamContract } from './contracts/realtime';
+import {
+  getRoomContract,
+  listRoomMembersContract,
+  muteRoomContract,
+  setRoomNotifyContract,
+  unmuteRoomContract,
+} from './contracts/rooms';
+import {
+  catchUpContract,
   getSummaryContract,
   shareSummaryContract,
   summarizeRoomContract,
@@ -133,6 +155,14 @@ export const contract = {
     get: getWorkspaceSettingsContract,
     update: updateWorkspaceSettingsContract,
   },
+  notificationSettings: {
+    get: getNotificationSettingsContract,
+    update: updateNotificationSettingsContract,
+  },
+  push: {
+    subscribe: subscribePushContract,
+    unsubscribe: unsubscribePushContract,
+  },
   aiSettings: {
     get: getAiSettingsContract,
     update: updateAiSettingsContract,
@@ -147,6 +177,9 @@ export const contract = {
   },
   rooms: {
     get: getRoomContract,
+    setNotify: setRoomNotifyContract,
+    mute: muteRoomContract,
+    unmute: unmuteRoomContract,
     members: {
       list: listRoomMembersContract,
     },
@@ -203,8 +236,16 @@ export const contract = {
   summaries: {
     thread: summarizeThreadContract,
     room: summarizeRoomContract,
+    catchUp: catchUpContract,
     get: getSummaryContract,
     share: shareSummaryContract,
+  },
+  feed: {
+    list: listFeedContract,
+    markRead: markFeedReadContract,
+    markUnread: markFeedUnreadContract,
+    markAllRead: markAllFeedReadContract,
+    rank: rankFeedContract,
   },
   readState: {
     mark: markReadContract,

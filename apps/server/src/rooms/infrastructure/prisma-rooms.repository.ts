@@ -1,10 +1,13 @@
-import type { Room, RoomMember } from '@conduit/contract';
+import type { NotifyLevel, Room, RoomMember } from '@conduit/contract';
 import { Prisma } from '@generated/prisma/client';
 import { Inject, Injectable } from '@nestjs/common';
 
+import { roomAddItemFor } from '@/feed/domain/feed-recipients';
+import { createActivityItems } from '@/feed/infrastructure/activity-items';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { roomError } from '@/rooms/domain/room-errors';
 import type {
+  MembershipPatch,
   RoomScope,
   RoomsRepository,
 } from '@/rooms/domain/rooms.repository';
@@ -25,7 +28,13 @@ export function include(scope: RoomScope) {
     },
     members: {
       where: { userId: scope.userId },
-      select: { role: true, starredAt: true, sectionId: true },
+      select: {
+        role: true,
+        starredAt: true,
+        sectionId: true,
+        notify: true,
+        mutedAt: true,
+      },
     },
     archivedBy: { select: { name: true } },
   } satisfies Prisma.RoomInclude;
@@ -56,6 +65,10 @@ export function toChannel(row: ChannelRow): Room {
           role: membership.role === 'MANAGER' ? 'manager' : 'member',
           starredAt: membership.starredAt,
           sectionId: membership.sectionId,
+          notify:
+            (membership.notify?.toLowerCase() as NotifyLevel | undefined) ??
+            null,
+          mutedAt: membership.mutedAt,
         }
       : null,
     archivedByName: row.archivedBy?.name ?? null,
@@ -205,11 +218,32 @@ export class PrismaRoomsRepository implements RoomsRepository {
     await this.db.room.delete({ where: { id: roomId } });
   }
 
-  /** Adds each user once. Users already in the channel are skipped. */
-  async addMembers(roomId: string, userIds: string[]) {
-    await this.db.roomMember.createMany({
-      data: userIds.map((userId) => ({ roomId, userId })),
-      skipDuplicates: true,
+  async addMembers(
+    roomId: string,
+    userIds: string[],
+    addedBy?: { userId: string; organizationId: string }
+  ) {
+    await this.db.$transaction(async (tx) => {
+      const added = await tx.roomMember.createManyAndReturn({
+        data: userIds.map((userId) => ({ roomId, userId })),
+        skipDuplicates: true,
+        select: { userId: true, joinedAt: true },
+      });
+      if (!addedBy) return;
+      await createActivityItems(
+        tx,
+        added
+          .filter(({ userId }) => userId !== addedBy.userId)
+          .map(({ userId, joinedAt }) =>
+            roomAddItemFor({
+              organizationId: addedBy.organizationId,
+              roomId,
+              userId,
+              actorId: addedBy.userId,
+              joinedAt,
+            })
+          )
+      );
     });
   }
 
@@ -225,11 +259,14 @@ export class PrismaRoomsRepository implements RoomsRepository {
   async updateMembership(
     roomId: string,
     userId: string,
-    data: { starredAt?: Date | null; sectionId?: string | null }
+    { notify, ...data }: MembershipPatch
   ) {
     await this.db.roomMember.updateMany({
       where: { roomId, userId },
-      data,
+      data: {
+        ...data,
+        notify: notify && (notify.toUpperCase() as Uppercase<NotifyLevel>),
+      },
     });
   }
 

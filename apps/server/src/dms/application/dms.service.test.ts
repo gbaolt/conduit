@@ -33,7 +33,13 @@ function channelFor(member: boolean, overrides: Partial<Room> = {}): Room {
     createdById: null,
     createdAt: new Date(0),
     membership: member
-      ? { role: 'member', starredAt: null, sectionId: null }
+      ? {
+          role: 'member',
+          starredAt: null,
+          sectionId: null,
+          notify: null,
+          mutedAt: null,
+        }
       : null,
     archivedByName: null,
     ...overrides,

@@ -5,6 +5,8 @@ import type {
   ReactionSummary,
 } from '@conduit/contract';
 
+import type { NewActivityItem } from '@/feed/domain/feed.repository';
+
 export type MessageMentions = Pick<ParsedMentions, 'channel' | 'here'> & {
   userIds: string[];
 };
@@ -40,12 +42,26 @@ export abstract class MessagesRepository {
     range: { threadId?: string; from?: Date; to?: Date; limit: number }
   ): Promise<Message[]>;
 
+  /**
+   * What a catch-up reads, oldest first: the live messages the conversation shows in `roomIds` sent after
+   * the member's read position, or after they joined with none, and not by the member. It adds the messages behind
+   * the member's unread `MENTION` and `THREAD_REPLY` items in `itemRoomIds`, which include thread replies.
+   * Each part keeps the newest `limit`.
+   */
+  abstract listForCatchUp(input: {
+    userId: string;
+    roomIds: string[];
+    itemRoomIds: string[];
+    limit: number;
+  }): Promise<{ messages: Message[]; itemMessageIds: string[] }>;
+
   abstract find(messageId: string): Promise<Message | null>;
 
   /**
    * Stores the message in one transaction. A message in the channel's log bumps the channel's `lastMessageAt`.
    * A reply also adds one to its root's `replyCount` and sets its `lastReplyAt`, so the channel's stream updates the root.
    * A `clientId` the author already sent returns the stored row with a null `txid`.
+   * Writes the Activity items `items` returns for the stored message in the same transaction, except for a retried send.
    */
   abstract send(input: {
     roomId: string;
@@ -56,28 +72,35 @@ export abstract class MessagesRepository {
     /** A top-level message of the channel. The caller checks it. */
     parentId?: string;
     alsoSentToChannel?: boolean;
+    items: (message: Message) => NewActivityItem[];
   }): Promise<{ message: Message; txid: string | null }>;
 
-  /** Sets `editedAt`. */
+  /**
+   * Sets `editedAt`. In the same transaction, the message's `MENTION` items become `mentionItems`:
+   * the ones for members no longer named are deleted, and the new ones written.
+   */
   abstract edit(
     messageId: string,
     body: string,
-    mentions: MessageMentions
+    mentions: MessageMentions,
+    mentionItems: NewActivityItem[]
   ): Promise<Message>;
 
   /**
    * Keeps the row so replies keep their place, and clears everything a reader could see.
-   * Deleting a reply takes one off its root's `replyCount`.
+   * Deleting a reply takes one off its root's `replyCount`. Deletes every Activity item of the message.
    */
   abstract markDeleted(messageId: string): Promise<void>;
 
   /**
    * Locks the row, hands `update` its reactions, and stores the result, so two members reacting at once both land.
    * An `update` that returns null refuses the change, and this returns null without writing.
+   * When the reactions change, `activity` writes or deletes the author's reaction item in the same transaction.
    */
   abstract updateReactions(
     messageId: string,
-    update: (current: ReactionSummary) => ReactionSummary | null
+    update: (current: ReactionSummary) => ReactionSummary | null,
+    activity?: { add: NewActivityItem } | { remove: string }
   ): Promise<Message | null>;
 
   /** Pins as `pinnedById`, or unpins when it is null. */

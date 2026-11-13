@@ -8,6 +8,7 @@ import { ActivityModule } from '@/activity/activity.module';
 import { AiModule } from '@/ai/ai.module';
 import { ChannelsModule } from '@/channels/channels.module';
 import { DmsModule } from '@/dms/dms.module';
+import { FeedModule } from '@/feed/feed.module';
 import { HealthController } from '@/health/presentation/health.controller';
 import { auth } from '@/infrastructure/auth/auth.config';
 import { DatabaseModule } from '@/infrastructure/database/database.module';
@@ -15,6 +16,7 @@ import { createORPCContext } from '@/infrastructure/orpc/context';
 import { translateErrors } from '@/infrastructure/orpc/errors';
 import { arcjetAuthMiddleware } from '@/infrastructure/security/auth-routes.middleware';
 import { MessagesModule } from '@/messages/messages.module';
+import { NotificationsModule } from '@/notifications/notifications.module';
 import { OrganizationsModule } from '@/organizations/organizations.module';
 import { RealtimeModule } from '@/realtime/realtime.module';
 import { RoomsModule } from '@/rooms/rooms.module';
@@ -34,6 +36,8 @@ import { WorkspacesModule } from '@/workspaces/workspaces.module';
     DmsModule,
     MessagesModule,
     ActivityModule,
+    FeedModule,
+    NotificationsModule,
     RealtimeModule,
     SummariesModule,
     ArcjetModule.forRoot({

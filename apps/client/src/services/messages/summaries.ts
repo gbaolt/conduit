@@ -7,10 +7,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { client } from '@/lib/orpc';
 
-/** What one summary covers: a thread, or a channel's or DM's log. */
+/** What one summary covers: a thread, a channel's or DM's log, or everything the member has not read. */
 export type SummaryTarget =
   | { kind: 'thread'; messageId: string }
-  | { kind: 'channel'; roomId: string };
+  | { kind: 'channel'; roomId: string }
+  | { kind: 'catch-up' };
 
 export type SummaryState =
   | { status: 'idle' }
@@ -23,12 +24,37 @@ export type SummaryRange = { from: Date; to?: Date };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+const targetId = (target: Exclude<SummaryTarget, { kind: 'catch-up' }>) =>
+  target.kind === 'thread' ? target.messageId : target.roomId;
+
+function openStream(
+  kind: SummaryTarget['kind'],
+  id: string,
+  range: SummaryRange | undefined,
+  options: { signal: AbortSignal }
+) {
+  if (kind === 'thread') {
+    return client.summaries.thread({ messageId: id }, options);
+  }
+  if (kind === 'catch-up') {
+    return client.summaries.catchUp(undefined, options);
+  }
+  return client.summaries.room(
+    {
+      roomId: id,
+      from: (range?.from ?? new Date(Date.now() - DAY_MS)).toISOString(),
+      to: range?.to?.toISOString(),
+    },
+    options
+  );
+}
+
 /** Runs one summary at a time for `target` and keeps what the stream has said so far. */
 export function useSummaryRun(target: SummaryTarget) {
   const [state, setState] = useState<SummaryState>({ status: 'idle' });
   const running = useRef<AbortController | null>(null);
   const lastRange = useRef<SummaryRange | undefined>(undefined);
-  const id = target.kind === 'thread' ? target.messageId : target.roomId;
+  const id = target.kind === 'catch-up' ? '' : targetId(target);
 
   const stop = useCallback(() => {
     running.current?.abort();
@@ -45,22 +71,8 @@ export function useSummaryRun(target: SummaryTarget) {
       setState({ status: 'streaming', messageCount: 0, bullets: [] });
 
       try {
-        const events =
-          target.kind === 'thread'
-            ? await client.summaries.thread(
-                { messageId: id },
-                { signal: controller.signal }
-              )
-            : await client.summaries.room(
-                {
-                  roomId: id,
-                  from: (
-                    range?.from ?? new Date(Date.now() - DAY_MS)
-                  ).toISOString(),
-                  to: range?.to?.toISOString(),
-                },
-                { signal: controller.signal }
-              );
+        const options = { signal: controller.signal };
+        const events = await openStream(target.kind, id, range, options);
 
         for await (const event of events) {
           setState(

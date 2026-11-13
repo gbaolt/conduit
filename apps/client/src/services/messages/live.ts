@@ -194,6 +194,7 @@ export function useLiveStream(roomId: string, parentId?: string): LiveStatus {
 export type LiveStreamSpec =
   | { kind: 'sidebar' }
   | { kind: 'presence' }
+  | { kind: 'feed' }
   | { kind: 'typing'; roomId: string };
 
 /**

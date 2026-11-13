@@ -6,6 +6,7 @@ import {
   RoomIdInputSchema,
   RoomMemberSchema,
   RoomSchema,
+  SetRoomNotifyInputSchema,
 } from '@/schemas/rooms';
 
 /** Errors of the procedures every room answers, a channel or a DM. */
@@ -31,3 +32,21 @@ export const listRoomMembersContract = oc
   .errors({ NOT_FOUND })
   .input(RoomIdInputSchema)
   .output(z.array(RoomMemberSchema));
+
+export const setRoomNotifyContract = oc
+  .meta(openapi({ method: 'PUT', path: '/rooms/{roomId}/notify' }))
+  .errors({ NOT_FOUND })
+  .input(SetRoomNotifyInputSchema)
+  .output(z.void());
+
+export const muteRoomContract = oc
+  .meta(openapi({ method: 'PUT', path: '/rooms/{roomId}/mute' }))
+  .errors({ NOT_FOUND })
+  .input(RoomIdInputSchema)
+  .output(z.void());
+
+export const unmuteRoomContract = oc
+  .meta(openapi({ method: 'DELETE', path: '/rooms/{roomId}/mute' }))
+  .errors({ NOT_FOUND })
+  .input(RoomIdInputSchema)
+  .output(z.void());

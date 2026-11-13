@@ -2,6 +2,8 @@ import type { LinkPreview, Message, ReactionSummary } from '@conduit/contract';
 import { Prisma } from '@generated/prisma/client';
 import { Inject, Injectable } from '@nestjs/common';
 
+import type { NewActivityItem } from '@/feed/domain/feed.repository';
+import { createActivityItems } from '@/feed/infrastructure/activity-items';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import type {
   MessageMentions,
@@ -141,6 +143,75 @@ export class PrismaMessagesRepository implements MessagesRepository {
     return rows.reverse().map(toMessage);
   }
 
+  async listForCatchUp(input: {
+    userId: string;
+    roomIds: string[];
+    itemRoomIds: string[];
+    limit: number;
+  }) {
+    const { userId, limit } = input;
+    const [members, reads, items] = await Promise.all([
+      this.db.roomMember.findMany({
+        where: { userId, roomId: { in: input.roomIds } },
+        select: { roomId: true, joinedAt: true },
+      }),
+      this.db.readState.findMany({
+        where: { userId, roomId: { in: input.roomIds } },
+        select: { roomId: true, lastReadAt: true },
+      }),
+      this.db.activityItem.findMany({
+        where: {
+          userId,
+          roomId: { in: input.itemRoomIds },
+          kind: { in: ['MENTION', 'THREAD_REPLY'] },
+          readAt: null,
+          messageId: { not: null },
+        },
+        select: { messageId: true },
+      }),
+    ]);
+    const readAt = new Map(reads.map((read) => [read.roomId, read.lastReadAt]));
+    const itemMessageIds = items.flatMap((item) => item.messageId ?? []);
+
+    const [unread, behindItems] = await Promise.all([
+      members.length === 0
+        ? []
+        : this.db.message.findMany({
+            where: {
+              deletedAt: null,
+              authorId: { not: userId },
+              // The conversation shows top-level messages and replies sent to the channel, not other thread replies.
+              AND: [{ OR: [{ parentId: null }, { alsoSentToChannel: true }] }],
+              OR: members.map((member) => ({
+                roomId: member.roomId,
+                createdAt: { gt: readAt.get(member.roomId) ?? member.joinedAt },
+              })),
+            },
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+            take: limit,
+          }),
+      this.db.message.findMany({
+        where: { id: { in: itemMessageIds }, deletedAt: null },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: limit,
+      }),
+    ]);
+
+    const rows = new Map(
+      [...unread, ...behindItems].map((row) => [row.id, row])
+    );
+    return {
+      messages: [...rows.values()]
+        .sort(
+          (a, b) =>
+            a.createdAt.getTime() - b.createdAt.getTime() ||
+            Number(a.id > b.id) - Number(a.id < b.id)
+        )
+        .map(toMessage),
+      itemMessageIds: behindItems.map((row) => row.id),
+    };
+  }
+
   async find(messageId: string) {
     const row = await this.db.message.findUnique({ where: { id: messageId } });
     return row && toMessage(row);
@@ -154,6 +225,7 @@ export class PrismaMessagesRepository implements MessagesRepository {
     mentions: MessageMentions;
     parentId?: string;
     alsoSentToChannel?: boolean;
+    items: (message: Message) => NewActivityItem[];
   }) {
     const key = {
       authorId_clientId: {
@@ -194,6 +266,7 @@ export class PrismaMessagesRepository implements MessagesRepository {
           data: { replyCount: { increment: 1 }, lastReplyAt: row.createdAt },
         });
       }
+      await createActivityItems(tx, input.items(toMessage(row)));
       const [{ txid }] = await tx.$queryRaw<
         [{ txid: string }]
       >`SELECT pg_current_xact_id()::text AS txid`;
@@ -201,12 +274,28 @@ export class PrismaMessagesRepository implements MessagesRepository {
     });
   }
 
-  async edit(messageId: string, body: string, mentions: MessageMentions) {
-    const row = await this.db.message.update({
-      where: { id: messageId },
-      data: { body, editedAt: new Date(), ...mentionColumns(mentions) },
+  async edit(
+    messageId: string,
+    body: string,
+    mentions: MessageMentions,
+    mentionItems: NewActivityItem[]
+  ) {
+    return this.db.$transaction(async (tx) => {
+      const row = await tx.message.update({
+        where: { id: messageId },
+        data: { body, editedAt: new Date(), ...mentionColumns(mentions) },
+      });
+      // shortcut: a thread member who loses their mention loses the item instead of falling back to THREAD_REPLY.
+      await tx.activityItem.deleteMany({
+        where: {
+          messageId,
+          kind: 'MENTION',
+          userId: { notIn: mentionItems.map((item) => item.userId) },
+        },
+      });
+      await createActivityItems(tx, mentionItems);
+      return toMessage(row);
     });
-    return toMessage(row);
   }
 
   async markDeleted(messageId: string) {
@@ -225,6 +314,7 @@ export class PrismaMessagesRepository implements MessagesRepository {
       });
       if (count === 0) return;
 
+      await tx.activityItem.deleteMany({ where: { messageId } });
       const { parentId } = await tx.message.findUniqueOrThrow({
         where: { id: messageId },
         select: { parentId: true },
@@ -240,7 +330,8 @@ export class PrismaMessagesRepository implements MessagesRepository {
 
   async updateReactions(
     messageId: string,
-    update: (current: ReactionSummary) => ReactionSummary | null
+    update: (current: ReactionSummary) => ReactionSummary | null,
+    activity?: { add: NewActivityItem } | { remove: string }
   ) {
     return this.db.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT "id" FROM "Message" WHERE "id" = ${messageId} FOR UPDATE`;
@@ -253,6 +344,11 @@ export class PrismaMessagesRepository implements MessagesRepository {
       if (!next) return null;
       if (next === current) return toMessage(row);
 
+      if (activity && 'add' in activity) {
+        await createActivityItems(tx, [activity.add]);
+      } else if (activity) {
+        await tx.activityItem.deleteMany({ where: { key: activity.remove } });
+      }
       return toMessage(
         await tx.message.update({
           where: { id: messageId },

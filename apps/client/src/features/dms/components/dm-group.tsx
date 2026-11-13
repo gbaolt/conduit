@@ -5,7 +5,7 @@ import {
   SidebarGroupAction,
   SidebarMenuItem,
 } from '@conduit/ui/components/sidebar';
-import { IconPlus, IconUsers } from '@tabler/icons-react';
+import { IconMessage, IconPlus, IconUsers } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 
 import { UserAvatar } from '@/components/user-avatar';
@@ -17,6 +17,7 @@ import {
   RoomItemButton,
   RoomItemDraft,
   RoomItemLabel,
+  RoomItemMuted,
 } from '@/features/rooms/components/room-sidebar';
 import { sessionQuery } from '@/services/auth/queries';
 import { dmTitle, selfFirst } from '@/services/dms/dm-title';
@@ -52,7 +53,7 @@ export function DmGroup() {
 
   return (
     <RoomGroup id={DMS_GROUP_ID}>
-      <RoomGroupLabel>Direct messages</RoomGroupLabel>
+      <RoomGroupLabel icon={<IconMessage />}>Direct messages</RoomGroupLabel>
       <SidebarGroupAction
         aria-label="New direct message"
         onClick={() => open({ kind: 'new-dm' })}
@@ -69,6 +70,7 @@ export function DmGroup() {
                   {dmTitle(dm, viewerId)}
                 </RoomItemLabel>
                 <RoomItemDraft />
+                <RoomItemMuted />
               </RoomItemButton>
             </SidebarMenuItem>
           </RoomItem>

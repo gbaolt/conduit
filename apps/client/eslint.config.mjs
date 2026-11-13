@@ -12,6 +12,7 @@ const featureDeps = {
   channels: ['rooms'],
   dms: ['rooms'],
   messages: ['rooms', 'channels', 'dms'],
+  feed: ['rooms', 'messages'],
 };
 
 const services = [
@@ -19,7 +20,9 @@ const services = [
   'auth',
   'channels',
   'dms',
+  'feed',
   'messages',
+  'notifications',
   'rooms',
   'workspaces',
 ];

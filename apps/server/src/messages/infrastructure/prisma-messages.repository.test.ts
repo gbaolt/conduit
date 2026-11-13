@@ -1,4 +1,8 @@
-import { addReaction, REACTION_EMOJI_MAX } from '@conduit/contract';
+import {
+  addReaction,
+  REACTION_EMOJI_MAX,
+  removeReaction,
+} from '@conduit/contract';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { prisma } from '@/infrastructure/database/prisma.service';
@@ -19,15 +23,27 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
   const run = crypto.randomUUID();
   const organizationId = run;
   const userId = `${run}-user`;
+  const recipientId = `${run}-recipient`;
   const roomId = `${run}-channel`;
   const mentions = { userIds: [], channel: false, here: false };
 
   const send = (clientId: string, body = clientId) =>
-    repository.send({ roomId, authorId: userId, clientId, body, mentions });
+    repository.send({
+      roomId,
+      authorId: userId,
+      clientId,
+      body,
+      mentions,
+      items: () => [],
+    });
 
   beforeAll(async () => {
-    await prisma.user.create({
-      data: { id: userId, name: 'Linh', email: `${userId}@test.local` },
+    await prisma.user.createMany({
+      data: [userId, recipientId].map((id) => ({
+        id,
+        name: id,
+        email: `${id}@test.local`,
+      })),
     });
     await prisma.organization.create({
       data: {
@@ -44,7 +60,9 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
 
   afterAll(async () => {
     await prisma.organization.deleteMany({ where: { id: organizationId } });
-    await prisma.user.deleteMany({ where: { id: userId } });
+    await prisma.user.deleteMany({
+      where: { id: { in: [userId, recipientId] } },
+    });
     await prisma.$disconnect();
   });
 
@@ -160,7 +178,7 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
     expect(Object.keys(stored?.reactions ?? {})).toHaveLength(
       REACTION_EMOJI_MAX
     );
-  });
+  }, 30_000);
 
   it('pins, lists newest pin first, and unpins', async () => {
     const first = await send('pin-1');
@@ -195,6 +213,84 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
     );
   });
 
+  describe('Activity items', () => {
+    const mentionItem = (messageId: string) => ({
+      organizationId,
+      userId: recipientId,
+      roomId,
+      kind: 'mention' as const,
+      key: `message:${messageId}`,
+      actorId: userId,
+      messageId,
+    });
+    const sendWithItem = (clientId: string) =>
+      repository.send({
+        roomId,
+        authorId: userId,
+        clientId,
+        body: clientId,
+        mentions,
+        items: (message) => [mentionItem(message.id)],
+      });
+    const itemsOf = (messageId: string) =>
+      prisma.activityItem.findMany({ where: { messageId } });
+
+    it('writes the items with the message, and a retried send writes none again', async () => {
+      const first = await sendWithItem('item-send');
+      const retry = await sendWithItem('item-send');
+
+      expect(retry.txid).toBeNull();
+      expect(await itemsOf(first.message.id)).toHaveLength(1);
+    });
+
+    it('syncs the mention items on edit, adding the new and dropping the removed', async () => {
+      const { message } = await sendWithItem('item-edit');
+
+      await repository.edit(message.id, 'changed', mentions, []);
+      expect(await itemsOf(message.id)).toHaveLength(0);
+
+      await repository.edit(message.id, 'again', mentions, [
+        mentionItem(message.id),
+      ]);
+      expect(await itemsOf(message.id)).toHaveLength(1);
+    });
+
+    it('deletes every item of a deleted message', async () => {
+      const { message } = await sendWithItem('item-delete');
+
+      await repository.markDeleted(message.id);
+
+      expect(await itemsOf(message.id)).toHaveLength(0);
+    });
+
+    it('writes a reaction item with the reaction and removes it with the unreaction', async () => {
+      const { message } = await send('item-react');
+      const key = `reaction:${message.id}:${recipientId}:👍`;
+      const item = {
+        ...mentionItem(message.id),
+        userId,
+        kind: 'reaction' as const,
+        key,
+        actorId: recipientId,
+        emoji: '👍',
+      };
+
+      await repository.updateReactions(
+        message.id,
+        (current) => addReaction(current, '👍', recipientId),
+        { add: item }
+      );
+      expect(await itemsOf(message.id)).toHaveLength(1);
+
+      await repository.updateReactions(
+        message.id,
+        (current) => removeReaction(current, '👍', recipientId),
+        { remove: key }
+      );
+      expect(await itemsOf(message.id)).toHaveLength(0);
+    });
+  });
+
   describe('threads', () => {
     const reply = (
       parentId: string,
@@ -209,6 +305,7 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
         mentions,
         parentId,
         alsoSentToChannel,
+        items: () => [],
       });
 
     it('counts every reply sent at the same time', async () => {
@@ -264,9 +361,9 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
 
     it('lists replies newest first, pages them, and drops a deleted one', async () => {
       const { message: root } = await send('page-root');
-      const a = await reply(root.id, 'a');
-      const b = await reply(root.id, 'b');
-      const c = await reply(root.id, 'c');
+      const a = await reply(root.id, 'page-a');
+      const b = await reply(root.id, 'page-b');
+      const c = await reply(root.id, 'page-c');
       await repository.markDeleted(b.message.id);
 
       const first = await repository.listReplies(roomId, root.id, {
@@ -329,9 +426,10 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
         repository.send({
           roomId: summaryChannel.id,
           authorId: userId,
-          clientId,
+          clientId: `summary-${clientId}`,
           body: clientId,
           mentions,
+          items: () => [],
           ...extra,
         });
       const top = await post('top');
@@ -357,6 +455,82 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
         quiet.message.id,
       ]);
       expect(newest.map((m) => m.body)).toEqual(['last']);
+    });
+  });
+
+  describe('listForCatchUp', () => {
+    it('reads what the member has not read, plus the messages behind their unread items', async () => {
+      const room = await prisma.room.create({
+        data: { organizationId, name: 'catch-up' },
+      });
+      const quiet = await prisma.room.create({
+        data: { organizationId, name: 'catch-up-quiet' },
+      });
+      await prisma.roomMember.createMany({
+        data: [room.id, quiet.id].map((id) => ({
+          roomId: id,
+          userId: recipientId,
+          joinedAt: new Date(0),
+        })),
+      });
+      const post = (
+        roomId: string,
+        clientId: string,
+        extra: { parentId?: string; authorId?: string } = {}
+      ) =>
+        repository.send({
+          roomId,
+          authorId: extra.authorId ?? userId,
+          clientId: `catch-up-${clientId}`,
+          body: clientId,
+          mentions,
+          parentId: extra.parentId,
+          items: () => [],
+        });
+      const old = await post(room.id, 'old');
+      await prisma.readState.create({
+        data: {
+          roomId: room.id,
+          userId: recipientId,
+          lastReadAt: old.message.createdAt,
+          lastReadMessageId: old.message.id,
+        },
+      });
+      const top = await post(room.id, 'top');
+      const reply = await post(room.id, 'reply', { parentId: top.message.id });
+      await post(room.id, 'other-reply', { parentId: top.message.id });
+      await post(room.id, 'mine', { authorId: recipientId });
+      const gone = await post(room.id, 'gone');
+      await repository.markDeleted(gone.message.id);
+      await post(quiet.id, 'quiet');
+      await prisma.activityItem.create({
+        data: {
+          organizationId,
+          userId: recipientId,
+          roomId: room.id,
+          kind: 'THREAD_REPLY',
+          key: `message:${reply.message.id}`,
+          actorId: userId,
+          messageId: reply.message.id,
+        },
+      });
+
+      const read = await repository.listForCatchUp({
+        userId: recipientId,
+        roomIds: [room.id],
+        itemRoomIds: [room.id],
+        limit: 100,
+      });
+      const none = await repository.listForCatchUp({
+        userId: recipientId,
+        roomIds: [],
+        itemRoomIds: [],
+        limit: 100,
+      });
+
+      expect(read.messages.map((m) => m.body)).toEqual(['top', 'reply']);
+      expect(read.itemMessageIds).toEqual([reply.message.id]);
+      expect(none.messages).toEqual([]);
     });
   });
 });

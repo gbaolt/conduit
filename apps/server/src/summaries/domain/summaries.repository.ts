@@ -11,7 +11,7 @@ export abstract class SummariesRepository {
   abstract create(input: {
     organizationId: string;
     requesterId: string;
-    roomId: string;
+    roomId: string | null;
     parentId: string | null;
     from: Date | null;
     to: Date;

@@ -24,6 +24,7 @@ import {
 
 import { ActivityService } from '@/activity/application/activity.service';
 import { InMemoryActivityRepository } from '@/activity/testing/in-memory-activity.repository';
+import type { FeedRepository } from '@/feed/domain/feed.repository';
 import type { RoomsRepository } from '@/rooms/domain/rooms.repository';
 
 const MEMBERS = 10;
@@ -42,7 +43,13 @@ const channel = {
   visibility: 'public',
   isDefault: false,
   archivedAt: null,
-  membership: { role: 'member', starredAt: null, sectionId: null },
+  membership: {
+    role: 'member',
+    starredAt: null,
+    sectionId: null,
+    notify: null,
+    mutedAt: null,
+  },
 };
 
 // Lets the service's awaited calls finish between virtual ticks.
@@ -54,9 +61,14 @@ async function run(profile: keyof typeof PROFILES) {
 
   const messages = new Map<string, { roomId: string; createdAt: Date }>();
   const repository = new InMemoryActivityRepository(messages);
-  const service = new ActivityService(repository, {
-    find: async () => channel,
-  } as unknown as RoomsRepository);
+  const service = new ActivityService(
+    repository,
+    { find: async () => channel } as unknown as RoomsRepository,
+    // The feed's own write is not part of the read-state rate this script measures.
+    {
+      markReadThroughPosition: async () => undefined,
+    } as unknown as FeedRepository
+  );
 
   const members = Array.from({ length: MEMBERS }, (_, index) => {
     const viewer = {

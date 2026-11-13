@@ -1,13 +1,13 @@
 /**
- * Runs three fixed 50-message threads through the real model and fails when a bullet cites a message that
- * does not support it. Run it once per model change:
+ * Runs three fixed 50-message threads, and one fixed catch-up across three rooms, through the real model and
+ * fails when a bullet cites a message that does not support it. Run it once per model change:
  *
  *   OPENROUTER_API_KEY=... AI_SUMMARY_MODEL=nvidia/nemotron-3.5-super-vl:free pnpm --filter server eval:summaries
  *
  * Each message in a fixture belongs to one topic and carries that topic's two marker words. A cited message
  * supports a bullet when the bullet uses a marker word of the message's topic. Filler messages ("ok", "+1")
  * have no topic, so citing one always fails. The check is lexical, so it catches a wrong citation but cannot
- * judge a paraphrase that drops every marker word. It spends about three model requests.
+ * judge a paraphrase that drops every marker word. It spends about four model requests.
  */
 import '@/load-env';
 import 'reflect-metadata';
@@ -18,12 +18,20 @@ import { AiSdkModel, selectModel } from '@/ai/infrastructure/ai-sdk-model';
 import { citedBullets } from '@/summaries/domain/summary-citations';
 import {
   buildSummaryInput,
+  CATCH_UP_SYSTEM_PROMPT,
   SUMMARY_MAX_OUTPUT_TOKENS,
   SUMMARY_SYSTEM_PROMPT,
 } from '@/summaries/domain/summary-prompt';
 
 type Topic = { name: string; markers: [string, string] };
-type Fixture = { name: string; topics: Topic[] };
+/** With `rooms`, the fixture is a catch-up: each topic is talked about in one of the rooms. */
+type Fixture = { name: string; topics: Topic[]; rooms?: Map<string, string> };
+
+const CATCH_UP_ROOMS = new Map([
+  ['r-design', '#design'],
+  ['r-ops', '#ops'],
+  ['r-dm', 'DM with Bao Le'],
+]);
 
 const FIXTURES: Fixture[] = [
   {
@@ -56,6 +64,17 @@ const FIXTURES: Fixture[] = [
       { name: 'onsite', markers: ['onsite', 'travel'] },
     ],
   },
+  {
+    name: 'catch-up across three rooms',
+    rooms: CATCH_UP_ROOMS,
+    topics: [
+      { name: 'launch', markers: ['launch', 'mockups'] },
+      { name: 'outage', markers: ['outage', 'postmortem'] },
+      { name: 'budget', markers: ['budget', 'headcount'] },
+      { name: 'roadmap', markers: ['roadmap', 'milestone'] },
+      { name: 'vendor', markers: ['vendor', 'contract'] },
+    ],
+  },
 ];
 
 const TEMPLATES = [
@@ -85,18 +104,21 @@ function buildThread(fixture: Fixture, seed: number): Line[] {
     return state % limit;
   };
 
-  const lines: { body: string; topic: Topic | null }[] = [
-    ...fixture.topics.flatMap((topic) =>
+  const roomIds = [...(fixture.rooms?.keys() ?? ['room'])];
+  const lines: { body: string; topic: Topic | null; roomId: string }[] = [
+    ...fixture.topics.flatMap((topic, topicIndex) =>
       TEMPLATES.map((template) => ({
         body: template
           .replace('{a}', topic.markers[0])
           .replace('{b}', topic.markers[1]),
         topic,
+        roomId: roomIds[topicIndex % roomIds.length]!,
       }))
     ),
     ...Array.from({ length: 10 }, (_, i) => ({
       body: FILLER[i % FILLER.length]!,
       topic: null,
+      roomId: roomIds[i % roomIds.length]!,
     })),
   ];
   for (let i = lines.length - 1; i > 0; i--) {
@@ -108,6 +130,7 @@ function buildThread(fixture: Fixture, seed: number): Line[] {
     topic: line.topic,
     message: {
       id: `${fixture.name.replace(/\W/g, '')}-${index}`,
+      roomId: line.roomId,
       authorId: [...PEOPLE.keys()][index % PEOPLE.size]!,
       body: line.body,
       mentionedUserIds: [],
@@ -132,13 +155,14 @@ for (const [index, fixture] of FIXTURES.entries()) {
   const thread = buildThread(fixture, index + 1);
   const input = buildSummaryInput(
     thread.map((line) => line.message),
-    PEOPLE
+    PEOPLE,
+    { roomNames: fixture.rooms }
   );
   const topicOf = new Map(thread.map((line) => [line.message.id, line.topic]));
 
   let last;
   for await (const partial of model.streamObject({
-    system: SUMMARY_SYSTEM_PROMPT,
+    system: fixture.rooms ? CATCH_UP_SYSTEM_PROMPT : SUMMARY_SYSTEM_PROMPT,
     prompt: input.prompt,
     schema: ModelSummarySchema,
     maxOutputTokens: SUMMARY_MAX_OUTPUT_TOKENS,

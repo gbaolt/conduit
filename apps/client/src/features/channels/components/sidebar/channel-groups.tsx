@@ -7,7 +7,14 @@ import {
   DropdownMenuTrigger,
 } from '@conduit/ui/components/dropdown-menu';
 import { SidebarGroupAction } from '@conduit/ui/components/sidebar';
-import { IconListSearch, IconPlus } from '@tabler/icons-react';
+import {
+  IconFolder,
+  IconHash,
+  IconListSearch,
+  IconPlus,
+  IconStar,
+  IconUsersGroup,
+} from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 
 import {
@@ -22,7 +29,11 @@ import {
 } from '@/services/channels/queries';
 
 import { useChannelDialogs } from '../../context/channel-dialogs-provider';
-import { CHANNELS_GROUP_ID, groupSidebar } from '../../lib/group-sidebar';
+import {
+  CHANNELS_GROUP_ID,
+  groupSidebar,
+  STARRED_GROUP_ID,
+} from '../../lib/group-sidebar';
 import { useCanCreateChannel } from '../../lib/use-can-create-channel';
 import { ChannelItem } from './channel-item';
 import { SidebarSectionMenu } from './sidebar-section-menu';
@@ -80,7 +91,7 @@ export function ChannelGroups() {
 
   return groups.map((group) => (
     <RoomGroup key={group.id} id={group.id}>
-      <RoomGroupLabel>{group.name}</RoomGroupLabel>
+      <RoomGroupLabel icon={groupIcon(group.id)}>{group.name}</RoomGroupLabel>
       {group.section && (
         <SidebarSectionMenu
           section={group.section}
@@ -98,4 +109,10 @@ export function ChannelGroups() {
       </RoomGroupContent>
     </RoomGroup>
   ));
+}
+
+function groupIcon(groupId: string) {
+  if (groupId === STARRED_GROUP_ID) return <IconStar />;
+  if (groupId === CHANNELS_GROUP_ID) return <IconUsersGroup />;
+  return <IconFolder />;
 }

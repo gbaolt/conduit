@@ -27,6 +27,8 @@ function channel(
       role: 'member',
       starredAt: null,
       sectionId: null,
+      notify: null,
+      mutedAt: null,
       ...membership,
     },
   };

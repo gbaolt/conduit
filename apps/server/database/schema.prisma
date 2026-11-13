@@ -16,28 +16,33 @@ datasource db {
 }
 
 model User {
-  id               String           @id @default(cuid())
-  name             String
-  email            String           @unique
-  emailVerified    Boolean          @default(false)
-  image            String?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  sessions         Session[]
-  accounts         Account[]
-  members          Member[]
-  invitations      Invitation[]
-  channelsCreated  Room[]           @relation("ChannelCreatedBy")
-  channelsArchived Room[]           @relation("ChannelArchivedBy")
-  roomMemberships  RoomMember[]
-  channelSections  ChannelSection[]
-  readStates       ReadState[]
-  drafts           Draft[]
-  typingStates     TypingState[]
-  presences        Presence[]
-  messages         Message[]
-  savedMessages    SavedMessage[]
-  summaries        Summary[]
+  id                   String                 @id @default(cuid())
+  name                 String
+  email                String                 @unique
+  emailVerified        Boolean                @default(false)
+  image                String?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  sessions             Session[]
+  accounts             Account[]
+  members              Member[]
+  invitations          Invitation[]
+  channelsCreated      Room[]                 @relation("ChannelCreatedBy")
+  channelsArchived     Room[]                 @relation("ChannelArchivedBy")
+  roomMemberships      RoomMember[]
+  channelSections      ChannelSection[]
+  readStates           ReadState[]
+  drafts               Draft[]
+  typingStates         TypingState[]
+  presences            Presence[]
+  messages             Message[]
+  savedMessages        SavedMessage[]
+  summaries            Summary[]
+  notificationSettings NotificationSettings[]
+  activityItems        ActivityItem[]         @relation("ActivityRecipient")
+  activityActed        ActivityItem[]         @relation("ActivityActor")
+  pushSubscriptions    PushSubscription[]
+  digestStates         DigestState[]
 }
 
 model Session {
@@ -56,21 +61,23 @@ model Session {
 }
 
 model Organization {
-  id              String             @id @default(cuid())
-  name            String
-  slug            String             @unique
-  logo            String?
-  createdAt       DateTime
-  metadata        String?
-  members         Member[]
-  invitations     Invitation[]
-  rooms           Room[]
-  channelSections ChannelSection[]
-  joinLink        WorkspaceJoinLink?
-  allowedDomains  AllowedDomain[]
-  settings        WorkspaceSettings?
-  summaries       Summary[]
-  presences       Presence[]
+  id                   String                 @id @default(cuid())
+  name                 String
+  slug                 String                 @unique
+  logo                 String?
+  createdAt            DateTime
+  metadata             String?
+  members              Member[]
+  invitations          Invitation[]
+  rooms                Room[]
+  channelSections      ChannelSection[]
+  joinLink             WorkspaceJoinLink?
+  allowedDomains       AllowedDomain[]
+  settings             WorkspaceSettings?
+  summaries            Summary[]
+  presences            Presence[]
+  notificationSettings NotificationSettings[]
+  digestStates         DigestState[]
 }
 
 model Member {
@@ -188,6 +195,13 @@ enum RoomRole {
   @@map("ChannelRole")
 }
 
+/// What a member is notified about in a room. A null `RoomMember.notify` means the default for the room's kind.
+enum NotifyLevel {
+  ALL
+  MENTIONS
+  NOTHING
+}
+
 enum RoomKind {
   CHANNEL
   DM
@@ -220,6 +234,7 @@ model Room {
   typingStates             TypingState[]
   messages                 Message[]
   summaries                Summary[]
+  activityItems            ActivityItem[]
 
   @@unique([organizationId, name])
   @@map("Channel")
@@ -234,6 +249,9 @@ model RoomMember {
   starredAt DateTime?
   sectionId String?
   section   ChannelSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  notify    NotifyLevel?
+  /// Set while the member has the room muted.
+  mutedAt   DateTime?
   joinedAt  DateTime        @default(now())
 
   @@id([roomId, userId])
@@ -268,6 +286,7 @@ model Message {
   parent            Message?       @relation("MessageReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies           Message[]      @relation("MessageReplies")
   savedBy           SavedMessage[]
+  activityItems     ActivityItem[]
   alsoSentToChannel Boolean        @default(false)
   /// Markdown text, at most 4,000 characters. Cleared when the message is deleted.
   body              String
@@ -291,6 +310,49 @@ model Message {
   @@index([roomId, updatedAt])
 }
 
+enum ActivityKind {
+  MENTION
+  THREAD_REPLY
+  REACTION
+  ROOM_ADD
+}
+
+enum ActivityUrgency {
+  URGENT
+  NORMAL
+  LOW
+}
+
+/// App-owned. One row per thing that needs a member, written in the transaction of the change that caused it.
+model ActivityItem {
+  id             String       @id @default(cuid())
+  organizationId String
+  /// The recipient.
+  userId         String
+  user           User         @relation("ActivityRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  roomId         String       @map("channelId")
+  room           Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  kind           ActivityKind
+  /// Built by the server, so a retried write is one row: `message:<id>`, `reaction:<id>:<actorId>:<emoji>`, or `room-add:<roomId>:<joinedAt ms>`.
+  key            String
+  actorId        String
+  actor          User         @relation("ActivityActor", fields: [actorId], references: [id], onDelete: Cascade)
+  messageId      String?
+  message        Message?     @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  emoji          String?
+  /// What the model judged for the recipient. Null until `feed.rank` reaches the item, and always null for reactions and adds.
+  urgency        ActivityUrgency?
+  urgencyReason  String?
+  readAt         DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([userId, key])
+  @@index([userId, organizationId, createdAt, id])
+  @@index([userId, organizationId, readAt])
+  @@index([messageId])
+}
+
 /// App-owned. A member's private bookmark on a message.
 model SavedMessage {
   userId    String
@@ -303,15 +365,16 @@ model SavedMessage {
   @@index([userId, savedAt])
 }
 
-/// App-owned. An AI summary of a thread or a channel's log. Only the requester reads it until `sharedMessageId` is set.
+/// App-owned. An AI summary of a thread, a channel's log, or everything unread (a catch-up). Only the requester reads it until `sharedMessageId` is set.
 model Summary {
   id               String       @id @default(cuid())
   organizationId   String
   organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   requesterId      String
   requester        User         @relation(fields: [requesterId], references: [id], onDelete: Cascade)
-  roomId           String       @map("channelId")
-  room             Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  /// Null for a catch-up, which spans every room the requester reads.
+  roomId           String?      @map("channelId")
+  room             Room?        @relation(fields: [roomId], references: [id], onDelete: Cascade)
   /// The thread's root message. Null for a channel summary.
   parentId         String?
   from             DateTime?
@@ -381,4 +444,46 @@ model Presence {
   away           Boolean      @default(false)
 
   @@id([organizationId, userId])
+}
+
+/// App-owned. A member's notification preferences in one workspace. No row means the defaults.
+model NotificationSettings {
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Do Not Disturb is on until this time. Past or null means off.
+  dndUntil       DateTime?
+  /// `{ days, start, end }`, parsed by `DndScheduleSchema`.
+  dndSchedule    Json?
+  /// An IANA time zone name that the schedule is read in.
+  timeZone       String       @default("UTC")
+  emailDigest    Boolean      @default(true)
+
+  @@id([organizationId, userId])
+}
+
+/// App-owned. When a member's last email digest in a workspace went out. A digest sends only when this is older than the member's last heartbeat.
+model DigestState {
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastSentAt     DateTime
+
+  @@id([organizationId, userId])
+}
+
+/// App-owned. One row per browser that turned on desktop notifications. A browser handed to another account moves to it.
+model PushSubscription {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint      String    @unique
+  p256dh        String
+  auth          String
+  createdAt     DateTime  @default(now())
+  lastSuccessAt DateTime?
+
+  @@index([userId])
 }

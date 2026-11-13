@@ -1,4 +1,10 @@
-import type { Message, ModelSummary, Room, Summary } from '@conduit/contract';
+import type {
+  Dm,
+  Message,
+  ModelSummary,
+  Room,
+  Summary,
+} from '@conduit/contract';
 import { describe, expect, it } from 'vitest';
 
 import { AiAccessService } from '@/ai/application/ai-access.service';
@@ -9,6 +15,7 @@ import type {
   PartialObject,
 } from '@/ai/domain/model.port';
 import type { DmsRepository } from '@/dms/domain/dms.repository';
+import type { FeedRepository } from '@/feed/domain/feed.repository';
 import {
   MessagesService,
   type MessageViewer,
@@ -49,7 +56,13 @@ const channelFor = (
   memberCount: 2,
   createdById: null,
   createdAt: new Date(0),
-  membership: role && { role, starredAt: null, sectionId: null },
+  membership: role && {
+    role,
+    starredAt: null,
+    sectionId: null,
+    notify: null,
+    mutedAt: null,
+  },
   archivedByName: null,
   ...overrides,
 });
@@ -148,7 +161,14 @@ function setup({
     messageRepository,
     channels,
     {} as SavedMessagesRepository,
-    {} as DmsRepository
+    {} as DmsRepository,
+    {
+      recipientLookup: async () => ({
+        memberIds: [],
+        onlineIds: [],
+        repliers: [],
+      }),
+    } as Partial<FeedRepository> as FeedRepository
   );
 
   return {
@@ -433,6 +453,242 @@ describe('SummariesService', () => {
       await service.share(linh, id);
 
       expect(sent).toHaveLength(1);
+    });
+  });
+
+  describe('catch-up', () => {
+    const memberOf = (mutedAt: Date | null = null) =>
+      ({
+        role: 'member',
+        starredAt: null,
+        sectionId: null,
+        notify: null,
+        mutedAt,
+      }) as Room['membership'];
+    const channel = (id: string, name: string, extra: Partial<Room> = {}) =>
+      channelFor('member', { id, name, visibility: 'public', ...extra });
+    const dmRoom = () =>
+      channelFor('member', { id: 'd1', kind: 'dm', name: '' });
+    const dm = (id: string): Dm => ({
+      id,
+      members: [
+        { userId: 'linh', name: 'Linh', image: null },
+        { userId: 'bao', name: 'Bao', image: null },
+      ],
+      lastMessageAt: null,
+      createdAt: new Date(0),
+    });
+    const post = (
+      id: string,
+      roomId: string,
+      body: string,
+      at: number,
+      extra: Partial<Message> = {}
+    ) =>
+      ({
+        id,
+        roomId,
+        authorId: 'bao',
+        body,
+        parentId: null,
+        alsoSentToChannel: false,
+        mentionedUserIds: [],
+        createdAt: new Date(at),
+        ...extra,
+      }) as unknown as Message;
+
+    function catchUpSetup({
+      rooms,
+      dms = [],
+      messages,
+      itemMessageIds = [],
+    }: {
+      rooms: Room[];
+      dms?: Dm[];
+      messages: Message[];
+      itemMessageIds?: string[];
+    }) {
+      const asked: Parameters<MessagesRepository['listForCatchUp']>[0][] = [];
+      const messageRepository = {
+        listForCatchUp: async (input) => {
+          asked.push(input);
+          const inItems = new Set(itemMessageIds);
+          const read = messages.filter(
+            (m) =>
+              (input.roomIds.includes(m.roomId) && !m.parentId) ||
+              (inItems.has(m.id) && input.itemRoomIds.includes(m.roomId))
+          );
+          return {
+            messages: read,
+            itemMessageIds: read
+              .map((m) => m.id)
+              .filter((id) => inItems.has(id)),
+          };
+        },
+      } as Partial<MessagesRepository> as MessagesRepository;
+      const roomsRepository = {
+        list: async () => rooms.filter((room) => room.kind === 'channel'),
+        find: async (_scope: unknown, id: string) =>
+          rooms.find((room) => room.id === id) ?? null,
+      } as Partial<RoomsRepository> as RoomsRepository;
+
+      const stored = new Map<string, StoredSummary>();
+      const summaries = {
+        create: async (input) => {
+          const row = {
+            ...input,
+            id: `s${stored.size + 1}`,
+            sharedMessageId: null,
+            createdAt: new Date(0),
+          } as StoredSummary;
+          stored.set(row.id, row);
+          return row;
+        },
+        find: async (id) => stored.get(id) ?? null,
+        userNames: async (ids) => new Map(ids.map((id) => [id, id])),
+      } as Partial<SummariesRepository> as SummariesRepository;
+
+      const { model, requests } = fakeModel({
+        bullets: [{ text: 'Ship Friday.', sourceIds: ['m1'] }],
+      });
+      const service = new SummariesService(
+        new AiAccessService({
+          get: async () => ({ aiEnabled: true }),
+        } as Partial<AiSettingsRepository> as AiSettingsRepository),
+        model,
+        new MessagesService(
+          messageRepository,
+          roomsRepository,
+          {} as SavedMessagesRepository,
+          { list: async () => dms } as Partial<DmsRepository> as DmsRepository,
+          {} as FeedRepository
+        ),
+        summaries
+      );
+      return { service, asked, stored, requests };
+    }
+
+    it('reads every unmuted room, a DM, and a thread reply behind an item, and stores no room', async () => {
+      const { service, requests, stored } = catchUpSetup({
+        rooms: [
+          channel('c1', 'design', { membership: memberOf() }),
+          channel('c2', 'ops', { membership: memberOf() }),
+          dmRoom(),
+        ],
+        dms: [dm('d1')],
+        messages: [
+          post('a', 'c1', 'Ship on Friday?', 1000),
+          post('b', 'c2', 'Deploy is green.', 2000),
+          post('c', 'd1', 'Lunch?', 3000),
+          post('t', 'c1', 'Can you review this reply?', 4000, {
+            parentId: 'a',
+          }),
+        ],
+        itemMessageIds: ['t'],
+      });
+
+      const events = await finish(await service.catchUp(linh));
+
+      const prompt = requests[0]!.prompt;
+      expect(prompt).toContain('room="#design"');
+      expect(prompt).toContain('room="#ops"');
+      expect(prompt).toContain('room="DM with Bao"');
+      expect(prompt).toContain('Can you review this reply?');
+      expect(requests[0]!.system).toContain('catch a team member up');
+      expect(summaryOf(events)).toMatchObject({
+        roomId: null,
+        parentId: null,
+        messageCount: 4,
+        from: new Date(1000),
+      });
+      expect(stored.size).toBe(1);
+    });
+
+    it('leaves out a muted room, but keeps a mention that reached it', async () => {
+      const { service, asked } = catchUpSetup({
+        rooms: [
+          channel('c1', 'design', { membership: memberOf() }),
+          channel('c2', 'noise', { membership: memberOf(new Date(0)) }),
+        ],
+        messages: [
+          post('a', 'c1', 'Ship on Friday?', 1000),
+          post('n', 'c2', 'Lunch poll', 2000),
+        ],
+      });
+
+      await finish(await service.catchUp(linh));
+
+      expect(asked[0]?.roomIds).toEqual(['c1']);
+      expect(asked[0]?.itemRoomIds).toEqual(['c1', 'c2']);
+    });
+
+    it('leaves out a channel the caller is no longer in', async () => {
+      const { service, asked, requests } = catchUpSetup({
+        rooms: [
+          channel('c1', 'design', { membership: memberOf() }),
+          channel('c3', 'left', { membership: null }),
+        ],
+        messages: [
+          post('a', 'c1', 'Ship on Friday?', 1000),
+          post('x', 'c3', 'Secret', 2000),
+        ],
+        itemMessageIds: ['x'],
+      });
+
+      await finish(await service.catchUp(linh));
+
+      expect(asked[0]?.roomIds).toEqual(['c1']);
+      expect(asked[0]?.itemRoomIds).toEqual(['c1']);
+      expect(requests[0]!.prompt).not.toContain('Secret');
+    });
+
+    it('keeps DMs and messages behind items when the prompt is over its limit', async () => {
+      const { service, requests } = catchUpSetup({
+        rooms: [channel('c1', 'design', { membership: memberOf() }), dmRoom()],
+        dms: [dm('d1')],
+        messages: [
+          post('a', 'c1', 'x'.repeat(40_000), 1000),
+          post('b', 'c1', 'y'.repeat(40_000), 2000),
+          post('c', 'd1', 'Lunch?', 500),
+        ],
+      });
+
+      await finish(await service.catchUp(linh));
+
+      expect(requests[0]!.prompt).toContain('Lunch?');
+      expect(requests[0]!.prompt).toContain('y'.repeat(100));
+      expect(requests[0]!.prompt).not.toContain('x'.repeat(100));
+    });
+
+    it('refuses with nothing to read, and while AI is off', async () => {
+      const { service } = catchUpSetup({ rooms: [], messages: [] });
+      await expect(service.catchUp(linh)).rejects.toMatchObject({
+        code: 'NOTHING_TO_SUMMARIZE',
+      });
+
+      const off = setup({ views: {}, aiEnabled: false });
+      await expect(off.service.catchUp(linh)).rejects.toMatchObject({
+        code: 'AI_DISABLED',
+      });
+    });
+
+    it('is read by its requester only, and cannot be shared', async () => {
+      const { service, stored } = catchUpSetup({
+        rooms: [channel('c1', 'design', { membership: memberOf() })],
+        messages: [post('a', 'c1', 'Ship on Friday?', 1000)],
+      });
+      const id = summaryOf(await finish(await service.catchUp(linh))).id;
+
+      await expect(service.get(linh, id)).resolves.toMatchObject({
+        roomId: null,
+      });
+      await expect(service.get(bao, id)).rejects.toMatchObject({
+        code: 'NOT_FOUND',
+      });
+      await expect(service.share(linh, id)).rejects.toMatchObject({
+        code: 'NOT_FOUND',
+      });
+      expect(stored.get(id)?.sharedMessageId).toBeNull();
     });
   });
 });

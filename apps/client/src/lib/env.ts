@@ -13,3 +13,8 @@ export function getAppBaseUrl() {
 export function getMarketingBaseUrl() {
   return process.env.NEXT_PUBLIC_MARKETING_URL ?? 'https://conduit.localhost';
 }
+
+/** The public half of the server's VAPID key pair. Empty turns desktop notifications off. */
+export function getVapidPublicKey() {
+  return process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? '';
+}

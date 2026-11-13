@@ -1,7 +1,15 @@
-import type { Room, RoomMember } from '@conduit/contract';
+import type { NotifyLevel, Room, RoomMember } from '@conduit/contract';
 
 /** Whose view of a channel to load: the member counts and the `membership` field depend on it. */
 export type RoomScope = { userId: string; organizationId: string };
+
+/** A member's own settings on a room. `undefined` leaves a field alone, and `null` clears it. */
+export type MembershipPatch = {
+  starredAt?: Date | null;
+  sectionId?: string | null;
+  notify?: NotifyLevel | null;
+  mutedAt?: Date | null;
+};
 
 /** Channels and their members. Every channel it returns is the scope's view of it. */
 export abstract class RoomsRepository {
@@ -49,17 +57,24 @@ export abstract class RoomsRepository {
 
   abstract delete(roomId: string): Promise<void>;
 
-  /** Adds each user once. Users already in the channel are skipped. */
-  abstract addMembers(roomId: string, userIds: string[]): Promise<void>;
+  /**
+   * Adds each user once. Users already in the channel are skipped.
+   * With `addedBy`, each user added now also gets a `ROOM_ADD` Activity item, in the same transaction.
+   */
+  abstract addMembers(
+    roomId: string,
+    userIds: string[],
+    addedBy?: { userId: string; organizationId: string }
+  ): Promise<void>;
 
   /** Returns how many members were removed, 0 or 1. */
   abstract removeMember(roomId: string, userId: string): Promise<number>;
 
-  /** The user's own settings on a channel. Does nothing when they are not a member. */
+  /** The user's own settings on a room. Does nothing when they are not a member. */
   abstract updateMembership(
     roomId: string,
     userId: string,
-    data: { starredAt?: Date | null; sectionId?: string | null }
+    data: MembershipPatch
   ): Promise<void>;
 
   /** Current workspace members of the channel, managers first. */

@@ -60,12 +60,21 @@ export function queryFor(stream: LiveStream, viewer: StreamViewer): LiveQuery {
       };
     case 'sidebar':
       return {
-        sql: `SELECT cm."channelId" AS "roomId", c."lastMessageAt", cm."joinedAt", rs."lastReadAt", (d."channelId" IS NOT NULL) AS "hasDraft"
+        sql: `SELECT cm."channelId" AS "roomId", c."lastMessageAt", cm."joinedAt", rs."lastReadAt", (d."channelId" IS NOT NULL) AS "hasDraft", cm."mutedAt"
 FROM "ChannelMember" cm
 JOIN "Channel" c ON c."id" = cm."channelId"
 LEFT JOIN "ReadState" rs ON rs."channelId" = cm."channelId" AND rs."userId" = cm."userId"
 LEFT JOIN "Draft" d ON d."channelId" = cm."channelId" AND d."userId" = cm."userId" AND d."parentId" = ''
 WHERE cm."userId" = $1 AND c."organizationId" = $2`,
+        parameters: [viewer.userId, viewer.organizationId],
+      };
+    case 'feed':
+      // The join leaves out items in rooms the viewer left. The row count is the rail's badge.
+      return {
+        sql: `SELECT a."id", a."kind", a."channelId" AS "roomId", a."readAt", a."createdAt", a."updatedAt"
+FROM "ActivityItem" a
+JOIN "ChannelMember" cm ON cm."channelId" = a."channelId" AND cm."userId" = a."userId"
+WHERE a."userId" = $1 AND a."organizationId" = $2 AND a."readAt" IS NULL`,
         parameters: [viewer.userId, viewer.organizationId],
       };
     case 'presence':
