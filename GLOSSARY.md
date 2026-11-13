@@ -151,6 +151,18 @@ _Avoid_: Inbox, notifications (for the feed)
 A push or email that tells a Member about something in their Activity.
 _Avoid_: Alert, ping
 
+**Notification level**:
+What a Member is notified about in one Channel or DM: all new messages, mentions only, or nothing. A conversation with no chosen level uses mentions only in a Channel and all new messages in a DM.
+_Avoid_: Subscription
+
+**Mute**:
+A Member's choice to quiet one Channel or DM. A muted conversation is dimmed in their sidebar and never turns bold, but a mention in it still reaches them.
+_Avoid_: Hide, silence
+
+**Do Not Disturb**:
+A time when a Member's Notifications wait, set as a snooze from the avatar menu or as a weekly schedule in their time zone. It changes what leaves the app, not what appears in Activity.
+_Avoid_: Quiet hours, away
+
 ### AI
 
 **Summary**:

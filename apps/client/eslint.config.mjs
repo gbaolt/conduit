@@ -20,6 +20,7 @@ const services = [
   'channels',
   'dms',
   'messages',
+  'notifications',
   'rooms',
   'workspaces',
 ];
