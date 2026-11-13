@@ -1,4 +1,8 @@
-import { addReaction, REACTION_EMOJI_MAX } from '@conduit/contract';
+import {
+  addReaction,
+  REACTION_EMOJI_MAX,
+  removeReaction,
+} from '@conduit/contract';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { prisma } from '@/infrastructure/database/prisma.service';
@@ -19,15 +23,27 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
   const run = crypto.randomUUID();
   const organizationId = run;
   const userId = `${run}-user`;
+  const recipientId = `${run}-recipient`;
   const roomId = `${run}-channel`;
   const mentions = { userIds: [], channel: false, here: false };
 
   const send = (clientId: string, body = clientId) =>
-    repository.send({ roomId, authorId: userId, clientId, body, mentions });
+    repository.send({
+      roomId,
+      authorId: userId,
+      clientId,
+      body,
+      mentions,
+      items: () => [],
+    });
 
   beforeAll(async () => {
-    await prisma.user.create({
-      data: { id: userId, name: 'Linh', email: `${userId}@test.local` },
+    await prisma.user.createMany({
+      data: [userId, recipientId].map((id) => ({
+        id,
+        name: id,
+        email: `${id}@test.local`,
+      })),
     });
     await prisma.organization.create({
       data: {
@@ -44,7 +60,9 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
 
   afterAll(async () => {
     await prisma.organization.deleteMany({ where: { id: organizationId } });
-    await prisma.user.deleteMany({ where: { id: userId } });
+    await prisma.user.deleteMany({
+      where: { id: { in: [userId, recipientId] } },
+    });
     await prisma.$disconnect();
   });
 
@@ -195,6 +213,84 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
     );
   });
 
+  describe('Activity items', () => {
+    const mentionItem = (messageId: string) => ({
+      organizationId,
+      userId: recipientId,
+      roomId,
+      kind: 'mention' as const,
+      key: `message:${messageId}`,
+      actorId: userId,
+      messageId,
+    });
+    const sendWithItem = (clientId: string) =>
+      repository.send({
+        roomId,
+        authorId: userId,
+        clientId,
+        body: clientId,
+        mentions,
+        items: (message) => [mentionItem(message.id)],
+      });
+    const itemsOf = (messageId: string) =>
+      prisma.activityItem.findMany({ where: { messageId } });
+
+    it('writes the items with the message, and a retried send writes none again', async () => {
+      const first = await sendWithItem('item-send');
+      const retry = await sendWithItem('item-send');
+
+      expect(retry.txid).toBeNull();
+      expect(await itemsOf(first.message.id)).toHaveLength(1);
+    });
+
+    it('syncs the mention items on edit, adding the new and dropping the removed', async () => {
+      const { message } = await sendWithItem('item-edit');
+
+      await repository.edit(message.id, 'changed', mentions, []);
+      expect(await itemsOf(message.id)).toHaveLength(0);
+
+      await repository.edit(message.id, 'again', mentions, [
+        mentionItem(message.id),
+      ]);
+      expect(await itemsOf(message.id)).toHaveLength(1);
+    });
+
+    it('deletes every item of a deleted message', async () => {
+      const { message } = await sendWithItem('item-delete');
+
+      await repository.markDeleted(message.id);
+
+      expect(await itemsOf(message.id)).toHaveLength(0);
+    });
+
+    it('writes a reaction item with the reaction and removes it with the unreaction', async () => {
+      const { message } = await send('item-react');
+      const key = `reaction:${message.id}:${recipientId}:👍`;
+      const item = {
+        ...mentionItem(message.id),
+        userId,
+        kind: 'reaction' as const,
+        key,
+        actorId: recipientId,
+        emoji: '👍',
+      };
+
+      await repository.updateReactions(
+        message.id,
+        (current) => addReaction(current, '👍', recipientId),
+        { add: item }
+      );
+      expect(await itemsOf(message.id)).toHaveLength(1);
+
+      await repository.updateReactions(
+        message.id,
+        (current) => removeReaction(current, '👍', recipientId),
+        { remove: key }
+      );
+      expect(await itemsOf(message.id)).toHaveLength(0);
+    });
+  });
+
   describe('threads', () => {
     const reply = (
       parentId: string,
@@ -209,6 +305,7 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
         mentions,
         parentId,
         alsoSentToChannel,
+        items: () => [],
       });
 
     it('counts every reply sent at the same time', async () => {
@@ -332,6 +429,7 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
           clientId,
           body: clientId,
           mentions,
+          items: () => [],
           ...extra,
         });
       const top = await post('top');

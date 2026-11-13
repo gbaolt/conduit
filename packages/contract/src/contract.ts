@@ -40,6 +40,11 @@ import {
   listDmsContract,
   openDmContract,
 } from './contracts/dms';
+import {
+  listFeedContract,
+  markAllFeedReadContract,
+  markFeedReadContract,
+} from './contracts/feed';
 import { healthCheckContract } from './contracts/health';
 import {
   getNotificationSettingsContract,
@@ -222,6 +227,11 @@ export const contract = {
     room: summarizeRoomContract,
     get: getSummaryContract,
     share: shareSummaryContract,
+  },
+  feed: {
+    list: listFeedContract,
+    markRead: markFeedReadContract,
+    markAllRead: markAllFeedReadContract,
   },
   readState: {
     mark: markReadContract,

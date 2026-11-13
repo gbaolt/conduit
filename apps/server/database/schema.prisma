@@ -39,6 +39,8 @@ model User {
   savedMessages        SavedMessage[]
   summaries            Summary[]
   notificationSettings NotificationSettings[]
+  activityItems        ActivityItem[]         @relation("ActivityRecipient")
+  activityActed        ActivityItem[]         @relation("ActivityActor")
 }
 
 model Session {
@@ -229,6 +231,7 @@ model Room {
   typingStates             TypingState[]
   messages                 Message[]
   summaries                Summary[]
+  activityItems            ActivityItem[]
 
   @@unique([organizationId, name])
   @@map("Channel")
@@ -280,6 +283,7 @@ model Message {
   parent            Message?       @relation("MessageReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies           Message[]      @relation("MessageReplies")
   savedBy           SavedMessage[]
+  activityItems     ActivityItem[]
   alsoSentToChannel Boolean        @default(false)
   /// Markdown text, at most 4,000 characters. Cleared when the message is deleted.
   body              String
@@ -301,6 +305,40 @@ model Message {
   @@unique([authorId, clientId])
   @@index([roomId, parentId, createdAt, id])
   @@index([roomId, updatedAt])
+}
+
+enum ActivityKind {
+  MENTION
+  THREAD_REPLY
+  REACTION
+  ROOM_ADD
+}
+
+/// App-owned. One row per thing that needs a member, written in the transaction of the change that caused it.
+model ActivityItem {
+  id             String       @id @default(cuid())
+  organizationId String
+  /// The recipient.
+  userId         String
+  user           User         @relation("ActivityRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  roomId         String       @map("channelId")
+  room           Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  kind           ActivityKind
+  /// Built by the server, so a retried write is one row: `message:<id>`, `reaction:<id>:<actorId>:<emoji>`, or `room-add:<roomId>:<joinedAt ms>`.
+  key            String
+  actorId        String
+  actor          User         @relation("ActivityActor", fields: [actorId], references: [id], onDelete: Cascade)
+  messageId      String?
+  message        Message?     @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  emoji          String?
+  readAt         DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([userId, key])
+  @@index([userId, organizationId, createdAt, id])
+  @@index([userId, organizationId, readAt])
+  @@index([messageId])
 }
 
 /// App-owned. A member's private bookmark on a message.

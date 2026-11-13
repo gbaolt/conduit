@@ -57,8 +57,15 @@ export abstract class RoomsRepository {
 
   abstract delete(roomId: string): Promise<void>;
 
-  /** Adds each user once. Users already in the channel are skipped. */
-  abstract addMembers(roomId: string, userIds: string[]): Promise<void>;
+  /**
+   * Adds each user once. Users already in the channel are skipped.
+   * With `addedBy`, each user added now also gets a `ROOM_ADD` Activity item, in the same transaction.
+   */
+  abstract addMembers(
+    roomId: string,
+    userIds: string[],
+    addedBy?: { userId: string; organizationId: string }
+  ): Promise<void>;
 
   /** Returns how many members were removed, 0 or 1. */
   abstract removeMember(roomId: string, userId: string): Promise<number>;

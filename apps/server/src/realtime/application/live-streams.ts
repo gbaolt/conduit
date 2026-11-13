@@ -68,6 +68,15 @@ LEFT JOIN "Draft" d ON d."channelId" = cm."channelId" AND d."userId" = cm."userI
 WHERE cm."userId" = $1 AND c."organizationId" = $2`,
         parameters: [viewer.userId, viewer.organizationId],
       };
+    case 'feed':
+      // The join leaves out items in rooms the viewer left. The row count is the rail's badge.
+      return {
+        sql: `SELECT a."id", a."kind", a."channelId" AS "roomId", a."readAt", a."createdAt", a."updatedAt"
+FROM "ActivityItem" a
+JOIN "ChannelMember" cm ON cm."channelId" = a."channelId" AND cm."userId" = a."userId"
+WHERE a."userId" = $1 AND a."organizationId" = $2 AND a."readAt" IS NULL`,
+        parameters: [viewer.userId, viewer.organizationId],
+      };
     case 'presence':
       return {
         sql: 'SELECT "userId", "lastActiveAt", "away" FROM "Presence" WHERE "organizationId" = $1',

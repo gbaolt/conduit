@@ -2,6 +2,8 @@ import type { NotifyLevel, Room, RoomMember } from '@conduit/contract';
 import { Prisma } from '@generated/prisma/client';
 import { Inject, Injectable } from '@nestjs/common';
 
+import { roomAddItemFor } from '@/feed/domain/feed-recipients';
+import { createActivityItems } from '@/feed/infrastructure/activity-items';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { roomError } from '@/rooms/domain/room-errors';
 import type {
@@ -216,11 +218,32 @@ export class PrismaRoomsRepository implements RoomsRepository {
     await this.db.room.delete({ where: { id: roomId } });
   }
 
-  /** Adds each user once. Users already in the channel are skipped. */
-  async addMembers(roomId: string, userIds: string[]) {
-    await this.db.roomMember.createMany({
-      data: userIds.map((userId) => ({ roomId, userId })),
-      skipDuplicates: true,
+  async addMembers(
+    roomId: string,
+    userIds: string[],
+    addedBy?: { userId: string; organizationId: string }
+  ) {
+    await this.db.$transaction(async (tx) => {
+      const added = await tx.roomMember.createManyAndReturn({
+        data: userIds.map((userId) => ({ roomId, userId })),
+        skipDuplicates: true,
+        select: { userId: true, joinedAt: true },
+      });
+      if (!addedBy) return;
+      await createActivityItems(
+        tx,
+        added
+          .filter(({ userId }) => userId !== addedBy.userId)
+          .map(({ userId, joinedAt }) =>
+            roomAddItemFor({
+              organizationId: addedBy.organizationId,
+              roomId,
+              userId,
+              actorId: addedBy.userId,
+              joinedAt,
+            })
+          )
+      );
     });
   }
 

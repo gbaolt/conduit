@@ -9,6 +9,10 @@ import {
 import { describe, expect, it } from 'vitest';
 
 import type { DmsRepository } from '@/dms/domain/dms.repository';
+import type {
+  FeedRepository,
+  RecipientLookup,
+} from '@/feed/domain/feed.repository';
 import type { MessagesRepository } from '@/messages/domain/messages.repository';
 import type { SavedMessagesRepository } from '@/messages/domain/saved-messages.repository';
 import type { RoomsRepository } from '@/rooms/domain/rooms.repository';
@@ -56,9 +60,15 @@ function channelFor(
 }
 
 /** Each viewer's own view of the channel, as `ChannelsRepository.find` returns it. */
-function setup(views: Record<string, Room | null>, memberIds: string[] = []) {
+function setup(
+  views: Record<string, Room | null>,
+  memberIds: string[] = [],
+  lookup: Partial<RecipientLookup> = {}
+) {
   const stored = new Map<string, Message>();
   const sent: Parameters<MessagesRepository['send']>[0][] = [];
+  const edited: Parameters<MessagesRepository['edit']>[3][] = [];
+  const reacted: Parameters<MessagesRepository['updateReactions']>[2][] = [];
 
   const messages = {
     find: async (id: string) => stored.get(id) ?? null,
@@ -73,6 +83,8 @@ function setup(views: Record<string, Room | null>, memberIds: string[] = []) {
         alsoSentToChannel: input.alsoSentToChannel ?? false,
         body: input.body,
         mentionedUserIds: input.mentions.userIds,
+        mentionsChannel: input.mentions.channel,
+        mentionsHere: input.mentions.here,
         reactions: {},
         pinnedAt: null,
         pinnedById: null,
@@ -90,7 +102,8 @@ function setup(views: Record<string, Room | null>, memberIds: string[] = []) {
         hasMore: replies.length > page.limit,
       };
     },
-    edit: async (id, body) => {
+    edit: async (id, body, _mentions, mentionItems) => {
+      edited.push(mentionItems);
       const message = { ...stored.get(id)!, body, editedAt: new Date() };
       stored.set(id, message);
       return message;
@@ -98,7 +111,8 @@ function setup(views: Record<string, Room | null>, memberIds: string[] = []) {
     markDeleted: async (id) => {
       stored.set(id, { ...stored.get(id)!, body: '', deletedAt: new Date() });
     },
-    updateReactions: async (id, update) => {
+    updateReactions: async (id, update, activity) => {
+      reacted.push(activity);
       const message = stored.get(id)!;
       const reactions = update(message.reactions);
       if (!reactions) return null;
@@ -171,11 +185,22 @@ function setup(views: Record<string, Room | null>, memberIds: string[] = []) {
     list: async () => dmIds.map((id) => ({ id }) as Dm),
   } as Partial<DmsRepository> as DmsRepository;
 
+  const feed = {
+    recipientLookup: async () => ({
+      memberIds,
+      onlineIds: [],
+      repliers: [],
+      ...lookup,
+    }),
+  } as Partial<FeedRepository> as FeedRepository;
+
   return {
     dmIds,
-    service: new MessagesService(messages, channels, saved, dms),
+    service: new MessagesService(messages, channels, saved, dms, feed),
     stored,
     sent,
+    edited,
+    reacted,
   };
 }
 
@@ -231,6 +256,93 @@ describe('MessagesService.send', () => {
       userIds: ['linh'],
       channel: false,
       here: true,
+    });
+  });
+});
+
+describe('MessagesService Activity items', () => {
+  const views = { author: channelFor('member'), other: channelFor('member') };
+
+  it('hands the repository the mention item of a member the message names', async () => {
+    const { service, sent } = setup(views, ['author', 'linh']);
+
+    const { message } = await sendAs(service, author, '<@linh>');
+
+    expect(sent[0]?.items(message)).toEqual([
+      expect.objectContaining({
+        userId: 'linh',
+        kind: 'mention',
+        key: `message:${message.id}`,
+        actorId: 'author',
+        organizationId,
+      }),
+    ]);
+  });
+
+  it('gives the thread root author a reply item, and an @here only the members online', async () => {
+    const { service, sent } = setup(views, ['author', 'other', 'ann', 'bo'], {
+      onlineIds: ['bo'],
+      repliers: ['ann'],
+    });
+    const { message: root } = await sendAs(service, author);
+
+    const { message } = await service.send(other, {
+      roomId: 'c1',
+      clientId: 'r1',
+      body: '<@here>',
+      parentId: root.id,
+    });
+
+    expect(
+      sent[1]
+        ?.items(message)
+        .map((item) => [item.userId, item.kind])
+        .sort()
+    ).toEqual([
+      ['ann', 'thread_reply'],
+      ['author', 'thread_reply'],
+      ['bo', 'mention'],
+    ]);
+  });
+
+  it('hands an edit the mention items of the new body', async () => {
+    const { service, edited } = setup(views, ['author', 'linh']);
+    const { message } = await sendAs(service, author, 'hello');
+
+    await service.edit(author, message.id, '<@linh> hello');
+
+    expect(edited[0]).toEqual([
+      expect.objectContaining({ userId: 'linh', kind: 'mention' }),
+    ]);
+  });
+
+  it('writes a reaction item for the message author, and none when the author reacts', async () => {
+    const { service, reacted } = setup(views);
+    const { message } = await sendAs(service, author);
+
+    await service.react(other, message.id, '👍');
+    await service.react(author, message.id, '🎉');
+
+    expect(reacted[0]).toEqual({
+      add: expect.objectContaining({
+        userId: 'author',
+        kind: 'reaction',
+        actorId: 'other',
+        emoji: '👍',
+        key: `reaction:${message.id}:other:👍`,
+      }),
+    });
+    expect(reacted[1]).toBeUndefined();
+  });
+
+  it('removes the reaction item on unreact', async () => {
+    const { service, reacted } = setup(views);
+    const { message } = await sendAs(service, author);
+
+    await service.unreact(other, message.id, '👍');
+
+    expect(reacted[0]).toEqual({
+      remove: `reaction:${message.id}:other:👍`,
     });
   });
 });

@@ -26,4 +26,13 @@ describe('queryFor', () => {
     expect(sql).toContain('cm."mutedAt"');
     expect(parameters).toEqual(['u1', 'org']);
   });
+
+  it('reads the viewer’s unread items in rooms they are still in, and nobody else’s', () => {
+    const { sql, parameters } = queryFor({ kind: 'feed' }, viewer);
+
+    expect(sql).toContain('"channelId" AS "roomId"');
+    expect(sql).toContain('JOIN "ChannelMember" cm');
+    expect(sql).toContain('a."readAt" IS NULL');
+    expect(parameters).toEqual(['u1', 'org']);
+  });
 });

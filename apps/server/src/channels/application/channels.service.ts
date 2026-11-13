@@ -147,7 +147,7 @@ export class ChannelsService {
     if (inWorkspace !== ids.length) {
       throw channelError('NOT_FOUND', 'That person is not in this workspace.');
     }
-    await this.channels.addMembers(roomId, ids);
+    await this.channels.addMembers(roomId, ids, viewer);
   }
 
   async removeMember(viewer: RoomViewer, roomId: string, userId: string) {
