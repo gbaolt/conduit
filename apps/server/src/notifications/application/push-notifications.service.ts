@@ -40,18 +40,22 @@ export class PushNotificationsService {
       if (!audience) return;
 
       const now = new Date();
-      const hearing = audience.recipients.filter((recipient) =>
-        notificationFor(
-          {
-            level: effectiveNotify(audience.room.kind, recipient.notify),
-            muted: recipient.muted,
-            dnd: isDndActive(recipient.settings, now),
-            online:
-              presenceStatus(recipient.presence, now.getTime()) === 'online',
-          },
-          recipient.itemKind ?? 'message',
-          'push'
-        )
+      // A reply kept in its thread is not in the conversation, so only the people it is for hear about it.
+      const inConversation = !message.parentId || message.alsoSentToChannel;
+      const hearing = audience.recipients.filter(
+        (recipient) =>
+          (recipient.itemKind || inConversation) &&
+          notificationFor(
+            {
+              level: effectiveNotify(audience.room.kind, recipient.notify),
+              muted: recipient.muted,
+              dnd: isDndActive(recipient.settings, now),
+              online:
+                presenceStatus(recipient.presence, now.getTime()) === 'online',
+            },
+            recipient.itemKind ?? 'message',
+            'push'
+          )
       );
       if (hearing.length === 0) return;
 

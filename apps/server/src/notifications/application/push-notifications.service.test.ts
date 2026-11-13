@@ -181,6 +181,26 @@ describe('PushNotificationsService.dispatchMessage', () => {
     expect(dm.sent[0]?.payload.title).toBe('Linh');
   });
 
+  it('pushes a reply kept in its thread only to the people it is for', async () => {
+    const reply = { ...message, parentId: 'root', alsoSentToChannel: false };
+    const { service, sent } = setup([
+      recipient({ userId: 'all', notify: 'all' }),
+      recipient({
+        userId: 'starter',
+        itemKind: 'thread_reply',
+        targets: [target('https://push.test/starter')],
+      }),
+    ]);
+    await service.dispatchMessage(reply);
+    expect(sent.map(({ endpoint }) => endpoint)).toEqual([
+      'https://push.test/starter',
+    ]);
+
+    const shown = setup([recipient({ notify: 'all' })]);
+    await shown.service.dispatchMessage({ ...reply, alsoSentToChannel: true });
+    expect(shown.sent).toHaveLength(1);
+  });
+
   it('sends nothing at level nothing, during Do Not Disturb, or to a member who is online', async () => {
     const nothing = setup([
       recipient({ itemKind: 'mention', notify: 'nothing' }),
