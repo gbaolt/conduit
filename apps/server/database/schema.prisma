@@ -317,6 +317,12 @@ enum ActivityKind {
   ROOM_ADD
 }
 
+enum ActivityUrgency {
+  URGENT
+  NORMAL
+  LOW
+}
+
 /// App-owned. One row per thing that needs a member, written in the transaction of the change that caused it.
 model ActivityItem {
   id             String       @id @default(cuid())
@@ -334,6 +340,9 @@ model ActivityItem {
   messageId      String?
   message        Message?     @relation(fields: [messageId], references: [id], onDelete: Cascade)
   emoji          String?
+  /// What the model judged for the recipient. Null until `feed.rank` reaches the item, and always null for reactions and adds.
+  urgency        ActivityUrgency?
+  urgencyReason  String?
   readAt         DateTime?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt

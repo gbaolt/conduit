@@ -44,6 +44,7 @@ import {
   listFeedContract,
   markAllFeedReadContract,
   markFeedReadContract,
+  rankFeedContract,
 } from './contracts/feed';
 import { healthCheckContract } from './contracts/health';
 import {
@@ -240,6 +241,7 @@ export const contract = {
     list: listFeedContract,
     markRead: markFeedReadContract,
     markAllRead: markAllFeedReadContract,
+    rank: rankFeedContract,
   },
   readState: {
     mark: markReadContract,

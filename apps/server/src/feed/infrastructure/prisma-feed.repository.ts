@@ -1,12 +1,19 @@
-import type { FeedEntry, FeedFilter } from '@conduit/contract';
+import type { ActivityUrgency, FeedEntry, FeedFilter } from '@conduit/contract';
 import { ONLINE_WINDOW_MS } from '@conduit/contract';
 import type { Prisma } from '@generated/prisma/client';
 import { Inject, Injectable } from '@nestjs/common';
 
-import type { FeedRepository } from '@/feed/domain/feed.repository';
+import type {
+  FeedRepository,
+  UnrankedItem,
+} from '@/feed/domain/feed.repository';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 
-import { fromPrismaKind } from './activity-items';
+import {
+  fromPrismaKind,
+  fromPrismaUrgency,
+  PRISMA_URGENCY,
+} from './activity-items';
 
 /** An item in a room the caller left stays in the table but is hidden, as in the `feed` stream. */
 const stillIn = (userId: string) =>
@@ -113,6 +120,8 @@ export class PrismaFeedRepository implements FeedRepository {
         actor: row.actor,
         message: row.message ?? undefined,
         emoji: row.emoji ?? undefined,
+        urgency: row.urgency ? fromPrismaUrgency(row.urgency) : undefined,
+        urgencyReason: row.urgencyReason ?? undefined,
         readAt: row.readAt,
         createdAt: row.createdAt,
       })
@@ -161,5 +170,70 @@ export class PrismaFeedRepository implements FeedRepository {
       },
       data: { readAt: new Date() },
     });
+  }
+
+  async unranked(input: {
+    userId: string;
+    organizationId: string;
+    limit: number;
+  }) {
+    const rows = await this.db.activityItem.findMany({
+      where: {
+        userId: input.userId,
+        organizationId: input.organizationId,
+        ...stillIn(input.userId),
+        kind: { in: ['MENTION', 'THREAD_REPLY'] },
+        readAt: null,
+        urgency: null,
+        message: { deletedAt: null },
+      },
+      select: {
+        id: true,
+        kind: true,
+        actorId: true,
+        message: {
+          select: { body: true, mentionedUserIds: true, createdAt: true },
+        },
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: input.limit,
+    });
+
+    return rows.flatMap(({ message, ...row }): UnrankedItem[] =>
+      message
+        ? [
+            {
+              id: row.id,
+              kind: row.kind === 'MENTION' ? 'mention' : 'thread_reply',
+              actorId: row.actorId,
+              body: message.body,
+              mentionedUserIds: message.mentionedUserIds,
+              sentAt: message.createdAt,
+            },
+          ]
+        : []
+    );
+  }
+
+  async setUrgency(
+    userId: string,
+    ratings: { id: string; urgency: ActivityUrgency; reason: string }[]
+  ) {
+    await this.db.$transaction(
+      ratings.map(({ id, urgency, reason }) =>
+        this.db.activityItem.updateMany({
+          where: { id, userId },
+          data: { urgency: PRISMA_URGENCY[urgency], urgencyReason: reason },
+        })
+      )
+    );
+  }
+
+  async userNames(userIds: string[]) {
+    const users = await this.db.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, name: true },
+    });
+    return new Map(users.map((user) => [user.id, user.name]));
   }
 }

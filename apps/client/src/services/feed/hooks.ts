@@ -1,8 +1,8 @@
 'use client';
 
-import { FeedStreamRowSchema } from '@conduit/contract';
+import { type FeedEntry, FeedStreamRowSchema } from '@conduit/contract';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { client, orpc } from '@/lib/orpc';
 import { useLiveRows } from '@/services/messages/live';
@@ -65,4 +65,30 @@ export function useMarkAllFeedRead() {
     mutationFn: () => client.feed.markAllRead(),
     onSuccess: () => update(),
   });
+}
+
+const needsRank = (entry: FeedEntry) =>
+  !entry.readAt &&
+  !entry.urgency &&
+  (entry.kind === 'mention' || entry.kind === 'thread_reply');
+
+/**
+ * Asks the server to judge unread mentions and replies that have no urgency, once per mount, and reloads the
+ * feed when it answers. The feed shows at once in rule order. A refusal or an outage changes nothing.
+ */
+export function useRankFeed(entries: readonly FeedEntry[], enabled: boolean) {
+  const queryClient = useQueryClient();
+  const asked = useRef(false);
+  const unranked = enabled && entries.some(needsRank);
+
+  useEffect(() => {
+    if (!unranked || asked.current) return;
+    asked.current = true;
+    client.feed
+      .rank()
+      .then(() =>
+        queryClient.invalidateQueries({ queryKey: orpc.feed.list.key() })
+      )
+      .catch(() => {});
+  }, [unranked, queryClient]);
 }

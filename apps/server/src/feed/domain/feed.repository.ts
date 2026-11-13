@@ -1,4 +1,9 @@
-import type { ActivityKind, FeedEntry, FeedFilter } from '@conduit/contract';
+import type {
+  ActivityKind,
+  ActivityUrgency,
+  FeedEntry,
+  FeedFilter,
+} from '@conduit/contract';
 
 /** An item to write. `key` makes a retried write one row, per `(userId, key)`. */
 export type NewActivityItem = {
@@ -21,6 +26,17 @@ export type RecipientLookup = {
   onlineIds: string[];
   /** Authors of the thread's replies so far. Empty outside a thread. */
   repliers: string[];
+};
+
+/** An unread mention or reply the model has not judged, with the message behind it. */
+export type UnrankedItem = {
+  id: string;
+  kind: Extract<ActivityKind, 'mention' | 'thread_reply'>;
+  /** The message's author. */
+  actorId: string;
+  body: string;
+  mentionedUserIds: string[];
+  sentAt: Date;
 };
 
 /** Activity items. Items are written by the repositories of the changes that cause them, in the same transaction. */
@@ -61,4 +77,23 @@ export abstract class FeedRepository {
     roomId: string;
     userId: string;
   }): Promise<void>;
+
+  /**
+   * The caller's newest unread `MENTION` and `THREAD_REPLY` items with no urgency, in rooms the caller is still in,
+   * whose message was not deleted. Membership is the read check: a member can read every room they are in.
+   */
+  abstract unranked(input: {
+    userId: string;
+    organizationId: string;
+    limit: number;
+  }): Promise<UnrankedItem[]>;
+
+  /** Stores the model's judgment on the caller's own items. Another member's id changes nothing. */
+  abstract setUrgency(
+    userId: string,
+    ratings: { id: string; urgency: ActivityUrgency; reason: string }[]
+  ): Promise<void>;
+
+  /** Display names by user id. A user who no longer exists has no entry. */
+  abstract userNames(userIds: string[]): Promise<Map<string, string>>;
 }
