@@ -167,6 +167,10 @@ _Avoid_: Hide, silence
 A time when a Member's Notifications wait, set as a snooze from the avatar menu or as a weekly schedule in their time zone. It changes what leaves the app, not what appears in Activity.
 _Avoid_: Quiet hours, away
 
+**Email digest**:
+One email that lists a Member's unread mentions, sent once after they have been away for an hour and not again until they return and leave. A Member can turn it off in notification settings, and Do Not Disturb holds it.
+_Avoid_: Newsletter, summary email
+
 ### AI
 
 **Summary**:
