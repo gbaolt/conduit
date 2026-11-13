@@ -1,4 +1,3 @@
-import { Button } from '@conduit/ui/components/button';
 import {
   Sidebar,
   SidebarContent,
@@ -7,7 +6,6 @@ import {
   SidebarProvider,
 } from '@conduit/ui/components/sidebar';
 import { Skeleton } from '@conduit/ui/components/skeleton';
-import { cn } from '@conduit/ui/lib/utils';
 import {
   IconBell,
   IconDots,
@@ -16,56 +14,31 @@ import {
   IconMessage,
 } from '@tabler/icons-react';
 import type { Route } from 'next';
-import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { NavUser, type NavUserInfo } from '@/components/nav-user';
+import { RailLink } from '@/components/rail-link';
 import { SidePanelLayout } from '@/components/side-panel';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { FeedUnreadBadge } from '@/features/feed/components/feed-unread-badge';
 import { WorkspaceActivity } from '@/features/workspace/components/workspace-activity';
 import { WorkspaceSwitcher } from '@/features/workspace/components/workspace-switcher';
 import { WorkspaceProvider } from '@/features/workspace/context/workspace-provider';
 
-function RailLink({
-  href,
-  label,
-  icon: Icon,
-  isActive,
-}: {
+const railItems: {
   href: Route;
   label: string;
   icon: typeof IconHome;
-  isActive?: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      aria-current={isActive ? 'page' : undefined}
-      className={cn(
-        'flex flex-col items-center justify-center gap-1 text-[10px]',
-        isActive ? 'text-sidebar-accent-foreground' : 'text-muted-foreground'
-      )}
-    >
-      <Button
-        data-slot="sidebar-menu-button"
-        size="icon"
-        variant="ghost"
-        className={cn(
-          'hover:bg-sidebar-accent!',
-          isActive && 'bg-sidebar-accent'
-        )}
-      >
-        <Icon className="size-4" />
-      </Button>
-      {label}
-    </Link>
-  );
-}
-
-const railItems: { href: Route; label: string; icon: typeof IconHome }[] = [
+  badge?: ReactNode;
+}[] = [
   { href: '/', label: 'Home', icon: IconHome },
   { href: '#', label: 'DMs', icon: IconMessage },
-  { href: '#', label: 'Activity', icon: IconBell },
+  {
+    href: '/activity',
+    label: 'Activity',
+    icon: IconBell,
+    badge: <FeedUnreadBadge />,
+  },
   { href: '#', label: 'Files', icon: IconFolder },
   { href: '#', label: 'More', icon: IconDots },
 ];
@@ -127,11 +100,11 @@ export function AppShell({
             <WorkspaceSwitcher />
           </SidebarHeader>
           <SidebarContent className="items-center gap-2">
-            {railItems.map((item) => (
+            {railItems.map(({ icon: Icon, ...item }) => (
               <RailLink
                 key={item.label}
                 {...item}
-                isActive={item.href === '/'}
+                icon={<Icon className="size-4" />}
               />
             ))}
           </SidebarContent>

@@ -14,6 +14,12 @@ import {
 import { Inject, Injectable } from '@nestjs/common';
 
 import { DmsRepository } from '@/dms/domain/dms.repository';
+import { FeedRepository } from '@/feed/domain/feed.repository';
+import {
+  feedItemsFor,
+  reactionItemFor,
+  reactionKey,
+} from '@/feed/domain/feed-recipients';
 import { messageError } from '@/messages/domain/message-errors';
 import { MessagesRepository } from '@/messages/domain/messages.repository';
 import { SavedMessagesRepository } from '@/messages/domain/saved-messages.repository';
@@ -32,7 +38,8 @@ export class MessagesService {
     @Inject(RoomsRepository) private readonly channels: RoomsRepository,
     @Inject(SavedMessagesRepository)
     private readonly saved: SavedMessagesRepository,
-    @Inject(DmsRepository) private readonly dms: DmsRepository
+    @Inject(DmsRepository) private readonly dms: DmsRepository,
+    @Inject(FeedRepository) private readonly feed: FeedRepository
   ) {}
 
   async list(
@@ -109,8 +116,9 @@ export class MessagesService {
     const channel = await this.find(viewer, input.roomId);
     this.authorize(viewer, channel, 'post');
 
+    let root: Message | null = null;
     if (input.parentId) {
-      const root = await this.messages.find(input.parentId);
+      root = await this.messages.find(input.parentId);
       if (!root || root.roomId !== channel.id || root.deletedAt) {
         throw messageError('NOT_FOUND');
       }
@@ -120,14 +128,28 @@ export class MessagesService {
     }
 
     const body = input.body.trim();
+    const mentions = await this.mentionsIn(viewer, channel.id, body);
+    const lookup = await this.feed.recipientLookup({
+      organizationId: viewer.organizationId,
+      roomId: channel.id,
+      parentId: input.parentId,
+      here: mentions.here,
+      now: new Date(),
+    });
     return this.messages.send({
       roomId: channel.id,
       authorId: viewer.userId,
       clientId: input.clientId,
       body,
-      mentions: await this.mentionsIn(viewer, channel.id, body),
+      mentions,
       parentId: input.parentId,
       alsoSentToChannel: Boolean(input.parentId && input.alsoSentToChannel),
+      items: (message) =>
+        feedItemsFor(message, {
+          ...lookup,
+          organizationId: viewer.organizationId,
+          rootAuthorId: root?.authorId ?? null,
+        }),
     });
   }
 
@@ -139,10 +161,27 @@ export class MessagesService {
     this.authorize(viewer, channel, 'post');
 
     const trimmed = body.trim();
+    const mentions = await this.mentionsIn(viewer, channel.id, trimmed);
+    const lookup = await this.feed.recipientLookup({
+      organizationId: viewer.organizationId,
+      roomId: channel.id,
+      here: mentions.here,
+      now: new Date(),
+    });
     return this.messages.edit(
       message.id,
       trimmed,
-      await this.mentionsIn(viewer, channel.id, trimmed)
+      mentions,
+      // Thread context stays empty: an edit changes mentions, and never who a reply is for.
+      feedItemsFor(
+        {
+          ...message,
+          mentionedUserIds: mentions.userIds,
+          mentionsChannel: mentions.channel,
+          mentionsHere: mentions.here,
+        },
+        { ...lookup, organizationId: viewer.organizationId, rootAuthorId: null }
+      )
     );
   }
 
@@ -167,8 +206,15 @@ export class MessagesService {
     const { message, channel } = await this.findLive(viewer, messageId);
     this.authorize(viewer, channel, 'post');
 
-    const updated = await this.messages.updateReactions(message.id, (current) =>
-      addReaction(current, emoji, viewer.userId)
+    const item = reactionItemFor(message, {
+      actorId: viewer.userId,
+      emoji,
+      organizationId: viewer.organizationId,
+    });
+    const updated = await this.messages.updateReactions(
+      message.id,
+      (current) => addReaction(current, emoji, viewer.userId),
+      item ? { add: item } : undefined
     );
     if (!updated) {
       throw messageError('REACTION_LIMIT');
@@ -180,8 +226,10 @@ export class MessagesService {
     const { message, channel } = await this.findLive(viewer, messageId);
     this.authorize(viewer, channel, 'post');
 
-    const updated = await this.messages.updateReactions(message.id, (current) =>
-      removeReaction(current, emoji, viewer.userId)
+    const updated = await this.messages.updateReactions(
+      message.id,
+      (current) => removeReaction(current, emoji, viewer.userId),
+      { remove: reactionKey(message.id, viewer.userId, emoji) }
     );
     return updated ?? message;
   }

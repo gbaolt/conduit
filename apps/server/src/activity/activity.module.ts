@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { FeedModule } from '@/feed/feed.module';
 import { RoomsModule } from '@/rooms/rooms.module';
 
 import { ActivityService } from './application/activity.service';
@@ -8,7 +9,7 @@ import { PrismaActivityRepository } from './infrastructure/prisma-activity.repos
 import { ActivityController } from './presentation/activity.controller';
 
 @Module({
-  imports: [RoomsModule],
+  imports: [RoomsModule, FeedModule],
   controllers: [ActivityController],
   providers: [
     ActivityService,

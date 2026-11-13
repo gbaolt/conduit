@@ -25,6 +25,8 @@ export const LiveStreamSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('sidebar') }),
   /** Every member of the workspace with their last heartbeat. */
   z.object({ kind: z.literal('presence') }),
+  /** The caller's unread Activity items in rooms they are still in. */
+  z.object({ kind: z.literal('feed') }),
 ]);
 export type LiveStream = z.infer<typeof LiveStreamSchema>;
 

@@ -145,7 +145,11 @@ One time a workflow ran, from start to finish.
 
 **Activity**:
 A Member's feed of what needs their attention: mentions, thread replies, reactions to their messages, and channel adds.
+Code calls the feed `feed`, because the `activity` module already keeps read state, drafts, typing, and presence.
 _Avoid_: Inbox, notifications (for the feed)
+
+**Activity item**:
+One thing in a Member's Activity: a mention, a thread reply, a reaction to their message, or a channel add. It is stored in the same transaction as the change that caused it, so the feed never shows what failed to send or misses what sent.
 
 **Notification**:
 A push or email that tells a Member about something in their Activity.
