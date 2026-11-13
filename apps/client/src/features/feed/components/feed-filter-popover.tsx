@@ -21,7 +21,6 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from '@conduit/ui/components/popover';
-import { Separator } from '@conduit/ui/components/separator';
 import { IconFilter2, IconX } from '@tabler/icons-react';
 import { useQueryStates } from 'nuqs';
 import { type FormEvent, useId, useState } from 'react';

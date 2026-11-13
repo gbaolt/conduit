@@ -5,7 +5,7 @@ import {
   SidebarGroupAction,
   SidebarMenuItem,
 } from '@conduit/ui/components/sidebar';
-import { IconPlus, IconUsers } from '@tabler/icons-react';
+import { IconMessage, IconPlus, IconUsers } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 
 import { UserAvatar } from '@/components/user-avatar';
@@ -53,7 +53,7 @@ export function DmGroup() {
 
   return (
     <RoomGroup id={DMS_GROUP_ID}>
-      <RoomGroupLabel>Direct messages</RoomGroupLabel>
+      <RoomGroupLabel icon={<IconMessage />}>Direct messages</RoomGroupLabel>
       <SidebarGroupAction
         aria-label="New direct message"
         onClick={() => open({ kind: 'new-dm' })}

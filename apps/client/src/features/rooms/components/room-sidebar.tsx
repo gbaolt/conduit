@@ -54,8 +54,14 @@ export function RoomGroup({
   );
 }
 
-/** The group's header: a button that collapses and expands it. */
-export function RoomGroupLabel({ children }: { children: ReactNode }) {
+/** The group's header: a button that collapses and expands it. Its `icon` turns into a chevron on hover or focus. */
+export function RoomGroupLabel({
+  icon,
+  children,
+}: {
+  icon: ReactNode;
+  children: ReactNode;
+}) {
   const { collapsed, toggle } = use(RoomGroupContext);
 
   return (
@@ -65,14 +71,22 @@ export function RoomGroupLabel({ children }: { children: ReactNode }) {
           type="button"
           aria-expanded={!collapsed}
           onClick={toggle}
-          className="hover:bg-sidebar-accent mb-1 gap-1 text-left"
+          className="hover:bg-sidebar-accent group/room-group-label mb-1 gap-1.5 text-left"
         />
       }
     >
-      <IconChevronDown
-        className={cn('transition-transform', collapsed && '-rotate-90')}
-      />
-      <span className="truncate">{children}</span>
+      <span className="grid shrink-0 *:col-start-1 *:row-start-1 [&_svg]:size-4">
+        <span className="flex transition-opacity group-hover/room-group-label:opacity-0 group-focus-visible/room-group-label:opacity-0">
+          {icon}
+        </span>
+        <IconChevronDown
+          className={cn(
+            'opacity-0 transition-[opacity,transform,rotate] group-hover/room-group-label:opacity-100 group-focus-visible/room-group-label:opacity-100',
+            collapsed && '-rotate-90'
+          )}
+        />
+      </span>
+      <span className="truncate text-sm">{children}</span>
     </SidebarGroupLabel>
   );
 }
@@ -131,7 +145,7 @@ export function RoomItemButton<T extends string>({
   return (
     <SidebarMenuButton
       isActive={isActive}
-      className="data-active:text-primary-foreground! data-active:bg-primary!"
+      className="data-active:text-primary-foreground! data-active:bg-primary! pl-6"
       render={<Link href={href} aria-current={isActive ? 'page' : undefined} />}
     >
       {children}
