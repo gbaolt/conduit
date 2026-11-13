@@ -36,6 +36,8 @@ export const SidebarEntrySchema = z.object({
   lastReadAt: z.coerce.date().nullable(),
   /** Whether the caller has an unsent message in the conversation itself, not in a thread. */
   hasDraft: z.boolean(),
+  /** Set while the caller has the conversation muted. */
+  mutedAt: z.coerce.date().nullable(),
 });
 export type SidebarEntry = z.infer<typeof SidebarEntrySchema>;
 

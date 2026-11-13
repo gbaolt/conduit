@@ -12,6 +12,9 @@ export type ChannelVisibility = z.infer<typeof ChannelVisibilitySchema>;
 export const RoomRoleSchema = z.enum(['manager', 'member']);
 export type RoomRole = z.infer<typeof RoomRoleSchema>;
 
+export const NotifyLevelSchema = z.enum(['all', 'mentions', 'nothing']);
+export type NotifyLevel = z.infer<typeof NotifyLevelSchema>;
+
 export const ChannelNameSchema = z
   .string()
   .min(1, 'Enter a channel name.')
@@ -48,6 +51,9 @@ export const RoomSchema = z.object({
       role: RoomRoleSchema,
       starredAt: z.coerce.date().nullable(),
       sectionId: z.string().nullable(),
+      /** Null means the default for the room's kind. See `effectiveNotify`. */
+      notify: NotifyLevelSchema.nullable(),
+      mutedAt: z.coerce.date().nullable(),
     })
     .nullable(),
   archivedByName: z.string().nullable(),
@@ -55,6 +61,12 @@ export const RoomSchema = z.object({
 export type Room = z.infer<typeof RoomSchema>;
 
 export const RoomIdInputSchema = z.object({ roomId: z.string() });
+
+/** A null `level` goes back to the default for the room's kind. */
+export const SetRoomNotifyInputSchema = z.object({
+  roomId: z.string(),
+  level: NotifyLevelSchema.nullable(),
+});
 
 export const RoomMemberSchema = z.object({
   userId: z.string(),

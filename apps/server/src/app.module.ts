@@ -16,6 +16,7 @@ import { createORPCContext } from '@/infrastructure/orpc/context';
 import { translateErrors } from '@/infrastructure/orpc/errors';
 import { arcjetAuthMiddleware } from '@/infrastructure/security/auth-routes.middleware';
 import { MessagesModule } from '@/messages/messages.module';
+import { NotificationsModule } from '@/notifications/notifications.module';
 import { OrganizationsModule } from '@/organizations/organizations.module';
 import { RealtimeModule } from '@/realtime/realtime.module';
 import { RoomsModule } from '@/rooms/rooms.module';
@@ -36,6 +37,7 @@ import { WorkspacesModule } from '@/workspaces/workspaces.module';
     MessagesModule,
     ActivityModule,
     FeedModule,
+    NotificationsModule,
     RealtimeModule,
     SummariesModule,
     ArcjetModule.forRoot({

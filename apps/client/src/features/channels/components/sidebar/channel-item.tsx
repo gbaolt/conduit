@@ -10,6 +10,7 @@ import {
   RoomItemButton,
   RoomItemDraft,
   RoomItemLabel,
+  RoomItemMuted,
 } from '@/features/rooms/components/room-sidebar';
 
 import {
@@ -27,6 +28,7 @@ export function ChannelItem({ channel }: { channel: Room }) {
           <Glyph />
           <RoomItemLabel>{channel.name}</RoomItemLabel>
           <RoomItemDraft />
+          <RoomItemMuted />
         </RoomItemButton>
         <ChannelActionsDropdown
           channel={channel}

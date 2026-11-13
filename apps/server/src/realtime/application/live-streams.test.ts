@@ -28,4 +28,11 @@ describe('queryFor', () => {
     expect(sql).toContain('a."readAt" IS NULL');
     expect(parameters).toEqual(['u1', 'org']);
   });
+
+  it('carries the viewer mute state on each sidebar row', () => {
+    const { sql, parameters } = queryFor({ kind: 'sidebar' }, viewer);
+
+    expect(sql).toContain('cm."mutedAt"');
+    expect(parameters).toEqual(['u1', 'org']);
+  });
 });

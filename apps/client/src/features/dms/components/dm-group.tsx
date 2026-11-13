@@ -17,6 +17,7 @@ import {
   RoomItemButton,
   RoomItemDraft,
   RoomItemLabel,
+  RoomItemMuted,
 } from '@/features/rooms/components/room-sidebar';
 import { sessionQuery } from '@/services/auth/queries';
 import { dmTitle, selfFirst } from '@/services/dms/dm-title';
@@ -69,6 +70,7 @@ export function DmGroup() {
                   {dmTitle(dm, viewerId)}
                 </RoomItemLabel>
                 <RoomItemDraft />
+                <RoomItemMuted />
               </RoomItemButton>
             </SidebarMenuItem>
           </RoomItem>
