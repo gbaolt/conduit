@@ -457,4 +457,80 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
       expect(newest.map((m) => m.body)).toEqual(['last']);
     });
   });
+
+  describe('listForCatchUp', () => {
+    it('reads what the member has not read, plus the messages behind their unread items', async () => {
+      const room = await prisma.room.create({
+        data: { organizationId, name: 'catch-up' },
+      });
+      const quiet = await prisma.room.create({
+        data: { organizationId, name: 'catch-up-quiet' },
+      });
+      await prisma.roomMember.createMany({
+        data: [room.id, quiet.id].map((id) => ({
+          roomId: id,
+          userId: recipientId,
+          joinedAt: new Date(0),
+        })),
+      });
+      const post = (
+        roomId: string,
+        clientId: string,
+        extra: { parentId?: string; authorId?: string } = {}
+      ) =>
+        repository.send({
+          roomId,
+          authorId: extra.authorId ?? userId,
+          clientId,
+          body: clientId,
+          mentions,
+          parentId: extra.parentId,
+          items: () => [],
+        });
+      const old = await post(room.id, 'old');
+      await prisma.readState.create({
+        data: {
+          roomId: room.id,
+          userId: recipientId,
+          lastReadAt: old.message.createdAt,
+          lastReadMessageId: old.message.id,
+        },
+      });
+      const top = await post(room.id, 'top');
+      const reply = await post(room.id, 'reply', { parentId: top.message.id });
+      await post(room.id, 'other-reply', { parentId: top.message.id });
+      await post(room.id, 'mine', { authorId: recipientId });
+      const gone = await post(room.id, 'gone');
+      await repository.markDeleted(gone.message.id);
+      await post(quiet.id, 'quiet');
+      await prisma.activityItem.create({
+        data: {
+          organizationId,
+          userId: recipientId,
+          roomId: room.id,
+          kind: 'THREAD_REPLY',
+          key: `message:${reply.message.id}`,
+          actorId: userId,
+          messageId: reply.message.id,
+        },
+      });
+
+      const read = await repository.listForCatchUp({
+        userId: recipientId,
+        roomIds: [room.id],
+        itemRoomIds: [room.id],
+        limit: 100,
+      });
+      const none = await repository.listForCatchUp({
+        userId: recipientId,
+        roomIds: [],
+        itemRoomIds: [],
+        limit: 100,
+      });
+
+      expect(read.messages.map((m) => m.body)).toEqual(['top', 'reply']);
+      expect(read.itemMessageIds).toEqual([reply.message.id]);
+      expect(none.messages).toEqual([]);
+    });
+  });
 });

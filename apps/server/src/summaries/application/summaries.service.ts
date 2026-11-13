@@ -23,14 +23,17 @@ import { citedBullets } from '@/summaries/domain/summary-citations';
 import { summaryError } from '@/summaries/domain/summary-errors';
 import {
   buildSummaryInput,
+  CATCH_UP_SYSTEM_PROMPT,
   SUMMARY_MAX_OUTPUT_TOKENS,
   SUMMARY_SYSTEM_PROMPT,
   type SummaryInput,
+  type SummaryInputOptions,
 } from '@/summaries/domain/summary-prompt';
 import { summaryMessageBody } from '@/summaries/domain/summary-share';
 
 type Scope = {
-  roomId: string;
+  /** Null for a catch-up. */
+  roomId: string | null;
   parentId: string | null;
   from: Date | null;
   to: Date | null;
@@ -101,6 +104,20 @@ export class SummariesService {
     );
   }
 
+  /** Summarizes everything the viewer has not read. It marks nothing read, and stores no room. */
+  async catchUp(viewer: MessageViewer, signal?: AbortSignal) {
+    await this.access.assertEnabled(viewer.organizationId);
+    const { messages, roomNames, priorityIds } =
+      await this.messages.listForCatchUp(viewer);
+    return this.start(
+      viewer,
+      { roomId: null, parentId: null, from: null, to: null },
+      messages,
+      signal,
+      { roomNames, priorityIds }
+    );
+  }
+
   /** The requester's own summary. Anyone else reads it only after it was shared. */
   async get(viewer: MessageViewer, summaryId: string) {
     await this.access.assertEnabled(viewer.organizationId);
@@ -115,7 +132,7 @@ export class SummariesService {
   async share(viewer: MessageViewer, summaryId: string) {
     await this.access.assertEnabled(viewer.organizationId);
     const stored = await this.readable(viewer, summaryId);
-    if (stored.requesterId !== viewer.userId) {
+    if (stored.requesterId !== viewer.userId || !stored.roomId) {
       throw summaryError('NOT_FOUND');
     }
     if (stored.sharedMessageId) {
@@ -133,13 +150,15 @@ export class SummariesService {
     return toSummary(await this.summaries.setShared(stored.id, message.id));
   }
 
-  /** The summary, when it is in the viewer's workspace and its channel is still readable by the viewer. */
+  /** The summary, when it is in the viewer's workspace and its channel, if it has one, is still readable by the viewer. */
   private async readable(viewer: MessageViewer, summaryId: string) {
     const stored = await this.summaries.find(summaryId);
     if (!stored || stored.organizationId !== viewer.organizationId) {
       throw summaryError('NOT_FOUND');
     }
-    await this.messages.find(viewer, stored.roomId);
+    if (stored.roomId) {
+      await this.messages.find(viewer, stored.roomId);
+    }
     return stored;
   }
 
@@ -147,7 +166,8 @@ export class SummariesService {
     viewer: MessageViewer,
     scope: Scope,
     messages: Awaited<ReturnType<MessagesService['listForSummary']>>,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    options?: SummaryInputOptions
   ) {
     const names = await this.summaries.userNames([
       ...new Set(
@@ -157,11 +177,13 @@ export class SummariesService {
         ])
       ),
     ]);
-    const input = buildSummaryInput(messages, names);
+    const input = buildSummaryInput(messages, names, options);
     if (input.messageCount === 0) {
       throw summaryError('NOTHING_TO_SUMMARIZE');
     }
-    return this.stream(viewer, scope, input, signal);
+    // A catch-up runs from the oldest message it reads, which the prompt limit may have moved.
+    const resolved = scope.roomId ? scope : { ...scope, from: input.oldest };
+    return this.stream(viewer, resolved, input, signal);
   }
 
   private async *stream(
@@ -174,7 +196,7 @@ export class SummariesService {
     let shown = '';
 
     for await (const partial of this.model.streamObject({
-      system: SUMMARY_SYSTEM_PROMPT,
+      system: scope.roomId ? SUMMARY_SYSTEM_PROMPT : CATCH_UP_SYSTEM_PROMPT,
       prompt: input.prompt,
       schema: ModelSummarySchema,
       maxOutputTokens: SUMMARY_MAX_OUTPUT_TOKENS,

@@ -3,6 +3,9 @@ import { z } from 'zod';
 /** The most messages one summary reads. A longer range keeps the newest. */
 export const SUMMARY_MESSAGES_MAX = 200;
 
+/** The most unread messages a catch-up reads from the database. The prompt cap trims it further. */
+export const CATCH_UP_MESSAGES_MAX = 500;
+
 export const SummaryBulletSchema = z.object({
   text: z
     .string()
@@ -24,7 +27,8 @@ export type ModelSummary = z.infer<typeof ModelSummarySchema>;
 /** A summary as its requester sees it. A source id is the id of a message the model read. */
 export const SummarySchema = z.object({
   id: z.string(),
-  roomId: z.string(),
+  /** Null for a catch-up, which spans every room the requester reads. */
+  roomId: z.string().nullable(),
   /** The thread's root message, or null for a channel summary. */
   parentId: z.string().nullable(),
   from: z.coerce.date().nullable(),

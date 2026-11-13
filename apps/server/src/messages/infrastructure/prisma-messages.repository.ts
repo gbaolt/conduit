@@ -143,6 +143,75 @@ export class PrismaMessagesRepository implements MessagesRepository {
     return rows.reverse().map(toMessage);
   }
 
+  async listForCatchUp(input: {
+    userId: string;
+    roomIds: string[];
+    itemRoomIds: string[];
+    limit: number;
+  }) {
+    const { userId, limit } = input;
+    const [members, reads, items] = await Promise.all([
+      this.db.roomMember.findMany({
+        where: { userId, roomId: { in: input.roomIds } },
+        select: { roomId: true, joinedAt: true },
+      }),
+      this.db.readState.findMany({
+        where: { userId, roomId: { in: input.roomIds } },
+        select: { roomId: true, lastReadAt: true },
+      }),
+      this.db.activityItem.findMany({
+        where: {
+          userId,
+          roomId: { in: input.itemRoomIds },
+          kind: { in: ['MENTION', 'THREAD_REPLY'] },
+          readAt: null,
+          messageId: { not: null },
+        },
+        select: { messageId: true },
+      }),
+    ]);
+    const readAt = new Map(reads.map((read) => [read.roomId, read.lastReadAt]));
+    const itemMessageIds = items.flatMap((item) => item.messageId ?? []);
+
+    const [unread, behindItems] = await Promise.all([
+      members.length === 0
+        ? []
+        : this.db.message.findMany({
+            where: {
+              deletedAt: null,
+              authorId: { not: userId },
+              // The conversation shows top-level messages and replies sent to the channel, not other thread replies.
+              AND: [{ OR: [{ parentId: null }, { alsoSentToChannel: true }] }],
+              OR: members.map((member) => ({
+                roomId: member.roomId,
+                createdAt: { gt: readAt.get(member.roomId) ?? member.joinedAt },
+              })),
+            },
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+            take: limit,
+          }),
+      this.db.message.findMany({
+        where: { id: { in: itemMessageIds }, deletedAt: null },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: limit,
+      }),
+    ]);
+
+    const rows = new Map(
+      [...unread, ...behindItems].map((row) => [row.id, row])
+    );
+    return {
+      messages: [...rows.values()]
+        .sort(
+          (a, b) =>
+            a.createdAt.getTime() - b.createdAt.getTime() ||
+            Number(a.id > b.id) - Number(a.id < b.id)
+        )
+        .map(toMessage),
+      itemMessageIds: behindItems.map((row) => row.id),
+    };
+  }
+
   async find(messageId: string) {
     const row = await this.db.message.findUnique({ where: { id: messageId } });
     return row && toMessage(row);

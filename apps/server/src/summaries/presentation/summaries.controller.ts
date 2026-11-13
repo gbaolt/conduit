@@ -63,6 +63,19 @@ export class SummariesController {
       );
   }
 
+  @Implement(contract.summaries.catchUp)
+  catchUp() {
+    return implement(contract.summaries.catchUp)
+      .use(authorized)
+      .use(workspaceMember)
+      .use(arcjet.heavyWriteByWorkspace)
+      .handler(async ({ context, signal }) =>
+        translateStreamErrors(
+          await this.summariesService.catchUp(viewerOf(context), signal)
+        )
+      );
+  }
+
   @Implement(contract.summaries.get)
   get() {
     return implement(contract.summaries.get)

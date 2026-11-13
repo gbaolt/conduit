@@ -79,4 +79,38 @@ describe('buildSummaryInput', () => {
     expect([...input.labels.values()].at(-1)).toBe('m-29');
     expect(input.labels.get('m1')).toBe(`m-${30 - input.messageCount}`);
   });
+
+  it('tags each message with its room when it is given room names', () => {
+    const input = buildSummaryInput(
+      [{ ...message('a', 'hi'), roomId: 'r1' } as Message],
+      names,
+      { roomNames: new Map([['r1', '#design "x"']]) }
+    );
+
+    expect(input.prompt).toContain('author="Linh Tran" room="#design  x "');
+  });
+
+  it('reports when the oldest message it reads was sent', () => {
+    const input = buildSummaryInput([message('a', 'hi')], names);
+
+    expect(input.oldest).toEqual(new Date('2026-11-08T09:00:00.000Z'));
+    expect(buildSummaryInput([], names).oldest).toBeNull();
+  });
+
+  it('keeps priority messages first, then the newest, when over the limit', () => {
+    const body = 'x'.repeat(4000);
+    const messages = Array.from({ length: 30 }, (_, i) =>
+      message(`m-${i}`, body)
+    );
+
+    const input = buildSummaryInput(messages, names, {
+      priorityIds: new Set(['m-0', 'm-1']),
+    });
+
+    const kept = [...input.labels.values()];
+    expect(kept.slice(0, 2)).toEqual(['m-0', 'm-1']);
+    expect(kept.at(-1)).toBe('m-29');
+    expect(kept.length).toBe(input.messageCount);
+    expect(input.prompt.length).toBeLessThanOrEqual(SUMMARY_PROMPT_CHARS_MAX);
+  });
 });

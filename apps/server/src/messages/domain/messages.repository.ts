@@ -42,6 +42,19 @@ export abstract class MessagesRepository {
     range: { threadId?: string; from?: Date; to?: Date; limit: number }
   ): Promise<Message[]>;
 
+  /**
+   * What a catch-up reads, oldest first: the live messages the conversation shows in `roomIds` sent after
+   * the member's read position, or after they joined with none, and not by the member. It adds the messages behind
+   * the member's unread `MENTION` and `THREAD_REPLY` items in `itemRoomIds`, which include thread replies.
+   * Each part keeps the newest `limit`.
+   */
+  abstract listForCatchUp(input: {
+    userId: string;
+    roomIds: string[];
+    itemRoomIds: string[];
+    limit: number;
+  }): Promise<{ messages: Message[]; itemMessageIds: string[] }>;
+
   abstract find(messageId: string): Promise<Message | null>;
 
   /**

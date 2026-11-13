@@ -35,6 +35,12 @@ export const summarizeRoomContract = oc
   .input(ChannelSummaryInputSchema)
   .output(asyncIteratorObject(SummaryEventSchema));
 
+/** Summarizes everything the caller has not read, across their rooms. Marks nothing read. */
+export const catchUpContract = oc
+  .meta(openapi({ method: 'POST', path: '/summaries/catch-up' }))
+  .errors({ NOTHING_TO_SUMMARIZE, AI_DISABLED, AI_UNAVAILABLE })
+  .output(asyncIteratorObject(SummaryEventSchema));
+
 export const getSummaryContract = oc
   .meta(openapi({ method: 'GET', path: '/summaries/{summaryId}' }))
   .errors({ NOT_FOUND, AI_DISABLED })
