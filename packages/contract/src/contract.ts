@@ -106,6 +106,7 @@ import {
   unmuteRoomContract,
 } from './contracts/rooms';
 import {
+  catchUpContract,
   getSummaryContract,
   shareSummaryContract,
   summarizeRoomContract,
@@ -234,6 +235,7 @@ export const contract = {
   summaries: {
     thread: summarizeThreadContract,
     room: summarizeRoomContract,
+    catchUp: catchUpContract,
     get: getSummaryContract,
     share: shareSummaryContract,
   },

@@ -1,5 +1,6 @@
 import {
   addReaction,
+  CATCH_UP_MESSAGES_MAX,
   type ChannelAction,
   checkChannel,
   type Message,
@@ -101,6 +102,62 @@ export class MessagesService {
       to: input.to,
       limit: SUMMARY_MESSAGES_MAX,
     });
+  }
+
+  /**
+   * What a catch-up reads: the unread messages of every conversation the viewer is in and can still read, except
+   * the muted ones, plus the messages behind their unread mentions and thread replies, muted room or not. A DM and
+   * a message behind an item are `priorityIds`, which a catch-up over the prompt limit keeps first.
+   */
+  async listForCatchUp(viewer: MessageViewer) {
+    const [channels, dms] = await Promise.all([
+      this.channels.list(viewer, false),
+      this.dms.list(viewer),
+    ]);
+    const dmRooms = await Promise.all(
+      dms.map((dm) => this.channels.find(viewer, dm.id))
+    );
+    const readable = [...channels, ...dmRooms].filter(
+      (room): room is Room =>
+        room !== null &&
+        room.membership !== null &&
+        !checkChannel('view', viewer.workspaceRole, room)
+    );
+
+    const dmNames = new Map(
+      dms.map((dm) => [
+        dm.id,
+        `DM with ${
+          dm.members
+            .filter((member) => member.userId !== viewer.userId)
+            .map((member) => member.name)
+            .join(', ') || 'yourself'
+        }`,
+      ])
+    );
+    const roomNames = new Map(
+      readable.map((room) => [
+        room.id,
+        room.kind === 'dm' ? (dmNames.get(room.id) ?? 'DM') : `#${room.name}`,
+      ])
+    );
+
+    const { messages, itemMessageIds } = await this.messages.listForCatchUp({
+      userId: viewer.userId,
+      roomIds: readable
+        .filter((room) => !room.membership?.mutedAt)
+        .map((room) => room.id),
+      itemRoomIds: readable.map((room) => room.id),
+      limit: CATCH_UP_MESSAGES_MAX,
+    });
+    const dmIds = new Set(
+      readable.filter((room) => room.kind === 'dm').map((room) => room.id)
+    );
+    const priorityIds = new Set([
+      ...itemMessageIds,
+      ...messages.filter((m) => dmIds.has(m.roomId)).map((m) => m.id),
+    ]);
+    return { messages, roomNames, priorityIds };
   }
 
   async send(

@@ -365,15 +365,16 @@ model SavedMessage {
   @@index([userId, savedAt])
 }
 
-/// App-owned. An AI summary of a thread or a channel's log. Only the requester reads it until `sharedMessageId` is set.
+/// App-owned. An AI summary of a thread, a channel's log, or everything unread (a catch-up). Only the requester reads it until `sharedMessageId` is set.
 model Summary {
   id               String       @id @default(cuid())
   organizationId   String
   organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   requesterId      String
   requester        User         @relation(fields: [requesterId], references: [id], onDelete: Cascade)
-  roomId           String       @map("channelId")
-  room             Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  /// Null for a catch-up, which spans every room the requester reads.
+  roomId           String?      @map("channelId")
+  room             Room?        @relation(fields: [roomId], references: [id], onDelete: Cascade)
   /// The thread's root message. Null for a channel summary.
   parentId         String?
   from             DateTime?

@@ -18,6 +18,7 @@ import {
 import { feedQuery } from '@/services/feed/queries';
 import { useAiSettings } from '@/services/workspaces/hooks';
 
+import { CatchMeUp } from './catch-me-up';
 import { FeedEntry } from './feed-entry';
 import { FeedFilters } from './feed-filters';
 import { type FeedSort, FeedSortSelect } from './feed-sort-select';
@@ -169,6 +170,7 @@ export function FeedList() {
     <div className="flex h-full min-h-0 flex-col">
       <FeedListHeader />
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+        <CatchMeUp />
         <div className="mb-3 max-w-2xl">
           <FeedFilters
             filter={filter}
