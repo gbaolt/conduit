@@ -38,6 +38,7 @@ import {
 } from '@/services/notifications/hooks';
 
 import { SettingsPanel, SettingsSection } from '../settings-view';
+import { DesktopNotifications } from './desktop-notifications';
 
 // Monday first, as a work week reads. The value is the weekday number the schedule stores.
 const DAYS = [
@@ -228,6 +229,8 @@ function Form({ settings }: { settings: NotificationSettings }) {
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col">
+      <DesktopNotifications />
+
       <SettingsSection
         id="dnd-heading"
         title="Do Not Disturb"
