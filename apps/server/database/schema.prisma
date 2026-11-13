@@ -39,9 +39,10 @@ model User {
   savedMessages        SavedMessage[]
   summaries            Summary[]
   notificationSettings NotificationSettings[]
-  digestStates         DigestState[]
   activityItems        ActivityItem[]         @relation("ActivityRecipient")
   activityActed        ActivityItem[]         @relation("ActivityActor")
+  pushSubscriptions    PushSubscription[]
+  digestStates         DigestState[]
 }
 
 model Session {
@@ -461,4 +462,18 @@ model DigestState {
   lastSentAt     DateTime
 
   @@id([organizationId, userId])
+}
+
+/// App-owned. One row per browser that turned on desktop notifications. A browser handed to another account moves to it.
+model PushSubscription {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint      String    @unique
+  p256dh        String
+  auth          String
+  createdAt     DateTime  @default(now())
+  lastSuccessAt DateTime?
+
+  @@index([userId])
 }

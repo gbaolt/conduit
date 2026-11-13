@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { DmsModule } from '@/dms/dms.module';
 import { FeedModule } from '@/feed/feed.module';
+import { NotificationsModule } from '@/notifications/notifications.module';
 import { RoomsModule } from '@/rooms/rooms.module';
 
 import { LinkPreviewsService } from './application/link-previews.service';
@@ -15,7 +16,7 @@ import { PrismaSavedMessagesRepository } from './infrastructure/prisma-saved-mes
 import { MessagesController } from './presentation/messages.controller';
 
 @Module({
-  imports: [RoomsModule, DmsModule, FeedModule],
+  imports: [RoomsModule, DmsModule, FeedModule, NotificationsModule],
   controllers: [MessagesController],
   providers: [
     MessagesService,
