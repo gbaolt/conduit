@@ -8,6 +8,7 @@ import { ActivityModule } from '@/activity/activity.module';
 import { AiModule } from '@/ai/ai.module';
 import { ChannelsModule } from '@/channels/channels.module';
 import { DmsModule } from '@/dms/dms.module';
+import { FeedModule } from '@/feed/feed.module';
 import { HealthController } from '@/health/presentation/health.controller';
 import { auth } from '@/infrastructure/auth/auth.config';
 import { DatabaseModule } from '@/infrastructure/database/database.module';
@@ -34,6 +35,7 @@ import { WorkspacesModule } from '@/workspaces/workspaces.module';
     DmsModule,
     MessagesModule,
     ActivityModule,
+    FeedModule,
     RealtimeModule,
     SummariesModule,
     ArcjetModule.forRoot({

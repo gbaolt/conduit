@@ -1,6 +1,7 @@
 import type { Room } from '@conduit/contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { FeedRepository } from '@/feed/domain/feed.repository';
 import type { RoomsRepository } from '@/rooms/domain/rooms.repository';
 
 import { InMemoryActivityRepository } from '../testing/in-memory-activity.repository';
@@ -30,7 +31,17 @@ function setup(channel: Partial<Room> | null = {}) {
         ...channel,
       },
   } as Partial<RoomsRepository> as RoomsRepository;
-  return { service: new ActivityService(repository, channels), repository };
+  const feedReads: { roomId: string; userId: string }[] = [];
+  const feed = {
+    markReadThroughPosition: async (input) => {
+      feedReads.push(input);
+    },
+  } as Partial<FeedRepository> as FeedRepository;
+  return {
+    service: new ActivityService(repository, channels, feed),
+    repository,
+    feedReads,
+  };
 }
 
 describe('ActivityService', () => {
@@ -47,6 +58,24 @@ describe('ActivityService', () => {
       await service.markRead(viewer, { roomId: 'c1', messageId: 'm2' });
 
       expect(repository.reads.get('c1|u1')?.messageId).toBe('m2');
+    });
+
+    it("marks the viewer's mention items in the room read once the position moves", async () => {
+      const { service, feedReads } = setup();
+
+      await service.markRead(viewer, { roomId: 'c1', messageId: 'm2' });
+
+      expect(feedReads).toEqual([{ roomId: 'c1', userId: 'u1' }]);
+    });
+
+    it('leaves the mention items alone when the message is refused', async () => {
+      const { service, feedReads } = setup();
+
+      await expect(
+        service.markRead(viewer, { roomId: 'c1', messageId: 'other' })
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+
+      expect(feedReads).toEqual([]);
     });
 
     it('never moves the position backward', async () => {

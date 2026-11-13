@@ -8,6 +8,7 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import { ActivityRepository } from '@/activity/domain/activity.repository';
 import { activityError } from '@/activity/domain/activity-errors';
+import { FeedRepository } from '@/feed/domain/feed.repository';
 import { RoomsRepository } from '@/rooms/domain/rooms.repository';
 
 export type ActivityViewer = {
@@ -22,7 +23,8 @@ type ConversationKey = { roomId: string; parentId?: string };
 export class ActivityService {
   constructor(
     @Inject(ActivityRepository) private readonly activity: ActivityRepository,
-    @Inject(RoomsRepository) private readonly channels: RoomsRepository
+    @Inject(RoomsRepository) private readonly channels: RoomsRepository,
+    @Inject(FeedRepository) private readonly feed: FeedRepository
   ) {}
 
   async markRead(
@@ -38,6 +40,10 @@ export class ActivityService {
     if (!found) {
       throw activityError('NOT_FOUND', 'Message not found.');
     }
+    await this.feed.markReadThroughPosition({
+      roomId: input.roomId,
+      userId: viewer.userId,
+    });
   }
 
   async getDraft(viewer: ActivityViewer, key: ConversationKey) {
