@@ -48,6 +48,10 @@ import {
 } from './contracts/feed';
 import { healthCheckContract } from './contracts/health';
 import {
+  getNotificationSettingsContract,
+  updateNotificationSettingsContract,
+} from './contracts/notification-settings';
+import {
   deleteMessageContract,
   editMessageContract,
   getMessageContract,
@@ -89,8 +93,18 @@ import {
   updateMemberRoleContract,
   updateOrganizationContract,
 } from './contracts/organizations';
+import {
+  subscribePushContract,
+  unsubscribePushContract,
+} from './contracts/push';
 import { sealStreamContract } from './contracts/realtime';
-import { getRoomContract, listRoomMembersContract } from './contracts/rooms';
+import {
+  getRoomContract,
+  listRoomMembersContract,
+  muteRoomContract,
+  setRoomNotifyContract,
+  unmuteRoomContract,
+} from './contracts/rooms';
 import {
   getSummaryContract,
   shareSummaryContract,
@@ -139,6 +153,14 @@ export const contract = {
     get: getWorkspaceSettingsContract,
     update: updateWorkspaceSettingsContract,
   },
+  notificationSettings: {
+    get: getNotificationSettingsContract,
+    update: updateNotificationSettingsContract,
+  },
+  push: {
+    subscribe: subscribePushContract,
+    unsubscribe: unsubscribePushContract,
+  },
   aiSettings: {
     get: getAiSettingsContract,
     update: updateAiSettingsContract,
@@ -153,6 +175,9 @@ export const contract = {
   },
   rooms: {
     get: getRoomContract,
+    setNotify: setRoomNotifyContract,
+    mute: muteRoomContract,
+    unmute: unmuteRoomContract,
     members: {
       list: listRoomMembersContract,
     },

@@ -5,6 +5,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@conduit/ui/components/dropdown-menu';
 import { IconDots, IconUserPlus, IconUsers } from '@tabler/icons-react';
@@ -12,6 +13,7 @@ import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
 import { ListBackLink } from '@/components/list-view';
+import { RoomNotifyMenu } from '@/features/rooms/components/room-notify-menu';
 import { useActivateRoomWorkspace } from '@/features/rooms/lib/use-activate-room-workspace';
 import { sessionQuery } from '@/services/auth/queries';
 import { dmTitle } from '@/services/dms/dm-title';
@@ -78,6 +80,8 @@ export function DmHeader({
             <IconUsers />
             Turn into a private channel
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <RoomNotifyMenu room={channel} />
           {menu}
         </DropdownMenuContent>
       </DropdownMenu>

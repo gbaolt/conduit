@@ -181,11 +181,11 @@ Members need to know what needs them without reading every channel.
 | ---- | -------------------------------------------------------------------------------------------- | ----------- | --- |
 | M2.1 | An Activity feed with mentions, thread replies, reactions to your messages, and channel adds | Shipped     |     |
 | M2.2 | **All** and **Unread** filters, and **Mark all read**                                        | Shipped     |     |
-| M2.3 | Set notifications per channel to all messages, mentions only, or nothing                     | Not started |     |
-| M2.4 | Mute a channel                                                                               | Not started |     |
-| M2.5 | Do Not Disturb, on a schedule or as a snooze                                                 | Not started |     |
-| M2.6 | Browser push notifications                                                                   | Not started |     |
-| M2.7 | An email digest of unread mentions after a member has been away for 1 hour                   | Not started |     |
+| M2.3 | Set notifications per channel to all messages, mentions only, or nothing                     | Shipped     |     |
+| M2.4 | Mute a channel                                                                               | Shipped     |     |
+| M2.5 | Do Not Disturb, on a schedule or as a snooze                                                 | Shipped     |     |
+| M2.6 | Browser push notifications                                                                   | Shipped     |     |
+| M2.7 | An email digest of unread mentions after a member has been away for 1 hour                   | Shipped     |     |
 | M2.8 | AI: Smart Activity ranks the feed by urgency and folds the noise together                    | Shipped     |     |
 | M2.9 | AI: Catch me up summarizes everything unread since your last visit                           | Not started |     |
 

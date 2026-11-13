@@ -50,6 +50,7 @@
     "reflect-metadata": "^0.2.2",
     "resend": "^6.0.2",
     "rxjs": "^7.8.2",
+    "web-push": "^4.0.0",
     "ws": "^8.18.3",
     "zod": "catalog:"
   },
@@ -62,6 +63,7 @@
     "@swc/core": "^1.16.0",
     "@types/express": "^5.0.3",
     "@types/node": "catalog:",
+    "@types/web-push": "^3.6.4",
     "@types/ws": "^8.18.1",
     "@typescript/native": "catalog:",
     "eslint": "catalog:",
