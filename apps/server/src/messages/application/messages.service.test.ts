@@ -43,7 +43,13 @@ function channelFor(
     memberCount: 2,
     createdById: null,
     createdAt: new Date(0),
-    membership: role && { role, starredAt: null, sectionId: null },
+    membership: role && {
+      role,
+      starredAt: null,
+      sectionId: null,
+      notify: null,
+      mutedAt: null,
+    },
     archivedByName: null,
     ...overrides,
   };

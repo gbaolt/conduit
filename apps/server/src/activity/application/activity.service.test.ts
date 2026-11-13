@@ -26,7 +26,13 @@ function setup(channel: Partial<Room> | null = {}) {
         visibility: 'public',
         isDefault: false,
         archivedAt: null,
-        membership: { role: 'member', starredAt: null, sectionId: null },
+        membership: {
+          role: 'member',
+          starredAt: null,
+          sectionId: null,
+          notify: null,
+          mutedAt: null,
+        },
         ...channel,
       },
   } as Partial<RoomsRepository> as RoomsRepository;

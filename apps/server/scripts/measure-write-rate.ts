@@ -42,7 +42,13 @@ const channel = {
   visibility: 'public',
   isDefault: false,
   archivedAt: null,
-  membership: { role: 'member', starredAt: null, sectionId: null },
+  membership: {
+    role: 'member',
+    starredAt: null,
+    sectionId: null,
+    notify: null,
+    mutedAt: null,
+  },
 };
 
 // Lets the service's awaited calls finish between virtual ticks.

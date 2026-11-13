@@ -1,10 +1,11 @@
-import type { Room, RoomMember } from '@conduit/contract';
+import type { NotifyLevel, Room, RoomMember } from '@conduit/contract';
 import { Prisma } from '@generated/prisma/client';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { roomError } from '@/rooms/domain/room-errors';
 import type {
+  MembershipPatch,
   RoomScope,
   RoomsRepository,
 } from '@/rooms/domain/rooms.repository';
@@ -25,7 +26,13 @@ export function include(scope: RoomScope) {
     },
     members: {
       where: { userId: scope.userId },
-      select: { role: true, starredAt: true, sectionId: true },
+      select: {
+        role: true,
+        starredAt: true,
+        sectionId: true,
+        notify: true,
+        mutedAt: true,
+      },
     },
     archivedBy: { select: { name: true } },
   } satisfies Prisma.RoomInclude;
@@ -56,6 +63,10 @@ export function toChannel(row: ChannelRow): Room {
           role: membership.role === 'MANAGER' ? 'manager' : 'member',
           starredAt: membership.starredAt,
           sectionId: membership.sectionId,
+          notify:
+            (membership.notify?.toLowerCase() as NotifyLevel | undefined) ??
+            null,
+          mutedAt: membership.mutedAt,
         }
       : null,
     archivedByName: row.archivedBy?.name ?? null,
@@ -225,11 +236,14 @@ export class PrismaRoomsRepository implements RoomsRepository {
   async updateMembership(
     roomId: string,
     userId: string,
-    data: { starredAt?: Date | null; sectionId?: string | null }
+    { notify, ...data }: MembershipPatch
   ) {
     await this.db.roomMember.updateMany({
       where: { roomId, userId },
-      data,
+      data: {
+        ...data,
+        notify: notify && (notify.toUpperCase() as Uppercase<NotifyLevel>),
+      },
     });
   }
 
