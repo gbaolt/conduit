@@ -39,6 +39,7 @@ model User {
   savedMessages        SavedMessage[]
   summaries            Summary[]
   notificationSettings NotificationSettings[]
+  digestStates         DigestState[]
   activityItems        ActivityItem[]         @relation("ActivityRecipient")
   activityActed        ActivityItem[]         @relation("ActivityActor")
 }
@@ -75,6 +76,7 @@ model Organization {
   summaries            Summary[]
   presences            Presence[]
   notificationSettings NotificationSettings[]
+  digestStates         DigestState[]
 }
 
 model Member {
@@ -446,6 +448,17 @@ model NotificationSettings {
   /// An IANA time zone name that the schedule is read in.
   timeZone       String       @default("UTC")
   emailDigest    Boolean      @default(true)
+
+  @@id([organizationId, userId])
+}
+
+/// App-owned. When a member's last email digest in a workspace went out. A digest sends only when this is older than the member's last heartbeat.
+model DigestState {
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastSentAt     DateTime
 
   @@id([organizationId, userId])
 }
