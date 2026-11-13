@@ -4,49 +4,30 @@ import type { Room } from '@conduit/contract';
 import {
   ContextMenu,
   ContextMenuContent,
-  ContextMenuGroup,
-  ContextMenuItem,
-  ContextMenuLabel,
-  ContextMenuRadioGroup,
-  ContextMenuRadioItem,
-  ContextMenuSeparator,
-  ContextMenuSub,
-  ContextMenuSubContent,
-  ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from '@conduit/ui/components/context-menu';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@conduit/ui/components/dropdown-menu';
-import {
-  IconBell,
-  IconBellOff,
-  IconBellRinging,
-  IconCheck,
-} from '@tabler/icons-react';
+import { IconCheck } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import {
   type ComponentProps,
-  createContext,
   Fragment,
   type ReactElement,
   type ReactNode,
   use,
-  useState,
 } from 'react';
 import { toast } from 'sonner';
 
+import {
+  roomContextMenuParts,
+  roomDropdownMenuParts,
+  RoomMenuParts,
+} from '@/features/rooms/components/room-menu';
+import { RoomNotifyMenu } from '@/features/rooms/components/room-notify-menu';
 import {
   useLeaveChannel,
   useMoveChannelToSection,
@@ -107,45 +88,12 @@ function useChannelActions(channel: Room) {
   return actions;
 }
 
-const dropdownParts = {
-  Group: DropdownMenuGroup,
-  Item: DropdownMenuItem,
-  Label: DropdownMenuLabel,
-  RadioGroup: DropdownMenuRadioGroup,
-  RadioItem: DropdownMenuRadioItem,
-  Separator: DropdownMenuSeparator,
-  Sub: DropdownMenuSub,
-  SubContent: DropdownMenuSubContent,
-  SubTrigger: DropdownMenuSubTrigger,
-};
-
-const contextParts: typeof dropdownParts = {
-  Group: ContextMenuGroup,
-  Item: ContextMenuItem,
-  Label: ContextMenuLabel,
-  RadioGroup: ContextMenuRadioGroup,
-  RadioItem: ContextMenuRadioItem,
-  Separator: ContextMenuSeparator,
-  Sub: ContextMenuSub,
-  SubContent: ContextMenuSubContent,
-  SubTrigger: ContextMenuSubTrigger,
-};
-
-/** The menu primitives in use, so one layout renders as a dropdown or a context menu. */
-const MenuParts = createContext(dropdownParts);
-
 type Action = ReturnType<typeof useChannelActions>[number];
 
 const SUBMENU_LABELS: Record<ChannelSubmenu, string> = {
   details: 'Channel details',
   copy: 'Copy',
 };
-
-const NOTIFY_OPTIONS = [
-  { value: 'all', label: 'All new posts', icon: IconBellRinging },
-  { value: 'mentions', label: 'Just mentions', icon: IconBell },
-  { value: 'mute', label: 'Mute and hide', icon: IconBellOff },
-];
 
 function SubmenuRow({
   label,
@@ -154,7 +102,7 @@ function SubmenuRow({
   label: string;
   children: ReactNode;
 }) {
-  const Menu = use(MenuParts);
+  const Menu = use(RoomMenuParts);
 
   return (
     <Menu.Sub>
@@ -165,7 +113,7 @@ function SubmenuRow({
 }
 
 function ActionRow({ action }: { action: Action }) {
-  const Menu = use(MenuParts);
+  const Menu = use(RoomMenuParts);
 
   if ('items' in action) {
     return (
@@ -219,28 +167,9 @@ function ActionRows({ actions }: { actions: Action[] }) {
   );
 }
 
-function NotifyRows() {
-  const Menu = use(MenuParts);
-  const [notify, setNotify] = useState('all');
-
-  return (
-    <>
-      <Menu.Label>Notifications</Menu.Label>
-      <Menu.RadioGroup value={notify} onValueChange={setNotify}>
-        {NOTIFY_OPTIONS.map(({ value, label, icon: Icon }) => (
-          <Menu.RadioItem key={value} value={value}>
-            <Icon data-slot="icon" aria-hidden />
-            {label}
-          </Menu.RadioItem>
-        ))}
-      </Menu.RadioGroup>
-    </>
-  );
-}
-
 /** The channel's menu as separated groups; an empty group and its separator are left out. */
 function ChannelMenuItems({ channel }: { channel: Room }) {
-  const Menu = use(MenuParts);
+  const Menu = use(RoomMenuParts);
   const actions = useChannelActions(channel);
   const rows = (group: ChannelMenuGroup) => {
     const inGroup = actions.filter((action) => action.group === group);
@@ -249,7 +178,10 @@ function ChannelMenuItems({ channel }: { channel: Room }) {
 
   const groups = [
     { id: 'main', content: rows('main') },
-    { id: 'notify', content: channel.membership ? <NotifyRows /> : null },
+    {
+      id: 'notify',
+      content: channel.membership ? <RoomNotifyMenu room={channel} /> : null,
+    },
     { id: 'organize', content: rows('organize') },
     { id: 'danger', content: rows('danger') },
   ].filter(({ content }) => content !== null);
@@ -279,9 +211,9 @@ export function ChannelActionsDropdown({
     <DropdownMenu>
       <DropdownMenuTrigger render={trigger}>{children}</DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <MenuParts value={dropdownParts}>
+        <RoomMenuParts value={roomDropdownMenuParts}>
           <ChannelMenuItems channel={channel} />
-        </MenuParts>
+        </RoomMenuParts>
         {extra}
       </DropdownMenuContent>
     </DropdownMenu>
@@ -302,9 +234,9 @@ export function ChannelActionsContextMenu({
     <ContextMenu>
       <ContextMenuTrigger render={render}>{children}</ContextMenuTrigger>
       <ContextMenuContent className="w-56">
-        <MenuParts value={contextParts}>
+        <RoomMenuParts value={roomContextMenuParts}>
           <ChannelMenuItems channel={channel} />
-        </MenuParts>
+        </RoomMenuParts>
       </ContextMenuContent>
     </ContextMenu>
   );

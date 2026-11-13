@@ -12,6 +12,7 @@ function entry(overrides: Partial<SidebarEntry> = {}): SidebarEntry {
     joinedAt: at(0),
     lastReadAt: null,
     hasDraft: false,
+    mutedAt: null,
     ...overrides,
   };
 }

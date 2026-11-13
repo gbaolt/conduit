@@ -60,7 +60,7 @@ export function queryFor(stream: LiveStream, viewer: StreamViewer): LiveQuery {
       };
     case 'sidebar':
       return {
-        sql: `SELECT cm."channelId" AS "roomId", c."lastMessageAt", cm."joinedAt", rs."lastReadAt", (d."channelId" IS NOT NULL) AS "hasDraft"
+        sql: `SELECT cm."channelId" AS "roomId", c."lastMessageAt", cm."joinedAt", rs."lastReadAt", (d."channelId" IS NOT NULL) AS "hasDraft", cm."mutedAt"
 FROM "ChannelMember" cm
 JOIN "Channel" c ON c."id" = cm."channelId"
 LEFT JOIN "ReadState" rs ON rs."channelId" = cm."channelId" AND rs."userId" = cm."userId"

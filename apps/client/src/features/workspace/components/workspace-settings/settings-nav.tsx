@@ -1,5 +1,6 @@
 'use client';
 
+import { canWorkspace } from '@conduit/contract';
 import { Button } from '@conduit/ui/components/button';
 import {
   SidebarGroup,
@@ -13,6 +14,7 @@ import {
 import {
   IconAdjustmentsHorizontal,
   IconArrowLeft,
+  IconBell,
   IconKey,
   IconLock,
   IconMailPlus,
@@ -24,11 +26,23 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { useWorkspace } from '@/features/workspace/context/workspace-provider';
+import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
 type Area = { href: Route; label: string; icon: typeof IconUsers };
 
-const GROUPS: { label: string; areas: Area[] }[] = [
+const GROUPS: { label: string; areas: Area[]; adminOnly?: true }[] = [
   {
+    label: 'You',
+    areas: [
+      {
+        href: '/settings/notifications',
+        label: 'Notifications',
+        icon: IconBell,
+      },
+    ],
+  },
+  {
+    adminOnly: true,
     label: 'Workspace',
     areas: [
       {
@@ -41,6 +55,7 @@ const GROUPS: { label: string; areas: Area[] }[] = [
     ],
   },
   {
+    adminOnly: true,
     label: 'People',
     areas: [
       { href: '/settings/members', label: 'Members', icon: IconUsers },
@@ -58,6 +73,8 @@ const GROUPS: { label: string; areas: Area[] }[] = [
 export function SettingsNav() {
   const pathname = usePathname();
   const { activeWorkspace } = useWorkspace();
+  // Plain `member` until the role loads, so the workspace areas appear a beat later for an admin.
+  const isAdmin = canWorkspace('viewSettings', useWorkspaceRole());
 
   return (
     <nav
@@ -79,7 +96,7 @@ export function SettingsNav() {
       </Button>
       <SidebarSeparator className="mx-0" />
 
-      {GROUPS.map((group) => (
+      {GROUPS.filter((group) => isAdmin || !group.adminOnly).map((group) => (
         <SidebarGroup key={group.label}>
           <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
           <SidebarGroupContent>

@@ -16,7 +16,12 @@ type Persona = {
   membership: PolicyChannel['membership'];
 };
 
-const joined = { starredAt: null, sectionId: null };
+const joined = {
+  starredAt: null,
+  sectionId: null,
+  notify: null,
+  mutedAt: null,
+};
 const personas: [string, Persona][] = [
   ['admin outside', { role: 'admin', membership: null }],
   [
