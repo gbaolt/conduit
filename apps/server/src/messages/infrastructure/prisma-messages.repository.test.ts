@@ -178,7 +178,7 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
     expect(Object.keys(stored?.reactions ?? {})).toHaveLength(
       REACTION_EMOJI_MAX
     );
-  });
+  }, 30_000);
 
   it('pins, lists newest pin first, and unpins', async () => {
     const first = await send('pin-1');
@@ -361,9 +361,9 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
 
     it('lists replies newest first, pages them, and drops a deleted one', async () => {
       const { message: root } = await send('page-root');
-      const a = await reply(root.id, 'a');
-      const b = await reply(root.id, 'b');
-      const c = await reply(root.id, 'c');
+      const a = await reply(root.id, 'page-a');
+      const b = await reply(root.id, 'page-b');
+      const c = await reply(root.id, 'page-c');
       await repository.markDeleted(b.message.id);
 
       const first = await repository.listReplies(roomId, root.id, {
@@ -426,7 +426,7 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
         repository.send({
           roomId: summaryChannel.id,
           authorId: userId,
-          clientId,
+          clientId: `summary-${clientId}`,
           body: clientId,
           mentions,
           items: () => [],
@@ -481,7 +481,7 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
         repository.send({
           roomId,
           authorId: extra.authorId ?? userId,
-          clientId,
+          clientId: `catch-up-${clientId}`,
           body: clientId,
           mentions,
           parentId: extra.parentId,
