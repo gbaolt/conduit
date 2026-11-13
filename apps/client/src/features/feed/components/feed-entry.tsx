@@ -1,8 +1,13 @@
 'use client';
 
-import type { FeedEntry as FeedEntryData, FeedGroup } from '@conduit/contract';
+import {
+  type FeedEntry as FeedEntryData,
+  type FeedGroup,
+  tierOf,
+} from '@conduit/contract';
 import { Twemoji } from '@conduit/ui/components/twemoji';
 import { cn } from '@conduit/ui/lib/utils';
+import { IconSparkles } from '@tabler/icons-react';
 import Link from 'next/link';
 
 import { UserAvatar } from '@/components/user-avatar';
@@ -70,11 +75,32 @@ function FeedEntryTitle({ group }: { group: FeedGroup }) {
   }
 }
 
+/** Why the model ranked the item urgent. The sparkles mark it as AI's judgment, not a rule. */
+function FeedEntryUrgency({ reason }: { reason: string }) {
+  return (
+    <p className="mt-1 flex items-center gap-1.5 text-xs font-medium">
+      <IconSparkles
+        className="text-muted-foreground size-3.5 shrink-0"
+        aria-hidden
+      />
+      <span className="sr-only">Urgent, judged by AI: </span>
+      {reason}
+    </p>
+  );
+}
+
 /**
  * One Activity row, which is a group of one or more entries. The title is the row's link, stretched over
  * the whole row, so the row opens its newest entry with a click or Enter and marks the group read on the way.
+ * `showUrgency` is off while AI is, so no AI judgment shows.
  */
-export function FeedEntry({ group }: { group: FeedGroup }) {
+export function FeedEntry({
+  group,
+  showUrgency,
+}: {
+  group: FeedGroup;
+  showUrgency: boolean;
+}) {
   const markRead = useMarkFeedRead();
   const [entry] = group.entries;
   const unreadIds = group.entries.filter((e) => !e.readAt).map((e) => e.id);
@@ -114,6 +140,9 @@ export function FeedEntry({ group }: { group: FeedGroup }) {
             className="shrink-0 text-xs"
           />
         </div>
+        {showUrgency && tierOf(entry) === 'urgent' && entry.urgencyReason && (
+          <FeedEntryUrgency reason={entry.urgencyReason} />
+        )}
         {message && (
           <div
             className={cn(

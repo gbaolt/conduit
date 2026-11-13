@@ -1,9 +1,20 @@
-import { FEED_DELETED_BODY, type FeedEntry } from '@conduit/contract';
+import {
+  FEED_DELETED_BODY,
+  type FeedEntry,
+  type ModelUrgency,
+} from '@conduit/contract';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { AiAccessService } from '@/ai/application/ai-access.service';
+import type { AiSettingsRepository } from '@/ai/domain/ai-settings.repository';
+import type {
+  ModelPort,
+  ModelRequest,
+  PartialObject,
+} from '@/ai/domain/model.port';
 import { prisma } from '@/infrastructure/database/prisma.service';
 
-import type { FeedRepository } from '../domain/feed.repository';
+import type { FeedRepository, UnrankedItem } from '../domain/feed.repository';
 import { PrismaFeedRepository } from '../infrastructure/prisma-feed.repository';
 import { FeedService, type FeedViewer } from './feed.service';
 
@@ -27,6 +38,13 @@ const entry = (overrides: Partial<FeedEntry> = {}): FeedEntry => ({
   ...overrides,
 });
 
+const accessFor = (aiEnabled: boolean) =>
+  new AiAccessService({
+    get: async () => ({ aiEnabled }),
+  } as Partial<AiSettingsRepository> as AiSettingsRepository);
+
+const unusedModel = {} as ModelPort;
+
 function fakeService(page: Awaited<ReturnType<FeedRepository['list']>>) {
   const calls: unknown[][] = [];
   const repository = {
@@ -37,7 +55,10 @@ function fakeService(page: Awaited<ReturnType<FeedRepository['list']>>) {
     markRead: async (...args) => void calls.push(['markRead', ...args]),
     markAllRead: async (...args) => void calls.push(['markAllRead', ...args]),
   } as Partial<FeedRepository> as FeedRepository;
-  return { service: new FeedService(repository), calls };
+  return {
+    service: new FeedService(repository, accessFor(true), unusedModel),
+    calls,
+  };
 }
 
 describe('FeedService with a fake repository', () => {
@@ -96,11 +117,125 @@ describe('FeedService with a fake repository', () => {
   });
 });
 
+const unranked = (
+  id: string,
+  overrides: Partial<UnrankedItem> = {}
+): UnrankedItem => ({
+  id,
+  kind: 'mention',
+  actorId: 'u2',
+  body: 'can you review the invite flow today?',
+  mentionedUserIds: ['u1'],
+  sentAt: new Date('2026-11-13T09:00:00Z'),
+  ...overrides,
+});
+
+function fakeRankService({
+  items,
+  aiEnabled = true,
+  answer = { items: [] },
+}: {
+  items: UnrankedItem[];
+  aiEnabled?: boolean;
+  answer?: PartialObject<ModelUrgency>;
+}) {
+  const stored: Parameters<FeedRepository['setUrgency']>[] = [];
+  const requests: ModelRequest<unknown>[] = [];
+  const repository = {
+    unranked: async () => items,
+    userNames: async () =>
+      new Map([
+        ['u1', 'Bao'],
+        ['u2', 'Linh'],
+      ]),
+    setUrgency: async (...args) => void stored.push(args),
+  } as Partial<FeedRepository> as FeedRepository;
+  const model = {
+    async *streamObject(request: ModelRequest<unknown>) {
+      requests.push(request);
+      yield answer;
+    },
+  } as unknown as ModelPort;
+
+  return {
+    service: new FeedService(repository, accessFor(aiEnabled), model),
+    stored,
+    requests,
+  };
+}
+
+describe('FeedService.rank with a fake model', () => {
+  it('stores what the model rated, drops a label it was not shown, and tells it who the recipient is', async () => {
+    const { service, stored, requests } = fakeRankService({
+      items: [unranked('a1'), unranked('a2', { body: 'thanks!' })],
+      answer: {
+        items: [
+          {
+            label: 'm1',
+            urgency: 'urgent',
+            reason: 'Asks you a direct question',
+          },
+          { label: 'm2', urgency: 'low', reason: 'Just thanks' },
+          { label: 'm9', urgency: 'urgent', reason: 'Never shown' },
+        ],
+      },
+    });
+
+    await service.rank(viewer);
+
+    expect(stored).toEqual([
+      [
+        'u1',
+        [
+          { id: 'a1', urgency: 'urgent', reason: 'Asks you a direct question' },
+          { id: 'a2', urgency: 'low', reason: 'Just thanks' },
+        ],
+      ],
+    ]);
+    expect(requests[0]?.prompt).toContain('<recipient>Bao</recipient>');
+    expect(requests[0]?.maxOutputTokens).toBe(800);
+  });
+
+  it('refuses while AI is off, before it reads or calls anything', async () => {
+    const { service, stored, requests } = fakeRankService({
+      items: [unranked('a1')],
+      aiEnabled: false,
+    });
+
+    await expect(service.rank(viewer)).rejects.toMatchObject({
+      code: 'AI_DISABLED',
+    });
+    expect(stored).toEqual([]);
+    expect(requests).toEqual([]);
+  });
+
+  it('does not call the model with nothing to judge', async () => {
+    const { service, stored, requests } = fakeRankService({ items: [] });
+
+    await service.rank(viewer);
+
+    expect(requests).toEqual([]);
+    expect(stored).toEqual([]);
+  });
+
+  it('fails as unavailable when the model rated nothing it was shown', async () => {
+    const { service, stored } = fakeRankService({
+      items: [unranked('a1')],
+      answer: { items: [{ label: 'm9', urgency: 'low', reason: 'x' }] },
+    });
+
+    await expect(service.rank(viewer)).rejects.toMatchObject({
+      code: 'AI_UNAVAILABLE',
+    });
+    expect(stored).toEqual([]);
+  });
+});
+
 const connectionString = process.env.TEST_DATABASE_URL;
 
 describe.skipIf(!connectionString)('FeedService against the database', () => {
   const repository = new PrismaFeedRepository(prisma);
-  const service = new FeedService(repository);
+  const service = new FeedService(repository, accessFor(true), unusedModel);
   const run = crypto.randomUUID();
   const organizationId = run;
   const [bo, ann, cy] = ['bo', 'ann', 'cy'].map((name) => `${run}-${name}`) as [
@@ -279,5 +414,56 @@ describe.skipIf(!connectionString)('FeedService against the database', () => {
     expect(await readAt(onEarly.id)).not.toBeNull();
     expect(await readAt(onLate.id)).toBeNull();
     expect(await readAt(onReply.id)).toBeNull();
+  });
+
+  it("ranks only unread, unjudged mentions and replies in rooms the caller is in, and judges only the caller's own items", async () => {
+    const { id: messageId } = await prisma.message.create({
+      data: {
+        id: `${run}-rank-m`,
+        roomId,
+        authorId: ann,
+        clientId: 'rank',
+        body: 'rank me',
+      },
+    });
+    const ofKind = (
+      id: string,
+      extra: { userId?: string; roomId?: string } = {}
+    ) => item(id, { messageId, key: `rank:${id}`, ...extra });
+    const fresh = await ofKind('rank-fresh');
+    const alreadyJudged = await ofKind('rank-judged');
+    await prisma.activityItem.update({
+      where: { id: alreadyJudged.id },
+      data: { urgency: 'LOW' },
+    });
+    const left = await ofKind('rank-left', { roomId: leftRoomId });
+    const theirs = await ofKind('rank-theirs', { userId: cy });
+
+    const found = await repository.unranked({
+      userId: bo,
+      organizationId,
+      limit: 20,
+    });
+    await repository.setUrgency(bo, [
+      { id: fresh.id, urgency: 'urgent', reason: 'Asks you a direct question' },
+      { id: theirs.id, urgency: 'urgent', reason: 'Not yours' },
+    ]);
+
+    expect(found.map((row) => row.id)).toContain(fresh.id);
+    expect(found.map((row) => row.id)).not.toContain(alreadyJudged.id);
+    expect(found.map((row) => row.id)).not.toContain(left.id);
+    expect(found.map((row) => row.id)).not.toContain(theirs.id);
+    const page = await service.list(asBo, { filter: 'all', limit: 100 });
+    expect(page.entries.find((e) => e.id === fresh.id)).toMatchObject({
+      urgency: 'urgent',
+      urgencyReason: 'Asks you a direct question',
+    });
+    expect(
+      (
+        await prisma.activityItem.findUniqueOrThrow({
+          where: { id: theirs.id },
+        })
+      ).urgency
+    ).toBeNull();
   });
 });

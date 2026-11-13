@@ -51,4 +51,15 @@ export class FeedController {
         this.feedService.markAllRead(viewerOf(context))
       );
   }
+
+  @Implement(contract.feed.rank)
+  rank() {
+    return implement(contract.feed.rank)
+      .use(authorized)
+      .use(workspaceMember)
+      .use(arcjet.heavyWriteByWorkspace)
+      .handler(({ context, signal }) =>
+        this.feedService.rank(viewerOf(context), signal)
+      );
+  }
 }

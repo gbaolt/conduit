@@ -155,6 +155,9 @@ One thing in a Member's Activity: a mention, a thread reply, a reaction to their
 A push or email that tells a Member about something in their Activity.
 _Avoid_: Alert, ping
 
+**Urgency**:
+How soon an unread mention or thread reply needs a Member, as the AI judges it: urgent, normal, or low. It only orders Smart Activity. Reactions and channel adds are always low, and the rule that folds them runs with AI off.
+
 ### AI
 
 **Summary**:
