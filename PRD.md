@@ -99,7 +99,7 @@ Each milestone ships its core features first, then the AI feature that depends o
 | [Foundations](#foundations)                | Sign-in, workspaces, channels, sections  | None                        | Shipped     |
 | [M0](#m0-workspace-admin)                  | Invitations, member management, settings | None                        | Shipped     |
 | [M1](#m1-messaging)                        | Messages, threads, DMs, realtime         | Summaries                   | Shipped     |
-| [M2](#m2-activity-and-notifications)       | Activity feed, notifications             | Smart Activity, Catch me up | Not started |
+| [M2](#m2-activity-and-notifications)       | Activity feed, notifications             | Smart Activity, Catch me up | In progress |
 | [M3](#m3-files-and-search)                 | Files, search, quick switcher            | Ask Conduit                 | Not started |
 | [M4](#m4-canvas)                           | Canvas                                   | Thread to canvas            | Not started |
 | [M5](#m5-kanban)                           | Kanban boards                            | Actions and decisions       | Not started |
@@ -179,8 +179,8 @@ Members need to know what needs them without reading every channel.
 
 | ID   | Sub-feature                                                                                  | Status      | PR  |
 | ---- | -------------------------------------------------------------------------------------------- | ----------- | --- |
-| M2.1 | An Activity feed with mentions, thread replies, reactions to your messages, and channel adds | Not started |     |
-| M2.2 | **All** and **Unread** filters, and **Mark all read**                                        | Not started |     |
+| M2.1 | An Activity feed with mentions, thread replies, reactions to your messages, and channel adds | Shipped     |     |
+| M2.2 | **All** and **Unread** filters, and **Mark all read**                                        | Shipped     |     |
 | M2.3 | Set notifications per channel to all messages, mentions only, or nothing                     | Not started |     |
 | M2.4 | Mute a channel                                                                               | Not started |     |
 | M2.5 | Do Not Disturb, on a schedule or as a snooze                                                 | Not started |     |
