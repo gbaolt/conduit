@@ -42,12 +42,10 @@ export function CatchMeUp() {
 
   return (
     <SummaryProvider target={{ kind: 'catch-up' }}>
-      <div className="mb-3 max-w-2xl">
+      <div className="mb-3">
         <CatchMeUpButton />
       </div>
-      <div className="max-w-2xl">
-        <SummaryCard />
-      </div>
+      <SummaryCard />
     </SummaryProvider>
   );
 }

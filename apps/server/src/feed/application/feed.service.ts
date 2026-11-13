@@ -2,6 +2,7 @@ import {
   FEED_PAGE_DEFAULT,
   FEED_RANK_MAX,
   type FeedFilter,
+  type FeedSource,
   type ModelUrgency,
   ModelUrgencySchema,
 } from '@conduit/contract';
@@ -33,12 +34,20 @@ export class FeedService {
 
   async list(
     viewer: FeedViewer,
-    input: { filter: FeedFilter; before?: string; limit?: number }
+    input: {
+      filter: FeedFilter;
+      sources?: FeedSource[];
+      q?: string;
+      before?: string;
+      limit?: number;
+    }
   ) {
     const page = await this.feed.list({
       userId: viewer.userId,
       organizationId: viewer.organizationId,
       filter: input.filter,
+      sources: input.sources ?? [],
+      q: input.q ?? '',
       before: input.before,
       limit: input.limit ?? FEED_PAGE_DEFAULT,
     });
@@ -50,6 +59,10 @@ export class FeedService {
 
   markRead(viewer: FeedViewer, ids: string[]) {
     return this.feed.markRead(viewer.userId, ids);
+  }
+
+  markUnread(viewer: FeedViewer, ids: string[]) {
+    return this.feed.markUnread(viewer.userId, ids);
   }
 
   markAllRead(viewer: FeedViewer) {

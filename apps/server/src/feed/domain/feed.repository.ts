@@ -3,6 +3,7 @@ import type {
   ActivityUrgency,
   FeedEntry,
   FeedFilter,
+  FeedSource,
 } from '@conduit/contract';
 
 /** An item to write. `key` makes a retried write one row, per `(userId, key)`. */
@@ -59,12 +60,19 @@ export abstract class FeedRepository {
     userId: string;
     organizationId: string;
     filter: FeedFilter;
+    /** Empty shows every source. */
+    sources: FeedSource[];
+    /** Empty matches everything. */
+    q: string;
     before?: string;
     limit: number;
   }): Promise<{ entries: FeedEntry[]; hasMore: boolean } | null>;
 
   /** Sets `readAt` on the caller's own items in `ids`. Items already read, and ids of other members' items, change nothing. */
   abstract markRead(userId: string, ids: string[]): Promise<void>;
+
+  /** Clears `readAt` on the caller's own items in `ids`. Ids of other members' items change nothing. */
+  abstract markUnread(userId: string, ids: string[]): Promise<void>;
 
   /** Sets `readAt` on every unread item of the caller in the workspace that `list` shows. */
   abstract markAllRead(userId: string, organizationId: string): Promise<void>;

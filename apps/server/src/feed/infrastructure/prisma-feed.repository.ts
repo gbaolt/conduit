@@ -1,4 +1,9 @@
-import type { ActivityUrgency, FeedEntry, FeedFilter } from '@conduit/contract';
+import type {
+  ActivityUrgency,
+  FeedEntry,
+  FeedFilter,
+  FeedSource,
+} from '@conduit/contract';
 import { ONLINE_WINDOW_MS } from '@conduit/contract';
 import type { Prisma } from '@generated/prisma/client';
 import { Inject, Injectable } from '@nestjs/common';
@@ -12,6 +17,7 @@ import { PrismaService } from '@/infrastructure/database/prisma.service';
 import {
   fromPrismaKind,
   fromPrismaUrgency,
+  PRISMA_KINDS,
   PRISMA_URGENCY,
 } from './activity-items';
 
@@ -20,6 +26,31 @@ const stillIn = (userId: string) =>
   ({
     room: { members: { some: { userId } } },
   }) satisfies Prisma.ActivityItemWhereInput;
+
+/** An item matches if any source does. No sources matches every item. */
+function fromSources(sources: FeedSource[]): Prisma.ActivityItemWhereInput {
+  if (sources.length === 0) return {};
+  return {
+    OR: sources.map((source) =>
+      source === 'dm'
+        ? { room: { kind: 'DM' } }
+        : { kind: PRISMA_KINDS[source] }
+    ),
+  };
+}
+
+/** The message, the actor's name, or a channel's name. A DM's `name` is its key, so it is not searched. */
+function matching(q: string): Prisma.ActivityItemWhereInput {
+  if (!q) return {};
+  const contains = { contains: q, mode: 'insensitive' } as const;
+  return {
+    OR: [
+      { message: { body: contains } },
+      { actor: { name: contains } },
+      { room: { kind: 'CHANNEL', name: contains } },
+    ],
+  };
+}
 
 @Injectable()
 export class PrismaFeedRepository implements FeedRepository {
@@ -72,6 +103,8 @@ export class PrismaFeedRepository implements FeedRepository {
     userId: string;
     organizationId: string;
     filter: FeedFilter;
+    sources: FeedSource[];
+    q: string;
     before?: string;
     limit: number;
   }) {
@@ -87,14 +120,20 @@ export class PrismaFeedRepository implements FeedRepository {
       where: {
         userId: input.userId,
         organizationId: input.organizationId,
-        ...stillIn(input.userId),
         ...(input.filter === 'unread' && { readAt: null }),
-        ...(cursor && {
-          OR: [
-            { createdAt: { lt: cursor.createdAt } },
-            { createdAt: cursor.createdAt, id: { lt: cursor.id } },
-          ],
-        }),
+        AND: [
+          stillIn(input.userId),
+          fromSources(input.sources),
+          matching(input.q),
+          cursor
+            ? {
+                OR: [
+                  { createdAt: { lt: cursor.createdAt } },
+                  { createdAt: cursor.createdAt, id: { lt: cursor.id } },
+                ],
+              }
+            : {},
+        ],
       },
       include: {
         room: { select: { id: true, name: true, kind: true } },
@@ -133,6 +172,13 @@ export class PrismaFeedRepository implements FeedRepository {
     await this.db.activityItem.updateMany({
       where: { userId, id: { in: ids }, readAt: null },
       data: { readAt: new Date() },
+    });
+  }
+
+  async markUnread(userId: string, ids: string[]) {
+    await this.db.activityItem.updateMany({
+      where: { userId, id: { in: ids }, readAt: { not: null } },
+      data: { readAt: null },
     });
   }
 

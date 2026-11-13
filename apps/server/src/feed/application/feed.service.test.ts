@@ -53,6 +53,7 @@ function fakeService(page: Awaited<ReturnType<FeedRepository['list']>>) {
       return page;
     },
     markRead: async (...args) => void calls.push(['markRead', ...args]),
+    markUnread: async (...args) => void calls.push(['markUnread', ...args]),
     markAllRead: async (...args) => void calls.push(['markAllRead', ...args]),
   } as Partial<FeedRepository> as FeedRepository;
   return {
@@ -90,6 +91,8 @@ describe('FeedService with a fake repository', () => {
         userId: 'u1',
         organizationId: 'org',
         filter: 'unread',
+        sources: [],
+        q: '',
         before: undefined,
         limit: 30,
       },
@@ -108,10 +111,12 @@ describe('FeedService with a fake repository', () => {
     const { service, calls } = fakeService({ entries: [], hasMore: false });
 
     await service.markRead(viewer, ['a1', 'a2']);
+    await service.markUnread(viewer, ['a1']);
     await service.markAllRead(viewer);
 
     expect(calls).toEqual([
       ['markRead', 'u1', ['a1', 'a2']],
+      ['markUnread', 'u1', ['a1']],
       ['markAllRead', 'u1', 'org'],
     ]);
   });
@@ -366,6 +371,64 @@ describe.skipIf(!connectionString)('FeedService against the database', () => {
     expect(firstRead).not.toBeNull();
     expect(await readAt(mine.id)).toEqual(firstRead);
     expect(await readAt(theirs.id)).toBeNull();
+  });
+
+  it('narrows to any of the sources, and searches the message, the actor and the channel', async () => {
+    const dmId = `${run}-dm`;
+    await prisma.room.create({
+      data: { id: dmId, organizationId, name: `${run}-dm-key`, kind: 'DM' },
+    });
+    await prisma.roomMember.create({ data: { roomId: dmId, userId: bo } });
+    await prisma.message.create({
+      data: {
+        id: `${run}-launch`,
+        roomId,
+        authorId: ann,
+        clientId: 'launch',
+        body: 'Ship the LAUNCH notes',
+      },
+    });
+    const inDm = await item('src-dm', { roomId: dmId });
+    const launch = await item('src-launch', { messageId: `${run}-launch` });
+    const reaction = await prisma.activityItem.create({
+      data: {
+        id: `${run}-src-reaction`,
+        organizationId,
+        userId: bo,
+        roomId,
+        kind: 'REACTION',
+        key: `${run}-src-reaction`,
+        actorId: cy,
+        createdAt: sameInstant,
+      },
+    });
+    const ids = async (input: Parameters<FeedService['list']>[1]) =>
+      (await service.list(asBo, { limit: 100, ...input })).entries.map(
+        (e) => e.id
+      );
+
+    const dms = await ids({ filter: 'all', sources: ['dm'] });
+    const either = await ids({ filter: 'all', sources: ['dm', 'reaction'] });
+
+    expect(dms).toEqual([inDm.id]);
+    expect(either.sort()).toEqual([inDm.id, reaction.id].sort());
+    expect(await ids({ filter: 'all', q: 'launch' })).toEqual([launch.id]);
+    expect(await ids({ filter: 'all', q: '-CY' })).toEqual([reaction.id]);
+    expect(await ids({ filter: 'all', q: 'desi' })).not.toContain(inDm.id);
+    expect(await ids({ filter: 'all', q: 'dm-key' })).toEqual([]);
+  });
+
+  it("marks only the caller's own items unread", async () => {
+    const mine = await item('unread-mine', { readAt: new Date() });
+    const theirs = await item('unread-theirs', {
+      userId: cy,
+      readAt: new Date(),
+    });
+
+    await service.markUnread(asBo, [mine.id, theirs.id]);
+
+    expect(await readAt(mine.id)).toBeNull();
+    expect(await readAt(theirs.id)).not.toBeNull();
   });
 
   it("marks every unread item of the caller read, and leaves other members'", async () => {

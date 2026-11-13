@@ -8,7 +8,7 @@ import {
   SelectValue,
 } from '@conduit/ui/components/select';
 
-export type FeedSort = 'smart' | 'newest';
+import type { FeedSort } from '../lib/feed-params';
 
 const SORTS = [
   { value: 'smart', label: 'Smart' },
@@ -31,7 +31,7 @@ export function FeedSortSelect({
         if (next) onSortChange(next as FeedSort);
       }}
     >
-      <SelectTrigger size="sm" aria-label="Sort activity" className="min-w-28">
+      <SelectTrigger size="sm" aria-label="Sort activity" className="min-w-24">
         <SelectValue />
       </SelectTrigger>
       <SelectContent align="start">

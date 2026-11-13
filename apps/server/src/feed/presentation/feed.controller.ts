@@ -41,6 +41,17 @@ export class FeedController {
       );
   }
 
+  @Implement(contract.feed.markUnread)
+  markUnread() {
+    return implement(contract.feed.markUnread)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.feedService.markUnread(viewerOf(context), input.ids)
+      );
+  }
+
   @Implement(contract.feed.markAllRead)
   markAllRead() {
     return implement(contract.feed.markAllRead)

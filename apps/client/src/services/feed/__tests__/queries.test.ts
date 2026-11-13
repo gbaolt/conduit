@@ -1,7 +1,7 @@
 import type { FeedEntry } from '@conduit/contract';
 import { describe, expect, it } from 'vitest';
 
-import { type FeedPages, markEntriesRead } from '../queries';
+import { type FeedPages, normalizeSources, setEntriesRead } from '../queries';
 
 const entry = (id: string, readAt: Date | null = null): FeedEntry => ({
   id,
@@ -18,11 +18,11 @@ const pages = (...entries: FeedEntry[][]): FeedPages => ({
 });
 const now = new Date('2026-11-13T12:00:00Z');
 
-describe('markEntriesRead', () => {
+describe('setEntriesRead', () => {
   it('marks only the named entries, across pages', () => {
     const data = pages([entry('a'), entry('b')], [entry('c')]);
 
-    const next = markEntriesRead(data, now, ['b', 'c']);
+    const next = setEntriesRead(data, now, ['b', 'c']);
 
     expect(next?.pages.flatMap((p) => p.entries.map((e) => e.readAt))).toEqual([
       null,
@@ -35,7 +35,7 @@ describe('markEntriesRead', () => {
     const earlier = new Date('2026-11-13T09:00:00Z');
     const data = pages([entry('a'), entry('b', earlier)]);
 
-    const next = markEntriesRead(data, now);
+    const next = setEntriesRead(data, now);
 
     expect(next?.pages[0]?.entries.map((e) => e.readAt)).toEqual([
       now,
@@ -43,7 +43,40 @@ describe('markEntriesRead', () => {
     ]);
   });
 
+  it('marks the named entries unread, and leaves unread ones as they are', () => {
+    const data = pages([entry('a', now), entry('b'), entry('c', now)]);
+
+    const next = setEntriesRead(data, null, ['a', 'b']);
+
+    expect(next?.pages[0]?.entries.map((e) => e.readAt)).toEqual([
+      null,
+      null,
+      now,
+    ]);
+  });
+
   it('leaves an uncached query alone', () => {
-    expect(markEntriesRead(undefined, now, ['a'])).toBeUndefined();
+    expect(setEntriesRead(undefined, now, ['a'])).toBeUndefined();
+  });
+});
+
+describe('normalizeSources', () => {
+  it('spells one set one way, so equal filters share a cache entry', () => {
+    expect(normalizeSources(['thread_reply', 'dm', 'dm'])).toEqual([
+      'dm',
+      'thread_reply',
+    ]);
+  });
+
+  it('treats every source as no filter', () => {
+    expect(
+      normalizeSources([
+        'room_add',
+        'reaction',
+        'thread_reply',
+        'mention',
+        'dm',
+      ])
+    ).toEqual([]);
   });
 });

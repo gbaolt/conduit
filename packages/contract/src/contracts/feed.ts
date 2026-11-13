@@ -27,6 +27,11 @@ export const markFeedReadContract = oc
   .input(MarkFeedReadInputSchema)
   .output(z.void());
 
+export const markFeedUnreadContract = oc
+  .meta(openapi({ method: 'POST', path: '/feed/unread' }))
+  .input(MarkFeedReadInputSchema)
+  .output(z.void());
+
 export const markAllFeedReadContract = oc
   .meta(openapi({ method: 'POST', path: '/feed/read-all' }))
   .output(z.void());

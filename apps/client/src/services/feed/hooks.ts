@@ -1,13 +1,17 @@
 'use client';
 
-import { type FeedEntry, FeedStreamRowSchema } from '@conduit/contract';
+import {
+  FEED_PAGE_MAX,
+  type FeedEntry,
+  FeedStreamRowSchema,
+} from '@conduit/contract';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 
 import { client, orpc } from '@/lib/orpc';
 import { useLiveRows } from '@/services/messages/live';
 
-import { type FeedPages, feedUnreadQuery, markEntriesRead } from './queries';
+import { type FeedPages, feedUnreadQuery, setEntriesRead } from './queries';
 
 const sameIds = (a: ReadonlySet<string>, b: ReadonlySet<string>) =>
   a.size === b.size && [...a].every((id) => b.has(id));
@@ -41,20 +45,40 @@ export function useFeedUnreadCount() {
 function useUpdateFeedPages() {
   const queryClient = useQueryClient();
 
-  return (ids?: readonly string[]) =>
+  return (read: boolean, ids?: readonly string[]) =>
     queryClient.setQueriesData<FeedPages>(
       { queryKey: orpc.feed.list.key() },
-      (data) => markEntriesRead(data, new Date(), ids)
+      (data) => setEntriesRead(data, read ? new Date() : null, ids)
     );
 }
+
+/** Sends `ids` in requests of at most `FEED_PAGE_MAX`, which is all one call takes. */
+const inBatches = (ids: string[], send: (batch: string[]) => Promise<void>) =>
+  Promise.all(
+    Array.from({ length: Math.ceil(ids.length / FEED_PAGE_MAX) }, (_, i) =>
+      send(ids.slice(i * FEED_PAGE_MAX, (i + 1) * FEED_PAGE_MAX))
+    )
+  );
 
 /** Marks entries read. The dot goes at once, and the stream drops them from the badge. */
 export function useMarkFeedRead() {
   const update = useUpdateFeedPages();
 
   return useMutation({
-    mutationFn: (ids: string[]) => client.feed.markRead({ ids }),
-    onMutate: (ids) => update(ids),
+    mutationFn: (ids: string[]) =>
+      inBatches(ids, (batch) => client.feed.markRead({ ids: batch })),
+    onMutate: (ids) => update(true, ids),
+  });
+}
+
+/** Marks entries unread. The dot comes back at once, and the stream adds them to the badge. */
+export function useMarkFeedUnread() {
+  const update = useUpdateFeedPages();
+
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      inBatches(ids, (batch) => client.feed.markUnread({ ids: batch })),
+    onMutate: (ids) => update(false, ids),
   });
 }
 
@@ -63,7 +87,7 @@ export function useMarkAllFeedRead() {
 
   return useMutation({
     mutationFn: () => client.feed.markAllRead(),
-    onSuccess: () => update(),
+    onSuccess: () => update(true),
   });
 }
 

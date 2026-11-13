@@ -28,6 +28,13 @@ export const FEED_DELETED_BODY = 'This message was deleted.';
 export const FeedFilterSchema = z.enum(['all', 'unread']);
 export type FeedFilter = z.infer<typeof FeedFilterSchema>;
 
+/** What a filter or view can narrow Activity to: anything in a DM, or one kind. An item matches if any source does. */
+export const FeedSourceSchema = z.enum(['dm', ...ActivityKindSchema.options]);
+export type FeedSource = z.infer<typeof FeedSourceSchema>;
+export const FEED_SOURCES = FeedSourceSchema.options;
+
+export const FEED_SEARCH_MAX = 100;
+
 /** One Activity item, with what a row needs to show it and link to it. */
 export const FeedEntrySchema = z.object({
   id: z.string(),
@@ -64,6 +71,10 @@ export type FeedEntry = z.infer<typeof FeedEntrySchema>;
 
 export const ListFeedInputSchema = z.object({
   filter: FeedFilterSchema,
+  /** Empty or absent shows every source. */
+  sources: z.array(FeedSourceSchema).max(FEED_SOURCES.length).optional(),
+  /** Matches the message, the actor's name, or the channel's name, ignoring case. */
+  q: z.string().trim().max(FEED_SEARCH_MAX).optional(),
   /** The oldest entry already loaded. The page ends just before it. */
   before: z.string().optional(),
   limit: z.number().int().min(1).max(FEED_PAGE_MAX).optional(),

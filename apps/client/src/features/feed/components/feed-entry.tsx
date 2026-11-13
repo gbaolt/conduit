@@ -5,6 +5,7 @@ import {
   type FeedGroup,
   tierOf,
 } from '@conduit/contract';
+import { Checkbox } from '@conduit/ui/components/checkbox';
 import { Twemoji } from '@conduit/ui/components/twemoji';
 import { cn } from '@conduit/ui/lib/utils';
 import { IconSparkles } from '@tabler/icons-react';
@@ -16,6 +17,7 @@ import { MessageMarkdown } from '@/features/messages/components/message/message-
 import { useMarkFeedRead } from '@/services/feed/hooks';
 
 import { feedEntryHref } from '../lib/feed-entry-href';
+import { FEED_SOURCE_META } from '../lib/feed-sources';
 import { nameList } from '../lib/name-list';
 
 const whenFormat = new Intl.DateTimeFormat(undefined, {
@@ -92,35 +94,67 @@ function FeedEntryUrgency({ reason }: { reason: string }) {
 /**
  * One Activity row, which is a group of one or more entries. The title is the row's link, stretched over
  * the whole row, so the row opens its newest entry with a click or Enter and marks the group read on the way.
+ * The box before the avatar selects the row; it shows on hover, on focus, and while any row is selected, and
+ * the unread dot holds its place otherwise. Shift-click selects the range from the last row picked.
  * `showUrgency` is off while AI is, so no AI judgment shows.
  */
 export function FeedEntry({
   group,
   showUrgency,
+  selected,
+  onSelectedChange,
 }: {
   group: FeedGroup;
   showUrgency: boolean;
+  selected: boolean;
+  onSelectedChange: (selected: boolean, range: boolean) => void;
 }) {
   const markRead = useMarkFeedRead();
   const [entry] = group.entries;
   const unreadIds = group.entries.filter((e) => !e.readAt).map((e) => e.id);
   const unread = unreadIds.length > 0;
   const { message } = entry;
+  const { Icon, label } = FEED_SOURCE_META[entry.kind];
+  const actors = nameList(unique(group.entries.map((e) => e.actor.name)));
 
   return (
-    <div className="hover:bg-muted/60 relative flex gap-3 rounded-lg px-3 py-3 transition-colors">
-      <span
-        aria-hidden
-        className={cn(
-          'mt-4 size-1.5 shrink-0 rounded-full',
-          unread ? 'bg-primary' : 'bg-transparent'
-        )}
-      />
-      <UserAvatar
-        name={entry.actor.name}
-        image={entry.actor.image}
-        className="size-9 shrink-0 rounded-md"
-      />
+    <div
+      data-selected={selected || undefined}
+      className="group/feed-entry hover:bg-muted/60 data-selected:bg-muted relative flex gap-3 rounded-lg px-3 py-3 transition-colors"
+    >
+      <div className="relative z-10 mt-2.5 flex size-4 shrink-0 items-center justify-center">
+        <span
+          aria-hidden
+          className={cn(
+            'size-2 rounded-full transition-opacity group-focus-within/feed-entry:opacity-0 group-hover/feed-entry:opacity-0 group-data-selecting/feed-list:opacity-0 pointer-coarse:opacity-0',
+            unread ? 'bg-primary' : 'bg-transparent'
+          )}
+        />
+        <Checkbox
+          aria-label={`Select activity from ${actors}`}
+          checked={selected}
+          onCheckedChange={(checked, details) =>
+            onSelectedChange(
+              checked,
+              (details.event as MouseEvent | undefined)?.shiftKey === true
+            )
+          }
+          className="absolute inset-0 opacity-0 transition-opacity group-focus-within/feed-entry:opacity-100 group-hover/feed-entry:opacity-100 group-data-selecting/feed-list:opacity-100 data-checked:opacity-100 pointer-coarse:opacity-100"
+        />
+      </div>
+      <div className="relative shrink-0 self-start">
+        <UserAvatar
+          name={entry.actor.name}
+          image={entry.actor.image}
+          className="size-9 rounded-md"
+        />
+        <span
+          title={label}
+          className="bg-background text-muted-foreground absolute -right-1.5 -bottom-1.5 flex size-5 items-center justify-center rounded-full"
+        >
+          <Icon className="size-3.5" aria-hidden />
+        </span>
+      </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-3">
           <Link
@@ -129,7 +163,10 @@ export function FeedEntry({
             onClick={() => {
               if (unread) markRead.mutate(unreadIds);
             }}
-            className="focus-visible:after:ring-ring min-w-0 text-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:after:ring-2"
+            className={cn(
+              'focus-visible:after:ring-ring min-w-0 text-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:after:ring-2',
+              !unread && 'text-muted-foreground'
+            )}
           >
             {unread && <span className="sr-only">Unread. </span>}
             <FeedEntryTitle group={group} />
