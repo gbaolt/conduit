@@ -46,6 +46,17 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // The app sets no other Content-Security-Policy directive yet. Workers may load only from this origin, so /sw.js runs and no other script can register.
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'Content-Security-Policy', value: "worker-src 'self'" },
+        ],
+      },
+    ];
+  },
   transpilePackages: ['@conduit/contract', '@conduit/ui'],
 };
 

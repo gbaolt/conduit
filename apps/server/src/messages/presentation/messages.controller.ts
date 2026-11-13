@@ -12,6 +12,7 @@ import {
   MessagesService,
   type MessageViewer,
 } from '@/messages/application/messages.service';
+import { PushNotificationsService } from '@/notifications/application/push-notifications.service';
 
 function viewerOf(context: {
   user: { id: string };
@@ -30,7 +31,9 @@ export class MessagesController {
   constructor(
     @Inject(MessagesService) private readonly messagesService: MessagesService,
     @Inject(LinkPreviewsService)
-    private readonly linkPreviews: LinkPreviewsService
+    private readonly linkPreviews: LinkPreviewsService,
+    @Inject(PushNotificationsService)
+    private readonly notifications: PushNotificationsService
   ) {}
 
   @Implement(contract.messages.list)
@@ -75,7 +78,10 @@ export class MessagesController {
       .handler(async ({ context, input }) => {
         const sent = await this.messagesService.send(viewerOf(context), input);
         // A null txid is a retried send, whose first send already fetched the preview.
-        if (sent.txid) waitUntil(this.linkPreviews.attach(sent.message));
+        if (sent.txid) {
+          waitUntil(this.linkPreviews.attach(sent.message));
+          waitUntil(this.notifications.dispatchMessage(sent.message));
+        }
         return sent;
       });
   }

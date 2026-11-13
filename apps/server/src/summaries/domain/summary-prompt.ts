@@ -31,7 +31,7 @@ export const CATCH_UP_SYSTEM_PROMPT = [
 ].join('\n');
 
 const MENTION = /<@([\w-]+)>/g;
-const FORMER_MEMBER = 'Former member';
+export const FORMER_MEMBER = 'Former member';
 
 export type SummaryInput = {
   prompt: string;
@@ -49,10 +49,10 @@ export type SummaryInputOptions = {
   priorityIds?: ReadonlySet<string>;
 };
 
-const attribute = (value: string) => value.replace(/["<>&]/g, ' ');
+export const attribute = (value: string) => value.replace(/["<>&]/g, ' ');
 
 /** Mentions read as names, and a stray `<` cannot close a message tag early. */
-function readableBody(body: string, names: ReadonlyMap<string, string>) {
+export function readableBody(body: string, names: ReadonlyMap<string, string>) {
   return body
     .replace(MENTION, (_, target: string) =>
       target === 'channel' || target === 'here'

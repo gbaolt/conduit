@@ -1,21 +1,27 @@
 'use client';
 
-import type { FeedFilter } from '@conduit/contract';
+import { type FeedFilter, foldFeed, rankFeed } from '@conduit/contract';
 import { Button } from '@conduit/ui/components/button';
 import { Skeleton } from '@conduit/ui/components/skeleton';
 import { IconBell } from '@tabler/icons-react';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { type KeyboardEvent, useState } from 'react';
+import { type KeyboardEvent, useMemo, useState } from 'react';
 
 import { ListBackLink } from '@/components/list-view';
 import { MentionNames } from '@/features/messages/context/mention-names';
 import { useAuthors } from '@/features/messages/lib/use-authors';
-import { useFeedUnreadCount, useMarkAllFeedRead } from '@/services/feed/hooks';
+import {
+  useFeedUnreadCount,
+  useMarkAllFeedRead,
+  useRankFeed,
+} from '@/services/feed/hooks';
 import { feedQuery } from '@/services/feed/queries';
+import { useAiSettings } from '@/services/workspaces/hooks';
 
 import { CatchMeUp } from './catch-me-up';
 import { FeedEntry } from './feed-entry';
 import { FeedFilters } from './feed-filters';
+import { type FeedSort, FeedSortSelect } from './feed-sort-select';
 
 function FeedListHeader() {
   return (
@@ -72,7 +78,7 @@ function moveFocus(event: KeyboardEvent<HTMLElement>) {
   }
 }
 
-function FeedEntries({ filter }: { filter: FeedFilter }) {
+function FeedEntries({ filter, sort }: { filter: FeedFilter; sort: FeedSort }) {
   const {
     data,
     isPending,
@@ -82,6 +88,25 @@ function FeedEntries({ filter }: { filter: FeedFilter }) {
     fetchNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery(feedQuery(filter));
+  const aiEnabled = useAiSettings().data?.aiEnabled === true;
+  const entries = useMemo(
+    () => data?.pages.flatMap((page) => page.entries) ?? [],
+    [data]
+  );
+  const groups = useMemo(() => {
+    // With AI off, a judgment stored while it was on no longer ranks or shows.
+    const folded = foldFeed(
+      aiEnabled
+        ? entries
+        : entries.map((e) => ({
+            ...e,
+            urgency: undefined,
+            urgencyReason: undefined,
+          }))
+    );
+    return sort === 'smart' ? rankFeed(folded) : folded;
+  }, [entries, sort, aiEnabled]);
+  useRankFeed(entries, aiEnabled && sort === 'smart');
 
   if (isPending) return <FeedListRowsSkeleton />;
   if (isError) {
@@ -95,8 +120,7 @@ function FeedEntries({ filter }: { filter: FeedFilter }) {
     );
   }
 
-  const entries = data.pages.flatMap((page) => page.entries);
-  if (entries.length === 0) {
+  if (groups.length === 0) {
     return (
       <p className="text-muted-foreground max-w-sm text-sm">
         {filter === 'unread'
@@ -113,9 +137,9 @@ function FeedEntries({ filter }: { filter: FeedFilter }) {
         className="-mx-3 flex max-w-2xl flex-col gap-0.5"
         onKeyDown={moveFocus}
       >
-        {entries.map((entry) => (
-          <li key={entry.id}>
-            <FeedEntry entry={entry} />
+        {groups.map((group) => (
+          <li key={group.id}>
+            <FeedEntry group={group} showUrgency={aiEnabled} />
           </li>
         ))}
       </ul>
@@ -134,9 +158,10 @@ function FeedEntries({ filter }: { filter: FeedFilter }) {
   );
 }
 
-/** The member's Activity, newest first, with its All and Unread filter. */
+/** The member's Activity, folded, with its All and Unread filter and its Smart or Newest sort. */
 export function FeedList() {
   const [filter, setFilter] = useState<FeedFilter>('all');
+  const [sort, setSort] = useState<FeedSort>('smart');
   const { names } = useAuthors();
   const unread = useFeedUnreadCount();
   const markAllRead = useMarkAllFeedRead();
@@ -152,10 +177,12 @@ export function FeedList() {
             onFilterChange={setFilter}
             canMarkAllRead={unread > 0 && !markAllRead.isPending}
             onMarkAllRead={() => markAllRead.mutate()}
-          />
+          >
+            <FeedSortSelect sort={sort} onSortChange={setSort} />
+          </FeedFilters>
         </div>
         <MentionNames value={names}>
-          <FeedEntries filter={filter} />
+          <FeedEntries filter={filter} sort={sort} />
         </MentionNames>
       </div>
     </div>

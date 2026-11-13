@@ -11,6 +11,14 @@ export const ActivityKindSchema = z.enum([
 ]);
 export type ActivityKind = z.infer<typeof ActivityKindSchema>;
 
+/** How urgent an unread mention or reply is for its recipient. The model judges it. */
+export const ActivityUrgencySchema = z.enum(['urgent', 'normal', 'low']);
+export type ActivityUrgency = z.infer<typeof ActivityUrgencySchema>;
+
+/** One `feed.rank` call judges at most this many unread items. */
+export const FEED_RANK_MAX = 20;
+export const URGENCY_REASON_MAX = 60;
+
 export const FEED_PAGE_DEFAULT = 30;
 export const FEED_PAGE_MAX = 100;
 /** A message body in an entry is cut to this many characters. */
@@ -46,6 +54,9 @@ export const FeedEntrySchema = z.object({
     .optional(),
   /** Set for a reaction. */
   emoji: z.string().optional(),
+  /** What the model judged, once it did. Only mentions and replies are judged. */
+  urgency: ActivityUrgencySchema.optional(),
+  urgencyReason: z.string().optional(),
   readAt: z.coerce.date().nullable(),
   createdAt: z.coerce.date(),
 });
@@ -76,3 +87,19 @@ export const FeedStreamRowSchema = z.object({
   createdAt: z.coerce.date(),
 });
 export type FeedStreamRow = z.infer<typeof FeedStreamRowSchema>;
+
+/** What the model returns: a rating per message label. */
+export const ModelUrgencySchema = z.object({
+  items: z.array(
+    z.object({
+      label: z.string().describe('The label of the message, such as "m3".'),
+      urgency: ActivityUrgencySchema,
+      reason: z
+        .string()
+        .describe(
+          `Why, in at most ${URGENCY_REASON_MAX} characters, such as "Asks you a direct question".`
+        ),
+    })
+  ),
+});
+export type ModelUrgency = z.infer<typeof ModelUrgencySchema>;

@@ -44,6 +44,7 @@ import {
   listFeedContract,
   markAllFeedReadContract,
   markFeedReadContract,
+  rankFeedContract,
 } from './contracts/feed';
 import { healthCheckContract } from './contracts/health';
 import {
@@ -92,6 +93,10 @@ import {
   updateMemberRoleContract,
   updateOrganizationContract,
 } from './contracts/organizations';
+import {
+  subscribePushContract,
+  unsubscribePushContract,
+} from './contracts/push';
 import { sealStreamContract } from './contracts/realtime';
 import {
   getRoomContract,
@@ -152,6 +157,10 @@ export const contract = {
   notificationSettings: {
     get: getNotificationSettingsContract,
     update: updateNotificationSettingsContract,
+  },
+  push: {
+    subscribe: subscribePushContract,
+    unsubscribe: unsubscribePushContract,
   },
   aiSettings: {
     get: getAiSettingsContract,
@@ -234,6 +243,7 @@ export const contract = {
     list: listFeedContract,
     markRead: markFeedReadContract,
     markAllRead: markAllFeedReadContract,
+    rank: rankFeedContract,
   },
   readState: {
     mark: markReadContract,

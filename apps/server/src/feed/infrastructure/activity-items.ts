@@ -1,4 +1,4 @@
-import type { ActivityKind } from '@conduit/contract';
+import type { ActivityKind, ActivityUrgency } from '@conduit/contract';
 import type { Prisma } from '@generated/prisma/client';
 
 import type { NewActivityItem } from '@/feed/domain/feed.repository';
@@ -13,6 +13,19 @@ export const PRISMA_KINDS = {
 export const fromPrismaKind = (kind: (typeof PRISMA_KINDS)[ActivityKind]) =>
   (Object.keys(PRISMA_KINDS) as ActivityKind[]).find(
     (key) => PRISMA_KINDS[key] === kind
+  )!;
+
+export const PRISMA_URGENCY = {
+  urgent: 'URGENT',
+  normal: 'NORMAL',
+  low: 'LOW',
+} as const satisfies Record<ActivityUrgency, string>;
+
+export const fromPrismaUrgency = (
+  urgency: (typeof PRISMA_URGENCY)[ActivityUrgency]
+) =>
+  (Object.keys(PRISMA_URGENCY) as ActivityUrgency[]).find(
+    (key) => PRISMA_URGENCY[key] === urgency
   )!;
 
 /** Inserts the items inside the transaction of the change that caused them. A key that exists is skipped, so a repeated write is one row. */

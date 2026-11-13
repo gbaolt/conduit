@@ -41,6 +41,8 @@ model User {
   notificationSettings NotificationSettings[]
   activityItems        ActivityItem[]         @relation("ActivityRecipient")
   activityActed        ActivityItem[]         @relation("ActivityActor")
+  pushSubscriptions    PushSubscription[]
+  digestStates         DigestState[]
 }
 
 model Session {
@@ -75,6 +77,7 @@ model Organization {
   summaries            Summary[]
   presences            Presence[]
   notificationSettings NotificationSettings[]
+  digestStates         DigestState[]
 }
 
 model Member {
@@ -314,6 +317,12 @@ enum ActivityKind {
   ROOM_ADD
 }
 
+enum ActivityUrgency {
+  URGENT
+  NORMAL
+  LOW
+}
+
 /// App-owned. One row per thing that needs a member, written in the transaction of the change that caused it.
 model ActivityItem {
   id             String       @id @default(cuid())
@@ -331,6 +340,9 @@ model ActivityItem {
   messageId      String?
   message        Message?     @relation(fields: [messageId], references: [id], onDelete: Cascade)
   emoji          String?
+  /// What the model judged for the recipient. Null until `feed.rank` reaches the item, and always null for reactions and adds.
+  urgency        ActivityUrgency?
+  urgencyReason  String?
   readAt         DateTime?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
@@ -449,4 +461,29 @@ model NotificationSettings {
   emailDigest    Boolean      @default(true)
 
   @@id([organizationId, userId])
+}
+
+/// App-owned. When a member's last email digest in a workspace went out. A digest sends only when this is older than the member's last heartbeat.
+model DigestState {
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastSentAt     DateTime
+
+  @@id([organizationId, userId])
+}
+
+/// App-owned. One row per browser that turned on desktop notifications. A browser handed to another account moves to it.
+model PushSubscription {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint      String    @unique
+  p256dh        String
+  auth          String
+  createdAt     DateTime  @default(now())
+  lastSuccessAt DateTime?
+
+  @@index([userId])
 }
