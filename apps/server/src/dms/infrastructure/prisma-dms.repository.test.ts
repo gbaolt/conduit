@@ -164,6 +164,7 @@ describe.skipIf(!connectionString)('PrismaDmsRepository', () => {
       clientId: 'one',
       body: 'hello',
       mentions,
+      items: () => [],
     });
     await messages.send({
       roomId: dm.id,
@@ -171,6 +172,7 @@ describe.skipIf(!connectionString)('PrismaDmsRepository', () => {
       clientId: 'two',
       body: 'reply',
       mentions,
+      items: () => [],
       parentId: first.message.id,
     });
 

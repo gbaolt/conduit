@@ -313,6 +313,26 @@ describe.skipIf(!connectionString)('ChannelsService', () => {
       });
     });
 
+    it('writes a room-add item for each member added now, and none for one already in', async () => {
+      const channel = await service.create(owner, {
+        name: 'add-items',
+        visibility: 'private',
+      });
+      const itemsFor = (userId: string) =>
+        prisma.activityItem.findMany({
+          where: { roomId: channel.id, userId, kind: 'ROOM_ADD' },
+        });
+
+      await service.addMembers(owner, channel.id, [users.member]);
+      await service.addMembers(owner, channel.id, [users.member]);
+      await service.addMembers(owner, channel.id, [users.owner]);
+
+      expect(await itemsFor(users.member)).toEqual([
+        expect.objectContaining({ actorId: users.owner }),
+      ]);
+      expect(await itemsFor(users.owner)).toHaveLength(0);
+    });
+
     it('removes someone else, but not the caller or from the default channel', async () => {
       const channel = await service.create(owner, {
         name: 'remove-me',

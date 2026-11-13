@@ -2,6 +2,8 @@ import type { LinkPreview, Message, ReactionSummary } from '@conduit/contract';
 import { Prisma } from '@generated/prisma/client';
 import { Inject, Injectable } from '@nestjs/common';
 
+import type { NewActivityItem } from '@/feed/domain/feed.repository';
+import { createActivityItems } from '@/feed/infrastructure/activity-items';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import type {
   MessageMentions,
@@ -154,6 +156,7 @@ export class PrismaMessagesRepository implements MessagesRepository {
     mentions: MessageMentions;
     parentId?: string;
     alsoSentToChannel?: boolean;
+    items: (message: Message) => NewActivityItem[];
   }) {
     const key = {
       authorId_clientId: {
@@ -194,6 +197,7 @@ export class PrismaMessagesRepository implements MessagesRepository {
           data: { replyCount: { increment: 1 }, lastReplyAt: row.createdAt },
         });
       }
+      await createActivityItems(tx, input.items(toMessage(row)));
       const [{ txid }] = await tx.$queryRaw<
         [{ txid: string }]
       >`SELECT pg_current_xact_id()::text AS txid`;
@@ -201,12 +205,28 @@ export class PrismaMessagesRepository implements MessagesRepository {
     });
   }
 
-  async edit(messageId: string, body: string, mentions: MessageMentions) {
-    const row = await this.db.message.update({
-      where: { id: messageId },
-      data: { body, editedAt: new Date(), ...mentionColumns(mentions) },
+  async edit(
+    messageId: string,
+    body: string,
+    mentions: MessageMentions,
+    mentionItems: NewActivityItem[]
+  ) {
+    return this.db.$transaction(async (tx) => {
+      const row = await tx.message.update({
+        where: { id: messageId },
+        data: { body, editedAt: new Date(), ...mentionColumns(mentions) },
+      });
+      // shortcut: a thread member who loses their mention loses the item instead of falling back to THREAD_REPLY.
+      await tx.activityItem.deleteMany({
+        where: {
+          messageId,
+          kind: 'MENTION',
+          userId: { notIn: mentionItems.map((item) => item.userId) },
+        },
+      });
+      await createActivityItems(tx, mentionItems);
+      return toMessage(row);
     });
-    return toMessage(row);
   }
 
   async markDeleted(messageId: string) {
@@ -225,6 +245,7 @@ export class PrismaMessagesRepository implements MessagesRepository {
       });
       if (count === 0) return;
 
+      await tx.activityItem.deleteMany({ where: { messageId } });
       const { parentId } = await tx.message.findUniqueOrThrow({
         where: { id: messageId },
         select: { parentId: true },
@@ -240,7 +261,8 @@ export class PrismaMessagesRepository implements MessagesRepository {
 
   async updateReactions(
     messageId: string,
-    update: (current: ReactionSummary) => ReactionSummary | null
+    update: (current: ReactionSummary) => ReactionSummary | null,
+    activity?: { add: NewActivityItem } | { remove: string }
   ) {
     return this.db.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT "id" FROM "Message" WHERE "id" = ${messageId} FOR UPDATE`;
@@ -253,6 +275,11 @@ export class PrismaMessagesRepository implements MessagesRepository {
       if (!next) return null;
       if (next === current) return toMessage(row);
 
+      if (activity && 'add' in activity) {
+        await createActivityItems(tx, [activity.add]);
+      } else if (activity) {
+        await tx.activityItem.deleteMany({ where: { key: activity.remove } });
+      }
       return toMessage(
         await tx.message.update({
           where: { id: messageId },

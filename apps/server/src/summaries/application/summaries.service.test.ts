@@ -9,6 +9,7 @@ import type {
   PartialObject,
 } from '@/ai/domain/model.port';
 import type { DmsRepository } from '@/dms/domain/dms.repository';
+import type { FeedRepository } from '@/feed/domain/feed.repository';
 import {
   MessagesService,
   type MessageViewer,
@@ -148,7 +149,14 @@ function setup({
     messageRepository,
     channels,
     {} as SavedMessagesRepository,
-    {} as DmsRepository
+    {} as DmsRepository,
+    {
+      recipientLookup: async () => ({
+        memberIds: [],
+        onlineIds: [],
+        repliers: [],
+      }),
+    } as Partial<FeedRepository> as FeedRepository
   );
 
   return {
