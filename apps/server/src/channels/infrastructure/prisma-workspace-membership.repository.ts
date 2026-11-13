@@ -17,7 +17,7 @@ export class PrismaWorkspaceMembershipRepository implements WorkspaceMembershipR
   async removeFromWorkspace(organizationId: string, userId: string) {
     await this.db.$transaction([
       this.db.roomMember.deleteMany({
-        where: { userId, channel: { organizationId } },
+        where: { userId, room: { organizationId } },
       }),
       this.db.channelSection.deleteMany({
         where: { userId, organizationId },

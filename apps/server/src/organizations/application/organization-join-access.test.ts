@@ -91,7 +91,7 @@ describe.skipIf(!connectionString)('OrganizationsService join access', () => {
         await prisma.roomMember.count({
           where: {
             userId: user.id,
-            channel: { organizationId: workspace.organizationId },
+            room: { organizationId: workspace.organizationId },
           },
         })
       ).toBeGreaterThan(0);
