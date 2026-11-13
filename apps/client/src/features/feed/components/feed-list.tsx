@@ -13,6 +13,7 @@ import { useAuthors } from '@/features/messages/lib/use-authors';
 import { useFeedUnreadCount, useMarkAllFeedRead } from '@/services/feed/hooks';
 import { feedQuery } from '@/services/feed/queries';
 
+import { CatchMeUp } from './catch-me-up';
 import { FeedEntry } from './feed-entry';
 import { FeedFilters } from './feed-filters';
 
@@ -144,6 +145,7 @@ export function FeedList() {
     <div className="flex h-full min-h-0 flex-col">
       <FeedListHeader />
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+        <CatchMeUp />
         <div className="mb-3 max-w-2xl">
           <FeedFilters
             filter={filter}

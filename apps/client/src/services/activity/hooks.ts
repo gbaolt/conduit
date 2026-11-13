@@ -72,6 +72,16 @@ export function useIsUnread(roomId: string) {
   );
 }
 
+/** Whether any conversation the viewer has not muted has messages they have not read. */
+export function useHasUnreadRooms() {
+  return (
+    useQuery({
+      ...sidebarStateQuery,
+      select: (rows) => rows.some((row) => isUnread(row) && !row.mutedAt),
+    }).data ?? false
+  );
+}
+
 /** Whether the viewer has muted a conversation, a channel or a DM. */
 export function useIsMuted(roomId: string) {
   return (
