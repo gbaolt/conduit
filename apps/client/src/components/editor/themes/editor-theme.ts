@@ -15,7 +15,7 @@ export const editorTheme: EditorThemeClasses = {
   },
   paragraph: 'leading-7 [&:not(:first-child)]:mt-6',
   quote: 'mt-6 border-l-2 pl-6 italic',
-  link: 'text-primary underline-offset-4 hover:underline hover:cursor-pointer',
+  link: 'text-link underline-offset-4 hover:underline hover:cursor-pointer',
   list: {
     checklist: 'relative',
     listitem: 'mx-8',
@@ -43,7 +43,7 @@ export const editorTheme: EditorThemeClasses = {
       'list-outside !list-disc',
     ],
   },
-  hashtag: 'text-primary bg-primary/10 rounded-md px-1',
+  hashtag: 'text-link bg-primary/10 rounded-md px-1',
   text: {
     bold: 'font-bold',
     code: 'bg-muted text-foreground px-1 py-0.5 rounded-sm font-mono text-[0.9em]',

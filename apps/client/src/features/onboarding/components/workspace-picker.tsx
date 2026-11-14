@@ -146,9 +146,9 @@ export function WorkspacePicker({ onCreate }: { onCreate: () => void }) {
                   }
                 >
                   {accept.isPending &&
-                  accept.variables.invitationId === invitation.id ? (
-                    <Spinner />
-                  ) : null}
+                    accept.variables.invitationId === invitation.id && (
+                      <Spinner />
+                    )}
                   Accept
                 </Button>
               </li>
@@ -178,9 +178,9 @@ export function WorkspacePicker({ onCreate }: { onCreate: () => void }) {
                   }
                 >
                   {join.isPending &&
-                  join.variables.organizationId === workspace.id ? (
-                    <Spinner />
-                  ) : null}
+                    join.variables.organizationId === workspace.id && (
+                      <Spinner />
+                    )}
                   Join
                 </Button>
               </li>

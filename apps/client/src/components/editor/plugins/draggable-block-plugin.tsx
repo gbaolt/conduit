@@ -206,51 +206,49 @@ export function DraggableBlockPlugin({
   return (
     <>
       {modal}
-      {isPickerOpen && pickerPosition
-        ? ReactDOM.createPortal(
-            <div
-              ref={pickerRef}
-              className="absolute z-50 w-56 rounded-md shadow-md"
-              style={{
-                left: pickerPosition.left,
-                top: pickerPosition.top,
-              }}
-            >
-              <Command>
-                <CommandInput
-                  placeholder="Filter blocks..."
-                  value={queryString}
-                  onValueChange={setQueryString}
-                />
-                <CommandList>
-                  <CommandEmpty>No results found.</CommandEmpty>
-                  <CommandGroup>
-                    {options.map((option, i) => (
-                      <CommandItem
-                        key={option.key}
-                        value={option.title}
-                        onSelect={() => {
-                          setHighlightedIndex(i);
-                          selectOption(option);
-                        }}
-                        onMouseEnter={() => setHighlightedIndex(i)}
-                        className={`flex items-center gap-2 ${
-                          highlightedIndex === i
-                            ? 'bg-accent'
-                            : '!bg-transparent'
-                        }`}
-                      >
-                        {option.icon}
-                        {option.title}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </div>,
-            document.body
-          )
-        : null}
+      {isPickerOpen &&
+        pickerPosition &&
+        ReactDOM.createPortal(
+          <div
+            ref={pickerRef}
+            className="absolute z-50 w-56 rounded-md shadow-md"
+            style={{
+              left: pickerPosition.left,
+              top: pickerPosition.top,
+            }}
+          >
+            <Command>
+              <CommandInput
+                placeholder="Filter blocks..."
+                value={queryString}
+                onValueChange={setQueryString}
+              />
+              <CommandList>
+                <CommandEmpty>No results found.</CommandEmpty>
+                <CommandGroup>
+                  {options.map((option, i) => (
+                    <CommandItem
+                      key={option.key}
+                      value={option.title}
+                      onSelect={() => {
+                        setHighlightedIndex(i);
+                        selectOption(option);
+                      }}
+                      onMouseEnter={() => setHighlightedIndex(i)}
+                      className={`flex items-center gap-2 ${
+                        highlightedIndex === i ? 'bg-accent' : '!bg-transparent'
+                      }`}
+                    >
+                      {option.icon}
+                      {option.title}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </div>,
+          document.body
+        )}
       <DraggableBlockPlugin_EXPERIMENTAL
         anchorElem={anchorElem}
         menuRef={menuRef as React.RefObject<HTMLDivElement>}

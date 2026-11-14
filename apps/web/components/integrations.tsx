@@ -78,7 +78,7 @@ export default function Integrations() {
     <SectionShell theme="dark" cutout="down" className="pt-24 md:pt-32">
       <div className="mx-auto max-w-6xl px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-primary text-sm font-semibold tracking-tight">
+          <p className="text-link text-sm font-semibold tracking-tight">
             Integrations
           </p>
           <h2 className="text-foreground mt-3 text-3xl font-semibold tracking-tight text-balance md:text-5xl">

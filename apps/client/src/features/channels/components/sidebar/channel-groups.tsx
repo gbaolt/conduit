@@ -9,7 +9,6 @@ import {
 import { SidebarGroupAction } from '@conduit/ui/components/sidebar';
 import {
   IconFolder,
-  IconHash,
   IconListSearch,
   IconPlus,
   IconStar,
@@ -50,12 +49,12 @@ function AddChannelsMenu() {
         <IconPlus />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
-        {canCreate ? (
+        {canCreate && (
           <DropdownMenuItem onClick={() => open({ kind: 'create' })}>
             <IconPlus />
             Create a new channel
           </DropdownMenuItem>
-        ) : null}
+        )}
         <DropdownMenuItem onClick={() => open({ kind: 'browse' })}>
           <IconListSearch />
           Browse channels

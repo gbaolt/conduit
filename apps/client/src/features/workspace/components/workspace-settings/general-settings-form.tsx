@@ -76,11 +76,11 @@ function IconPicker({ logo }: { logo?: string | null }) {
         >
           {upload.isPending ? 'Uploading...' : 'Upload image'}
         </Button>
-        {error ? (
+        {error && (
           <p role="alert" className="text-destructive text-sm">
             {error}
           </p>
-        ) : null}
+        )}
       </div>
     </div>
   );

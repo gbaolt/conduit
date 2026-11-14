@@ -105,7 +105,7 @@ function TweetComponent({
       format={format}
       nodeKey={nodeKey}
     >
-      {isTweetLoading ? loadingComponent : null}
+      {isTweetLoading && loadingComponent}
       <div
         style={{ display: 'inline-block', width: '550px' }}
         ref={containerRef}

@@ -80,11 +80,11 @@ export function AcceptInvitation({
       >
         Accept
       </StatusButton>
-      {accept.isError ? (
+      {accept.isError && (
         <p role="alert" className="text-destructive text-sm">
           {accept.error.message}
         </p>
-      ) : null}
+      )}
     </Panel>
   );
 }

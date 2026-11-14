@@ -125,12 +125,12 @@ function CodeActionMenuContainer({
 
   return (
     <>
-      {isShown ? (
+      {isShown && (
         <div className="code-action-menu-container" style={{ ...position }}>
           <div className="code-highlight-language">{codeFriendlyName}</div>
           <CopyButton editor={editor} getCodeDOMNode={getCodeDOMNode} />
         </div>
-      ) : null}
+      )}
     </>
   );
 }

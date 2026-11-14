@@ -71,7 +71,7 @@ export function WorkspaceSwitcher() {
                 <span className="min-w-0 flex-1 truncate">
                   {workspace.name}
                 </span>
-                {workspace.id === activeWorkspace?.id ? <IconCheck /> : null}
+                {workspace.id === activeWorkspace?.id && <IconCheck />}
               </DropdownMenuItem>
             ))}
         </DropdownMenuGroup>

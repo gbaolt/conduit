@@ -48,11 +48,11 @@ export function DesktopNotifications() {
             )}
           </div>
           <p className="text-muted-foreground text-sm text-pretty">
-            {state ? DETAIL[state] : null}
+            {state && DETAIL[state]}
           </p>
         </div>
 
-        {state === 'off' || state === 'blocked' ? (
+        {(state === 'off' || state === 'blocked') && (
           <Button
             type="button"
             className="shrink-0"
@@ -61,8 +61,8 @@ export function DesktopNotifications() {
           >
             Turn on desktop notifications
           </Button>
-        ) : null}
-        {state === 'on' ? (
+        )}
+        {state === 'on' && (
           <Button
             type="button"
             variant="outline"
@@ -72,7 +72,7 @@ export function DesktopNotifications() {
           >
             Turn off desktop notifications
           </Button>
-        ) : null}
+        )}
       </SettingsPanel>
     </SettingsSection>
   );

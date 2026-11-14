@@ -96,11 +96,11 @@ export function JoinWorkspace({
       >
         Join
       </StatusButton>
-      {join.isError ? (
+      {join.isError && (
         <p role="alert" className="text-destructive text-sm">
           {join.error.message}
         </p>
-      ) : null}
+      )}
     </Panel>
   );
 }

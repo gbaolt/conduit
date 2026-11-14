@@ -30,7 +30,7 @@ export function MessageLinkPreview({
             {preview.siteName}
           </span>
         )}
-        <span className="text-primary text-sm font-semibold wrap-break-word">
+        <span className="text-link text-sm font-semibold wrap-break-word">
           {preview.title}
         </span>
         {preview.description && (
