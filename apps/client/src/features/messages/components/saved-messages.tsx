@@ -29,7 +29,7 @@ function SavedItem({ item }: { item: SavedMessage }) {
           href={`${channelName === null ? '/dms' : '/channels'}/${message.roomId}${
             message.parentId ? `?thread=${message.parentId}` : ''
           }`}
-          className="text-primary mb-0.5 flex w-fit items-center gap-0.5 text-xs hover:underline"
+          className="text-link mb-0.5 flex w-fit items-center gap-0.5 text-xs hover:underline"
         >
           {channelName === null ? (
             <IconMessage className="size-3.5" aria-hidden />

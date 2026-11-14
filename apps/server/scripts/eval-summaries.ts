@@ -1,8 +1,10 @@
 /**
  * Runs three fixed 50-message threads, and one fixed catch-up across three rooms, through the real model and
- * fails when a bullet cites a message that does not support it. Run it once per model change:
+ * fails when a bullet cites a message that does not support it, misses a topic, or reads as machine-written (a dash,
+ * a banned word, a trailing -ing phrase, a guessed pronoun). It prints every bullet. Run it once per model or prompt
+ * change:
  *
- *   OPENROUTER_API_KEY=... AI_SUMMARY_MODEL=nvidia/nemotron-3.5-super-vl:free pnpm --filter server eval:summaries
+ *   OPENROUTER_API_KEY=... AI_SUMMARY_MODEL=deepseek/deepseek-v4.1-flash-1017 pnpm --filter server eval:summaries
  *
  * Each message in a fixture belongs to one topic and carries that topic's two marker words. A cited message
  * supports a bullet when the bullet uses a marker word of the message's topic. Filler messages ("ok", "+1")
@@ -19,6 +21,7 @@ import { citedBullets } from '@/summaries/domain/summary-citations';
 import {
   buildSummaryInput,
   CATCH_UP_SYSTEM_PROMPT,
+  SUMMARY_AVOID_WORDS,
   SUMMARY_MAX_OUTPUT_TOKENS,
   SUMMARY_SYSTEM_PROMPT,
 } from '@/summaries/domain/summary-prompt';
@@ -139,6 +142,30 @@ function buildThread(fixture: Fixture, seed: number): Line[] {
   }));
 }
 
+const AVOID = new RegExp(`\\b(${SUMMARY_AVOID_WORDS.join('|')})\\w*`, 'i');
+const STYLE_RULES: [RegExp, string][] = [
+  [/[—–]/, 'uses a dash'],
+  [AVOID, 'uses a word the prompt bans'],
+  [
+    /,\s*(highlighting|ensuring|reflecting|underscoring|emphasizing|signaling)\b/i,
+    'trails off with an -ing phrase',
+  ],
+  [/\b(serves as|stands as|boasts)\b/i, 'says "serves as" for "is"'],
+  [/\b(in order to|due to the fact)\b/i, 'uses filler'],
+  [/\*\*|^#|[\u{1F300}-\u{1FAFF}]/mu, 'uses bold, a heading or an emoji'],
+  [
+    /\b(he|she|him|her|his|hers)\b/i,
+    'guesses a pronoun instead of repeating the name',
+  ],
+];
+
+/** The unslop patterns that fit in a one- or two-sentence bullet. */
+function styleProblems(text: string) {
+  return STYLE_RULES.filter(([pattern]) => pattern.test(text)).map(
+    ([pattern, why]) => `"${text}" ${why}: ${text.match(pattern)?.[0]}`
+  );
+}
+
 try {
   selectModel(process.env);
 } catch {
@@ -185,14 +212,25 @@ for (const [index, fixture] of FIXTURES.entries()) {
     }
   }
 
+  for (const bullet of bullets) problems.push(...styleProblems(bullet.text));
+  const said = new Set(
+    bullets.flatMap((bullet) => bullet.text.toLowerCase().match(/[a-z]+/g))
+  );
+  for (const topic of fixture.topics) {
+    if (!topic.markers.some((marker) => said.has(marker))) {
+      problems.push(`no bullet covers the ${topic.name} topic`);
+    }
+  }
+
   failures += problems.length;
   console.log(
     `${problems.length === 0 ? 'ok  ' : 'FAIL'} ${fixture.name}: ${bullets.length} bullets, ${bullets.reduce((sum, b) => sum + b.sourceIds.length, 0)} citations`
   );
+  for (const bullet of bullets) console.log(`   - ${bullet.text}`);
   for (const problem of problems) console.log(`     ${problem}`);
 }
 
 if (failures > 0) {
-  console.error(`${failures} unsupported citation(s).`);
+  console.error(`${failures} unsupported citation(s) or style problem(s).`);
   process.exit(1);
 }

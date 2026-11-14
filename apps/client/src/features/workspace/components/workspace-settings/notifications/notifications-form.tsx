@@ -246,9 +246,9 @@ function Form({ settings }: { settings: NotificationSettings }) {
               onCheckedChange={(scheduled) => patch({ scheduled })}
             />
           </div>
-          {values.scheduled ? (
+          {values.scheduled && (
             <ScheduleFields values={values} onChange={patch} />
-          ) : null}
+          )}
         </SettingsPanel>
       </SettingsSection>
 

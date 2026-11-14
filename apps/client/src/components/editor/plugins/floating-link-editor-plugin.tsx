@@ -257,7 +257,7 @@ function FloatingLinkEditor({
             href={sanitizeUrl(linkUrl)}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-primary truncate text-sm underline-offset-4 hover:underline"
+            className="text-link truncate text-sm underline-offset-4 hover:underline"
           >
             {linkUrl}
           </a>

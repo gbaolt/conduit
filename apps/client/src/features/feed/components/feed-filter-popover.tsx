@@ -180,14 +180,7 @@ export function FeedFilterPopover({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger
-        render={
-          <Button
-            variant={picked.length > 0 && !active ? 'secondary' : 'ghost'}
-            size="sm"
-          />
-        }
-      >
+      <PopoverTrigger render={<Button variant="outline" size="sm" />}>
         <IconFilter2 data-icon="inline-start" />
         Filter
         {picked.length > 0 && (

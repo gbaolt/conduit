@@ -56,15 +56,15 @@ function MemberCell({
   return (
     <div className="flex items-center gap-3">
       <Avatar className="size-9">
-        {member.image ? <AvatarImage src={member.image} alt="" /> : null}
+        {member.image && <AvatarImage src={member.image} alt="" />}
         <AvatarFallback>{initials(member.name)}</AvatarFallback>
       </Avatar>
       <div className="flex min-w-0 flex-col">
         <span className="truncate font-medium">
           {member.name}
-          {isSelf ? (
+          {isSelf && (
             <span className="text-muted-foreground font-normal"> (you)</span>
-          ) : null}
+          )}
         </span>
         <span className="text-muted-foreground truncate">{member.email}</span>
       </div>

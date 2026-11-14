@@ -35,13 +35,13 @@ export function FeedViewTabs({
         <TabsList
           variant="line"
           aria-label="Views"
-          className="-mb-px h-11 max-w-full [scrollbar-width:none] justify-start overflow-x-auto overflow-y-hidden"
+          className="h-11 max-w-full [scrollbar-width:none] justify-start overflow-x-auto overflow-y-hidden"
         >
           {views.map((view) => (
             <TabsTrigger
               key={view.id}
               value={view.id}
-              className="-mb-1 h-full flex-none px-2 after:bottom-0!"
+              className="-mb-px h-full flex-none translate-y-1 px-2 after:bottom-0!"
             >
               {view.name}
             </TabsTrigger>

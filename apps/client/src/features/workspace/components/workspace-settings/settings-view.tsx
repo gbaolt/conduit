@@ -20,9 +20,9 @@ export function SettingsHeader({
           <ListBackLink />
           <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         </div>
-        {description ? (
+        {description && (
           <p className="text-muted-foreground text-sm">{description}</p>
-        ) : null}
+        )}
       </div>
       {action}
     </header>

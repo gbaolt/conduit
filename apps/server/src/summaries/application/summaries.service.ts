@@ -203,7 +203,7 @@ export class SummariesService {
       signal,
     })) {
       last = partial;
-      const bullets = citedBullets(partial, input.labels);
+      const bullets = citedBullets(partial, input.labels, { writing: true });
       const key = JSON.stringify(bullets);
       if (key !== shown) {
         shown = key;

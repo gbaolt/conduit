@@ -25,7 +25,7 @@ export function FeedSearch() {
   if (!opened && !q) {
     return (
       <Button
-        variant="ghost"
+        variant="outline"
         size="icon-sm"
         aria-label="Search activity"
         onClick={() => setOpened(true)}

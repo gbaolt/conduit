@@ -17,8 +17,8 @@ type SummaryControls = ReturnType<typeof useSummaryRun> & {
 const SummaryContext = createContext<SummaryControls | null>(null);
 
 /**
- * Holds the summary of one conversation or one thread. The header menu that asks for it and the card at the
- * end of the log that shows it sit apart, so both reach it here.
+ * Holds the summary of one conversation or one thread. The header menu that asks for it and the dialog that
+ * shows it sit apart, so both reach it here.
  */
 export function SummaryProvider({
   target,

@@ -90,7 +90,7 @@ export class MentionNode extends TextNode {
   createDOM(config: EditorConfig): HTMLElement {
     const dom = super.createDOM(config);
     dom.className =
-      'mention text-primary bg-primary/10 rounded-sm px-0.5 font-medium';
+      'mention text-link bg-primary/10 rounded-sm px-0.5 font-medium';
     return dom;
   }
 

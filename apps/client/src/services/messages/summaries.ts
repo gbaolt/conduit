@@ -100,16 +100,18 @@ export function useSummaryRun(target: SummaryTarget) {
     [stop, target.kind, id]
   );
 
-  const dismiss = useCallback(() => {
-    stop();
-    setState({ status: 'idle' });
-  }, [stop]);
-
+  // The shared message reaches the conversation through its live stream. The dialog closes once the share button
+  // has shown its success state.
   const share = useMutation({
     mutationFn: (summaryId: string) => client.summaries.share({ summaryId }),
-    // The shared message reaches the conversation through its live stream.
-    onSuccess: dismiss,
   });
+  const { reset: resetShare } = share;
+
+  const dismiss = useCallback(() => {
+    stop();
+    resetShare();
+    setState({ status: 'idle' });
+  }, [stop, resetShare]);
 
   return {
     state,

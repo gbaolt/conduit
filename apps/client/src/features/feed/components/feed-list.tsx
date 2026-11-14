@@ -55,7 +55,8 @@ import { FeedViewTabs } from './feed-view-tabs';
 /** Tabs, toolbar, and rows share one gutter, so they share one left and one right edge. */
 const column = 'w-full px-4 sm:px-5';
 
-function FeedListHeader() {
+/** `children` sit at the header's end, such as Catch me up. */
+function FeedListHeader({ children }: { children?: ReactNode }) {
   const unread = useFeedUnreadCount();
 
   return (
@@ -67,6 +68,7 @@ function FeedListHeader() {
           {unread} unread
         </span>
       )}
+      <div className="ml-auto flex items-center">{children}</div>
     </header>
   );
 }
@@ -173,7 +175,7 @@ function FeedListState({
   action?: { label: string; onClick: () => void };
 }) {
   return (
-    <Empty className="-mt-8 pt-0">
+    <Empty className="pt-0">
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <Icon />
@@ -247,15 +249,13 @@ function FeedListEmpty({ input }: { input: FeedListInput }) {
   );
 }
 
-/** The toolbar and the rows of one filter, with the rows' selection. `children` sit above the rows. */
+/** The toolbar and the rows of one filter, with the rows' selection. */
 function FeedListBody({
   input,
   sort,
-  children,
 }: {
   input: FeedListInput;
   sort: FeedSort;
-  children?: ReactNode;
 }) {
   const {
     data,
@@ -358,7 +358,6 @@ function FeedListBody({
       </div>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-6">
         <div className={cn(column, 'flex flex-1 flex-col')}>
-          {children}
           <div className="-mx-3 flex flex-1 flex-col">{rows}</div>
         </div>
       </div>
@@ -379,7 +378,9 @@ export function FeedList() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <FeedListHeader />
+      <FeedListHeader>
+        <CatchMeUp />
+      </FeedListHeader>
       <div className="shrink-0 border-b">
         <div className={column}>
           <FeedViewTabs views={views.views} active={active}>
@@ -396,9 +397,7 @@ export function FeedList() {
             q: search,
           }}
           sort={sort}
-        >
-          <CatchMeUp />
-        </FeedListBody>
+        />
       </MentionNames>
     </div>
   );

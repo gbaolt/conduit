@@ -68,14 +68,14 @@ function CopyJoinLinkButton() {
 function InviteResult({ result }: { result: CreateInvitationsResult }) {
   return (
     <div className="flex flex-col gap-3 text-sm" role="status">
-      {result.sent.length > 0 ? (
+      {result.sent.length > 0 && (
         <p>
           Sent {result.sent.length}{' '}
           {result.sent.length === 1 ? 'invitation' : 'invitations'} to{' '}
           {result.sent.join(', ')}.
         </p>
-      ) : null}
-      {result.skipped.length > 0 ? (
+      )}
+      {result.skipped.length > 0 && (
         <div>
           <p className="text-muted-foreground">Skipped</p>
           <ul>
@@ -86,7 +86,7 @@ function InviteResult({ result }: { result: CreateInvitationsResult }) {
             ))}
           </ul>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
@@ -175,7 +175,7 @@ export function InviteDialog({
                 autoFocus
               />
 
-              {error ? (
+              {error && (
                 <p
                   id="invite-emails-error"
                   role="alert"
@@ -183,7 +183,7 @@ export function InviteDialog({
                 >
                   {error}
                 </p>
-              ) : null}
+              )}
             </div>
 
             <div className="flex items-center justify-between gap-4">

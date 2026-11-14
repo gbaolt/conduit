@@ -50,6 +50,8 @@ Before implementing:
 
 Before you write code, load every skill whose row matches the task. Load them yourself; the user won't name them. The `conduit-*` skills live in `.agents/skills/<name>/SKILL.md`. An agent without a Skill tool reads that file directly.
 
+Before building or changing UI, read `DESIGN.md`.
+
 | When the task touches                                              | Load                                                                                                                                                                                                                                      |
 | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | New files or folders, moved code, or a new feature                 | `conduit-structure`, `conduit-compponents`, `mattpocock-skills:codebase-design`                                                                                                                                                           |
@@ -67,7 +69,10 @@ Before you write code, load every skill whose row matches the task. Load them yo
 
 - Open every PR against `staging`. A finished project lands on `main` through one final PR from `staging`.
 - Write commit messages as conventional commits. commitlint rejects a body line of 100 characters or more.
-- End your reply with the checks you ran and the checks you skipped. Signed-in flows need a session that agent browsers lack, so ask the user to check those.
+- When asked to commit, stage only the hunks this session wrote. Other uncommitted edits in the tree stay out of the commit, unchanged. <!-- 2026-11-14: "just commit the changes in this thread only" -->
+- When comparing model or provider cost, list every tier the provider offers and include cache read and cache write prices. <!-- 2026-11-14: "what's the cheapest tier? have you considered the cache read and cache write pricing?" -->
+- End your reply with the checks you ran and the checks you skipped.
+- To check a signed-in flow, sign up a test account with a `delivered+<tag>@resend.dev` address, mark it verified in the dev database, and list the test data you left behind. Never seed production. <!-- 2026-11-14: "show me screenshots, you can create a test account to access the app" -->
 
 ---
 

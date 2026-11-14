@@ -67,7 +67,7 @@ Each part wraps its shadcn counterpart and adds what only the app knows: `RoomGr
 | Layout of the surrounding list: gutters, padding, gaps | the part's `className`                                                         |
 | Motion tied to app timing, such as a new row fading in | the part's `className`                                                         |
 
-Set the variant once on the root part. Child parts style themselves with `group-data-[variant=…]/<slot>:` selectors, as `UI.MessageAvatar` does with `group-data-[variant=log]/message:`. Adding a variant is the one reason to change an existing `packages/ui` file. A variant axis earns its place when callers pick between two or more real values, as the eight `size`s of `button.tsx` do.
+Set the variant once on the root part. Child parts style themselves with `group-data-[variant=…]/<slot>:` selectors, as `UI.MessageAvatar` does with `group-data-[variant=log]/message:`. Adding a variant is the one reason to change an existing `packages/ui` file. When a `packages/ui` component lacks a shape or size you need, add a variant to it, or to the core it renders. Never re-implement it in a new component, and never narrow its props: callers keep the full API even when the diff grows. <!-- 2026-11-14: "I prefer adding a 3x4 variant, although that'll take larger diff but still keep the component's api" --> A variant axis earns its place when callers pick between two or more real values, as the eight `size`s of `button.tsx` do.
 
 ## Prop shapes
 

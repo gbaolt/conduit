@@ -45,7 +45,7 @@ export const SummarySchema = z.object({
 export type Summary = z.infer<typeof SummarySchema>;
 
 export const SummaryEventSchema = z.discriminatedUnion('type', [
-  /** The bullets so far. Each one already cites only messages the model read. */
+  /** The bullets so far, citing only messages the model read. The last may have no source yet while it is written. */
   z.object({
     type: z.literal('partial'),
     messageCount: z.number().int(),

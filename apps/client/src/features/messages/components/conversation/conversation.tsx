@@ -36,7 +36,7 @@ import {
 import { useAuthors } from '../../lib/use-authors';
 import { useIsClient } from '../../lib/use-is-client';
 import { useNewMarker } from '../../lib/use-new-marker';
-import { SummaryCard } from '../summary/summary-card';
+import { SummaryDialog } from '../summary/summary-dialog';
 import { ConversationComposer } from './conversation-composer';
 import { ConversationMessages } from './conversation-messages';
 import { ConversationTyping } from './conversation-typing';
@@ -267,13 +267,6 @@ export function Conversation({
                   setScrollTarget(null);
                   setFocusedId(messageId);
                 }}
-                end={
-                  <SummaryCard
-                    shareLabel={SHARE_LABELS[kind]}
-                    canShare={canPost}
-                    onSource={setScrollTarget}
-                  />
-                }
                 newMarkerId={markerId}
                 onRead={markRead}
               />
@@ -284,6 +277,11 @@ export function Conversation({
             )}
 
             <ComposerFade />
+            <SummaryDialog
+              shareLabel={SHARE_LABELS[kind]}
+              canShare={canPost}
+              onSource={setScrollTarget}
+            />
 
             <div
               ref={composerRef}
