@@ -2,7 +2,7 @@
  * Runs three fixed 50-message threads, and one fixed catch-up across three rooms, through the real model and
  * fails when a bullet cites a message that does not support it. Run it once per model change:
  *
- *   OPENROUTER_API_KEY=... AI_SUMMARY_MODEL=nvidia/nemotron-3.5-super-vl:free pnpm --filter server eval:summaries
+ *   OPENROUTER_API_KEY=... AI_SUMMARY_MODEL=deepseek/deepseek-v4.1-flash-1017 pnpm --filter server eval:summaries
  *
  * Each message in a fixture belongs to one topic and carries that topic's two marker words. A cited message
  * supports a bullet when the bullet uses a marker word of the message's topic. Filler messages ("ok", "+1")

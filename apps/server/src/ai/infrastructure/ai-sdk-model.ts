@@ -13,7 +13,7 @@ type Env = Record<string, string | undefined>;
 
 /**
  * Production reaches models through the Vercel AI Gateway, which signs in with `AI_GATEWAY_API_KEY` or, on Vercel,
- * the deployment's OIDC token. Development reaches OpenRouter's `:free` models with `OPENROUTER_API_KEY`.
+ * the deployment's OIDC token. Without those, development reaches OpenRouter with `OPENROUTER_API_KEY`.
  * `AI_SUMMARY_MODEL` names the model in whichever provider answers.
  */
 export function selectModel(

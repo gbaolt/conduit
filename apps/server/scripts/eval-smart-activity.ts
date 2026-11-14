@@ -2,7 +2,7 @@
  * Runs 12 fixed Activity items through the real model, in one call as `feed.rank` makes it, and fails when a
  * direct question to the recipient is not `urgent`, or a "thanks" is `urgent`. Run it once per model change:
  *
- *   OPENROUTER_API_KEY=... AI_SUMMARY_MODEL=nvidia/nemotron-3.5-super-vl:free pnpm --filter server eval:smart-activity
+ *   OPENROUTER_API_KEY=... AI_SUMMARY_MODEL=deepseek/deepseek-v4.1-flash-1017 pnpm --filter server eval:smart-activity
  *
  * One fixture is a "thanks" that asks the model to rate it urgent, so a pass also shows the prompt holds
  * against a message that steers. The rest carry no expectation and only print what the model said.
