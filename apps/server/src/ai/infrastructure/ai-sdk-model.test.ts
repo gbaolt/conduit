@@ -44,7 +44,7 @@ describe('selectModel', () => {
     expect(model).not.toMatchObject({ provider: 'openrouter.chat' });
   });
 
-  it('denies data collection on every OpenRouter request', async () => {
+  it('lets free providers serve every OpenRouter request, and only those that honor the schema', async () => {
     const bodies: Record<string, unknown>[] = [];
     const fetchImplementation = (async (_url, init) => {
       bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
@@ -60,7 +60,12 @@ describe('selectModel', () => {
 
     expect(bodies).toHaveLength(2);
     for (const body of bodies) {
-      expect(body.provider).toMatchObject({ data_collection: 'deny' });
+      expect(body.provider).toMatchObject({
+        order: ['deepinfra/fp8'],
+        data_collection: 'allow',
+        require_parameters: true,
+      });
+      expect(body.reasoning).toEqual({ effort: 'none' });
       expect(body.max_tokens).toBe(8);
     }
   });

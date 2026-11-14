@@ -12,6 +12,13 @@ import type {
 type Env = Record<string, string | undefined>;
 
 /**
+ * DeepInfra's standard tier is tried first: the cheapest host of the default model that is not a low-priority
+ * `flex` queue. Others take over when it fails. OpenRouter names the tier, and the gateway has only the one.
+ */
+const GATEWAY_ORDER = ['deepinfra'];
+const OPENROUTER_ORDER = ['deepinfra/fp8'];
+
+/**
  * Production reaches models through the Vercel AI Gateway, which signs in with `AI_GATEWAY_API_KEY` or, on Vercel,
  * the deployment's OIDC token. Without those, development reaches OpenRouter with `OPENROUTER_API_KEY`.
  * `AI_SUMMARY_MODEL` names the model in whichever provider answers.
@@ -34,10 +41,16 @@ export function selectModel(
       apiKey: env.OPENROUTER_API_KEY,
       fetch: fetchImplementation,
     });
-    // `deny` keeps free providers that train on prompts out of the route. `require_parameters` keeps out
-    // providers that would ignore the JSON schema.
+    // `allow` lets `:free` providers, which keep and train on prompts, serve the request, so workspace messages
+    // reach them. `require_parameters` keeps out providers that would ignore the JSON schema.
+    // OpenRouter ignores the call's `reasoning: 'none'` and needs its own.
     return openrouter(modelId, {
-      provider: { data_collection: 'deny', require_parameters: true },
+      reasoning: { effort: 'none' },
+      provider: {
+        order: OPENROUTER_ORDER,
+        data_collection: 'allow',
+        require_parameters: true,
+      },
     });
   }
 
@@ -59,6 +72,10 @@ export class AiSdkModel implements ModelPort {
       prompt: request.prompt,
       output: Output.object({ schema: request.schema }),
       maxOutputTokens: request.maxOutputTokens,
+      // A reasoning model otherwise spends the whole output cap thinking and never writes the object.
+      reasoning: 'none',
+      // OpenRouter takes its order from the model above; only the gateway reads this.
+      providerOptions: { gateway: { order: GATEWAY_ORDER } },
       abortSignal: request.signal,
       temperature: 0.2,
       maxRetries: 1,
