@@ -20,6 +20,10 @@ UI taste for Conduit, written from corrections the owner made. Every rule here i
   Why: a radius nested inside another must be smaller than its container.
   <!-- 2026-11-13: owner changed rounded-lg → rounded-md in button-group, toggle-group, select; rounded-md → rounded-sm on menu items -->
 
+- **Every AI feature a person starts (thread, channel and DM summaries, Catch me up, and any new one) opens in a `Dialog`. Never render its output inline in the page.** Passive AI labels, such as the urgency note on an Activity row, stay inline.
+  Why: the output is temporary and must not push the conversation or the feed around.
+  <!-- 2026-11-14: "I prefer a dialog for each AI feature, instead of rendering them inline." -->
+
 ## Color
 
 - **Link-style text and mention pills use `text-link` (the `--color-link` token), never `text-primary`.**
@@ -34,6 +38,10 @@ UI taste for Conduit, written from corrections the owner made. Every rule here i
 - **An icon inside a `Button` gets `data-icon="inline-start"` or `data-icon="inline-end"` and no size class.**
   Why: the button variant then sizes and spaces the icon.
   <!-- 2026-11-07, 2026-11-09: owner replaced size-3.5 classes with data-icon="inline-start" in settings-nav and message-row -->
+
+- **Text an AI model writes renders through `Markdown` from `@/components/markdown`, never as plain text.**
+  Why: the same text, once shared to a channel, renders as Markdown, so the dialog must show it the same way.
+  <!-- 2026-11-14: "Why not use the markdown rendering? Our own markdown renderer?" -->
 
 ## Spacing & layout
 
@@ -53,6 +61,10 @@ UI taste for Conduit, written from corrections the owner made. Every rule here i
   Why: a popup that just appears feels abrupt.
   <!-- 2026-11-07: owner removed animate-none! from combobox, context-menu, dropdown-menu, select -->
 
+- **An AI loading state shows `AILoader` (`@conduit/ui/components/ai-loader`) in the leading slot (the bullet gutter or icon spot), and its status text uses the `shimmer` class from `shadcn/tailwind.css`.** Never a spinner, a `Skeleton` or an empty indent. Each caller picks a `dotSize` that fits its slot.
+  Why: every AI wait looks the same and leaves no blank gap.
+  <!-- 2026-11-14: "Use shadcn text-shimmer css for the AI loading"; "render the ai-loader.tsx to replace that gap"; owner set dotSize={2} in the summary dialog -->
+
 ## Interaction
 
 - **Typeahead and picker menus (mentions, emoji, commands) keep every row one fixed height: icon or avatar, the name, and at most a short tag such as "You". The highlighted row's full detail (email, description) shows in a fixed-height footer strip, never inside the row.**
@@ -65,8 +77,15 @@ UI taste for Conduit, written from corrections the owner made. Every rule here i
   Why: the person can see the current state without opening the menu.
   <!-- 2026-11-13: "Don't just render the checkbox, render the select content label too (render the default one if none selected)" -->
 
+- **AI responses stream into view as the model writes them. The reasoning trace is never sent to the client or shown.**
+  Why: people watch the answer form instead of waiting on a loader, and reasoning is noise to them.
+  <!-- 2026-11-14: "stream AI response (response only, do not render reasoning trace)" -->
+
 ## Code style
 
 - **JSX conditionals use `cond && (…)`, never `cond ? (…) : null`. When the condition is a number, use the ternary**, so a `0` never renders.
   Why: `&&` is shorter to read; the number case is the one place it leaks. Lint flags the ternary; disable it on the line for a number condition.
   <!-- 2026-11-07: owner rewrote `? … : null` to `&&` in member-actions, workspace-header; 2026-11-14: "When a condition is a number, use ternary." -->
+- **Changing the search params of the page on screen (`thread`, `message`, filters) goes through nuqs (`useQueryState` / `useQueryStates`).** Never a `<Link>`, `router.push` or `useSearchParams` to the same page. Lint bans `useSearchParams`.
+  Why: a Next navigation updates the URL, but nuqs state never sees the change, so nothing reacts.
+  <!-- 2026-11-14: "It only append the query param to the url, but not changing the state. Use nuqs for that." -->

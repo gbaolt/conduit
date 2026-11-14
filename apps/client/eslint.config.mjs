@@ -82,9 +82,18 @@ function serviceRules(service) {
   ].filter(Boolean);
 }
 
+const searchParams = {
+  name: 'next/navigation',
+  importNames: ['useSearchParams'],
+  message:
+    'Read and set search params with nuqs (useQueryState / useQueryStates). See DESIGN.md › Code style.',
+};
+
 const restrict = (files, patterns) => ({
   files,
-  rules: { 'no-restricted-imports': ['error', { patterns }] },
+  rules: {
+    'no-restricted-imports': ['error', { patterns, paths: [searchParams] }],
+  },
 });
 
 /** @type {import("eslint").Linter.Config[]} */
