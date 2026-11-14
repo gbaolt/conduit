@@ -180,7 +180,6 @@ export function ConversationMessages({
   scrollTarget,
   focusedId,
   onScrollReached,
-  end,
   newMarkerId,
   onRead,
 }: {
@@ -210,8 +209,6 @@ export function ConversationMessages({
   focusedId: string | null;
   /** Called once the target is on screen, or null when it cannot be found. */
   onScrollReached: (messageId: string | null) => void;
-  /** After the last message, such as the summary card. */
-  end?: ReactNode;
   /** The message the New marker sits above. */
   newMarkerId: string | null;
   /** Called with the newest message once the viewer has read to the end. */
@@ -288,7 +285,6 @@ export function ConversationMessages({
                 )}
               </MessageScrollerItem>
             ))}
-            {end}
           </MessageScrollerContent>
         </MessageScrollerViewport>
         <MessageScrollerButton className="data-[direction=end]:bottom-[calc(var(--composer-height,8rem)+0.5rem)]" />

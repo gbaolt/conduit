@@ -3,7 +3,7 @@
 import { Button } from '@conduit/ui/components/button';
 import { IconSparkles } from '@tabler/icons-react';
 
-import { SummaryCard } from '@/features/messages/components/summary/summary-card';
+import { SummaryDialog } from '@/features/messages/components/summary/summary-dialog';
 import {
   SummaryProvider,
   useSummary,
@@ -35,17 +35,15 @@ function CatchMeUpButton() {
   );
 }
 
-/** Summarizes everything the member has not read, above the feed. It marks nothing read, and it is gone while AI is off. */
+/** Summarizes everything the member has not read, in a dialog. It marks nothing read, and it is gone while AI is off. */
 export function CatchMeUp() {
   const { data } = useAiSettings();
   if (data?.aiEnabled !== true) return null;
 
   return (
     <SummaryProvider target={{ kind: 'catch-up' }}>
-      <div className="mb-3">
-        <CatchMeUpButton />
-      </div>
-      <SummaryCard />
+      <CatchMeUpButton />
+      <SummaryDialog />
     </SummaryProvider>
   );
 }
