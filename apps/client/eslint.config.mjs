@@ -107,16 +107,27 @@ export default [
     rules: { 'conduit/family-prefix': 'error' },
   },
   {
-    files: ['src/features/**/*.tsx'],
+    files: ['src/**/*.tsx'],
     rules: {
       'no-restricted-syntax': [
         'error',
         {
           // A render prop hands the element to a primitive, and a file input has no primitive.
           selector:
-            'JSXOpeningElement[name.name=/^(button|input|select|textarea|table|dialog)$/]:not(JSXAttribute > JSXExpressionContainer > JSXElement > JSXOpeningElement):not(:has(JSXAttribute[name.name="type"][value.value="file"]))',
+            'JSXOpeningElement[name.name=/^(button|input|select|textarea|table|dialog|fieldset|legend|label)$/]:not(JSXAttribute > JSXExpressionContainer > JSXElement > JSXOpeningElement):not(:has(JSXAttribute[name.name="type"][value.value="file"]))',
           message:
-            'Build controls from @conduit/ui/components/*. When the primitive is missing, add the shadcn component to packages/ui first.',
+            'Just use shadcn: build controls and forms (Field) from @conduit/ui/components/*. When the primitive is missing, add the shadcn component to packages/ui first.',
+        },
+        {
+          selector: 'Literal[value=/\\btext-primary\\b(?!-)/]',
+          message:
+            'Links and mention pills use text-link (--color-link), not text-primary. See DESIGN.md › Color.',
+        },
+        {
+          selector:
+            ':matches(JSXElement, JSXFragment) > JSXExpressionContainer > ConditionalExpression[alternate.type="Literal"][alternate.raw="null"]',
+          message:
+            'Use `cond && (…)`. Keep the ternary only when cond is a number, with an eslint-disable-next-line. See DESIGN.md › Code style.',
         },
       ],
     },

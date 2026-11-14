@@ -50,6 +50,8 @@ Before implementing:
 
 Before you write code, load every skill whose row matches the task. Load them yourself; the user won't name them. The `conduit-*` skills live in `.agents/skills/<name>/SKILL.md`. An agent without a Skill tool reads that file directly.
 
+Before building or changing UI, read `DESIGN.md`.
+
 | When the task touches                                              | Load                                                                                                                                                                                                                                      |
 | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | New files or folders, moved code, or a new feature                 | `conduit-structure`, `conduit-compponents`, `mattpocock-skills:codebase-design`                                                                                                                                                           |
