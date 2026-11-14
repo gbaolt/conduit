@@ -224,6 +224,7 @@ function VisuallyHiddenInput<T = InputValue>(
   }, [style, controlSize]);
 
   return (
+    // eslint-disable-next-line no-restricted-syntax
     <input
       type={type}
       {...inputProps}

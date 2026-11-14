@@ -1,4 +1,7 @@
 import { cn } from '@conduit/ui/lib/utils';
+import type { Route } from 'next';
+import Link from 'next/link';
+import type { ComponentProps } from 'react';
 import ReactMarkdown, { type Components, type Options } from 'react-markdown';
 import rehypeExternalLinks from 'rehype-external-links';
 import rehypeSanitize from 'rehype-sanitize';
@@ -29,8 +32,18 @@ export function dom<T extends { node?: unknown }>({ node, ...props }: T) {
   return props;
 }
 
+/** A link in rendered Markdown. A link into the app navigates without a reload. `//host` is another site. */
+export function MarkdownLink({ href, ...rest }: ComponentProps<'a'>) {
+  return href?.startsWith('/') && !href.startsWith('//') ? (
+    <Link href={href as Route} scroll={false} {...rest} />
+  ) : (
+    <a href={href} {...rest} />
+  );
+}
+
 // Typeset styles everything else. These only add behaviour Markdown cannot carry.
 const baseComponents: Components = {
+  a: (props) => <MarkdownLink {...dom(props)} />,
   pre: (props) => {
     const { children, ...rest } = dom(props);
     const { 'data-code': code, 'data-language': language } = rest as Record<
@@ -59,6 +72,7 @@ const baseComponents: Components = {
   },
   table: (props) => (
     <div className="typeset-scroll">
+      {/* eslint-disable-next-line no-restricted-syntax -- a table a message wrote in Markdown, styled by typeset */}
       <table {...dom(props)} />
     </div>
   ),

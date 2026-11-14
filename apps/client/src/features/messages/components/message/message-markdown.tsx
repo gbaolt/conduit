@@ -1,9 +1,11 @@
 import { Twemoji } from '@conduit/ui/components/twemoji';
-import { memo, use } from 'react';
+import { usePathname } from 'next/navigation';
+import { parseAsString, useQueryStates } from 'nuqs';
+import { type ComponentProps, memo, use } from 'react';
 import type { Components } from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 
-import { dom, Markdown } from '@/components/markdown';
+import { dom, Markdown, MarkdownLink } from '@/components/markdown';
 
 import { MentionViewer, useMentionName } from '../../context/mention-names';
 import { remarkMentions } from '../../lib/remark-mentions';
@@ -28,7 +30,45 @@ function Mention({ target }: { target: string }) {
   );
 }
 
+const linkParams = { thread: parseAsString, message: parseAsString };
+
+/**
+ * A link to a message in the conversation on screen, such as a shared summary's source, sets `?thread=` and
+ * `?message=` through nuqs. A router navigation changes the URL but not the state nuqs holds once the conversation
+ * has cleared `?message=`, so a second source would not scroll. Other links navigate as usual.
+ */
+function MessageLink(props: ComponentProps<'a'>) {
+  const { href } = props;
+  const pathname = usePathname();
+  const [, setLinked] = useQueryStates(linkParams);
+  const target =
+    href?.startsWith('/') && !href.startsWith('//')
+      ? new URL(href, 'http://conduit.local')
+      : null;
+  const message =
+    target?.pathname === pathname ? target.searchParams.get('message') : null;
+  if (!target || !message) return <MarkdownLink {...props} />;
+
+  return (
+    <a
+      {...props}
+      onClick={(event) => {
+        const newTab =
+          event.button !== 0 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey;
+        if (newTab) return;
+        event.preventDefault();
+        void setLinked({ thread: target.searchParams.get('thread'), message });
+      }}
+    />
+  );
+}
+
 const components: Components = {
+  a: (props) => <MessageLink {...dom(props)} />,
   span: (props) => {
     const {
       'data-mention': target,
