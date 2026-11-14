@@ -4,6 +4,7 @@ import type {
   ModelSummary,
   Room,
   Summary,
+  SummaryEvent,
 } from '@conduit/contract';
 import { describe, expect, it } from 'vitest';
 
@@ -273,6 +274,29 @@ describe('SummariesService', () => {
       'partial',
       'partial',
       'done',
+    ]);
+  });
+
+  it('streams a bullet word by word before its sources arrive', async () => {
+    const { model } = fakeModel(
+      { bullets: [{ text: 'Linh' }] },
+      { bullets: [{ text: 'Linh ships Friday.' }] },
+      { bullets: [{ text: 'Linh ships Friday.', sourceIds: ['m1'] }] }
+    );
+    const { service } = setup({
+      views: { linh: channelFor('member') },
+      model,
+    });
+
+    const events = await finish(await service.summarizeThread(linh, 'cm-1'));
+
+    expect(
+      (events as SummaryEvent[]).flatMap((event) =>
+        event.type === 'partial' ? [event.bullets.map((b) => b.text)] : []
+      )
+    ).toEqual([['Linh'], ['Linh ships Friday.'], ['Linh ships Friday.']]);
+    expect(summaryOf(events).bullets).toEqual([
+      { text: 'Linh ships Friday.', sourceIds: ['cm-1'] },
     ]);
   });
 

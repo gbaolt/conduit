@@ -38,6 +38,27 @@ describe('citedBullets', () => {
     ).toEqual([]);
   });
 
+  it('streams the bullet being written before its sources arrive, and only that one', () => {
+    const writing = { writing: true };
+    expect(
+      citedBullets({ bullets: [{ text: 'Linh ships' }] }, labels, writing)
+    ).toEqual([{ text: 'Linh ships', sourceIds: [] }]);
+    expect(
+      citedBullets(
+        { bullets: [{ text: 'uncited', sourceIds: [] }, { text: 'Next' }] },
+        labels,
+        writing
+      )
+    ).toEqual([{ text: 'Next', sourceIds: [] }]);
+    expect(
+      citedBullets(
+        { bullets: [{ text: 'Done', sourceIds: ['m1', 'm'] }] },
+        labels,
+        writing
+      )
+    ).toEqual([{ text: 'Done', sourceIds: ['cm-1'] }]);
+  });
+
   it('holds a bullet back until a source of it has arrived', () => {
     expect(citedBullets({ bullets: [{ text: 'half' }] }, labels)).toEqual([]);
     expect(

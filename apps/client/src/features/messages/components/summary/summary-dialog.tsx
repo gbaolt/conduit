@@ -1,6 +1,7 @@
 'use client';
 
 import { citedSourceIds, type SummaryBullet } from '@conduit/contract';
+import { AILoader } from '@conduit/ui/components/ai-loader';
 import { Button } from '@conduit/ui/components/button';
 import {
   Dialog,
@@ -13,7 +14,9 @@ import {
 } from '@conduit/ui/components/dialog';
 import { format, isToday } from 'date-fns';
 import { useState } from 'react';
+import type { Components } from 'react-markdown';
 
+import { Markdown } from '@/components/markdown';
 import type { SummaryState } from '@/services/messages/summaries';
 
 import { useSummary } from '../../context/summary';
@@ -21,6 +24,8 @@ import { SummarySinceDialog } from './summary-menu';
 import { SummarySource } from './summary-source';
 
 const noop = () => undefined;
+
+const inline: Components = { p: ({ children }) => <>{children}</> };
 
 function Sources({
   ids,
@@ -77,7 +82,9 @@ function Bullets({
     <ul className="list-disc space-y-2 pl-5">
       {bullets.map((bullet, index) => (
         <li key={index} className="text-sm leading-[22px]">
-          {bullet.text}{' '}
+          <Markdown className="typeset-chat inline" components={inline}>
+            {bullet.text}
+          </Markdown>{' '}
           <Sources
             ids={bullet.sourceIds}
             order={order}
@@ -88,9 +95,13 @@ function Bullets({
         </li>
       ))}
       {streaming && bullets.length === 0 && (
-        <li className="text-muted-foreground list-none text-sm">
-          Reading the messages
-          {caret}
+        <li className="text-muted-foreground -ml-5 flex list-none items-center text-sm">
+          <span aria-hidden className="flex w-5 shrink-0">
+            <AILoader dotSize={2} />
+          </span>
+          <span className="shimmer motion-reduce:shimmer-none">
+            Reading the messages
+          </span>
         </li>
       )}
     </ul>
@@ -157,7 +168,11 @@ export function SummaryDialog({
           if (!open) dismiss();
         }}
       >
-        <DialogContent className="sm:max-w-lg" aria-busy={streaming}>
+        {/* Pinned to the top, so the text being read stays put while the summary streams in below it. */}
+        <DialogContent
+          className="top-[10svh] translate-y-0 sm:max-w-lg"
+          aria-busy={streaming}
+        >
           <DialogHeader>
             <DialogTitle>{heading(state, catchUp)}</DialogTitle>
             <DialogDescription>{description(state)}</DialogDescription>
