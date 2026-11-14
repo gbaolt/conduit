@@ -16,6 +16,7 @@ import { format, isToday } from 'date-fns';
 import { useState } from 'react';
 import type { Components } from 'react-markdown';
 
+import { buttonStatus, StatusButton } from '@/components/async/status-button';
 import { Markdown } from '@/components/markdown';
 import type { SummaryState } from '@/services/messages/summaries';
 
@@ -209,12 +210,17 @@ export function SummaryDialog({
                 <Button onClick={retry}>Retry</Button>
               )}
             {state.status === 'done' && !catchUp && (
-              <Button
-                disabled={!canShare || share.isPending}
+              <StatusButton
+                disabled={!canShare}
+                status={buttonStatus(share)}
+                onStatusChange={(next) => {
+                  if (next === 'idle') dismiss();
+                }}
                 onClick={() => share.mutate(state.summary.id)}
+                successLabel="Shared"
               >
                 {shareLabel}
-              </Button>
+              </StatusButton>
             )}
           </DialogFooter>
         </DialogContent>
