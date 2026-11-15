@@ -13,7 +13,7 @@ import {
 import { useQueryState } from 'nuqs';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
-import { ConversationSkeleton } from '@/components/conversation-skeleton';
+import { ConversationLoading } from '@/components/conversation-skeleton';
 import { useRoomName } from '@/features/messages/hooks/use-room-name';
 import { sessionQuery } from '@/services/auth/queries';
 import { useJoinChannel } from '@/services/channels/hooks';
@@ -272,7 +272,7 @@ export function Conversation({
               />
             ) : (
               <div className="flex min-h-0 flex-1 flex-col pb-(--composer-height,8rem)">
-                <ConversationSkeleton />
+                <ConversationLoading />
               </div>
             )}
 

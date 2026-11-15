@@ -2,7 +2,7 @@ import { Skeleton } from '@conduit/ui/components/skeleton';
 
 import {
   ConversationComposerSkeleton,
-  ConversationSkeleton,
+  ConversationLoading,
 } from '@/components/conversation-skeleton';
 
 /** Stands in for the `ChannelHeader` bar: the 48px header. */
@@ -27,7 +27,7 @@ export function RoomPageSkeleton() {
       className="flex h-full flex-col"
     >
       <RoomHeaderSkeleton />
-      <ConversationSkeleton />
+      <ConversationLoading />
       <div className="px-4 pb-4 sm:px-5">
         <ConversationComposerSkeleton />
       </div>
