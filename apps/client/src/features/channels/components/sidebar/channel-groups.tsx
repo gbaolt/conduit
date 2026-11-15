@@ -28,12 +28,12 @@ import {
 } from '@/services/channels/queries';
 
 import { useChannelDialogs } from '../../context/channel-dialogs-provider';
+import { useCanCreateChannel } from '../../hooks/use-can-create-channel';
 import {
   CHANNELS_GROUP_ID,
   groupSidebar,
   STARRED_GROUP_ID,
 } from '../../lib/group-sidebar';
-import { useCanCreateChannel } from '../../lib/use-can-create-channel';
 import { ChannelItem } from './channel-item';
 import { SidebarSectionMenu } from './sidebar-section-menu';
 

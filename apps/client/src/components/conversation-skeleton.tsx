@@ -56,7 +56,7 @@ export function ConversationComposerSkeleton() {
   return (
     <div
       aria-hidden
-      className="border-input bg-surface text-muted-foreground/60 flex flex-col rounded-lg border shadow-[0_1px_3px_rgb(0_0_0/0.08)] [&_svg]:shrink-0"
+      className="border-input bg-pane text-muted-foreground/60 flex flex-col rounded-lg border shadow-[0_1px_3px_rgb(0_0_0/0.08)] [&_svg]:shrink-0"
     >
       <div className="border-border/60 hidden items-center gap-0.5 border-b px-1.5 py-1 sm:flex">
         {FORMAT_GROUPS.map((group, index) => (

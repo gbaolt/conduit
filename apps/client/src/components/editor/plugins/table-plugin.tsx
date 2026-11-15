@@ -5,7 +5,7 @@ import { Label } from '@conduit/ui/components/label';
 import { INSERT_TABLE_COMMAND } from '@lexical/table';
 import type { LexicalEditor } from 'lexical';
 import type { JSX } from 'react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 export function InsertTableDialog({
   activeEditor,
@@ -14,27 +14,21 @@ export function InsertTableDialog({
   activeEditor: LexicalEditor;
   onClose: () => void;
 }): JSX.Element {
-  const [rows, setRows] = useState('5');
-  const [columns, setColumns] = useState('5');
-  const [isDisabled, setIsDisabled] = useState(true);
-
-  useEffect(() => {
-    const row = Number(rows);
-    const column = Number(columns);
-    if (row && row > 0 && row <= 500 && column && column > 0 && column <= 50) {
-      setIsDisabled(false);
-    } else {
-      setIsDisabled(true);
-    }
-  }, [rows, columns]);
+  const [rows, setRows] = useState('3');
+  const [columns, setColumns] = useState('3');
+  const row = Number(rows);
+  const column = Number(columns);
+  const isDisabled = !(row > 0 && row <= 500 && column > 0 && column <= 50);
 
   const onClick = () => {
     activeEditor.dispatchCommand(INSERT_TABLE_COMMAND, {
       columns,
       rows,
+      // Markdown has a header row and no header column.
+      includeHeaders: { rows: true, columns: false },
     });
-
     onClose();
+    activeEditor.focus();
   };
 
   return (

@@ -74,7 +74,7 @@ export function WorkspaceSidebarPanel({ children }: { children: ReactNode }) {
         minSize={240}
         maxSize={360}
         groupResizeBehavior="preserve-pixel-size"
-        className="bg-surface"
+        className="bg-pane"
       >
         {children}
       </ResizablePanel>

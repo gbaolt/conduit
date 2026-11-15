@@ -9,11 +9,8 @@ import remarkGfm from 'remark-gfm';
 
 import {
   CodeBlock,
-  CodeBlockActions,
   CodeBlockContent,
-  CodeBlockCopyButton,
-  CodeBlockHeader,
-  CodeBlockWrapButton,
+  CodeBlockToolbar,
 } from '@/components/code-block';
 import { rehypeCode } from '@/lib/markdown/rehype-code';
 import { remarkHtmlAsText } from '@/lib/markdown/remark-html-as-text';
@@ -53,19 +50,9 @@ const baseComponents: Components = {
     if (typeof code !== 'string') return <pre>{children}</pre>;
 
     const lang = typeof language === 'string' ? language : undefined;
-    const actions = (
-      <>
-        <CodeBlockWrapButton />
-        <CodeBlockCopyButton value={code} />
-      </>
-    );
     return (
       <CodeBlock>
-        {lang ? (
-          <CodeBlockHeader language={lang}>{actions}</CodeBlockHeader>
-        ) : (
-          <CodeBlockActions>{actions}</CodeBlockActions>
-        )}
+        <CodeBlockToolbar code={code} language={lang} />
         <CodeBlockContent code={code} language={lang} />
       </CodeBlock>
     );

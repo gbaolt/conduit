@@ -38,12 +38,12 @@ import { channelSectionsQuery } from '@/services/channels/queries';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
 import { useChannelDialogs } from '../../context/channel-dialogs-provider';
+import { useExitOpenChannel } from '../../hooks/use-exit-open-channel';
 import {
   type ChannelMenuGroup,
   type ChannelSubmenu,
   getChannelActions,
 } from '../../lib/channel-actions';
-import { useExitOpenChannel } from '../../lib/use-exit-open-channel';
 
 // Only the open menu mounts this, so a sidebar of rows pays for none of it until a menu opens.
 function useChannelActions(channel: Room) {

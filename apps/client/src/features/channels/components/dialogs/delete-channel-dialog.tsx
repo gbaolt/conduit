@@ -16,7 +16,7 @@ import { StatusButton } from '@/components/async/status-button';
 import { useDeleteChannel } from '@/services/channels/hooks';
 
 import { useChannelDialogs } from '../../context/channel-dialogs-provider';
-import { useExitOpenChannel } from '../../lib/use-exit-open-channel';
+import { useExitOpenChannel } from '../../hooks/use-exit-open-channel';
 
 export function DeleteChannelDialog({ channel }: { channel: Room }) {
   const { close } = useChannelDialogs();

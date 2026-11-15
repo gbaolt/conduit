@@ -6,7 +6,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
 import { ListBackLink } from '@/components/list-view';
-import { useActivateRoomWorkspace } from '@/features/rooms/lib/use-activate-room-workspace';
+import { useActivateRoomWorkspace } from '@/features/rooms/hooks/use-activate-room-workspace';
 import { roomQuery } from '@/services/rooms/queries';
 
 import { useChannelDialogs } from '../../context/channel-dialogs-provider';

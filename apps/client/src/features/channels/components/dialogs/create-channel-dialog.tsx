@@ -24,7 +24,7 @@ import { useCreateChannel } from '@/services/channels/hooks';
 import { ChannelNameField } from '../../../rooms/components/channel-name-field';
 import { ChannelNameInputSchema } from '../../../rooms/lib/channel-name-input';
 import { useChannelDialogs } from '../../context/channel-dialogs-provider';
-import { useCanCreateChannel } from '../../lib/use-can-create-channel';
+import { useCanCreateChannel } from '../../hooks/use-can-create-channel';
 
 const CreateChannelFormSchema = z.object({
   name: ChannelNameInputSchema,

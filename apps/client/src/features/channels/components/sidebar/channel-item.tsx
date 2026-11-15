@@ -36,7 +36,7 @@ export function ChannelItem({ channel }: { channel: Room }) {
             <SidebarMenuAction
               showOnHover
               aria-label={`Actions for #${channel.name}`}
-              className="hover:bg-surface/10 aria-expanded:bg-surface/10 text-primary-foreground! mr-0.5 rounded-sm"
+              className="hover:bg-pane/10 aria-expanded:bg-pane/10 text-primary-foreground! mr-0.5 rounded-sm"
             />
           }
         >

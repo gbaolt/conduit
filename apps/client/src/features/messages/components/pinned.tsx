@@ -19,7 +19,7 @@ import { roomQuery } from '@/services/rooms/queries';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
 import { MentionNames } from '../context/mention-names';
-import { useAuthors } from '../lib/use-authors';
+import { useAuthors } from '../hooks/use-authors';
 import { MessageExcerpt } from './message/message-excerpt';
 
 /** The channel header's Pinned count, which opens the list. It renders nothing while no message is pinned. */

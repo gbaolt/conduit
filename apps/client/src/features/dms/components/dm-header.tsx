@@ -14,7 +14,7 @@ import type { ReactNode } from 'react';
 
 import { ListBackLink } from '@/components/list-view';
 import { RoomNotifyMenu } from '@/features/rooms/components/room-notify-menu';
-import { useActivateRoomWorkspace } from '@/features/rooms/lib/use-activate-room-workspace';
+import { useActivateRoomWorkspace } from '@/features/rooms/hooks/use-activate-room-workspace';
 import { sessionQuery } from '@/services/auth/queries';
 import { dmTitle } from '@/services/dms/dm-title';
 import { useDm } from '@/services/dms/hooks';

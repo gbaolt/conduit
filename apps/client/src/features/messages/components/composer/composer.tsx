@@ -38,6 +38,7 @@ import {
   useState,
 } from 'react';
 
+import { CodeBlockPlugin } from '@/components/editor/plugins/code-block-plugin';
 import { CodeHighlightPlugin } from '@/components/editor/plugins/code-highlight-plugin';
 import { EmojiPickerPlugin } from '@/components/editor/plugins/emoji-picker-plugin';
 import { FloatingLinkEditorPlugin } from '@/components/editor/plugins/floating-link-editor-plugin';
@@ -214,7 +215,7 @@ function ComposerBehavior({
           const modifier = event.ctrlKey || event.metaKey;
           if (!modifier) {
             if (isCoarsePointer()) return false;
-            // Enter continues a list or a code block. Ctrl+Enter sends from inside either.
+            // Enter continues a list, a code block, or a table cell. Ctrl+Enter sends from inside any of them.
             const selection = $getSelection();
             const inBlock =
               $isRangeSelection(selection) &&
@@ -222,7 +223,7 @@ function ComposerBehavior({
                 .getNode()
                 .getParents()
                 .some((parent) =>
-                  ['listitem', 'code'].includes(parent.getType())
+                  ['listitem', 'code', 'tablecell'].includes(parent.getType())
                 );
             if (inBlock) return false;
           }
@@ -288,6 +289,7 @@ function ComposerBehavior({
   return (
     <>
       <CodeHighlightPlugin />
+      <CodeBlockPlugin />
       <TabFocusPlugin />
       <Mention
         source={suggestions}
@@ -349,7 +351,7 @@ function ComposerEditable({ placeholder }: { placeholder: string }) {
             {placeholder}
           </div>
         }
-        className="max-h-[40dvh] min-h-11 overflow-y-auto px-3 py-[10.5px] text-sm leading-[23px] outline-none"
+        className="max-h-[25dvh] min-h-11 overflow-y-auto px-3 py-[10.5px] text-sm leading-[23px] outline-none"
       />
     </div>
   );
@@ -409,7 +411,7 @@ export function Composer({
     <div>
       <div
         ref={setAnchor}
-        className="border-input bg-surface relative flex flex-col rounded-lg border shadow-[0_1px_3px_rgb(0_0_0/0.08)]"
+        className="border-input bg-pane relative flex flex-col rounded-lg border shadow-[0_1px_3px_rgb(0_0_0/0.08)]"
       >
         <LexicalExtensionEditorComposer
           key={editor.getKey()}

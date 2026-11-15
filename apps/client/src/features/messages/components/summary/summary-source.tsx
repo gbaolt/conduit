@@ -8,7 +8,7 @@ import Link from 'next/link';
 
 import { threadRootQuery } from '@/services/messages/queries';
 
-import { useRoomName } from '../../lib/use-room-name';
+import { useRoomName } from '../../hooks/use-room-name';
 
 /** The cited message's own conversation, with `?thread=` for a reply and `?message=` to scroll to it. */
 function SummarySourceLink({

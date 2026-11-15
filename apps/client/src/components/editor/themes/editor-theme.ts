@@ -1,5 +1,7 @@
 import '@/components/editor/themes/editor-theme.css';
 
+import { tableClassNames } from '@conduit/ui/components/table';
+import { cn } from '@conduit/ui/lib/utils';
 import type { EditorThemeClasses } from 'lexical';
 
 export const editorTheme: EditorThemeClasses = {
@@ -58,50 +60,19 @@ export const editorTheme: EditorThemeClasses = {
   inlineImage:
     'relative inline-block user-select-none cursor-default inline-editor-image',
   keyword: 'text-accent-foreground bg-accent rounded-sm px-1 font-semibold',
-  code: 'EditorTheme__code',
-  codeHighlight: {
-    atrule: 'EditorTheme__tokenAttr',
-    attr: 'EditorTheme__tokenAttr',
-    boolean: 'EditorTheme__tokenProperty',
-    builtin: 'EditorTheme__tokenSelector',
-    cdata: 'EditorTheme__tokenComment',
-    char: 'EditorTheme__tokenSelector',
-    class: 'EditorTheme__tokenFunction',
-    'class-name': 'EditorTheme__tokenFunction',
-    comment: 'EditorTheme__tokenComment',
-    constant: 'EditorTheme__tokenProperty',
-    deleted: 'EditorTheme__tokenProperty',
-    doctype: 'EditorTheme__tokenComment',
-    entity: 'EditorTheme__tokenOperator',
-    function: 'EditorTheme__tokenFunction',
-    important: 'EditorTheme__tokenVariable',
-    inserted: 'EditorTheme__tokenSelector',
-    keyword: 'EditorTheme__tokenAttr',
-    namespace: 'EditorTheme__tokenVariable',
-    number: 'EditorTheme__tokenProperty',
-    operator: 'EditorTheme__tokenOperator',
-    prolog: 'EditorTheme__tokenComment',
-    property: 'EditorTheme__tokenProperty',
-    punctuation: 'EditorTheme__tokenPunctuation',
-    regex: 'EditorTheme__tokenVariable',
-    selector: 'EditorTheme__tokenSelector',
-    string: 'EditorTheme__tokenSelector',
-    symbol: 'EditorTheme__tokenProperty',
-    tag: 'EditorTheme__tokenProperty',
-    url: 'EditorTheme__tokenOperator',
-    variable: 'EditorTheme__tokenVariable',
-  },
+  // The `<code>` inside `CodeBlockNode`'s figure. `styles/code.css` lays out a block of line spans, and Lexical writes text and `<br>`s.
+  code: 'block pr-(--code-padding-right,1rem) pl-4 outline-none',
   characterLimit: '!bg-destructive/50',
-  table: 'EditorTheme__table w-fit overflow-scroll border-collapse',
-  tableCell:
-    'EditorTheme__tableCell w-24 relative border px-4 py-2 text-left [&[align=center]]:text-center [&[align=right]]:text-right"',
+  tableScrollableWrapper: cn(tableClassNames.container, 'my-2'),
+  table: cn(tableClassNames.table, tableClassNames.body),
+  tableRow: tableClassNames.row,
+  tableCell: cn(tableClassNames.cell, 'relative'),
   tableCellActionButton:
     'EditorTheme__tableCellActionButton bg-background block border-0 rounded-2xl w-5 h-5 text-foreground cursor-pointer',
   tableCellActionButtonContainer:
     'EditorTheme__tableCellActionButtonContainer block right-1 top-1.5 absolute z-10 w-5 h-5',
   tableCellEditing: 'EditorTheme__tableCellEditing rounded-sm shadow-sm',
-  tableCellHeader:
-    'EditorTheme__tableCellHeader bg-muted border px-4 py-2 text-left font-bold [&[align=center]]:text-center [&[align=right]]:text-right',
+  tableCellHeader: tableClassNames.head,
   tableCellPrimarySelected:
     'EditorTheme__tableCellPrimarySelected border border-primary border-solid block h-[calc(100%-2px)] w-[calc(100%-2px)] absolute -left-[1px] -top-[1px] z-10 ',
   tableCellResizer:

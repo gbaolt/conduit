@@ -111,7 +111,7 @@
 
     /* Links. */
     &:where(a) {
-      @apply link-underline text-foreground font-medium;
+      @apply link-underline text-link font-medium;
     }
     &:where(a:focus-visible) {
       outline: 2px solid var(--color-ring, currentColor);
