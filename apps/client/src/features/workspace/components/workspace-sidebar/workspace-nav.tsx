@@ -24,7 +24,7 @@ const LINKS: { label: string; icon: typeof IconMessages; href?: Route }[] = [
   { label: 'Threads', icon: IconMessages, href: '/threads' },
   { label: 'Saved', icon: IconBookmark, href: '/saved' },
   { label: 'Drafts & sent', icon: IconSend },
-  { label: 'Directories', icon: IconAddressBook },
+  { label: 'Directories', icon: IconAddressBook, href: '/directories/people' },
 ];
 
 /** The workspace-wide entries above the channel list. */
@@ -48,7 +48,11 @@ export function WorkspaceNav() {
             {LINKS.map(({ label, icon: Icon, href }) => (
               <SidebarMenuItem key={label}>
                 <SidebarMenuButton
-                  isActive={href === pathname}
+                  // A link stays active on every page of its section, as every Directories tab.
+                  isActive={
+                    href !== undefined &&
+                    pathname.split('/')[1] === href.split('/')[1]
+                  }
                   render={href ? <Link href={href} /> : undefined}
                 >
                   <Icon />
