@@ -64,6 +64,7 @@ Before building or changing UI, read `DESIGN.md`.
 | A new route, layout, or Suspense boundary, or a slow navigation    | `next-cache-components-optimizer`                                                                                                                                                                                                         |
 | `<Link>` prefetching, or what a navigation shows before the click  | `next-partial-prefetching-optimizer`                                                                                                                                                                                                      |
 | A change in `apps/client` that you are about to report as done     | `next-dev-loop`                                                                                                                                                                                                                           |
+| Proving a change in the running app, or the user asks to verify it | `verify-conduit`. Its report and your reply include screenshots                                                                                                                                                                           |
 
 ## 3. Repository workflow
 

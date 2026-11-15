@@ -56,3 +56,7 @@ yarn-error.log*
 # Cloudflare
 .wrangler/
 .dev.vars*
+
+# Verification runs (verify-conduit skill)
+.verify/
+__pycache__/
