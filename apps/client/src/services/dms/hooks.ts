@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { orpc } from '@/lib/orpc';
+import { isUnread, sidebarStateQuery } from '@/services/activity/queries';
 
 import { dmsQuery } from './queries';
 
@@ -49,4 +50,25 @@ export function useConvertDm() {
 export function useDm(roomId: string) {
   const { data: dms } = useQuery(dmsQuery);
   return dms?.find((dm) => dm.id === roomId);
+}
+
+/** How many DMs have messages the viewer has not read, leaving out muted ones and the one open now. */
+export function useUnreadDmCount(openRoomId?: string) {
+  const { data: dms } = useQuery(dmsQuery);
+
+  return (
+    useQuery({
+      ...sidebarStateQuery,
+      select: (rows) => {
+        const ids = new Set(dms?.map((dm) => dm.id));
+        return rows.filter(
+          (row) =>
+            ids.has(row.roomId) &&
+            row.roomId !== openRoomId &&
+            isUnread(row) &&
+            !row.mutedAt
+        ).length;
+      },
+    }).data ?? 0
+  );
 }
