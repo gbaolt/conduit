@@ -10,6 +10,8 @@ import {
   type Room,
   SAVED_MESSAGES_MAX,
   SUMMARY_MESSAGES_MAX,
+  THREAD_PREVIEW_REPLIES,
+  THREADS_MAX,
   type WorkspaceRole,
 } from '@conduit/contract';
 import { Inject, Injectable } from '@nestjs/common';
@@ -24,6 +26,7 @@ import {
 import { messageError } from '@/messages/domain/message-errors';
 import { MessagesRepository } from '@/messages/domain/messages.repository';
 import { SavedMessagesRepository } from '@/messages/domain/saved-messages.repository';
+import { ThreadsRepository } from '@/messages/domain/threads.repository';
 import { RoomsRepository } from '@/rooms/domain/rooms.repository';
 
 export type MessageViewer = {
@@ -40,7 +43,8 @@ export class MessagesService {
     @Inject(SavedMessagesRepository)
     private readonly saved: SavedMessagesRepository,
     @Inject(DmsRepository) private readonly dms: DmsRepository,
-    @Inject(FeedRepository) private readonly feed: FeedRepository
+    @Inject(FeedRepository) private readonly feed: FeedRepository,
+    @Inject(ThreadsRepository) private readonly threads: ThreadsRepository
   ) {}
 
   async list(
@@ -337,16 +341,32 @@ export class MessagesService {
 
   /** Only messages in conversations the viewer can still read, so leaving a private channel hides its saves. */
   async listSaved(viewer: MessageViewer) {
+    return this.saved.list(
+      viewer.userId,
+      await this.readableRoomIds(viewer),
+      SAVED_MESSAGES_MAX
+    );
+  }
+
+  /** Only threads in conversations the viewer can still read. */
+  async listThreads(viewer: MessageViewer) {
+    return this.threads.list(
+      viewer.userId,
+      await this.readableRoomIds(viewer),
+      {
+        threads: THREADS_MAX,
+        replies: THREAD_PREVIEW_REPLIES,
+      }
+    );
+  }
+
+  private async readableRoomIds(viewer: MessageViewer) {
     const [active, archived, dms] = await Promise.all([
       this.channels.list(viewer, false),
       this.channels.list(viewer, true),
       this.dms.list(viewer),
     ]);
-    return this.saved.list(
-      viewer.userId,
-      [...active, ...archived, ...dms].map((conversation) => conversation.id),
-      SAVED_MESSAGES_MAX
-    );
+    return [...active, ...archived, ...dms].map((room) => room.id);
   }
 
   /** The body's mentions, with a user mention kept only for a member of the channel. */

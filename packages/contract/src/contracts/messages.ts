@@ -10,6 +10,7 @@ import {
   ListPinnedOutputSchema,
   ListRepliesInputSchema,
   ListSavedOutputSchema,
+  ListThreadsOutputSchema,
   MessageIdInputSchema,
   MessageSchema,
   ReactionInputSchema,
@@ -138,3 +139,7 @@ export const unsaveMessageContract = oc
 export const listSavedMessagesContract = oc
   .meta(openapi({ method: 'GET', path: '/saved-messages' }))
   .output(ListSavedOutputSchema);
+
+export const listThreadsContract = oc
+  .meta(openapi({ method: 'GET', path: '/threads' }))
+  .output(ListThreadsOutputSchema);
