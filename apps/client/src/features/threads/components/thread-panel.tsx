@@ -3,7 +3,9 @@
 import { Button } from '@conduit/ui/components/button';
 import { IconArrowLeft, IconMessageDots, IconX } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
+import { Suspense } from 'react';
 
+import { ConversationSkeleton } from '@/components/conversation-skeleton';
 import { Conversation } from '@/features/messages/components/conversation/conversation';
 import { SummaryThreadMenu } from '@/features/messages/components/summary/summary-menu';
 import { SummaryProvider } from '@/features/messages/context/summary';
@@ -82,7 +84,10 @@ export function ThreadPanel({
           </p>
         ) : (
           room && (
-            <Conversation roomId={room} parentId={threadId} start={null} />
+            // The Threads page has not loaded this room, and suspending past the panel loops the layout's boundary.
+            <Suspense fallback={<ConversationSkeleton />}>
+              <Conversation roomId={room} parentId={threadId} start={null} />
+            </Suspense>
           )
         )}
       </section>
