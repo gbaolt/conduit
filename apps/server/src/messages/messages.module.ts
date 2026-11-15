@@ -10,9 +10,11 @@ import { MessagesService } from './application/messages.service';
 import { LinkPreviewFetcher } from './domain/link-preview.fetcher';
 import { MessagesRepository } from './domain/messages.repository';
 import { SavedMessagesRepository } from './domain/saved-messages.repository';
+import { ThreadsRepository } from './domain/threads.repository';
 import { HttpLinkPreviewFetcher } from './infrastructure/link-preview.fetcher';
 import { PrismaMessagesRepository } from './infrastructure/prisma-messages.repository';
 import { PrismaSavedMessagesRepository } from './infrastructure/prisma-saved-messages.repository';
+import { PrismaThreadsRepository } from './infrastructure/prisma-threads.repository';
 import { MessagesController } from './presentation/messages.controller';
 
 @Module({
@@ -30,6 +32,7 @@ import { MessagesController } from './presentation/messages.controller';
       provide: SavedMessagesRepository,
       useClass: PrismaSavedMessagesRepository,
     },
+    { provide: ThreadsRepository, useClass: PrismaThreadsRepository },
   ],
   exports: [MessagesService],
 })

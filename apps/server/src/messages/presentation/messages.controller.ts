@@ -221,4 +221,15 @@ export class MessagesController {
         this.messagesService.listSaved(viewerOf(context))
       );
   }
+
+  @Implement(contract.threads.list)
+  listThreads() {
+    return implement(contract.threads.list)
+      .use(authorized)
+      .use(arcjet.read)
+      .use(workspaceMember)
+      .handler(({ context }) =>
+        this.messagesService.listThreads(viewerOf(context))
+      );
+  }
 }
