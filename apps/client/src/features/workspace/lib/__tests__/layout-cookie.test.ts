@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseLayout } from '../layout-cookie';
+import { layoutCookieValue, parseLayout } from '../layout-cookie';
 
 describe('parseLayout', () => {
   it('returns undefined for a missing cookie', () => {
@@ -21,5 +21,20 @@ describe('parseLayout', () => {
       channels: 24.5,
       main: 75.5,
     });
+  });
+});
+
+describe('layoutCookieValue', () => {
+  it('finds and decodes the layout among other cookies', () => {
+    const saved = encodeURIComponent('{"channels":24.5,"main":75.5}');
+    expect(layoutCookieValue(`theme=dark; conduit-layout=${saved}; a=b`)).toBe(
+      '{"channels":24.5,"main":75.5}'
+    );
+  });
+
+  it('returns undefined when the layout is missing or not decodable', () => {
+    expect(layoutCookieValue('')).toBeUndefined();
+    expect(layoutCookieValue('xconduit-layout=1')).toBeUndefined();
+    expect(layoutCookieValue('conduit-layout=%E0%A4%A')).toBeUndefined();
   });
 });
