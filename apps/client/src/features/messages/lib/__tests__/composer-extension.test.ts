@@ -1,5 +1,16 @@
 import { buildEditorFromExtensions } from '@lexical/extension';
-import { $nodesOfType } from 'lexical';
+import {
+  $createTableNodeWithDimensions,
+  type TableCellNode,
+  type TableRowNode,
+} from '@lexical/table';
+import {
+  $createLineBreakNode,
+  $createParagraphNode,
+  $createTextNode,
+  $getRoot,
+  $nodesOfType,
+} from 'lexical';
 import { describe, expect, it } from 'vitest';
 
 import { EmojiNode } from '@/components/editor/nodes/emoji-node';
@@ -25,6 +36,10 @@ describe('composer Markdown', () => {
     ['numbered list', '1. one\n2. two'],
     ['quote', '> quoted'],
     ['fenced code', '```ts\nconst a = 1;\n```'],
+    ['table', '| a | b |\n| --- | --- |\n| 1 | 2 |'],
+    ['formatting in a table', '| **bold** | `code` |\n| --- | --- |'],
+    ['an escaped pipe in a table', '| a \\| b | c |\n| --- | --- |'],
+    ['text after a table', '| a |\n| --- |\n\nafter'],
   ])('keeps %s when a message is loaded for editing', (_name, markdown) => {
     expect(roundTrip(markdown)).toBe(markdown);
   });
@@ -106,5 +121,48 @@ describe('composer mentions', () => {
 
   it('labels a mention of an unknown member', () => {
     expect(load('<@ghost>').mentions).toEqual(['@unknown member']);
+  });
+});
+
+describe('composer tables', () => {
+  it('loads a mention in a cell and writes it back', () => {
+    const editor = buildEditorFromExtensions(
+      createComposerExtension(
+        '| who |\n| --- |\n| <@u1> |',
+        new Map([['u1', 'Linh Tran']])
+      )
+    );
+    const mentions = editor.read(() =>
+      $nodesOfType(MentionNode).map((node) => node.getTextContent())
+    );
+    expect(mentions).toEqual(['@Linh Tran']);
+    expect(markdownOf(editor)).toBe('| who |\n| --- |\n| <@u1> |');
+    editor.dispose();
+  });
+
+  it('writes a pasted table with its first row as the header, one line per cell', () => {
+    const editor = buildEditorFromExtensions(createComposerExtension(''));
+    editor.update(
+      () => {
+        const table = $createTableNodeWithDimensions(2, 2, false);
+        const cells = table
+          .getChildren<TableRowNode>()
+          .flatMap((row) => row.getChildren<TableCellNode>());
+        ['a|b', 'two\nlines', '1', '2'].forEach((text, index) => {
+          const paragraph = $createParagraphNode();
+          text.split('\n').forEach((line, lineIndex) => {
+            if (lineIndex) paragraph.append($createLineBreakNode());
+            paragraph.append($createTextNode(line));
+          });
+          cells[index]!.clear().append(paragraph);
+        });
+        $getRoot().clear().append(table);
+      },
+      { discrete: true }
+    );
+    expect(markdownOf(editor)).toBe(
+      '| a\\|b | two lines |\n| --- | --- |\n| 1 | 2 |'
+    );
+    editor.dispose();
   });
 });

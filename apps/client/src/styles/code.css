@@ -3,7 +3,15 @@
   figure.code-block {
     @apply bg-surface text-surface-foreground inset-ring-border/64 relative my-2 flex max-w-full min-w-0 flex-col rounded-xl p-1 inset-ring-1;
 
-    &:has(> [data-slot='code-block-header']) {
+    /* The composer's editor portals the header and actions into this wrapper, which takes no box. */
+    > [data-slot='code-block-chrome'] {
+      display: contents;
+    }
+
+    &:has(
+      > [data-slot='code-block-header'],
+      > [data-slot='code-block-chrome'] > [data-slot='code-block-header']
+    ) {
       @apply pt-0;
     }
 
@@ -28,7 +36,8 @@
       @apply relative block min-h-5 pr-(--code-padding-right,1rem) pl-4;
     }
 
-    [data-line] span {
+    /* A message's line spans, or the composer's token spans. */
+    code span {
       @apply text-(--shiki-light) dark:text-(--shiki-dark);
     }
 
@@ -44,16 +53,26 @@
       @apply ml-auto flex shrink-0 items-center gap-0.5;
     }
 
-    > [data-slot='code-block-actions'] {
+    > [data-slot='code-block-actions'],
+    > [data-slot='code-block-chrome'] > [data-slot='code-block-actions'] {
       @apply absolute top-2.5 right-2.5 z-10 opacity-0 transition-opacity pointer-coarse:opacity-100;
     }
 
     &:hover > [data-slot='code-block-actions'],
-    &:focus-within > [data-slot='code-block-actions'] {
+    &:focus-within > [data-slot='code-block-actions'],
+    &:hover
+      > [data-slot='code-block-chrome']
+      > [data-slot='code-block-actions'],
+    &:focus-within
+      > [data-slot='code-block-chrome']
+      > [data-slot='code-block-actions'] {
       @apply opacity-100;
     }
 
-    &:has(> [data-slot='code-block-actions']) {
+    &:has(
+      > [data-slot='code-block-actions'],
+      > [data-slot='code-block-chrome'] > [data-slot='code-block-actions']
+    ) {
       --code-padding-right: 5rem;
     }
 

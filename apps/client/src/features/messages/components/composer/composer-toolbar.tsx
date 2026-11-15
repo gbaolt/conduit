@@ -32,6 +32,7 @@ import {
   IconMoodSmile,
   IconSend2,
   IconStrikethrough,
+  IconTable,
   IconTextSize,
 } from '@tabler/icons-react';
 import {
@@ -47,6 +48,8 @@ import {
 } from 'lexical';
 import { type ReactNode, useEffect, useState } from 'react';
 
+import { useEditorModal } from '@/components/editor/editor-hooks/use-modal';
+import { InsertTableDialog } from '@/components/editor/plugins/table-plugin';
 import { getSelectedNode } from '@/components/editor/utils/get-selected-node';
 import { sanitizeUrl } from '@/components/editor/utils/url';
 
@@ -199,6 +202,7 @@ export function ComposerFormattingBar({
 }) {
   const [editor] = useLexicalComposerContext();
   const active = useActiveFormats(editor);
+  const [modal, showModal] = useEditorModal();
 
   const format = (type: TextFormatType) =>
     editor.dispatchCommand(FORMAT_TEXT_COMMAND, type);
@@ -301,6 +305,17 @@ export function ComposerFormattingBar({
       >
         <IconBraces />
       </ToolbarButton>
+      <ToolbarButton
+        label="Table"
+        onClick={() =>
+          showModal('Insert table', (onClose) => (
+            <InsertTableDialog activeEditor={editor} onClose={onClose} />
+          ))
+        }
+      >
+        <IconTable />
+      </ToolbarButton>
+      {modal}
     </div>
   );
 }

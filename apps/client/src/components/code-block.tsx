@@ -31,34 +31,52 @@ const CodeBlockContext = createContext<{
   setWrap: Dispatch<SetStateAction<boolean>>;
 } | null>(null);
 
-function useCodeBlock() {
+export function useCodeBlock() {
   const context = use(CodeBlockContext);
   if (!context) throw new Error('Use this inside a CodeBlock.');
   return context;
 }
 
 /**
- * A framed code listing, styled by `styles/code.css`. Compose `CodeBlockHeader` or `CodeBlockActions`,
- * then `CodeBlockContent`, inside it.
+ * The block's wrap state. `CodeBlock` provides it. Provide it yourself where something other than React
+ * renders the figure, as the composer's editor does.
  */
-export function CodeBlock({
+export function CodeBlockProvider({ children }: { children: ReactNode }) {
+  const [wrap, setWrap] = useState(false);
+
+  return (
+    <CodeBlockContext value={{ wrap, setWrap }}>{children}</CodeBlockContext>
+  );
+}
+
+/**
+ * A framed code listing, styled by `styles/code.css`. Compose `CodeBlockToolbar`, or `CodeBlockHeader` or
+ * `CodeBlockActions`, then `CodeBlockContent`, inside it.
+ */
+export function CodeBlock(props: ComponentProps<'figure'>) {
+  return (
+    <CodeBlockProvider>
+      <CodeBlockFigure {...props} />
+    </CodeBlockProvider>
+  );
+}
+
+function CodeBlockFigure({
   className,
   children,
   ...props
 }: ComponentProps<'figure'>) {
-  const [wrap, setWrap] = useState(false);
+  const { wrap } = useCodeBlock();
 
   return (
-    <CodeBlockContext value={{ wrap, setWrap }}>
-      <figure
-        {...props}
-        data-slot="code-block"
-        data-wrap={wrap || undefined}
-        className={cn('code-block not-typeset', className)}
-      >
-        {children}
-      </figure>
-    </CodeBlockContext>
+    <figure
+      {...props}
+      data-slot="code-block"
+      data-wrap={wrap || undefined}
+      className={cn('code-block not-typeset', className)}
+    >
+      {children}
+    </figure>
   );
 }
 
@@ -133,6 +151,28 @@ export function CodeBlockCopyButton({ value }: { value: string }) {
       aria-label="Copy code"
       text={value}
     />
+  );
+}
+
+/** The language header with wrap and copy, or the same buttons in the corner when the language is unknown. */
+export function CodeBlockToolbar({
+  code,
+  language,
+}: {
+  code: string;
+  language?: string;
+}) {
+  const actions = (
+    <>
+      <CodeBlockWrapButton />
+      <CodeBlockCopyButton value={code} />
+    </>
+  );
+
+  return language ? (
+    <CodeBlockHeader language={language}>{actions}</CodeBlockHeader>
+  ) : (
+    <CodeBlockActions>{actions}</CodeBlockActions>
   );
 }
 

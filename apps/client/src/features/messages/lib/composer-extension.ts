@@ -1,5 +1,5 @@
 import { MESSAGE_BODY_MAX } from '@conduit/contract';
-import { CodeExtension } from '@lexical/code';
+import { CodeExtension, CodeNode } from '@lexical/code';
 import { HistoryExtension } from '@lexical/history';
 import { LinkExtension } from '@lexical/link';
 import { ListExtension } from '@lexical/list';
@@ -19,6 +19,7 @@ import {
   UNORDERED_LIST,
 } from '@lexical/markdown';
 import { RichTextExtension } from '@lexical/rich-text';
+import { TableExtension } from '@lexical/table';
 import {
   configExtension,
   defineExtension,
@@ -30,8 +31,10 @@ import { AutoLinkExtension } from '@/components/editor/extensions/auto-link-exte
 import { EmojisExtension } from '@/components/editor/extensions/emojis-extension';
 import { MarkdownShortcutsExtension } from '@/components/editor/extensions/markdown-shortcuts-extension';
 import { MaxLengthExtension } from '@/components/editor/extensions/max-length-extension';
+import { CodeBlockNode } from '@/components/editor/nodes/code-block-node';
 import { MentionNode } from '@/components/editor/nodes/mention-node';
 import { editorTheme } from '@/components/editor/themes/editor-theme';
+import { createTableTransformer } from '@/components/editor/transformers/markdown-table-transformer';
 
 import { createMentionTransformer } from './mention-transformer';
 
@@ -57,11 +60,10 @@ const composerTheme: EditorThemeClasses = {
       'ml-6 pl-1 text-sm leading-[23px] [&+li]:mt-1 marker:text-muted-foreground',
     nested: { listitem: 'list-none' },
   },
-  code: 'bg-muted border-border my-1.5 block overflow-x-auto rounded-md border px-3 py-2 font-mono text-[13px] leading-5',
 };
 
 /** What Markdown can hold and the renderer shows, so typing `- ` or `# ` looks the same before and after send. */
-const composerTransformers: Transformer[] = [
+const blockTransformers: Transformer[] = [
   HEADING,
   BOLD_STAR,
   ITALIC_STAR,
@@ -74,10 +76,15 @@ const composerTransformers: Transformer[] = [
   CODE,
 ];
 
-const exportTransformers = [
-  ...composerTransformers,
+/** A table's cells read and write their Markdown with the same transformers, mentions included. */
+function withTable(transformers: Transformer[]) {
+  return [...transformers, createTableTransformer(transformers)];
+}
+
+const exportTransformers = withTable([
+  ...blockTransformers,
   createMentionTransformer(new Map()),
-];
+]);
 
 /** The Markdown to send. A list the member left open on an empty item would otherwise end in a bare bullet. */
 export function markdownOf(editor: LexicalEditor) {
@@ -98,16 +105,24 @@ export function createComposerExtension(
     name: '@conduit/composer',
     namespace: 'composer',
     theme: composerTheme,
-    nodes: [MentionNode],
+    nodes: [
+      MentionNode,
+      CodeBlockNode,
+      {
+        replace: CodeNode,
+        with: (node: CodeNode) => new CodeBlockNode(node.getLanguage()),
+        withKlass: CodeBlockNode,
+      },
+    ],
     onError: (error) => {
       throw error;
     },
     $initialEditorState: initialMarkdown
       ? () => {
-          $convertFromMarkdownString(initialMarkdown, [
-            ...composerTransformers,
-            createMentionTransformer(names),
-          ]);
+          $convertFromMarkdownString(
+            initialMarkdown,
+            withTable([...blockTransformers, createMentionTransformer(names)])
+          );
         }
       : undefined,
     dependencies: [
@@ -117,9 +132,16 @@ export function createComposerExtension(
       LinkExtension,
       AutoLinkExtension,
       CodeExtension,
+      configExtension(TableExtension, {
+        hasCellMerge: false,
+        hasCellBackgroundColor: false,
+        hasNestedTables: false,
+        hasHorizontalScroll: true,
+      }),
       EmojisExtension,
       configExtension(MarkdownShortcutsExtension, {
-        transformers: composerTransformers,
+        // A row typed so far already looks like a whole row, so typing never starts a table. Pasting one does.
+        transformers: blockTransformers,
       }),
       configExtension(MaxLengthExtension, { maxLength: MESSAGE_BODY_MAX }),
     ],
