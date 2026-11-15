@@ -2,7 +2,7 @@
 
 Conduit is team chat with the work built in. Workspaces, channels, threads, and DMs hold the conversation. Canvas, Kanban, and Workflows hold the work that comes out of it. An AI layer connects the two. It catches you up, turns promises and decisions into tasks, and answers questions from what your team already wrote.
 
-Last updated 2026-11-04.
+Last updated 2026-11-15.
 
 ## How to use this document
 
@@ -88,7 +88,7 @@ Targets get set once M2 ships and there is a baseline to measure against.
 - `packages/ui` holds the shared components, including `Message` and `MessageScroller`. A Lexical editor kit lives in `apps/client/src/components/editor/`.
 - Files will be stored in S3.
 
-Nothing yet handles file storage, search, or AI calls. Messages are stored in Postgres and delivered live through Neon Realtime.
+Nothing yet handles file storage or search. AI calls already power summaries, Smart Activity, and Catch me up. Messages are stored in Postgres and delivered live through Neon Realtime.
 
 ## Milestones
 
@@ -99,7 +99,7 @@ Each milestone ships its core features first, then the AI feature that depends o
 | [Foundations](#foundations)                | Sign-in, workspaces, channels, sections  | None                        | Shipped     |
 | [M0](#m0-workspace-admin)                  | Invitations, member management, settings | None                        | Shipped     |
 | [M1](#m1-messaging)                        | Messages, threads, DMs, realtime         | Summaries                   | Shipped     |
-| [M2](#m2-activity-and-notifications)       | Activity feed, notifications             | Smart Activity, Catch me up | In progress |
+| [M2](#m2-activity-and-notifications)       | Activity feed, notifications             | Smart Activity, Catch me up | Shipped     |
 | [M3](#m3-files-and-search)                 | Files, search, quick switcher            | Ask Conduit                 | Not started |
 | [M4](#m4-canvas)                           | Canvas                                   | Thread to canvas            | Not started |
 | [M5](#m5-kanban)                           | Kanban boards                            | Actions and decisions       | Not started |
@@ -177,17 +177,17 @@ File attachments ship in M3, together with file storage. An edited message shows
 
 Members need to know what needs them without reading every channel.
 
-| ID   | Sub-feature                                                                                  | Status  | PR  |
-| ---- | -------------------------------------------------------------------------------------------- | ------- | --- |
-| M2.1 | An Activity feed with mentions, thread replies, reactions to your messages, and channel adds | Shipped |     |
-| M2.2 | **All** and **Unread** filters, and **Mark all read**                                        | Shipped |     |
-| M2.3 | Set notifications per channel to all messages, mentions only, or nothing                     | Shipped |     |
-| M2.4 | Mute a channel                                                                               | Shipped |     |
-| M2.5 | Do Not Disturb, on a schedule or as a snooze                                                 | Shipped |     |
-| M2.6 | Browser push notifications                                                                   | Shipped |     |
-| M2.7 | An email digest of unread mentions after a member has been away for 1 hour                   | Shipped |     |
-| M2.8 | AI: Smart Activity ranks the feed by urgency and folds the noise together                    | Shipped |     |
-| M2.9 | AI: Catch me up summarizes everything unread since your last visit                           | Shipped |     |
+| ID   | Sub-feature                                                                                  | Status  | PR                                               |
+| ---- | -------------------------------------------------------------------------------------------- | ------- | ------------------------------------------------ |
+| M2.1 | An Activity feed with mentions, thread replies, reactions to your messages, and channel adds | Shipped | [#76](https://github.com/gbaolt/conduit/pull/76) |
+| M2.2 | **All** and **Unread** filters, and **Mark all read**                                        | Shipped | [#83](https://github.com/gbaolt/conduit/pull/83) |
+| M2.3 | Set notifications per channel to all messages, mentions only, or nothing                     | Shipped | [#77](https://github.com/gbaolt/conduit/pull/77) |
+| M2.4 | Mute a channel                                                                               | Shipped | [#77](https://github.com/gbaolt/conduit/pull/77) |
+| M2.5 | Do Not Disturb, on a schedule or as a snooze                                                 | Shipped | [#77](https://github.com/gbaolt/conduit/pull/77) |
+| M2.6 | Browser push notifications                                                                   | Shipped | [#81](https://github.com/gbaolt/conduit/pull/81) |
+| M2.7 | An email digest of unread mentions after a member has been away for 1 hour                   | Shipped | [#78](https://github.com/gbaolt/conduit/pull/78) |
+| M2.8 | AI: Smart Activity ranks the feed by urgency and folds the noise together                    | Shipped | [#80](https://github.com/gbaolt/conduit/pull/80) |
+| M2.9 | AI: Catch me up summarizes everything unread since your last visit                           | Shipped | [#79](https://github.com/gbaolt/conduit/pull/79) |
 
 **Exit check.** A member who was away opens Conduit. Catch me up shows what they missed with a link to each source, and the Activity feed puts a direct question to them above reactions to their messages.
 
