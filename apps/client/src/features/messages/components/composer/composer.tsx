@@ -409,7 +409,7 @@ export function Composer({
     <div>
       <div
         ref={setAnchor}
-        className="border-input bg-surface relative flex flex-col rounded-lg border shadow-[0_1px_3px_rgb(0_0_0/0.08)]"
+        className="border-input bg-pane relative flex flex-col rounded-lg border shadow-[0_1px_3px_rgb(0_0_0/0.08)]"
       >
         <LexicalExtensionEditorComposer
           key={editor.getKey()}
