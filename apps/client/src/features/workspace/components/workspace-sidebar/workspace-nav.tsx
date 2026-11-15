@@ -23,7 +23,7 @@ import { usePathname } from 'next/navigation';
 const LINKS: { label: string; icon: typeof IconMessages; href?: Route }[] = [
   { label: 'Threads', icon: IconMessages, href: '/threads' },
   { label: 'Saved', icon: IconBookmark, href: '/saved' },
-  { label: 'Drafts & sent', icon: IconSend },
+  { label: 'Drafts', icon: IconSend },
   { label: 'Directories', icon: IconAddressBook, href: '/directories/people' },
 ];
 

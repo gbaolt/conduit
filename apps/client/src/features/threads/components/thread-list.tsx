@@ -28,7 +28,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useQueryState } from 'nuqs';
 
-import { ListBackLink } from '@/components/list-view';
+import { PageHeader } from '@/components/page-header';
 import { MessageExcerpt } from '@/features/messages/components/message/message-excerpt';
 import { MentionNames } from '@/features/messages/context/mention-names';
 import { useOpenThread } from '@/features/messages/context/thread';
@@ -87,7 +87,7 @@ function ThreadListItem({ thread, open }: { thread: Thread; open: boolean }) {
       role="article"
       aria-label={`Thread in ${label}`}
       data-open={open || undefined}
-      className="data-open:ring-ring/40 data-open:ring-3"
+      className="data-open:ring-ring/40 data-open:ring-2"
     >
       <CardHeader className="border-b">
         <CardTitle
@@ -230,11 +230,7 @@ export function ThreadList() {
   return (
     <ThreadLayout>
       <div className="flex h-full min-h-0 flex-col">
-        <header className="flex min-h-12 shrink-0 items-center gap-2 border-b px-4 py-1.5">
-          <ListBackLink />
-          <IconMessages className="size-4" aria-hidden />
-          <h1 className="text-sm font-semibold">Threads</h1>
-        </header>
+        <PageHeader icon={IconMessages} title="Threads" className="border-b" />
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-5 sm:px-5">
           <MentionNames value={names}>
             <ThreadListItems />

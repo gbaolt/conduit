@@ -14,6 +14,7 @@ import { Skeleton } from '@conduit/ui/components/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@conduit/ui/components/tabs';
 import { cn } from '@conduit/ui/lib/utils';
 import {
+  IconAddressBook,
   IconHash,
   IconMailForward,
   IconUser,
@@ -24,7 +25,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-import { ListBackLink } from '@/components/list-view';
+import { PageHeader } from '@/components/page-header';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
 /** Tabs, toolbar and results share one gutter, so they share one left and one right edge. */
@@ -54,11 +55,9 @@ export function Directory({ children }: { children: ReactNode }) {
 /** The page title. `children` sit at the end, such as the tab's main action. */
 export function DirectoryHeader({ children }: { children?: ReactNode }) {
   return (
-    <header className="flex min-h-12 shrink-0 items-center gap-2 px-4 pt-4 pb-2">
-      <ListBackLink />
-      <h1 className="text-xl/none font-semibold">Directories</h1>
-      <div className="ml-auto flex items-center">{children}</div>
-    </header>
+    <PageHeader icon={IconAddressBook} title="Directories">
+      {children}
+    </PageHeader>
   );
 }
 
@@ -71,7 +70,7 @@ export function DirectoryTabs() {
   return (
     <div className="shrink-0 border-b">
       <Tabs value={pathname} className={column}>
-        <TabsList variant="line" aria-label="Directories" className="h-11">
+        <TabsList variant="line" aria-label="Directories">
           {tabs.map(({ href, label, icon: Icon }) => (
             <TabsTrigger
               key={href}
