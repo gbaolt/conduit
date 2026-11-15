@@ -129,6 +129,7 @@ export function cacheMessage(queryClient: QueryClient, message: Message) {
   }
   if (message.parentId) {
     queryClient.setQueryData(repliesQuery(message.parentId).queryKey, upsert);
+    void queryClient.invalidateQueries({ queryKey: threadsQuery.queryKey });
   } else {
     queryClient.setQueryData(threadRootQuery(message.id).queryKey, (root) =>
       root && message.updatedAt >= root.updatedAt ? message : root
@@ -161,6 +162,9 @@ export const pinnedQuery = (roomId: string) =>
   orpc.messages.listPinned.queryOptions({ input: { roomId } });
 
 export const savedQuery = orpc.saved.list.queryOptions();
+
+/** Threads the member started or replied in, newest reply first. */
+export const threadsQuery = orpc.threads.list.queryOptions();
 
 /**
  * True when a changed message means the pinned list no longer matches: a message pinned that the list

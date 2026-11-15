@@ -7,8 +7,8 @@ import { ChannelHeader } from '@/features/channels/components/header/channel-hea
 import { Conversation } from '@/features/messages/components/conversation/conversation';
 import { PinnedButton } from '@/features/messages/components/pinned';
 import { SummaryChannelItems } from '@/features/messages/components/summary/summary-menu';
-import { ThreadLayout } from '@/features/messages/components/thread/thread-layout';
 import { RoomPageSkeleton } from '@/features/rooms/components/room-skeletons';
+import { ThreadLayout } from '@/features/threads/components/thread-layout';
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
 import { messagesQuery, pinnedQuery } from '@/services/messages/queries';
 import { roomQuery } from '@/services/rooms/queries';

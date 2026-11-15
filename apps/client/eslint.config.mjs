@@ -13,6 +13,7 @@ const featureDeps = {
   dms: ['rooms'],
   messages: ['rooms', 'channels', 'dms'],
   feed: ['rooms', 'messages'],
+  threads: ['rooms', 'messages'],
 };
 
 const services = [
