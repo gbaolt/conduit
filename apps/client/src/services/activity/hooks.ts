@@ -19,6 +19,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { client, orpc } from '@/lib/orpc';
 import { useLiveRows } from '@/services/messages/live';
+import { messagesQuery } from '@/services/messages/queries';
 
 import {
   draftQuery,
@@ -29,28 +30,46 @@ import {
 
 const ignore = () => undefined;
 
-const sameIds = (a: ReadonlySet<string>, b: ReadonlySet<string>) =>
-  a.size === b.size && [...a].every((id) => b.has(id));
+const sameIds = (
+  a: ReadonlyMap<string, unknown>,
+  b: ReadonlyMap<string, unknown>
+) => a.size === b.size && [...a.keys()].every((id) => b.has(id));
 
 /**
  * Opens the `sidebar` stream and keeps its rows in the cache. When the set of conversations changes
  * after the first result, such as someone adding the viewer to a channel or a DM, the channel and DM lists
- * refetch. Mount it once per workspace.
+ * refetch. When a conversation gets a new message, its cached log refetches in the background, so it
+ * opens with the message; the open log's own stream writes the message in. Mount it once per workspace.
  */
 export function useSidebarStream() {
   const queryClient = useQueryClient();
-  const known = useRef<ReadonlySet<string> | null>(null);
+  /** Each conversation's `lastMessageAt` in the previous result, by room id. */
+  const known = useRef<ReadonlyMap<string, number | undefined> | null>(null);
 
   return useLiveRows({ kind: 'sidebar' }, SidebarEntrySchema, (rows) => {
     queryClient.setQueryData(sidebarStateQuery.queryKey, rows);
 
-    const ids = new Set(rows.map((row) => row.roomId));
-    if (known.current && !sameIds(known.current, ids)) {
+    const latest = new Map(
+      rows.map((row) => [row.roomId, row.lastMessageAt?.getTime()])
+    );
+    const previous = known.current;
+    known.current = latest;
+    if (!previous) return;
+
+    if (!sameIds(previous, latest)) {
       void queryClient.invalidateQueries({ queryKey: orpc.channels.key() });
       void queryClient.invalidateQueries({ queryKey: orpc.rooms.key() });
       void queryClient.invalidateQueries({ queryKey: orpc.dms.key() });
     }
-    known.current = ids;
+    for (const [roomId, at] of latest) {
+      if (!previous.has(roomId) || previous.get(roomId) === at) continue;
+      void queryClient.invalidateQueries({
+        queryKey: messagesQuery(roomId).queryKey,
+        exact: true,
+        predicate: (query) => !query.isActive(),
+        refetchType: 'inactive',
+      });
+    }
   });
 }
 

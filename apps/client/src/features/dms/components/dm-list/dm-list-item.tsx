@@ -38,6 +38,7 @@ function DmListItemAvatar({ dm, viewerId }: { dm: Dm; viewerId: string }) {
       </span>
     );
   }
+
   if (others.length > 1 && second) {
     return (
       <span aria-hidden className="relative size-9 shrink-0">
@@ -54,6 +55,7 @@ function DmListItemAvatar({ dm, viewerId }: { dm: Dm; viewerId: string }) {
       </span>
     );
   }
+
   return (
     <span className="relative size-9 shrink-0">
       <UserAvatar
@@ -147,7 +149,7 @@ export function DmListItem({
               </time>
             </span>
             <span className="flex min-w-0 items-start gap-1">
-              <span className="line-clamp-2 min-w-0 flex-1 text-xs/relaxed opacity-70">
+              <span className="line-clamp-1 min-w-0 flex-1 text-xs/none opacity-70">
                 {preview}
               </span>
               <RoomItemDraft />

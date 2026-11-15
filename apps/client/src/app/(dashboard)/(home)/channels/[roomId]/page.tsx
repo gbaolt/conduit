@@ -1,5 +1,3 @@
-import { ORPCError } from '@orpc/client';
-import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { ChannelIntro } from '@/features/channels/components/channel-intro';
@@ -7,6 +5,7 @@ import { ChannelHeader } from '@/features/channels/components/header/channel-hea
 import { Conversation } from '@/features/messages/components/conversation/conversation';
 import { PinnedButton } from '@/features/messages/components/pinned';
 import { SummaryChannelItems } from '@/features/messages/components/summary/summary-menu';
+import { RoomGuard } from '@/features/rooms/components/room-guard';
 import { RoomPageSkeleton } from '@/features/rooms/components/room-skeletons';
 import { ThreadLayout } from '@/features/threads/components/thread-layout';
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
@@ -29,19 +28,16 @@ async function Room({
   const { roomId } = await params;
   const client = getQueryClient();
 
-  const [room] = await Promise.all([
-    client.fetchQuery(roomQuery(roomId)).catch((error: unknown) => {
-      if (error instanceof ORPCError && error.code === 'NOT_FOUND') notFound();
-      throw error;
-    }),
-    client.prefetchInfiniteQuery(messagesQuery(roomId)),
-    client.prefetchQuery(pinnedQuery(roomId)),
-  ]);
-
-  if (room.kind !== 'channel') redirect(`/dms/${roomId}`);
+  // Not awaited: a channel the browser already holds renders at once, and these stream in behind it.
+  const room = client.fetchQuery(roomQuery(roomId));
+  void client.prefetchInfiniteQuery(messagesQuery(roomId));
+  void client.prefetchQuery(pinnedQuery(roomId));
 
   return (
     <HydrateClient client={client}>
+      <Suspense fallback={null}>
+        <RoomGuard roomId={roomId} room={room} kind="channel" />
+      </Suspense>
       <ThreadLayout roomId={roomId}>
         <div className="flex h-full min-h-0 flex-col">
           <ChannelHeader
