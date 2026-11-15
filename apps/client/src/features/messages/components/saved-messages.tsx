@@ -12,7 +12,7 @@ import { useSavedMessage } from '@/services/messages/hooks';
 import { savedQuery } from '@/services/messages/queries';
 
 import { MentionNames } from '../context/mention-names';
-import { useAuthors } from '../lib/use-authors';
+import { useAuthors } from '../hooks/use-authors';
 import { MessageExcerpt } from './message/message-excerpt';
 
 function SavedItem({ item }: { item: SavedMessage }) {

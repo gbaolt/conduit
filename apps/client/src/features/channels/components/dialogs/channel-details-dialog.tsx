@@ -49,8 +49,8 @@ import { roomMembersQuery, roomQuery } from '@/services/rooms/queries';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
 import { useChannelDialogs } from '../../context/channel-dialogs-provider';
+import { useExitOpenChannel } from '../../hooks/use-exit-open-channel';
 import { copy } from '../../lib/channel-actions';
-import { useExitOpenChannel } from '../../lib/use-exit-open-channel';
 
 type TextField = 'topic' | 'description';
 

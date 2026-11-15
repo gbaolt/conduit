@@ -5,7 +5,7 @@ import { useState } from 'react';
 
 import { useMarkRead, useSidebarEntry } from '@/services/activity/hooks';
 
-import { firstUnreadId } from './first-unread';
+import { firstUnreadId } from '../lib/first-unread';
 
 /**
  * Decides once, when the conversation opens, which message the New marker sits above. The marker then stays

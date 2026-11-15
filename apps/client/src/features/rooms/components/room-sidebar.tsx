@@ -21,7 +21,7 @@ import {
   useIsUnread,
 } from '@/services/activity/hooks';
 
-import { useCollapsedGroups } from '../lib/use-collapsed-groups';
+import { useCollapsedGroups } from '../hooks/use-collapsed-groups';
 
 const RoomGroupContext = createContext<{
   collapsed: boolean;

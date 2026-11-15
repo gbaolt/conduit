@@ -33,7 +33,7 @@ import {
 
 import { ListBackLink } from '@/components/list-view';
 import { MentionNames } from '@/features/messages/context/mention-names';
-import { useAuthors } from '@/features/messages/lib/use-authors';
+import { useAuthors } from '@/features/messages/hooks/use-authors';
 import { useFeedUnreadCount, useRankFeed } from '@/services/feed/hooks';
 import {
   type FeedListInput,

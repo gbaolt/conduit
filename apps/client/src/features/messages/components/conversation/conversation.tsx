@@ -14,7 +14,7 @@ import { useQueryState } from 'nuqs';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ConversationSkeleton } from '@/components/conversation-skeleton';
-import { useRoomName } from '@/features/messages/lib/use-room-name';
+import { useRoomName } from '@/features/messages/hooks/use-room-name';
 import { sessionQuery } from '@/services/auth/queries';
 import { useJoinChannel } from '@/services/channels/hooks';
 import { useSendMessage } from '@/services/messages/hooks';
@@ -33,9 +33,9 @@ import {
   MentionSuggestions,
   MentionViewer,
 } from '../../context/mention-names';
-import { useAuthors } from '../../lib/use-authors';
-import { useIsClient } from '../../lib/use-is-client';
-import { useNewMarker } from '../../lib/use-new-marker';
+import { useAuthors } from '../../hooks/use-authors';
+import { useIsClient } from '../../hooks/use-is-client';
+import { useNewMarker } from '../../hooks/use-new-marker';
 import { SummaryDialog } from '../summary/summary-dialog';
 import { ConversationComposer } from './conversation-composer';
 import { ConversationMessages } from './conversation-messages';
