@@ -133,6 +133,11 @@ export function RoomItem({
   );
 }
 
+/** The row's state, for a caller that lays out its own button. */
+export function useRoomItem() {
+  return use(RoomItemContext);
+}
+
 export function RoomItemButton<T extends string>({
   href,
   children,

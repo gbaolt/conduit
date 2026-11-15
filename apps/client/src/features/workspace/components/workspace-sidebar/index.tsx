@@ -27,7 +27,7 @@ export function WorkspaceSidebarNav({
   return (
     <nav
       aria-label={label}
-      className="text-surface-foreground flex flex-col overflow-x-hidden overflow-y-auto"
+      className="text-surface-foreground flex h-full flex-col overflow-x-hidden overflow-y-auto"
     >
       {children}
     </nav>
