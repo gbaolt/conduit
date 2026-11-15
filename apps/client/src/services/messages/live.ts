@@ -24,7 +24,11 @@ import { cacheMessage, pinnedIsStale, pinnedQuery } from './queries';
 type LiveRow = Record<string, unknown>;
 type LiveSubscription = MaterializedLiveQuerySubscription<LiveRow>;
 
-/** `since` starts this far before the page load, so a skewed clock cannot drop a change. Rows seen twice are merged by id. */
+/**
+ * `since` starts this far before the page load, so a skewed clock cannot drop a change. Rows seen twice are merged by id.
+ * It also replays the edits a cached log missed while closed, because React Query drops an unused log after 5 minutes,
+ * its default `gcTime`. Raise `gcTime` and this must grow with it.
+ */
 const SINCE_MARGIN_MS = 5 * 60 * 1000;
 const AWAIT_TXID_MS = 5000;
 

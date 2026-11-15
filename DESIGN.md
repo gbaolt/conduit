@@ -57,6 +57,9 @@ UI taste for Conduit, written from corrections the owner made. Every rule here i
 - **Suspense fallbacks are `Skeleton` blocks with fixed widths, sized to the loaded layout.** Measure the loaded page (Playwright) rather than guessing. Static UI (headers, labels, nav) renders outside the `<Suspense>` boundary; only data-driven parts wait behind it.
   Why: nothing shifts when the data arrives, and static parts show instantly.
   <!-- 2026-11-07: "Use skeleton.tsx … calculate the exact pixel … static UIs don't need to be in <Suspense />" -->
+- **A conversation log (channel, DM, thread) loads behind `ConversationLoading`: one `Spinner` that fades in after 300 ms. Never message-row skeletons.**
+  Why: fake message rows read as real messages, and the delay keeps a cached log from flashing a loader.
+  <!-- 2026-11-15: "Don't render skeletons for conversation messages. Render a spinner.tsx" -->
 - **Popups keep their open and close animation. Never add `animate-none!` to them.**
   Why: a popup that just appears feels abrupt.
   <!-- 2026-11-07: owner removed animate-none! from combobox, context-menu, dropdown-menu, select -->

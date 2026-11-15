@@ -4,17 +4,21 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from '@conduit/ui/components/resizable';
-import type { ReactNode } from 'react';
+import { type ReactNode, useSyncExternalStore } from 'react';
 
 import { useAtList } from '@/components/list-view';
 import { ResizeHandle } from '@/components/resize-handle';
 
 import {
   type Layout,
+  layoutCookieValue,
   MAIN_PANEL,
+  parseLayout,
   SIDEBAR_PANEL,
   writeLayoutCookie,
 } from '../../lib/layout-cookie';
+
+const subscribeNever = () => () => {};
 
 /** The sidebar's scrolling column. Put the workspace header, its nav, and the room groups inside. */
 export function WorkspaceSidebarNav({
@@ -45,16 +49,26 @@ export function WorkspaceSidebar({
   defaultLayout,
   children,
 }: {
+  /** The saved layout read from the request. A loading shell passes undefined and reads the browser's cookie. */
   defaultLayout: Layout | undefined;
   children: ReactNode;
 }) {
   const atList = useAtList();
+  // A loading shell has no request to read the cookie from, so it reads the browser's to match the saved width.
+  const saved = useSyncExternalStore(
+    subscribeNever,
+    () => layoutCookieValue(document.cookie),
+    () => undefined
+  );
+  const layout = defaultLayout ?? parseLayout(saved);
 
   return (
     <ResizablePanelGroup
+      // The group reads its layout once, so a loading shell that hydrated without the cookie remounts with it.
+      key={layout ? 'saved' : 'default'}
       data-view={atList ? 'list' : 'page'}
       className={atList ? 'max-md:*:last:hidden!' : 'max-md:*:not-last:hidden!'}
-      defaultLayout={defaultLayout}
+      defaultLayout={layout}
       onLayoutChanged={(layout, { isUserInteraction }) => {
         if (isUserInteraction) writeLayoutCookie(layout);
       }}

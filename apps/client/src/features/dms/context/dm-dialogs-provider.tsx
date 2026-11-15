@@ -4,11 +4,9 @@ import { createContext, type ReactNode, use, useMemo, useState } from 'react';
 
 import { AddDmPeopleDialog } from '../components/dialogs/add-dm-people-dialog';
 import { ConvertDmDialog } from '../components/dialogs/convert-dm-dialog';
-import { NewDmDialog } from '../components/dialogs/new-dm-dialog';
 
 /** Every dialog the DM UI can open. A new dialog adds one member here and one case in `OpenDmDialog`. */
 export type DmDialog =
-  | { kind: 'new-dm' }
   | { kind: 'dm-add-people'; roomId: string }
   | { kind: 'dm-convert'; roomId: string };
 
@@ -21,8 +19,6 @@ const DmDialogsContext = createContext<DmDialogsValue | null>(null);
 
 function OpenDmDialog({ dialog }: { dialog: DmDialog }) {
   switch (dialog.kind) {
-    case 'new-dm':
-      return <NewDmDialog />;
     case 'dm-add-people':
       return <AddDmPeopleDialog roomId={dialog.roomId} />;
     case 'dm-convert':

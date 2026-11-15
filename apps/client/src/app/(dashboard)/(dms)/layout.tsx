@@ -9,6 +9,7 @@ import {
   DmListSkeleton,
 } from '@/features/dms/components/dm-list/dm-list';
 import { DmDialogsProvider } from '@/features/dms/context/dm-dialogs-provider';
+import { NewMessagePane } from '@/features/messages/components/new-message/new-message';
 import { RoomPageSkeleton } from '@/features/rooms/components/room-skeletons';
 import {
   WorkspaceSidebar,
@@ -21,6 +22,7 @@ import {
   parseLayout,
 } from '@/features/workspace/lib/layout-cookie';
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
+import { channelsQuery } from '@/services/channels/queries';
 import { dmsQuery } from '@/services/dms/queries';
 import { membersQuery } from '@/services/workspaces/queries';
 
@@ -54,7 +56,8 @@ export default function DmsLayout({ children }: { children: ReactNode }) {
 
 async function DmsPanel({ children }: { children: ReactNode }) {
   const client = getQueryClient();
-  const [, , cookieStore] = await Promise.all([
+  const [, , , cookieStore] = await Promise.all([
+    client.prefetchQuery(channelsQuery),
     client.prefetchQuery(dmsQuery),
     client.prefetchQuery(membersQuery),
     cookies(),
@@ -72,7 +75,9 @@ async function DmsPanel({ children }: { children: ReactNode }) {
             <DmListItems />
           </WorkspaceSidebarNav>
         </WorkspaceSidebarPanel>
-        <WorkspaceSidebarMain>{children}</WorkspaceSidebarMain>
+        <WorkspaceSidebarMain>
+          <NewMessagePane>{children}</NewMessagePane>
+        </WorkspaceSidebarMain>
       </WorkspaceSidebar>
     </HydrateClient>
   );

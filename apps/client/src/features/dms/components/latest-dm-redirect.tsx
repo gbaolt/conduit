@@ -12,6 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { Route } from 'next';
 
 import { ListDesktopRedirect } from '@/components/list-view';
+import { RoomPageSkeleton } from '@/features/rooms/components/room-skeletons';
 import { dmsQuery } from '@/services/dms/queries';
 
 /**
@@ -23,9 +24,15 @@ export function LatestDmRedirect() {
   const { data: dms } = useQuery(dmsQuery);
   const latestId = dms?.[0]?.id;
 
+  // Until the DM opens, the page keeps the room skeleton the layout showed, so it never goes blank.
   if (latestId)
-    return <ListDesktopRedirect href={`/dms/${latestId}` as Route} />;
-  if (!dms) return null;
+    return (
+      <>
+        <ListDesktopRedirect href={`/dms/${latestId}` as Route} />
+        <RoomPageSkeleton />
+      </>
+    );
+  if (!dms) return <RoomPageSkeleton />;
 
   return (
     <Empty className="h-full border-0">

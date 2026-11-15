@@ -1,5 +1,3 @@
-import { ORPCError } from '@orpc/client';
-import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { DmHeader } from '@/features/dms/components/dm-header';
@@ -7,6 +5,7 @@ import { DmIntro } from '@/features/dms/components/dm-intro';
 import { Conversation } from '@/features/messages/components/conversation/conversation';
 import { PinnedButton } from '@/features/messages/components/pinned';
 import { SummaryChannelItems } from '@/features/messages/components/summary/summary-menu';
+import { RoomGuard } from '@/features/rooms/components/room-guard';
 import { RoomPageSkeleton } from '@/features/rooms/components/room-skeletons';
 import { ThreadLayout } from '@/features/threads/components/thread-layout';
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
@@ -28,20 +27,17 @@ async function Dm({
   const { roomId } = await params;
   const client = getQueryClient();
 
-  const [room] = await Promise.all([
-    client.fetchQuery(roomQuery(roomId)).catch((error: unknown) => {
-      if (error instanceof ORPCError && error.code === 'NOT_FOUND') notFound();
-      throw error;
-    }),
-    client.prefetchQuery(dmsQuery),
-    client.prefetchInfiniteQuery(messagesQuery(roomId)),
-    client.prefetchQuery(pinnedQuery(roomId)),
-  ]);
-
-  if (room.kind !== 'dm') redirect(`/channels/${roomId}`);
+  // Not awaited: a DM the browser already holds renders at once, and these stream in behind it.
+  const room = client.fetchQuery(roomQuery(roomId));
+  void client.prefetchQuery(dmsQuery);
+  void client.prefetchInfiniteQuery(messagesQuery(roomId));
+  void client.prefetchQuery(pinnedQuery(roomId));
 
   return (
     <HydrateClient client={client}>
+      <Suspense fallback={null}>
+        <RoomGuard roomId={roomId} room={room} kind="dm" />
+      </Suspense>
       <ThreadLayout roomId={roomId}>
         <div className="flex h-full min-h-0 flex-col">
           <DmHeader roomId={roomId} menu={<SummaryChannelItems isDm />}>

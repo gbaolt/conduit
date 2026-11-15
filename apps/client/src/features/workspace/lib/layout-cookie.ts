@@ -29,6 +29,20 @@ export function parseLayout(value: string | undefined): Layout | undefined {
   return undefined;
 }
 
+/** The saved layout's raw value in a `document.cookie` string, decoded, or undefined when it is missing. */
+export function layoutCookieValue(cookies: string): string | undefined {
+  const entry = cookies
+    .split('; ')
+    .find((pair) => pair.startsWith(`${LAYOUT_COOKIE}=`));
+  if (!entry) return undefined;
+
+  try {
+    return decodeURIComponent(entry.slice(LAYOUT_COOKIE.length + 1));
+  } catch {
+    return undefined;
+  }
+}
+
 export function writeLayoutCookie(layout: Layout) {
   const value = encodeURIComponent(JSON.stringify(layout));
 

@@ -43,13 +43,13 @@ import {
 } from 'react';
 
 import { RoomGroup } from '@/features/rooms/components/room-sidebar';
+import { useCompose } from '@/hooks/use-compose';
 import { isUnread, sidebarStateQuery } from '@/services/activity/queries';
 import { sessionQuery } from '@/services/auth/queries';
 import { dmTitle } from '@/services/dms/dm-title';
 import { dmsQuery } from '@/services/dms/queries';
 import { useWorkspaceMembers } from '@/services/workspaces/hooks';
 
-import { useDmDialogs } from '../../context/dm-dialogs-provider';
 import { DmListItem } from './dm-list-item';
 
 const DM_LIST_GROUP_ID = 'dm-list';
@@ -84,7 +84,7 @@ export function DmList({ children }: { children: ReactNode }) {
 /** The list's title, the Unreads switch, and the button that starts a DM. */
 export function DmListHeader() {
   const { unreadsOnly, setUnreadsOnly } = use(DmListContext);
-  const { open } = useDmDialogs();
+  const [, setCompose] = useCompose();
   const switchId = useId();
 
   return (
@@ -112,7 +112,7 @@ export function DmListHeader() {
               variant="ghost"
               size="icon-sm"
               aria-label="New message"
-              onClick={() => open({ kind: 'new-dm' })}
+              onClick={() => void setCompose(true)}
             />
           }
         >
@@ -239,7 +239,7 @@ export function DmListItems() {
 
 /** The viewer has no DMs yet. */
 function DmListEmpty() {
-  const { open } = useDmDialogs();
+  const [, setCompose] = useCompose();
 
   return (
     <Empty className="flex-1 border-0 px-4">
@@ -253,7 +253,7 @@ function DmListEmpty() {
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <Button size="sm" onClick={() => open({ kind: 'new-dm' })}>
+        <Button size="sm" onClick={() => void setCompose(true)}>
           <IconEdit data-icon="inline-start" />
           New message
         </Button>

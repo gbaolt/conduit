@@ -1,7 +1,12 @@
 'use client';
 
 import { addReaction, type Message, removeReaction } from '@conduit/contract';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  type QueryClient,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { toast } from 'sonner';
 
@@ -72,6 +77,62 @@ const patchPending = (clientId: string, patch: Partial<PendingMessage>) =>
 const removePending = (clientId: string) =>
   setPending(pending.filter((message) => message.clientId !== clientId));
 
+async function deliver(queryClient: QueryClient, message: PendingMessage) {
+  const { clientId, roomId, body, alsoSentToChannel } = message;
+  patchPending(clientId, { status: 'sending' });
+  try {
+    const sent = await client.messages.send({
+      roomId,
+      clientId,
+      body,
+      parentId: message.parentId ?? undefined,
+      alsoSentToChannel,
+    });
+    if (sent.txid) {
+      await awaitLiveTransaction(
+        message.parentId ? threadStreamKey(message.parentId) : roomId,
+        sent.txid
+      );
+    }
+    cacheMessage(queryClient, sent.message);
+    removePending(clientId);
+  } catch {
+    patchPending(clientId, { status: 'failed' });
+  }
+}
+
+function enqueue(
+  queryClient: QueryClient,
+  message: Pick<
+    PendingMessage,
+    'roomId' | 'parentId' | 'alsoSentToChannel' | 'body'
+  >
+) {
+  const queued: PendingMessage = {
+    ...message,
+    clientId: crypto.randomUUID(),
+    createdAt: new Date(),
+    status: 'sending',
+  };
+  setPending([...pending, queued]);
+  void deliver(queryClient, queued);
+}
+
+/** Sends the first message of a new message to a room picked after mounting, as `useSendMessage` sends. */
+export function useSendToRoom() {
+  const queryClient = useQueryClient();
+  return useCallback(
+    (roomId: string, body: string) =>
+      enqueue(queryClient, {
+        roomId,
+        parentId: null,
+        alsoSentToChannel: false,
+        body,
+      }),
+    [queryClient]
+  );
+}
+
 /**
  * Sends optimistically: the row shows at once, keyed by `clientId`, and the stored message replaces it.
  * With `parentId` the message is a reply in that thread.
@@ -79,56 +140,23 @@ const removePending = (clientId: string) =>
 export function useSendMessage(roomId: string, parentId?: string) {
   const queryClient = useQueryClient();
 
-  const deliver = useCallback(
-    async (message: PendingMessage) => {
-      const { clientId, body, alsoSentToChannel } = message;
-      patchPending(clientId, { status: 'sending' });
-      try {
-        const sent = await client.messages.send({
-          roomId,
-          clientId,
-          body,
-          parentId: message.parentId ?? undefined,
-          alsoSentToChannel,
-        });
-        if (sent.txid) {
-          await awaitLiveTransaction(
-            message.parentId ? threadStreamKey(message.parentId) : roomId,
-            sent.txid
-          );
-        }
-        cacheMessage(queryClient, sent.message);
-        removePending(clientId);
-      } catch {
-        patchPending(clientId, { status: 'failed' });
-      }
-    },
-    [roomId, queryClient]
-  );
-
   const send = useCallback(
-    (body: string, alsoSentToChannel = false) => {
-      const message: PendingMessage = {
-        clientId: crypto.randomUUID(),
+    (body: string, alsoSentToChannel = false) =>
+      enqueue(queryClient, {
         roomId,
         parentId: parentId ?? null,
         alsoSentToChannel: Boolean(parentId) && alsoSentToChannel,
         body,
-        createdAt: new Date(),
-        status: 'sending',
-      };
-      setPending([...pending, message]);
-      void deliver(message);
-    },
-    [roomId, parentId, deliver]
+      }),
+    [roomId, parentId, queryClient]
   );
 
   const retry = useCallback(
     (clientId: string) => {
       const message = pending.find((m) => m.clientId === clientId);
-      if (message) void deliver(message);
+      if (message) void deliver(queryClient, message);
     },
-    [deliver]
+    [queryClient]
   );
 
   return { send, retry, discard: removePending };

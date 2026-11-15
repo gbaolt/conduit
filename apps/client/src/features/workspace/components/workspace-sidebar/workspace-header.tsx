@@ -37,6 +37,7 @@ import { useState } from 'react';
 import { useChannelDialogs } from '@/features/channels/context/channel-dialogs-provider';
 import { InviteDialog } from '@/features/workspace/components/workspace-settings/invite-dialog';
 import { useWorkspace } from '@/features/workspace/context/workspace-provider';
+import { useCompose } from '@/hooks/use-compose';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
 const FILTERS = [
@@ -200,6 +201,7 @@ function SidebarSettingsMenu() {
 }
 
 export function WorkspaceHeader() {
+  const [, setCompose] = useCompose();
   return (
     <div className="flex h-12 shrink-0 items-center gap-1 px-2">
       <WorkspaceMenu />
@@ -208,7 +210,12 @@ export function WorkspaceHeader() {
         <Tooltip>
           <TooltipTrigger
             render={
-              <Button variant="ghost" size="icon-sm" aria-label="New message" />
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="New message"
+                onClick={() => void setCompose(true)}
+              />
             }
           >
             <IconEdit />
