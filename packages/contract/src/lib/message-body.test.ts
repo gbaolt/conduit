@@ -5,6 +5,7 @@ import {
   MESSAGE_BODY_MAX,
   MessageBodySchema,
   parseMentions,
+  plainText,
 } from './message-body';
 
 describe('MessageBodySchema', () => {
@@ -73,5 +74,19 @@ describe('firstLink', () => {
     expect(
       firstLink('mail me at a@b.co or ftp://x.dev or example.com')
     ).toBeNull();
+  });
+});
+
+describe('plainText', () => {
+  it('names mentions and drops markdown markers', () => {
+    expect(
+      plainText('Hi <@u2>, see **this** [doc](https://x.test)', { u2: 'Bao' })
+    ).toBe('Hi @Bao, see this doc');
+  });
+
+  it('flattens blocks onto one line', () => {
+    expect(plainText('# Title\n\n- one\n- two\n\n```ts\nlet a;\n```', {})).toBe(
+      'Title one two let a;'
+    );
   });
 });
