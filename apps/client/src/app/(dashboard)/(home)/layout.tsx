@@ -4,6 +4,7 @@ import { type ReactNode, Suspense } from 'react';
 import { ChannelGroups } from '@/features/channels/components/sidebar/channel-groups';
 import { ChannelGroupsSkeleton } from '@/features/channels/components/sidebar/channel-groups-skeleton';
 import { ChannelDialogsProvider } from '@/features/channels/context/channel-dialogs-provider';
+import { NewMessagePane } from '@/features/messages/components/new-message/new-message';
 import { RoomPageSkeleton } from '@/features/rooms/components/room-skeletons';
 import {
   WorkspaceSidebar,
@@ -68,7 +69,9 @@ async function RoomPanel({ children }: { children: ReactNode }) {
             <ChannelGroups />
           </WorkspaceSidebarNav>
         </WorkspaceSidebarPanel>
-        <WorkspaceSidebarMain>{children}</WorkspaceSidebarMain>
+        <WorkspaceSidebarMain>
+          <NewMessagePane>{children}</NewMessagePane>
+        </WorkspaceSidebarMain>
       </WorkspaceSidebar>
     </HydrateClient>
   );
