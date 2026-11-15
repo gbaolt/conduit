@@ -10,10 +10,19 @@ import { useEffect } from 'react';
 
 /**
  * A phone has room for the workspace sidebar or the page, not both. The sidebar gets its own route: the
- * channel list at `/`, the settings menu at `/settings`. Every other route shows its page.
+ * channel list at `/`, the DM list at `/dms`, the settings menu at `/settings`. Every other route shows its page.
  */
-export const listHref = (pathname: string): Route =>
-  pathname.startsWith('/settings') ? '/settings' : '/';
+export const listHref = (pathname: string): Route => {
+  if (pathname.startsWith('/settings')) return '/settings';
+  if (pathname.startsWith('/dms')) return '/dms';
+  return '/';
+};
+
+const BACK_LABELS: Record<string, string> = {
+  '/': 'Back to channels',
+  '/dms': 'Back to direct messages',
+  '/settings': 'Back to settings',
+};
 
 export const useAtList = () => {
   const pathname = usePathname();
@@ -27,7 +36,7 @@ export function ListBackLink() {
   return (
     <Link
       href={href}
-      aria-label={href === '/' ? 'Back to channels' : 'Back to settings'}
+      aria-label={BACK_LABELS[href]}
       className={cn(
         buttonVariants({ variant: 'ghost', size: 'icon-sm' }),
         '-ms-2 shrink-0 md:hidden pointer-coarse:size-11'

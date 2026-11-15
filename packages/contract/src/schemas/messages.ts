@@ -127,3 +127,21 @@ export const SAVED_MESSAGES_MAX = 200;
 
 /** Newest saved first, at most `SAVED_MESSAGES_MAX`. */
 export const ListSavedOutputSchema = z.array(SavedMessageSchema);
+
+/** A thread the member started or replied in. */
+export const ThreadSchema = z.object({
+  root: MessageSchema,
+  /** Null for a conversation with no name, such as a DM. */
+  channelName: z.string().nullable(),
+  /** The newest live replies, oldest first, at most `THREAD_PREVIEW_REPLIES`. */
+  replies: z.array(MessageSchema),
+  /** Everyone who wrote in the thread: the root's author first, then each live replier once. */
+  participantIds: z.array(z.string()),
+});
+export type Thread = z.infer<typeof ThreadSchema>;
+
+export const THREADS_MAX = 50;
+export const THREAD_PREVIEW_REPLIES = 2;
+
+/** Newest reply first, at most `THREADS_MAX`. */
+export const ListThreadsOutputSchema = z.array(ThreadSchema);

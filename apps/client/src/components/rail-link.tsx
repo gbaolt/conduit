@@ -9,7 +9,9 @@ import type { ReactNode } from 'react';
 
 /** Home owns every route that no other rail link claims. */
 function isRailActive(href: Route, pathname: string) {
-  if (href === '/') return !pathname.startsWith('/activity');
+  if (href === '/') {
+    return !pathname.startsWith('/activity') && !pathname.startsWith('/dms');
+  }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -50,5 +52,24 @@ export function RailLink({
       {label}
       {badge}
     </Link>
+  );
+}
+
+const BADGE_MAX = 99;
+
+/** A count over a rail icon's top corner, capped at "99+". Pass it as `RailLink`'s `badge`. It renders nothing at zero. */
+export function RailLinkBadge({ count }: { count: number }) {
+  if (count === 0) return null;
+
+  return (
+    <>
+      <span className="sr-only">, {count} unread</span>
+      <span
+        aria-hidden
+        className="bg-primary text-primary-foreground absolute top-0 left-1/2 ml-2 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] leading-none font-medium tabular-nums"
+      >
+        {count > BADGE_MAX ? `${BADGE_MAX}+` : count}
+      </span>
+    </>
   );
 }

@@ -38,6 +38,10 @@ export const SidebarEntrySchema = z.object({
   hasDraft: z.boolean(),
   /** Set while the caller has the conversation muted. */
   mutedAt: z.coerce.date().nullable(),
+  /** Who sent a DM's latest message. Null for a channel, an empty DM, or a deleted latest message. */
+  lastAuthorId: z.string().nullable(),
+  /** The Markdown of a DM's latest message, null whenever `lastAuthorId` is. */
+  lastBody: z.string().nullable(),
 });
 export type SidebarEntry = z.infer<typeof SidebarEntrySchema>;
 

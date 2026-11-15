@@ -7,7 +7,7 @@ import { IconBookmark, IconHash, IconMessage } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 
-import { ListBackLink } from '@/components/list-view';
+import { PageHeader } from '@/components/page-header';
 import { useSavedMessage } from '@/services/messages/hooks';
 import { savedQuery } from '@/services/messages/queries';
 
@@ -112,11 +112,7 @@ export function SavedMessages() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex min-h-12 shrink-0 items-center gap-2 border-b px-4 py-1.5">
-        <ListBackLink />
-        <IconBookmark className="size-4" aria-hidden />
-        <h1 className="text-sm font-semibold">Saved</h1>
-      </header>
+      <PageHeader icon={IconBookmark} title="Saved" className="border-b" />
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5">
         <MentionNames value={names}>
           <SavedList />

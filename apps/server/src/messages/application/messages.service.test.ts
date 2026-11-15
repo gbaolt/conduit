@@ -15,6 +15,7 @@ import type {
 } from '@/feed/domain/feed.repository';
 import type { MessagesRepository } from '@/messages/domain/messages.repository';
 import type { SavedMessagesRepository } from '@/messages/domain/saved-messages.repository';
+import type { ThreadsRepository } from '@/messages/domain/threads.repository';
 import type { RoomsRepository } from '@/rooms/domain/rooms.repository';
 
 import { MessagesService, type MessageViewer } from './messages.service';
@@ -196,7 +197,14 @@ function setup(
 
   return {
     dmIds,
-    service: new MessagesService(messages, channels, saved, dms, feed),
+    service: new MessagesService(
+      messages,
+      channels,
+      saved,
+      dms,
+      feed,
+      {} as ThreadsRepository
+    ),
     stored,
     sent,
     edited,

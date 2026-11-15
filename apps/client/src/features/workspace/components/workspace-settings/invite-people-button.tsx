@@ -14,7 +14,7 @@ export function InvitePeopleButton() {
 
   return (
     <>
-      <Button type="button" onClick={() => setOpen(true)}>
+      <Button size="sm" type="button" onClick={() => setOpen(true)}>
         <IconUsersPlus data-icon="inline-start" />
         Invite people
       </Button>

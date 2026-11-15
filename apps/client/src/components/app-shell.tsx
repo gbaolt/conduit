@@ -20,6 +20,7 @@ import { NavUser, type NavUserInfo } from '@/components/nav-user';
 import { RailLink } from '@/components/rail-link';
 import { SidePanelLayout } from '@/components/side-panel';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { DmUnreadBadge } from '@/features/dms/components/dm-unread-badge';
 import { FeedUnreadBadge } from '@/features/feed/components/feed-unread-badge';
 import { WorkspaceActivity } from '@/features/workspace/components/workspace-activity';
 import { WorkspaceSwitcher } from '@/features/workspace/components/workspace-switcher';
@@ -32,7 +33,12 @@ const railItems: {
   badge?: ReactNode;
 }[] = [
   { href: '/', label: 'Home', icon: IconHome },
-  { href: '#', label: 'DMs', icon: IconMessage },
+  {
+    href: '/dms',
+    label: 'DMs',
+    icon: IconMessage,
+    badge: <DmUnreadBadge />,
+  },
   {
     href: '/activity',
     label: 'Activity',

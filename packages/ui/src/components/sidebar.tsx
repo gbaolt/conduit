@@ -486,6 +486,8 @@ const sidebarMenuButtonVariants = cva(
         default: 'h-8 text-sm',
         sm: 'h-7 text-xs',
         lg: 'h-12 text-sm group-data-[collapsible=icon]:p-0!',
+        /** Grows with its content, as a row with a second line of text. */
+        auto: 'h-auto items-start text-sm',
       },
     },
     defaultVariants: {

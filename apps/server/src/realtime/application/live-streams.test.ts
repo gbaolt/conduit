@@ -27,6 +27,14 @@ describe('queryFor', () => {
     expect(parameters).toEqual(['u1', 'org']);
   });
 
+  it('carries a DM’s latest message, and no message of a channel', () => {
+    const { sql } = queryFor({ kind: 'sidebar' }, viewer);
+
+    expect(sql).toContain('m."body" AS "lastBody"');
+    expect(sql).toContain(`LEFT JOIN "Message" m ON c."kind" = 'DM'`);
+    expect(sql).toContain('m."createdAt" = c."lastMessageAt"');
+  });
+
   it('reads the viewer’s unread items in rooms they are still in, and nobody else’s', () => {
     const { sql, parameters } = queryFor({ kind: 'feed' }, viewer);
 

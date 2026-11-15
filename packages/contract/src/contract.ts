@@ -60,6 +60,7 @@ import {
   listPinnedMessagesContract,
   listRepliesContract,
   listSavedMessagesContract,
+  listThreadsContract,
   pinMessageContract,
   reactMessageContract,
   removeLinkPreviewContract,
@@ -229,6 +230,9 @@ export const contract = {
     add: saveMessageContract,
     remove: unsaveMessageContract,
     list: listSavedMessagesContract,
+  },
+  threads: {
+    list: listThreadsContract,
   },
   realtime: {
     seal: sealStreamContract,

@@ -49,7 +49,10 @@ export const SetChannelMemberRoleInputSchema = z.object({
 });
 
 export const ListChannelsInputSchema = z
-  .object({ archived: z.boolean().optional() })
+  .object({
+    // GET /channels carries it in the query string, where it arrives as "true".
+    archived: z.union([z.boolean(), z.stringbool()]).optional(),
+  })
   .optional();
 
 export const SetChannelVisibilityInputSchema = z.object({

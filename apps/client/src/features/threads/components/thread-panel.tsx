@@ -3,13 +3,24 @@
 import { Button } from '@conduit/ui/components/button';
 import { IconArrowLeft, IconMessageDots, IconX } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
+import { Suspense } from 'react';
 
+import { ConversationSkeleton } from '@/components/conversation-skeleton';
+import { Conversation } from '@/features/messages/components/conversation/conversation';
+import { SummaryThreadMenu } from '@/features/messages/components/summary/summary-menu';
+import { SummaryProvider } from '@/features/messages/context/summary';
 import { useRoomName } from '@/features/messages/hooks/use-room-name';
 import { threadRootQuery } from '@/services/messages/queries';
 
-import { SummaryProvider } from '../../context/summary';
-import { Conversation } from '../conversation/conversation';
-import { SummaryThreadMenu } from '../summary/summary-menu';
+function ThreadRoomName({ roomId }: { roomId: string }) {
+  const { title } = useRoomName(roomId);
+
+  return (
+    <span className="text-muted-foreground min-w-0 flex-1 truncate text-sm">
+      {title}
+    </span>
+  );
+}
 
 /** One thread: its root, the replies, and a composer that replies in it. */
 export function ThreadPanel({
@@ -17,16 +28,17 @@ export function ThreadPanel({
   threadId,
   onClose,
 }: {
-  roomId: string;
+  /** The room the page shows. Without it the thread opens in the room its root belongs to. */
+  roomId?: string;
   threadId: string;
   onClose: () => void;
 }) {
-  const { title } = useRoomName(roomId);
   const root = useQuery(threadRootQuery(threadId));
+  const room = roomId ?? root.data?.roomId;
   // A link can name a message that is gone, in another channel, or itself a reply.
   const missing =
     root.isError ||
-    (root.data && (root.data.roomId !== roomId || root.data.parentId));
+    (root.data && (root.data.roomId !== room || root.data.parentId));
 
   return (
     <SummaryProvider target={{ kind: 'thread', messageId: threadId }}>
@@ -50,9 +62,11 @@ export function ThreadPanel({
           <h2 className="ml-2 flex items-center gap-2 font-semibold">
             <IconMessageDots className="size-4" /> Thread
           </h2>
-          <span className="text-muted-foreground min-w-0 flex-1 truncate text-sm">
-            {title}
-          </span>
+          {room ? (
+            <ThreadRoomName roomId={room} />
+          ) : (
+            <span className="flex-1" />
+          )}
           <SummaryThreadMenu />
           <Button
             variant="ghost"
@@ -69,7 +83,12 @@ export function ThreadPanel({
             This thread isn&apos;t available.
           </p>
         ) : (
-          <Conversation roomId={roomId} parentId={threadId} start={null} />
+          room && (
+            // The Threads page has not loaded this room, and suspending past the panel loops the layout's boundary.
+            <Suspense fallback={<ConversationSkeleton />}>
+              <Conversation roomId={room} parentId={threadId} start={null} />
+            </Suspense>
+          )
         )}
       </section>
     </SummaryProvider>

@@ -23,6 +23,7 @@ import {
 } from '@/messages/application/messages.service';
 import type { MessagesRepository } from '@/messages/domain/messages.repository';
 import type { SavedMessagesRepository } from '@/messages/domain/saved-messages.repository';
+import type { ThreadsRepository } from '@/messages/domain/threads.repository';
 import type { RoomsRepository } from '@/rooms/domain/rooms.repository';
 import type {
   StoredSummary,
@@ -169,7 +170,8 @@ function setup({
         onlineIds: [],
         repliers: [],
       }),
-    } as Partial<FeedRepository> as FeedRepository
+    } as Partial<FeedRepository> as FeedRepository,
+    {} as ThreadsRepository
   );
 
   return {
@@ -585,7 +587,8 @@ describe('SummariesService', () => {
           roomsRepository,
           {} as SavedMessagesRepository,
           { list: async () => dms } as Partial<DmsRepository> as DmsRepository,
-          {} as FeedRepository
+          {} as FeedRepository,
+          {} as ThreadsRepository
         ),
         summaries
       );

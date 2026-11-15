@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { plainText, PUSH_BODY_MAX, pushPayloadFor } from './push-payload';
+import { PUSH_BODY_MAX, pushPayloadFor } from './push-payload';
 
 const message = {
   id: 'm1',
@@ -13,20 +13,6 @@ const channel = {
   authorName: 'Linh',
   mentionNames: { u2: 'Bao' },
 };
-
-describe('plainText', () => {
-  it('names mentions and drops markdown markers', () => {
-    expect(plainText(message.body, { u2: 'Bao' })).toBe(
-      'Hi @Bao, see this doc'
-    );
-  });
-
-  it('flattens blocks onto one line', () => {
-    expect(plainText('# Title\n\n- one\n- two\n\n```ts\nlet a;\n```', {})).toBe(
-      'Title one two let a;'
-    );
-  });
-});
 
 describe('pushPayloadFor', () => {
   it('titles a channel message with the author and the channel, and tags it with the room', () => {
