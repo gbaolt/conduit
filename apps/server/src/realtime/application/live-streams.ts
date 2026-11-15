@@ -59,12 +59,15 @@ export function queryFor(stream: LiveStream, viewer: StreamViewer): LiveQuery {
         parameters: [stream.roomId, stream.since, viewer.userId],
       };
     case 'sidebar':
+      // A DM row carries its latest message for the DM list's preview. `lastMessageAt` is that message's
+      // `createdAt`, so the join finds it without a subquery.
       return {
-        sql: `SELECT cm."channelId" AS "roomId", c."lastMessageAt", cm."joinedAt", rs."lastReadAt", (d."channelId" IS NOT NULL) AS "hasDraft", cm."mutedAt"
+        sql: `SELECT cm."channelId" AS "roomId", c."lastMessageAt", cm."joinedAt", rs."lastReadAt", (d."channelId" IS NOT NULL) AS "hasDraft", cm."mutedAt", m."authorId" AS "lastAuthorId", m."body" AS "lastBody"
 FROM "ChannelMember" cm
 JOIN "Channel" c ON c."id" = cm."channelId"
 LEFT JOIN "ReadState" rs ON rs."channelId" = cm."channelId" AND rs."userId" = cm."userId"
 LEFT JOIN "Draft" d ON d."channelId" = cm."channelId" AND d."userId" = cm."userId" AND d."parentId" = ''
+LEFT JOIN "Message" m ON c."kind" = 'DM' AND m."channelId" = c."id" AND m."createdAt" = c."lastMessageAt" AND m."deletedAt" IS NULL AND (m."parentId" IS NULL OR m."alsoSentToChannel")
 WHERE cm."userId" = $1 AND c."organizationId" = $2`,
         parameters: [viewer.userId, viewer.organizationId],
       };

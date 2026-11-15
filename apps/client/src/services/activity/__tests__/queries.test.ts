@@ -13,6 +13,8 @@ function entry(overrides: Partial<SidebarEntry> = {}): SidebarEntry {
     lastReadAt: null,
     hasDraft: false,
     mutedAt: null,
+    lastAuthorId: null,
+    lastBody: null,
     ...overrides,
   };
 }
