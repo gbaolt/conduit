@@ -1,23 +1,43 @@
 'use client';
 
 import type { SavedMessage } from '@conduit/contract';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@conduit/ui/components/alert-dialog';
 import { Button } from '@conduit/ui/components/button';
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@conduit/ui/components/empty';
 import { Skeleton } from '@conduit/ui/components/skeleton';
 import { IconBookmark, IconHash, IconMessage } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
+import { useState } from 'react';
 
+import { StatusButton } from '@/components/async/status-button';
 import { PageHeader } from '@/components/page-header';
-import { useSavedMessage } from '@/services/messages/hooks';
+import { useClearSaved } from '@/services/messages/hooks';
 import { savedQuery } from '@/services/messages/queries';
 
 import { MentionNames } from '../context/mention-names';
 import { useAuthors } from '../hooks/use-authors';
 import { MessageExcerpt } from './message/message-excerpt';
+import { SavedMessageActions } from './saved-message-actions';
+import { SavedRoomPanel } from './saved-room-panel';
 
 function SavedItem({ item }: { item: SavedMessage }) {
   const { authorOf } = useAuthors();
-  const { saved, toggle } = useSavedMessage(item.message.id);
   const { message, channelName } = item;
 
   return (
@@ -40,16 +60,47 @@ function SavedItem({ item }: { item: SavedMessage }) {
         </Link>
       }
     >
-      <Button
-        variant="link"
-        size="xs"
-        className="px-0"
-        disabled={!saved}
-        onClick={toggle}
-      >
-        Remove from saved
-      </Button>
+      <SavedMessageActions item={item} />
     </MessageExcerpt>
+  );
+}
+
+function SavedClearButton() {
+  const { data: items } = useQuery(savedQuery);
+  const clear = useClearSaved();
+  const [confirming, setConfirming] = useState(false);
+
+  return (
+    <AlertDialog open={confirming} onOpenChange={setConfirming}>
+      <AlertDialogTrigger
+        render={
+          <Button variant="outline" size="sm" disabled={!items?.length} />
+        }
+      >
+        Clear saved
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Clear all saved messages?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Every message you saved in this workspace leaves this list. The
+            messages themselves stay where they were sent.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <StatusButton
+            variant="destructive"
+            status={clear.isPending ? 'loading' : 'idle'}
+            onClick={() =>
+              clear.mutate(undefined, { onSuccess: () => setConfirming(false) })
+            }
+          >
+            Clear saved
+          </StatusButton>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
@@ -89,14 +140,22 @@ function SavedList() {
   }
   if (items.length === 0) {
     return (
-      <p className="text-muted-foreground max-w-sm text-sm">
-        Nothing saved yet. Use Save for later on a message, and it shows up
-        here. Only you can see this list.
-      </p>
+      <Empty className="flex-1">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <IconBookmark />
+          </EmptyMedia>
+          <EmptyTitle>Nothing saved yet</EmptyTitle>
+          <EmptyDescription>
+            Use Save for later on a message, and it shows up here. Only you can
+            see this list.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     );
   }
   return (
-    <ul className="flex max-w-2xl flex-col gap-5">
+    <ul className="flex flex-col gap-5">
       {items.map((item) => (
         <li key={item.message.id}>
           <SavedItem item={item} />
@@ -106,18 +165,23 @@ function SavedList() {
   );
 }
 
-/** Messages the member saved for later, newest first. Only the member sees them. */
+/** Messages the member saved for later, newest first. Only the member sees them. Render it inside `ThreadLayout`, so a saved reply can open its thread beside the list. */
 export function SavedMessages() {
   const { names } = useAuthors();
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <PageHeader icon={IconBookmark} title="Saved" className="border-b" />
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5">
-        <MentionNames value={names}>
-          <SavedList />
-        </MentionNames>
+    <>
+      <div className="flex h-full min-h-0 flex-col">
+        <PageHeader icon={IconBookmark} title="Saved" className="border-b">
+          <SavedClearButton />
+        </PageHeader>
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
+          <MentionNames value={names}>
+            <SavedList />
+          </MentionNames>
+        </div>
       </div>
-    </div>
+      <SavedRoomPanel />
+    </>
   );
 }

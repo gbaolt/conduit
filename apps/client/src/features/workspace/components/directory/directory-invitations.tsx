@@ -52,8 +52,8 @@ function DirectoryInvitation({
   const expired = invitation.expiresAt.getTime() < Date.now();
 
   return (
-    <li className="hover:bg-muted/50 flex items-center gap-4 px-4 py-3.5 transition-colors sm:px-5">
-      <IconMail className="text-muted-foreground size-4 shrink-0" />
+    <li className="bg-background hover:bg-muted dark:bg-input/30 dark:hover:bg-input/50 outline-shadow border-border flex items-center gap-4 rounded-lg border px-4 py-3 transition-colors">
+      <IconMail className="text-muted-foreground size-5 shrink-0" />
       <div className="min-w-0 flex-1">
         <p className="flex min-w-0 items-center gap-2 font-semibold">
           <span className="truncate">{invitation.email}</span>

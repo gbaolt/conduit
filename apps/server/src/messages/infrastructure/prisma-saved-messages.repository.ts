@@ -21,6 +21,12 @@ export class PrismaSavedMessagesRepository implements SavedMessagesRepository {
     await this.db.savedMessage.deleteMany({ where: { userId, messageId } });
   }
 
+  async clear(userId: string, roomIds: string[]) {
+    await this.db.savedMessage.deleteMany({
+      where: { userId, message: { roomId: { in: roomIds } } },
+    });
+  }
+
   async list(userId: string, roomIds: string[], limit: number) {
     const rows = await this.db.savedMessage.findMany({
       where: {

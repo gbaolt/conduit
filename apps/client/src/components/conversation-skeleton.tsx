@@ -1,3 +1,4 @@
+import { Button } from '@conduit/ui/components/button';
 import { Spinner } from '@conduit/ui/components/spinner';
 import {
   IconAt,
@@ -44,12 +45,9 @@ export function ConversationComposerSkeleton() {
           <div key={index} className="flex items-center gap-0.5">
             {index > 0 && <span className="bg-border mx-1 h-4 w-px" />}
             {group.map((Icon, iconIndex) => (
-              <span
-                key={iconIndex}
-                className="flex size-7 items-center justify-center"
-              >
+              <Button key={iconIndex} size="icon-xs" variant="ghost" disabled>
                 <Icon className="size-4" />
-              </span>
+              </Button>
             ))}
           </div>
         ))}
@@ -57,13 +55,13 @@ export function ConversationComposerSkeleton() {
       <div className="h-11" />
       <div className="flex items-center gap-0.5 px-1.5 pb-1.5">
         {[IconMoodSmile, IconAt].map((Icon, index) => (
-          <span key={index} className="flex size-8 items-center justify-center">
+          <Button key={index} size="icon-sm" variant="ghost" disabled>
             <Icon className="size-5" />
-          </span>
+          </Button>
         ))}
-        <span className="bg-secondary ml-auto flex size-8 items-center justify-center rounded-md">
+        <Button size="icon-sm" className="ml-auto" disabled>
           <IconSend2 className="size-4" />
-        </span>
+        </Button>
       </div>
     </div>
   );

@@ -85,7 +85,7 @@ function DirectoryChannel({ channel }: { channel: Room }) {
   const Glyph = channel.visibility === 'private' ? IconLock : IconHash;
 
   return (
-    <li className="hover:bg-muted/50 has-[a:focus-visible]:ring-ring relative flex items-center gap-4 px-4 py-3.5 transition-colors has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-inset sm:px-5">
+    <li className="hover:bg-muted/50 has-[a:focus-visible]:ring-ring relative flex items-center gap-4 px-4 py-3 transition-colors has-[a:focus-visible]:ring-1 has-[a:focus-visible]:ring-inset">
       <div className="min-w-0 flex-1">
         <p className="flex min-w-0 items-center gap-1.5 font-semibold">
           <Glyph className="text-muted-foreground size-4 shrink-0" />
@@ -162,7 +162,10 @@ export function DirectoryChannels() {
   const filtered = params.q !== '' || params.type !== 'any';
 
   let results;
-  if (isPending) results = <DirectoryListSkeleton label="Loading channels" />;
+  if (isPending)
+    results = (
+      <DirectoryListSkeleton label="Loading channels" variant="compact" />
+    );
   else if (isError) {
     results = (
       <DirectoryEmpty
@@ -212,7 +215,7 @@ export function DirectoryChannels() {
     }
   } else {
     results = (
-      <DirectoryList label="Channels">
+      <DirectoryList label="Channels" variant="compact">
         {channels.map((channel) => (
           <DirectoryChannel key={channel.id} channel={channel} />
         ))}

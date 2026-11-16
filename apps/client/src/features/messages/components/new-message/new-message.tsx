@@ -282,7 +282,7 @@ export function NewMessage() {
           inputRef={toInput}
         />
       </div>
-      <div className="mt-auto px-4 pb-4 sm:px-5">
+      <div className="mt-auto px-4 pb-4">
         <Composer
           key={unsent.key}
           initialMarkdown={unsent.body}

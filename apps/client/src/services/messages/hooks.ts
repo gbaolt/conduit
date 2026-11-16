@@ -302,3 +302,15 @@ export function useSavedMessage(messageId: string) {
     toggle: () => (saved ? remove : add).mutate({ messageId }),
   };
 }
+
+/** Clears every save in the workspace. */
+export function useClearSaved() {
+  const queryClient = useQueryClient();
+  return useMutation(
+    orpc.saved.clear.mutationOptions({
+      onSuccess: () =>
+        queryClient.invalidateQueries({ queryKey: savedQuery.queryKey }),
+      onError: (error) => toast.error(error.message),
+    })
+  );
+}

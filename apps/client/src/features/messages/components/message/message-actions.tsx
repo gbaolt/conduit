@@ -46,7 +46,8 @@ import {
 import { OpenThread } from '../../context/thread';
 import { EmojiPickerButton } from '../emoji-picker';
 
-function ActionButton({
+/** One icon button in the toolbar, with its label as the tooltip. */
+export function MessageActionButton({
   label,
   disabled,
   pressed,
@@ -81,6 +82,40 @@ function ActionButton({
   );
 }
 
+/** The floating bar at a row's top right. It shows while the row is hovered, focused, or has a menu open. */
+export function MessageActionsBar({ children }: { children: ReactNode }) {
+  return (
+    <div className="bg-background border-border absolute top-0 right-2 flex -translate-y-1/2 rounded-md border p-px opacity-0 shadow-sm transition-opacity group-focus-within/message:opacity-100 group-hover/message:opacity-100 has-aria-expanded:opacity-100 motion-reduce:transition-none pointer-coarse:opacity-100">
+      {children}
+    </div>
+  );
+}
+
+/** The more menu's trigger, with its tooltip. */
+export function MessageActionsMoreTrigger() {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                aria-label="More actions"
+                className="pointer-coarse:size-11"
+              />
+            }
+          />
+        }
+      >
+        <IconDots />
+      </TooltipTrigger>
+      <TooltipContent>More actions</TooltipContent>
+    </Tooltip>
+  );
+}
+
 /** The floating toolbar at a row's top right: React, Reply in thread, Save for later, and the more menu. */
 export function MessageActions({
   message,
@@ -108,7 +143,7 @@ export function MessageActions({
   const pinned = Boolean(message.pinnedAt);
 
   return (
-    <div className="bg-background border-border absolute top-0 right-2 flex -translate-y-1/2 rounded-md border p-px opacity-0 shadow-sm transition-opacity group-focus-within/message:opacity-100 group-hover/message:opacity-100 has-aria-expanded:opacity-100 motion-reduce:transition-none pointer-coarse:opacity-100">
+    <MessageActionsBar>
       {canPost && (
         <EmojiPickerButton
           label="Add reaction"
@@ -121,41 +156,23 @@ export function MessageActions({
         </EmojiPickerButton>
       )}
       {canReplyInThread && openThread && (
-        <ActionButton
+        <MessageActionButton
           label="Reply in thread"
           onClick={() => openThread(message.id)}
         >
           <IconMessageDots />
-        </ActionButton>
+        </MessageActionButton>
       )}
-      <ActionButton
+      <MessageActionButton
         label={saved ? 'Remove from saved' : 'Save for later'}
         pressed={saved}
         onClick={toggleSaved}
       >
         {saved ? <IconBookmarkFilled /> : <IconBookmark />}
-      </ActionButton>
+      </MessageActionButton>
       {(canPost || canEdit || canDelete) && (
         <DropdownMenu>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <DropdownMenuTrigger
-                  render={
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      aria-label="More actions"
-                      className="pointer-coarse:size-11"
-                    />
-                  }
-                />
-              }
-            >
-              <IconDots />
-            </TooltipTrigger>
-            <TooltipContent>More actions</TooltipContent>
-          </Tooltip>
+          <MessageActionsMoreTrigger />
           <DropdownMenuContent align="end" className="w-40">
             {canPost && (
               <DropdownMenuItem onClick={() => togglePin(message)}>
@@ -207,6 +224,6 @@ export function MessageActions({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </MessageActionsBar>
   );
 }

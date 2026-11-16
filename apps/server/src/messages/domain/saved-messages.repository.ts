@@ -7,6 +7,9 @@ export abstract class SavedMessagesRepository {
 
   abstract remove(userId: string, messageId: string): Promise<void>;
 
+  /** Removes the saves of messages in `roomIds`. */
+  abstract clear(userId: string, roomIds: string[]): Promise<void>;
+
   /** Newest saved first, limited to messages in `roomIds` and not deleted. */
   abstract list(
     userId: string,
