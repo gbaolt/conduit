@@ -310,7 +310,7 @@ export function Conversation({
 
             <div
               ref={composerRef}
-              className="absolute inset-x-0 bottom-0 z-20 px-4 sm:px-5"
+              className="absolute inset-x-0 bottom-0 z-20 px-4"
             >
               {history.isRefetchError && (
                 <p

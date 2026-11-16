@@ -409,7 +409,6 @@ export function ComposerActionBar({
           <Button
             type="button"
             size="icon-sm"
-            variant={canSend ? 'default' : 'secondary'}
             disabled={!canSend}
             aria-label="Send message"
             className="size-8 pointer-coarse:size-11"

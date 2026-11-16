@@ -113,7 +113,7 @@ export function SavedMessages() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <PageHeader icon={IconBookmark} title="Saved" className="border-b" />
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         <MentionNames value={names}>
           <SavedList />
         </MentionNames>

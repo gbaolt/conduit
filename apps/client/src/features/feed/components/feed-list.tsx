@@ -53,7 +53,7 @@ import { FeedToolbar } from './feed-toolbar';
 import { FeedViewTabs } from './feed-view-tabs';
 
 /** Tabs, toolbar, and rows share one gutter, so they share one left and one right edge. */
-const column = 'w-full px-4 sm:px-5';
+const column = 'w-full px-4';
 
 /** `children` sit at the header's end, such as Catch me up. */
 function FeedListHeader({ children }: { children?: ReactNode }) {

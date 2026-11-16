@@ -269,3 +269,7 @@
 @utility input-otp-group {
   @apply w-full gap-2 *:data-[slot=input-otp-slot]:rounded-md *:data-[slot=input-otp-slot]:border;
 }
+
+@utility outline-shadow {
+  @apply shadow-[inset_0_1px_0_0_rgba(0,0,0,0.1),inset_1px_0_0_0_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15)];
+}

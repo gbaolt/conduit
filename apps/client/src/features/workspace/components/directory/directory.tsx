@@ -20,6 +20,8 @@ import {
   IconUser,
   type TablerIcon,
 } from '@tabler/icons-react';
+import type { VariantProps } from 'class-variance-authority';
+import { cva } from 'class-variance-authority';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -77,7 +79,7 @@ export function DirectoryTabs() {
               value={href}
               nativeButton={false}
               render={<Link href={href} />}
-              className="-mb-px h-full flex-none translate-y-1 px-2 after:bottom-0!"
+              className="h-full flex-none translate-y-1 px-2 after:bottom-0!"
             >
               <Icon data-icon="inline-start" />
               {label}
@@ -134,34 +136,68 @@ export function DirectoryResults({ children }: { children: ReactNode }) {
   );
 }
 
-const list = 'divide-y overflow-hidden rounded-lg border';
+const listVariants = cva('overflow-hidden rounded-lg', {
+  variants: {
+    variant: {
+      default: 'space-y-2',
+      compact: 'divide-y border border-border',
+    },
+  },
+  defaultVariants: {
+    variant: 'default',
+  },
+});
 
 /** Rows in one bordered box, split by lines, as the Channels and Invitations tabs show them. */
 export function DirectoryList({
   label,
   children,
+  variant = 'default',
+  className,
 }: {
   label: string;
+  className?: string;
   children: ReactNode;
-}) {
+} & VariantProps<typeof listVariants>) {
   return (
-    <ul aria-label={label} className={list}>
+    <ul aria-label={label} className={cn(listVariants({ variant, className }))}>
       {children}
     </ul>
   );
 }
 
-/** Rows of `DirectoryList` while it loads: a title line and a detail line each. */
-export function DirectoryListSkeleton({ label }: { label: string }) {
+export function DirectoryListSkeleton({
+  label,
+  variant = 'default',
+  className,
+}: { label: string; className?: string } & VariantProps<typeof listVariants>) {
   return (
-    <div role="status" aria-label={label} className={list}>
-      {['w-28', 'w-40', 'w-24', 'w-36'].map((width) => (
-        <div key={width} className="space-y-2.5 px-4 py-3.5 sm:px-5">
-          <Skeleton className={cn('h-4', width)} />
-          <Skeleton className="h-3 w-3/5" />
-        </div>
-      ))}
-    </div>
+    <ul
+      role="status"
+      aria-label={label}
+      className={cn(listVariants({ variant, className }))}
+    >
+      {variant === 'compact'
+        ? ['w-28', 'w-40', 'w-24', 'w-36'].map((width) => (
+            <li key={width} className="space-y-2.5 px-4 py-3">
+              <Skeleton className={cn('h-4', width)} />
+              <Skeleton className="h-3 w-3/5" />
+            </li>
+          ))
+        : ['w-28', 'w-40', 'w-24', 'w-36'].map((width) => (
+            <li
+              key={width}
+              className="border-border flex items-center gap-4 rounded-lg border px-4 py-3"
+            >
+              <Skeleton className="size-5 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className={cn('h-5', width)} />
+                <Skeleton className="h-4 w-4/5" />
+              </div>
+              <Skeleton className="ml-auto h-8 w-16 rounded-md" />
+            </li>
+          ))}
+    </ul>
   );
 }
 
