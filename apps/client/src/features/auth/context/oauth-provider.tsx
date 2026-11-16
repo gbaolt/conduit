@@ -1,6 +1,7 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useQueryState } from 'nuqs';
 import {
   createContext,
   type ReactNode,
@@ -34,28 +35,26 @@ function toastOAuthError(message: string) {
 
 export function OAuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const [error] = useQueryState('error');
+  const [callbackURL] = useQueryState('callbackURL');
   const [pendingProvider, setPendingProvider] = useState<OAuthProvider | null>(
     null
   );
   const didToastCallbackError = useRef(false);
 
   useEffect(() => {
-    const error = searchParams.get('error');
     if (!error || didToastCallbackError.current) {
       return;
     }
 
     didToastCallbackError.current = true;
     toastOAuthError(error);
-  }, [searchParams]);
+  }, [error]);
 
   const signInWith = async (provider: OAuthProvider) => {
     setPendingProvider(provider);
 
     try {
-      const callbackURL = searchParams.get('callbackURL');
-
       await authClient.signIn.social({
         provider,
         callbackURL: toAbsoluteAppUrl(callbackURL ?? '/'),

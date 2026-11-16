@@ -5,10 +5,13 @@ import { getQueryClient } from '@/lib/query/hydration';
 import { sessionQuery } from '@/services/auth/queries';
 
 async function JoinContent({ params }: { params: Promise<{ token: string }> }) {
-  const [{ token }, session] = await Promise.all([
+  const client = getQueryClient();
+  const [{ token }] = await Promise.all([
     params,
-    getQueryClient().fetchQuery(sessionQuery),
+    client.prefetchQuery(sessionQuery),
   ]);
+  // A failed session lookup leaves no data, so the page offers sign-in instead of crashing.
+  const session = client.getQueryData(sessionQuery.queryKey);
 
   return <JoinWorkspace token={token} signedIn={!!session} />;
 }
