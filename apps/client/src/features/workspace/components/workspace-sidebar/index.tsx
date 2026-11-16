@@ -4,9 +4,10 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from '@conduit/ui/components/resizable';
+import { usePathname } from 'next/navigation';
 import { type ReactNode, useSyncExternalStore } from 'react';
 
-import { useAtList } from '@/components/list-view';
+import { listHref, useAtList } from '@/components/list-view';
 import { ResizeHandle } from '@/components/resize-handle';
 
 import {
@@ -95,6 +96,17 @@ export function WorkspaceSidebarPanel({ children }: { children: ReactNode }) {
       <ResizeHandle className="bg-sidebar-border" />
     </>
   );
+}
+
+/** The room list the route belongs to: the DM list under `/dms`, the channels everywhere else. */
+export function WorkspaceSidebarRooms({
+  channels,
+  dms,
+}: {
+  channels: ReactNode;
+  dms: ReactNode;
+}) {
+  return listHref(usePathname()) === '/dms' ? dms : channels;
 }
 
 /** The page beside the sidebar. */
