@@ -3,8 +3,17 @@
 import { canChannel } from '@conduit/contract';
 import { Button } from '@conduit/ui/components/button';
 import { Checkbox } from '@conduit/ui/components/checkbox';
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@conduit/ui/components/empty';
 import { Label } from '@conduit/ui/components/label';
 import { cn } from '@conduit/ui/lib/utils';
+import { IconCloudOff } from '@tabler/icons-react';
 import {
   useInfiniteQuery,
   useQuery,
@@ -135,10 +144,11 @@ export function Conversation({
   const history = useInfiniteQuery(
     parentId ? repliesQuery(parentId) : messagesQuery(roomId)
   );
-  const { data: root } = useQuery({
+  const rootQuery = useQuery({
     ...threadRootQuery(parentId ?? ''),
     enabled: Boolean(parentId),
   });
+  const root = rootQuery.data;
   const liveStatus = useLiveStream(roomId, parentId);
   const { send, retry, discard } = useSendMessage(roomId, parentId);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -225,6 +235,14 @@ export function Conversation({
   const canPost = canChannel('post', workspaceRole, channel);
   const rootDeleted = Boolean(parentId && root?.deletedAt);
   const waitingForRoot = Boolean(parentId) && !root;
+  // Shown from the first failed attempt, while the retries run, so a slow failure never looks like an empty log.
+  const logFailed =
+    (!history.data && Boolean(history.failureReason)) ||
+    (waitingForRoot && Boolean(rootQuery.failureReason));
+  const retryLog = () => {
+    void history.refetch();
+    if (parentId) void rootQuery.refetch();
+  };
   const kind = conversationKind(parentId, isDm, isSelf);
   const footer = footerFor(Boolean(channel.archivedAt), rootDeleted, canPost);
 
@@ -233,7 +251,7 @@ export function Conversation({
       <MentionViewer value={viewerId}>
         <MentionSuggestions value={suggestions}>
           <div ref={frameRef} className="relative flex min-h-0 flex-1 flex-col">
-            {isClient && !history.isPending && !waitingForRoot ? (
+            {isClient && history.data && !waitingForRoot ? (
               <ConversationMessages
                 roomId={roomId}
                 parentId={parentId}
@@ -272,7 +290,14 @@ export function Conversation({
               />
             ) : (
               <div className="flex min-h-0 flex-1 flex-col pb-(--composer-height,8rem)">
-                <ConversationLoading />
+                {isClient && logFailed ? (
+                  <ConversationFailed
+                    retrying={history.isFetching || rootQuery.isFetching}
+                    onRetry={retryLog}
+                  />
+                ) : (
+                  <ConversationLoading />
+                )}
               </div>
             )}
 
@@ -287,6 +312,17 @@ export function Conversation({
               ref={composerRef}
               className="absolute inset-x-0 bottom-0 z-20 px-4 sm:px-5"
             >
+              {history.isRefetchError && (
+                <p
+                  role="status"
+                  className="text-muted-foreground flex items-center gap-1 pb-1 text-xs"
+                >
+                  Couldn’t refresh messages. Showing what’s saved.
+                  <Button variant="link" size="xs" onClick={retryLog}>
+                    Try again
+                  </Button>
+                </p>
+              )}
               <ConnectionLine status={liveStatus} />
               {footer === 'deleted' && (
                 <p className="text-muted-foreground text-sm">
@@ -353,6 +389,36 @@ export function Conversation({
         </MentionSuggestions>
       </MentionViewer>
     </MentionNames>
+  );
+}
+
+/** The log could not load. The composer stays below it, so a message can still be written and sent. */
+function ConversationFailed({
+  retrying,
+  onRetry,
+}: {
+  retrying: boolean;
+  onRetry: () => void;
+}) {
+  return (
+    <Empty className="flex-1 border-0">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <IconCloudOff />
+        </EmptyMedia>
+        <EmptyTitle>Couldn’t load messages</EmptyTitle>
+        <EmptyDescription>
+          {retrying
+            ? 'Trying again…'
+            : 'Nothing is lost. Try again in a moment.'}
+        </EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        <Button size="sm" onClick={onRetry}>
+          Try again
+        </Button>
+      </EmptyContent>
+    </Empty>
   );
 }
 

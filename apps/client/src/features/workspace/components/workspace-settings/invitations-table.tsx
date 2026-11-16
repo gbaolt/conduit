@@ -9,22 +9,37 @@ import {
   TableHeader,
   TableRow,
 } from '@conduit/ui/components/table';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { useRevokeInvitation } from '@/services/workspaces/hooks';
 import { workspaceInvitationsQuery } from '@/services/workspaces/queries';
 
+import { SettingsFailed } from './settings-failed';
+import { SettingsInvitationsSkeleton } from './settings-skeletons';
 import { SettingsPanel } from './settings-view';
 
 const expiresFormat = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
 });
 
-/** The pending invitations. The page's header stays outside the Suspense boundary that waits for this. */
+/** The pending invitations, loaded in the browser. */
 export function InvitationsTable() {
-  const { data: invitations } = useSuspenseQuery(workspaceInvitationsQuery);
+  const query = useQuery(workspaceInvitationsQuery);
   const revoke = useRevokeInvitation();
+  const invitations = query.data;
+
+  if (!invitations) {
+    return (query.error ?? query.failureReason) ? (
+      <SettingsFailed
+        title="Couldn’t load invitations"
+        retrying={query.isFetching}
+        onRetry={() => void query.refetch()}
+      />
+    ) : (
+      <SettingsInvitationsSkeleton />
+    );
+  }
 
   return (
     <SettingsPanel>

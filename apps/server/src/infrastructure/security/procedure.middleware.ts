@@ -79,7 +79,7 @@ function security(maxPerMinute: number, subject: Subject = 'user') {
 
 /** Chain after `authorized`, which supplies `user`. `readAnonymous` is for signed-out procedures. */
 export const arcjet = {
-  read: security(180),
+  read: security(300),
   write: security(40),
   heavyWrite: security(5),
   /** Chain after `workspaceMember`. For work that spends a shared provider quota, so it limits the workspace, not the member. */
