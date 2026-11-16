@@ -59,6 +59,7 @@ import {
   listMessagesContract,
   listPinnedMessagesContract,
   listRepliesContract,
+  clearSavedMessagesContract,
   listSavedMessagesContract,
   listThreadsContract,
   pinMessageContract,
@@ -230,6 +231,7 @@ export const contract = {
     add: saveMessageContract,
     remove: unsaveMessageContract,
     list: listSavedMessagesContract,
+    clear: clearSavedMessagesContract,
   },
   threads: {
     list: listThreadsContract,

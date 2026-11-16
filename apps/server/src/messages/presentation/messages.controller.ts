@@ -211,6 +211,17 @@ export class MessagesController {
       );
   }
 
+  @Implement(contract.saved.clear)
+  clearSaved() {
+    return implement(contract.saved.clear)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context }) =>
+        this.messagesService.clearSaved(viewerOf(context))
+      );
+  }
+
   @Implement(contract.saved.list)
   listSaved() {
     return implement(contract.saved.list)

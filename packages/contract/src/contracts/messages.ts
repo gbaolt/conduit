@@ -136,6 +136,11 @@ export const unsaveMessageContract = oc
   .input(MessageIdInputSchema)
   .output(z.void());
 
+/** Removes every save in the active workspace. Saves in other workspaces stay. */
+export const clearSavedMessagesContract = oc
+  .meta(openapi({ method: 'DELETE', path: '/saved-messages' }))
+  .output(z.void());
+
 export const listSavedMessagesContract = oc
   .meta(openapi({ method: 'GET', path: '/saved-messages' }))
   .output(ListSavedOutputSchema);

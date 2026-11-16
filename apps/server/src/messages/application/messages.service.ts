@@ -339,6 +339,11 @@ export class MessagesService {
     await this.saved.remove(viewer.userId, messageId);
   }
 
+  /** Clears the saves in this workspace's conversations, the same set `listSaved` shows. */
+  async clearSaved(viewer: MessageViewer) {
+    await this.saved.clear(viewer.userId, await this.readableRoomIds(viewer));
+  }
+
   /** Only messages in conversations the viewer can still read, so leaving a private channel hides its saves. */
   async listSaved(viewer: MessageViewer) {
     return this.saved.list(

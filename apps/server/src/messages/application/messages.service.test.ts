@@ -148,6 +148,13 @@ function setup(
     remove: async (userId, messageId) => {
       bookmarks.get(userId)?.delete(messageId);
     },
+    clear: async (userId, roomIds) => {
+      for (const id of bookmarks.get(userId) ?? []) {
+        if (roomIds.includes(stored.get(id)!.roomId)) {
+          bookmarks.get(userId)!.delete(id);
+        }
+      }
+    },
     list: async (userId, roomIds): Promise<SavedMessage[]> =>
       [...(bookmarks.get(userId) ?? [])]
         .map((id) => stored.get(id)!)
@@ -800,5 +807,20 @@ describe('MessagesService saved messages', () => {
     await service.unsave(author, message.id);
 
     expect(await service.listSaved(author)).toHaveLength(0);
+  });
+
+  it("clears the viewer's saves and leaves other members' alone", async () => {
+    const { service } = setup({
+      author: channelFor('member'),
+      other: channelFor('member'),
+    });
+    const { message } = await sendAs(service, author);
+    await service.save(author, message.id);
+    await service.save(other, message.id);
+
+    await service.clearSaved(author);
+
+    expect(await service.listSaved(author)).toHaveLength(0);
+    expect(await service.listSaved(other)).toHaveLength(1);
   });
 });
