@@ -1,6 +1,6 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { useQueryState } from 'nuqs';
 
 import { AuthActionLink } from '@/features/auth/components/auth-action-link';
 import { DirectionalTransition } from '@/features/auth/components/directional-transition';
@@ -11,10 +11,10 @@ import {
 } from '@/features/auth/lib/email-otp-type';
 
 export default function VerifyEmailPage() {
-  const searchParams = useSearchParams();
-  const callbackURL = searchParams.get('callbackURL');
-  const email = searchParams.get('email');
-  const type = parseEmailOtpType(searchParams.get('type'));
+  const [callbackURL] = useQueryState('callbackURL');
+  const [email] = useQueryState('email');
+  const [rawType] = useQueryState('type');
+  const type = parseEmailOtpType(rawType);
   const copy = emailOtpCopyFor(type);
 
   return (

@@ -15,7 +15,7 @@ import { useToggleReaction } from '@/services/messages/hooks';
 
 import { MentionNames } from '../../context/mention-names';
 import { reactorLabel } from '../../lib/reactors';
-import { EmojiPickerButton } from '../emoji-picker';
+import { ReactionPickerButton } from './reaction-picker';
 
 /** The reaction pills under a message, and the `+` that adds another emoji. Nothing renders without a reaction. */
 export function MessageReactions({
@@ -65,14 +65,14 @@ export function MessageReactions({
         );
       })}
       {canReact && (
-        <EmojiPickerButton
+        <ReactionPickerButton
           label="Add reaction"
           variant="outline"
           className="h-6 rounded-full px-2 pointer-coarse:h-11"
           onPick={(emoji) => toggle(message, emoji)}
         >
           <IconMoodPlus className="size-4" />
-        </EmojiPickerButton>
+        </ReactionPickerButton>
       )}
     </div>
   );

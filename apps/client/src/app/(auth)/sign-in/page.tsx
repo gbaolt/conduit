@@ -1,7 +1,7 @@
 'use client';
 
 import { FieldSeparator } from '@conduit/ui/components/field';
-import { useSearchParams } from 'next/navigation';
+import { useQueryState } from 'nuqs';
 
 import { AuthActionLink } from '@/features/auth/components/auth-action-link';
 import { DirectionalTransition } from '@/features/auth/components/directional-transition';
@@ -25,8 +25,7 @@ function SignInContent({ callbackURL }: { callbackURL: string | null }) {
 }
 
 export default function SignInPage() {
-  const searchParams = useSearchParams();
-  const callbackURL = searchParams.get('callbackURL');
+  const [callbackURL] = useQueryState('callbackURL');
 
   return (
     <DirectionalTransition>

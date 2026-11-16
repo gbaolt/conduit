@@ -8,12 +8,13 @@ const featureDeps = {
   auth: [],
   onboarding: ['auth'],
   workspace: ['channels'],
-  rooms: ['workspace'],
+  rooms: ['workspace', 'messages'],
   channels: ['rooms'],
   dms: ['rooms'],
   messages: ['rooms', 'channels', 'dms'],
   feed: ['rooms', 'messages'],
   threads: ['rooms', 'messages'],
+  directoris: ['workspace', 'channels'],
 };
 
 const services = [

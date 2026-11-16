@@ -22,7 +22,6 @@ import {
 import { useQueryState } from 'nuqs';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
-import { ConversationLoading } from '@/components/conversation-skeleton';
 import { useRoomName } from '@/features/messages/hooks/use-room-name';
 import { sessionQuery } from '@/services/auth/queries';
 import { useJoinChannel } from '@/services/channels/hooks';
@@ -47,6 +46,7 @@ import { useIsClient } from '../../hooks/use-is-client';
 import { useNewMarker } from '../../hooks/use-new-marker';
 import { SummaryDialog } from '../summary/summary-dialog';
 import { ConversationComposer } from './conversation-composer';
+import { ConversationLoading } from './conversation-loading';
 import { ConversationMessages } from './conversation-messages';
 import { ConversationTyping } from './conversation-typing';
 

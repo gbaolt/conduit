@@ -38,7 +38,7 @@ import {
   CHANNEL_TYPES,
   channelParams,
   findChannels,
-} from '../../lib/directory';
+} from '../lib/directory';
 import {
   DirectoryCount,
   DirectoryEmpty,

@@ -2,11 +2,11 @@ import {
   Directory,
   DirectoryHeader,
   DirectoryTabs,
-} from '@/features/workspace/components/directory/directory';
+} from '@/features/directories/components/directory';
 import {
   DirectoryInviteButton,
   DirectoryPeople,
-} from '@/features/workspace/components/directory/directory-people';
+} from '@/features/directories/components/directory-people';
 
 export default function PeopleDirectoryPage() {
   return (

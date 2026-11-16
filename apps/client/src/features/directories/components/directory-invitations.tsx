@@ -29,7 +29,7 @@ import {
   INVITATION_ROLES,
   INVITATION_SORTS,
   invitationParams,
-} from '../../lib/directory';
+} from '../lib/directory';
 import {
   DirectoryCount,
   DirectoryEmpty,

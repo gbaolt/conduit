@@ -54,12 +54,15 @@ import {
 } from '@/components/editor/plugins/mentions-plugin';
 import { TabFocusPlugin } from '@/components/editor/plugins/tab-focus-plugin';
 import { sanitizeUrl } from '@/components/editor/utils/url';
-
-import { MentionNames, MentionSuggestions } from '../../context/mention-names';
+import {
+  MentionNames,
+  MentionSuggestions,
+} from '@/features/messages/context/mention-names';
 import {
   createComposerExtension,
   markdownOf,
-} from '../../lib/composer-extension';
+} from '@/features/messages/lib/composer-extension';
+
 import { ComposerActionBar, ComposerFormattingBar } from './composer-toolbar';
 
 export type ComposerProps = {

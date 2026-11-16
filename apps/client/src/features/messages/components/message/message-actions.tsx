@@ -22,6 +22,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@conduit/ui/components/tooltip';
+import { Twemoji } from '@conduit/ui/components/twemoji';
+import { cn } from '@conduit/ui/lib/utils';
 import {
   IconBookmark,
   IconBookmarkFilled,
@@ -44,19 +46,22 @@ import {
 } from '@/services/messages/hooks';
 
 import { OpenThread } from '../../context/thread';
-import { EmojiPickerButton } from '../emoji-picker';
+import { useQuickReactions } from '../../hooks/use-quick-reactions';
+import { ReactionPickerButton } from './reaction-picker';
 
 /** One icon button in the toolbar, with its label as the tooltip. */
 export function MessageActionButton({
   label,
   disabled,
   pressed,
+  className,
   onClick,
   children,
 }: {
   label: string;
   disabled?: boolean;
   pressed?: boolean;
+  className?: string;
   onClick?: () => void;
   children: ReactNode;
 }) {
@@ -70,22 +75,27 @@ export function MessageActionButton({
             aria-label={label}
             aria-pressed={pressed}
             disabled={disabled}
-            className="pointer-coarse:size-11"
+            className={cn('group/button pointer-coarse:size-11', className)}
             onClick={onClick}
           />
         }
       >
         {children}
       </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
+      <TooltipContent>
+        <Twemoji key={label}>{label}</Twemoji>
+      </TooltipContent>
     </Tooltip>
   );
 }
 
-/** The floating bar at a row's top right. It shows while the row is hovered, focused, or has a menu open. */
+/**
+ * The floating bar at a row's top right. It shows while the row is hovered, focused, or has a menu open.
+ * It straddles the row's top edge, except under a divider, where it drops inside the row so the day or New label stays readable.
+ */
 export function MessageActionsBar({ children }: { children: ReactNode }) {
   return (
-    <div className="bg-background border-border absolute top-0 right-2 flex -translate-y-1/2 rounded-md border p-px opacity-0 shadow-sm transition-opacity group-focus-within/message:opacity-100 group-hover/message:opacity-100 has-aria-expanded:opacity-100 motion-reduce:transition-none pointer-coarse:opacity-100">
+    <div className="bg-background border-border absolute top-0 right-2 flex -translate-y-1/2 rounded-md border p-px opacity-0 shadow-sm transition-opacity group-focus-within/message:opacity-100 group-hover/message:opacity-100 in-[[role=separator]+[role=article]]:translate-y-0.5 has-aria-expanded:opacity-100 motion-reduce:transition-none pointer-coarse:opacity-100">
       {children}
     </div>
   );
@@ -116,9 +126,10 @@ export function MessageActionsMoreTrigger() {
   );
 }
 
-/** The floating toolbar at a row's top right: React, Reply in thread, Save for later, and the more menu. */
+/** The floating toolbar at a row's top right: the quick reactions, React, Reply in thread, Save for later, and the more menu. */
 export function MessageActions({
   message,
+  viewerId,
   canPost,
   canEdit,
   canDelete,
@@ -126,6 +137,7 @@ export function MessageActions({
   onEdit,
 }: {
   message: Pick<Message, 'id' | 'roomId' | 'reactions' | 'pinnedAt'>;
+  viewerId: string | null;
   /** Reacting and pinning need the right to post in the channel. */
   canPost: boolean;
   canEdit: boolean;
@@ -140,27 +152,48 @@ export function MessageActions({
   const toggleReaction = useToggleReaction(message.roomId);
   const togglePin = useTogglePin(message.roomId);
   const { saved, toggle: toggleSaved } = useSavedMessage(message.id);
+  const { reactions: quickReactions } = useQuickReactions();
   const pinned = Boolean(message.pinnedAt);
 
   return (
     <MessageActionsBar>
       {canPost && (
-        <EmojiPickerButton
-          label="Add reaction"
-          variant="ghost"
-          size="icon-xs"
-          className="pointer-coarse:size-11"
-          onPick={(emoji) => toggleReaction(message, emoji)}
-        >
-          <IconMoodPlus />
-        </EmojiPickerButton>
+        <>
+          {quickReactions.map((emoji) => {
+            const reacted =
+              viewerId !== null &&
+              Boolean(message.reactions[emoji]?.includes(viewerId));
+            return (
+              <MessageActionButton
+                key={emoji}
+                label={reacted ? `Remove ${emoji}` : `React with ${emoji}`}
+                pressed={reacted}
+                className="aria-pressed:bg-primary/15 aria-pressed:hover:bg-primary/25"
+                onClick={() => toggleReaction(message, emoji)}
+              >
+                <Twemoji className="btn-magnify m-0 size-4 align-middle">
+                  {emoji}
+                </Twemoji>
+              </MessageActionButton>
+            );
+          })}
+          <ReactionPickerButton
+            label="Add reaction"
+            variant="ghost"
+            size="icon-xs"
+            className="group/button pointer-coarse:size-11"
+            onPick={(emoji) => toggleReaction(message, emoji)}
+          >
+            <IconMoodPlus className="btn-magnify" />
+          </ReactionPickerButton>
+        </>
       )}
       {canReplyInThread && openThread && (
         <MessageActionButton
           label="Reply in thread"
           onClick={() => openThread(message.id)}
         >
-          <IconMessageDots />
+          <IconMessageDots className="btn-magnify" />
         </MessageActionButton>
       )}
       <MessageActionButton
@@ -168,7 +201,11 @@ export function MessageActions({
         pressed={saved}
         onClick={toggleSaved}
       >
-        {saved ? <IconBookmarkFilled /> : <IconBookmark />}
+        {saved ? (
+          <IconBookmarkFilled className="btn-magnify" />
+        ) : (
+          <IconBookmark className="btn-magnify" />
+        )}
       </MessageActionButton>
       {(canPost || canEdit || canDelete) && (
         <DropdownMenu>

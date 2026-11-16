@@ -1,9 +1,7 @@
 import { Skeleton } from '@conduit/ui/components/skeleton';
 
-import {
-  ConversationComposerSkeleton,
-  ConversationLoading,
-} from '@/components/conversation-skeleton';
+import { ComposerSkeleton } from '@/components/composer/composer-skeleton';
+import { ConversationLoading } from '@/features/messages/components/conversation/conversation-loading';
 
 /** Stands in for the `ChannelHeader` bar: the 48px header. */
 export function RoomHeaderSkeleton() {
@@ -29,7 +27,7 @@ export function RoomPageSkeleton() {
       <RoomHeaderSkeleton />
       <ConversationLoading />
       <div className="px-4 pb-5">
-        <ConversationComposerSkeleton />
+        <ComposerSkeleton />
       </div>
     </div>
   );

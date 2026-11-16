@@ -1,14 +1,13 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { useQueryState } from 'nuqs';
 
 import { AuthActionLink } from '@/features/auth/components/auth-action-link';
 import { DirectionalTransition } from '@/features/auth/components/directional-transition';
 import { ForgotPasswordForm } from '@/features/auth/components/forgot-password-form';
 
 export default function ForgotPasswordPage() {
-  const searchParams = useSearchParams();
-  const callbackURL = searchParams.get('callbackURL');
+  const [callbackURL] = useQueryState('callbackURL');
 
   return (
     <DirectionalTransition>

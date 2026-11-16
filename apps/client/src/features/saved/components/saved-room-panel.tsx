@@ -5,13 +5,12 @@ import { IconArrowLeft, IconMessage, IconX } from '@tabler/icons-react';
 import { parseAsString, useQueryStates } from 'nuqs';
 import { Suspense, useCallback } from 'react';
 
-import { ConversationLoading } from '@/components/conversation-skeleton';
 import { SidePanel } from '@/components/side-panel';
+import { Conversation } from '@/features/messages/components/conversation/conversation';
+import { ConversationLoading } from '@/features/messages/components/conversation/conversation-loading';
+import { OpenThread } from '@/features/messages/context/thread';
+import { useRoomName } from '@/features/messages/hooks/use-room-name';
 import { useMediaQuery } from '@/hooks/use-media-query';
-
-import { OpenThread } from '../context/thread';
-import { useRoomName } from '../hooks/use-room-name';
-import { Conversation } from './conversation/conversation';
 
 /** What the Saved page shows beside its list: a `thread`, or a `room` scrolled to `message`. Only one at a time. */
 export const savedSplitParams = {

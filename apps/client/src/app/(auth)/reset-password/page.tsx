@@ -1,15 +1,14 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { useQueryState } from 'nuqs';
 
 import { AuthActionLink } from '@/features/auth/components/auth-action-link';
 import { DirectionalTransition } from '@/features/auth/components/directional-transition';
 import { ResetPasswordForm } from '@/features/auth/components/reset-password-form';
 
 export default function ResetPasswordPage() {
-  const searchParams = useSearchParams();
-  const callbackURL = searchParams.get('callbackURL');
-  const email = searchParams.get('email');
+  const [callbackURL] = useQueryState('callbackURL');
+  const [email] = useQueryState('email');
 
   return (
     <DirectionalTransition>

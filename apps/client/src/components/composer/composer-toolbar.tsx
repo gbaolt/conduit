@@ -52,8 +52,7 @@ import { useEditorModal } from '@/components/editor/editor-hooks/use-modal';
 import { InsertTableDialog } from '@/components/editor/plugins/table-plugin';
 import { getSelectedNode } from '@/components/editor/utils/get-selected-node';
 import { sanitizeUrl } from '@/components/editor/utils/url';
-
-import { EmojiPickerButton } from '../emoji-picker';
+import { EmojiPickerButton } from '@/features/messages/components/emoji-picker';
 
 type Block = 'paragraph' | 'code' | ListType;
 
