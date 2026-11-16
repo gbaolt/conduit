@@ -104,6 +104,19 @@ export default [
     ['src/app/**', 'src/components/**', 'src/hooks/**'],
     [orpc, authClient]
   ),
+  {
+    files: ['src/app/**'],
+    rules: {
+      'no-restricted-properties': [
+        'error',
+        {
+          property: 'fetchQuery',
+          message:
+            'fetchQuery throws when the API refuses, and a route that throws loses the page. Prefetch with prefetchQuery, or load the data in the browser.',
+        },
+      ],
+    },
+  },
   ...Object.keys(featureDeps).map((feature) =>
     restrict([`src/features/${feature}/**`], featureRules(feature))
   ),
