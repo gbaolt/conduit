@@ -13,6 +13,15 @@ import {
 } from '@conduit/ui/components/tooltip';
 import type { ComponentProps } from 'react';
 
+export type EmojiPickerButtonProps = Omit<
+  ComponentProps<typeof Button>,
+  'onClick'
+> & {
+  label: string;
+  onPick: (emoji: string) => void;
+  onOpenChange?: (open: boolean) => void;
+};
+
 /** A button with a tooltip that opens the emoji picker. The popover closes after a pick. */
 export function EmojiPickerButton({
   label,
@@ -20,11 +29,7 @@ export function EmojiPickerButton({
   onOpenChange,
   children,
   ...button
-}: Omit<ComponentProps<typeof Button>, 'onClick'> & {
-  label: string;
-  onPick: (emoji: string) => void;
-  onOpenChange?: (open: boolean) => void;
-}) {
+}: EmojiPickerButtonProps) {
   return (
     <EmojiPicker
       aria-label={label}

@@ -200,6 +200,7 @@ export function MessageRow({
       {!message.deletedAt && !editing && (
         <MessageActions
           message={message}
+          viewerId={viewerId}
           canPost={canPost}
           canEdit={isAuthor}
           canDelete={isAuthor || canModerate}
