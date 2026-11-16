@@ -1,9 +1,8 @@
 'use client';
 
-import { ConversationComposerSkeleton } from '@/components/conversation-skeleton';
+import { Composer, type ComposerProps } from '@/components/composer/composer';
+import { ComposerSkeleton } from '@/components/composer/composer-skeleton';
 import { useComposerActivity, useDraft } from '@/services/activity/hooks';
-
-import { Composer, type ComposerProps } from '../composer/composer';
 
 /**
  * The composer for sending to a conversation. It starts from the viewer's saved draft, keeps that draft
@@ -20,7 +19,7 @@ export function ConversationComposer({
   const draft = useDraft(roomId, parentId);
   const onChange = useComposerActivity(roomId, draft ?? '', parentId);
 
-  if (draft === undefined) return <ConversationComposerSkeleton />;
+  if (draft === undefined) return <ComposerSkeleton />;
 
   return <Composer {...composer} initialMarkdown={draft} onChange={onChange} />;
 }

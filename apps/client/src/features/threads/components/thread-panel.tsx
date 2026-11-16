@@ -5,8 +5,8 @@ import { IconArrowLeft, IconMessageDots, IconX } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { Suspense } from 'react';
 
-import { ConversationLoading } from '@/components/conversation-skeleton';
 import { Conversation } from '@/features/messages/components/conversation/conversation';
+import { ConversationLoading } from '@/features/messages/components/conversation/conversation-loading';
 import { SummaryThreadMenu } from '@/features/messages/components/summary/summary-menu';
 import { SummaryProvider } from '@/features/messages/context/summary';
 import { useRoomName } from '@/features/messages/hooks/use-room-name';

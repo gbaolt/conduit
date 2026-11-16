@@ -20,19 +20,24 @@ import {
   EmptyTitle,
 } from '@conduit/ui/components/empty';
 import { Skeleton } from '@conduit/ui/components/skeleton';
-import { IconBookmark, IconHash, IconMessage } from '@tabler/icons-react';
+import {
+  IconBookmark,
+  IconEraser,
+  IconHash,
+  IconMessage,
+} from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useState } from 'react';
 
 import { StatusButton } from '@/components/async/status-button';
 import { PageHeader } from '@/components/page-header';
+import { MessageExcerpt } from '@/features/messages/components/message/message-excerpt';
+import { MentionNames } from '@/features/messages/context/mention-names';
+import { useAuthors } from '@/features/messages/hooks/use-authors';
 import { useClearSaved } from '@/services/messages/hooks';
 import { savedQuery } from '@/services/messages/queries';
 
-import { MentionNames } from '../context/mention-names';
-import { useAuthors } from '../hooks/use-authors';
-import { MessageExcerpt } from './message/message-excerpt';
 import { SavedMessageActions } from './saved-message-actions';
 import { SavedRoomPanel } from './saved-room-panel';
 
@@ -59,6 +64,7 @@ function SavedItem({ item }: { item: SavedMessage }) {
           {channelName ?? 'Direct message'}
         </Link>
       }
+      className="hover:bg-muted dark:hover:bg-muted/50 p-4"
     >
       <SavedMessageActions item={item} />
     </MessageExcerpt>
@@ -77,6 +83,7 @@ function SavedClearButton() {
           <Button variant="outline" size="sm" disabled={!items?.length} />
         }
       >
+        <IconEraser data-icon="inline-start" />
         Clear saved
       </AlertDialogTrigger>
       <AlertDialogContent>
@@ -96,6 +103,7 @@ function SavedClearButton() {
               clear.mutate(undefined, { onSuccess: () => setConfirming(false) })
             }
           >
+            <IconEraser data-icon="inline-start" />
             Clear saved
           </StatusButton>
         </AlertDialogFooter>
@@ -175,7 +183,7 @@ export function SavedMessages() {
         <PageHeader icon={IconBookmark} title="Saved" className="border-b">
           <SavedClearButton />
         </PageHeader>
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pt-6 pb-10">
           <MentionNames value={names}>
             <SavedList />
           </MentionNames>

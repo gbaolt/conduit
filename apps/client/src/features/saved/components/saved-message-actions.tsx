@@ -18,13 +18,13 @@ import {
 import Link from 'next/link';
 import { useQueryStates } from 'nuqs';
 
-import { useSavedMessage } from '@/services/messages/hooks';
-
 import {
   MessageActionButton,
   MessageActionsBar,
   MessageActionsMoreTrigger,
-} from './message/message-actions';
+} from '@/features/messages/components/message/message-actions';
+import { useSavedMessage } from '@/services/messages/hooks';
+
 import { savedSplitParams } from './saved-room-panel';
 
 /** A saved row's toolbar: Remove from saved, and a menu that opens the message where it was sent or beside the list. */

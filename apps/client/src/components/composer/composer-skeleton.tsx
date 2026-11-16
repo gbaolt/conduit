@@ -1,5 +1,4 @@
 import { Button } from '@conduit/ui/components/button';
-import { Spinner } from '@conduit/ui/components/spinner';
 import {
   IconAt,
   IconBold,
@@ -14,18 +13,6 @@ import {
   IconStrikethrough,
 } from '@tabler/icons-react';
 
-export function ConversationLoading() {
-  return (
-    <div
-      role="status"
-      className="animate-in fade-in-0 fill-mode-backwards text-muted-foreground flex min-h-0 flex-1 items-center justify-center delay-300 duration-200 ease-out motion-reduce:delay-0"
-    >
-      <Spinner className="size-6" />
-      <span className="sr-only">Loading messages</span>
-    </div>
-  );
-}
-
 const FORMAT_GROUPS = [
   [IconBold, IconItalic, IconStrikethrough],
   [IconLink],
@@ -33,8 +20,7 @@ const FORMAT_GROUPS = [
   [IconCode, IconBraces],
 ];
 
-/** The composer's frame, bars, and icons with nothing wired up, so the page keeps its shape while it loads. */
-export function ConversationComposerSkeleton() {
+export function ComposerSkeleton() {
   return (
     <div
       aria-hidden

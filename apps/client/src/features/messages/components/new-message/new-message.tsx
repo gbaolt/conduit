@@ -34,6 +34,7 @@ import {
 } from 'react';
 import { toast } from 'sonner';
 
+import { Composer } from '@/components/composer/composer';
 import { PresenceDot } from '@/components/presence-dot';
 import { UserAvatar } from '@/components/user-avatar';
 import { useCompose } from '@/hooks/use-compose';
@@ -59,7 +60,6 @@ import {
   recipientsOf,
   type To,
 } from '../../lib/recipients';
-import { Composer } from '../composer/composer';
 
 /** A row's picture, as the mention menu draws one: an avatar for a person, a glyph otherwise. */
 function RecipientGlyph({ row }: { row: Recipient }) {

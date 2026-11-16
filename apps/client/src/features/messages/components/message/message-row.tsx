@@ -5,13 +5,13 @@ import { Button } from '@conduit/ui/components/button';
 import { IconCornerDownRight, IconPin } from '@tabler/icons-react';
 import { use } from 'react';
 
+import { Composer } from '@/components/composer/composer';
 import {
   useEditMessage,
   useRemoveLinkPreview,
 } from '@/services/messages/hooks';
 
 import { OpenThread } from '../../context/thread';
-import { Composer } from '../composer/composer';
 import {
   type Author,
   Message,

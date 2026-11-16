@@ -23,6 +23,7 @@ export function MessageExcerpt({
   author,
   context,
   children,
+  className,
 }: {
   message: MessageData;
   author: Author | null;
@@ -30,9 +31,10 @@ export function MessageExcerpt({
   context?: ReactNode;
   /** Controls at the end of the excerpt. */
   children?: ReactNode;
+  className?: string;
 }) {
   return (
-    <Message variant="log" role="article">
+    <Message variant="log" role="article" className={className}>
       <MessageAvatar author={author} />
       <MessageContent>
         {context}

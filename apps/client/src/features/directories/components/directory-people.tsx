@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { FilterSearch } from '@/components/filter/filter-search';
 import { FilterSelect } from '@/components/filter/filter-select';
 import { PresenceDot } from '@/components/presence-dot';
+import { InvitePeopleButton } from '@/features/workspace/components/workspace-settings/invite-people-button';
 import { sessionQuery } from '@/services/auth/queries';
 import { useOpenDm } from '@/services/dms/hooks';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
@@ -33,8 +34,7 @@ import {
   PEOPLE_ROLES,
   PEOPLE_SORTS,
   peopleParams,
-} from '../../lib/directory';
-import { InvitePeopleButton } from '../workspace-settings/invite-people-button';
+} from '../lib/directory';
 import {
   DirectoryCount,
   DirectoryEmpty,

@@ -2,9 +2,9 @@ import {
   Directory,
   DirectoryHeader,
   DirectoryTabs,
-} from '@/features/workspace/components/directory/directory';
-import { DirectoryInvitations } from '@/features/workspace/components/directory/directory-invitations';
-import { DirectoryInviteButton } from '@/features/workspace/components/directory/directory-people';
+} from '@/features/directories/components/directory';
+import { DirectoryInvitations } from '@/features/directories/components/directory-invitations';
+import { DirectoryInviteButton } from '@/features/directories/components/directory-people';
 
 export default function InvitationDirectoryPage() {
   return (
