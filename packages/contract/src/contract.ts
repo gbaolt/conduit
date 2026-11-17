@@ -30,6 +30,7 @@ import {
   renameChannelContract,
   setChannelMemberRoleContract,
   updateChannelContract,
+  setChannelPermissionsContract,
   setChannelVisibilityContract,
   unarchiveChannelContract,
 } from './contracts/channels';
@@ -207,6 +208,7 @@ export const contract = {
     archive: archiveChannelContract,
     unarchive: unarchiveChannelContract,
     setVisibility: setChannelVisibilityContract,
+    setPermissions: setChannelPermissionsContract,
     moveToSection: moveChannelToSectionContract,
   },
   messages: {

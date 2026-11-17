@@ -1,10 +1,15 @@
 import type {
+  ChannelAudience,
+  ChannelPermissions,
   NotifyLevel,
   Room,
   RoomMember,
   RoomMembership,
 } from '@conduit/contract';
-import { Prisma } from '@generated/prisma/client';
+import {
+  type ChannelAudience as ChannelAudienceRow,
+  Prisma,
+} from '@generated/prisma/client';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { roomAddItemFor } from '@/feed/domain/feed-recipients';
@@ -65,6 +70,11 @@ type ChannelRow = Prisma.RoomGetPayload<{
   include: ReturnType<typeof include>;
 }>;
 
+const toAudience = (audience: ChannelAudienceRow): ChannelAudience =>
+  audience === 'MANAGERS' ? 'managers' : 'everyone';
+const fromAudience = (audience: ChannelAudience): ChannelAudienceRow =>
+  audience === 'managers' ? 'MANAGERS' : 'EVERYONE';
+
 export function toChannel(row: ChannelRow): Room {
   const membership = row.members[0];
   return {
@@ -76,6 +86,11 @@ export function toChannel(row: ChannelRow): Room {
     topic: row.topic,
     description: row.description,
     visibility: row.visibility === 'PRIVATE' ? 'private' : 'public',
+    permissions: {
+      post: toAudience(row.postAudience),
+      reply: toAudience(row.replyAudience),
+      mentionEveryone: toAudience(row.mentionEveryoneAudience),
+    },
     isDefault: row.defaultForOrganizationId !== null,
     archivedAt: row.archivedAt,
     memberCount: row._count.members,
@@ -195,6 +210,24 @@ export class PrismaRoomsRepository implements RoomsRepository {
       data: archived
         ? { archivedAt: new Date(), archivedById: scope.userId }
         : { archivedAt: null, archivedById: null },
+      include: include(scope),
+    });
+    return toChannel(row);
+  }
+
+  async setPermissions(
+    scope: RoomScope,
+    roomId: string,
+    { post, reply, mentionEveryone }: Partial<ChannelPermissions>
+  ) {
+    const row = await this.db.room.update({
+      where: { id: roomId },
+      data: {
+        postAudience: post && fromAudience(post),
+        replyAudience: reply && fromAudience(reply),
+        mentionEveryoneAudience:
+          mentionEveryone && fromAudience(mentionEveryone),
+      },
       include: include(scope),
     });
     return toChannel(row);

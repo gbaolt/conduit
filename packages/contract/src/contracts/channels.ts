@@ -11,6 +11,7 @@ import {
   RenameChannelInputSchema,
   SetChannelMemberRoleInputSchema,
   UpdateChannelInputSchema,
+  SetChannelPermissionsInputSchema,
   SetChannelVisibilityInputSchema,
 } from '@/schemas/channels';
 import { roomErrors } from '@/contracts/rooms';
@@ -126,6 +127,12 @@ export const setChannelVisibilityContract = oc
   .meta(openapi({ method: 'PATCH', path: '/channels/{roomId}/visibility' }))
   .errors({ NOT_FOUND, FORBIDDEN, DEFAULT_CHANNEL_LOCKED, CHANNEL_ARCHIVED })
   .input(SetChannelVisibilityInputSchema)
+  .output(RoomSchema);
+
+export const setChannelPermissionsContract = oc
+  .meta(openapi({ method: 'PATCH', path: '/channels/{roomId}/permissions' }))
+  .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED })
+  .input(SetChannelPermissionsInputSchema)
   .output(RoomSchema);
 
 export const moveChannelToSectionContract = oc

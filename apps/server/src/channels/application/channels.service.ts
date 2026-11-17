@@ -1,6 +1,7 @@
 import {
   canCreateChannel,
   type ChannelAction,
+  type ChannelPermissions,
   checkChannel,
   type Room,
   type RoomMember,
@@ -91,6 +92,15 @@ export class ChannelsService {
       visibility === 'private' ? 'makePrivate' : 'makePublic'
     );
     return this.channels.setVisibility(viewer, roomId, visibility);
+  }
+
+  async setPermissions(
+    viewer: RoomViewer,
+    roomId: string,
+    permissions: Partial<ChannelPermissions>
+  ) {
+    await this.authorize(viewer, roomId, 'setPermissions');
+    return this.channels.setPermissions(viewer, roomId, permissions);
   }
 
   async moveToSection(

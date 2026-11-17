@@ -462,6 +462,26 @@ describe.skipIf(!connectionString)('ChannelsService', () => {
     ).resolves.toMatchObject({ visibility: 'public' });
   });
 
+  it('lets a manager set posting permissions, and refuses a plain member', async () => {
+    const channel = await service.create(owner, {
+      name: 'announcements',
+      visibility: 'public',
+    });
+    await expect(
+      service.setPermissions(owner, channel.id, { post: 'managers' })
+    ).resolves.toMatchObject({
+      permissions: {
+        post: 'managers',
+        reply: 'everyone',
+        mentionEveryone: 'everyone',
+      },
+    });
+    await service.join(member, channel.id);
+    await expect(
+      service.setPermissions(member, channel.id, { post: 'everyone' })
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
   it('refuses to change the default channel visibility', async () => {
     await expect(
       service.setVisibility(owner, defaultChannelId, 'private')

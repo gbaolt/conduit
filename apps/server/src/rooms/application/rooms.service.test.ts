@@ -26,6 +26,11 @@ const room = (
   topic: null,
   description: null,
   visibility: 'public',
+  permissions: {
+    post: 'everyone',
+    reply: 'everyone',
+    mentionEveryone: 'everyone',
+  },
   isDefault: false,
   archivedAt: null,
   memberCount: 2,

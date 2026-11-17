@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import {
   ChannelNameSchema,
+  ChannelPermissionsSchema,
   ChannelVisibilitySchema,
   RoomRoleSchema,
 } from '@/schemas/rooms';
@@ -58,6 +59,11 @@ export const ListChannelsInputSchema = z
 export const SetChannelVisibilityInputSchema = z.object({
   roomId: z.string(),
   visibility: ChannelVisibilitySchema,
+});
+
+export const SetChannelPermissionsInputSchema = z.object({
+  roomId: z.string(),
+  permissions: ChannelPermissionsSchema.partial(),
 });
 
 export const MoveChannelToSectionInputSchema = z.object({

@@ -53,6 +53,11 @@ const channelFor = (
   topic: null,
   description: null,
   visibility: 'private',
+  permissions: {
+    post: 'everyone',
+    reply: 'everyone',
+    mentionEveryone: 'everyone',
+  },
   isDefault: false,
   archivedAt: null,
   memberCount: 2,

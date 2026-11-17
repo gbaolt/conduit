@@ -188,6 +188,21 @@ export class ChannelsController {
       );
   }
 
+  @Implement(contract.channels.setPermissions)
+  setPermissions() {
+    return implement(contract.channels.setPermissions)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.channelsService.setPermissions(
+          viewerOf(context),
+          input.roomId,
+          input.permissions
+        )
+      );
+  }
+
   @Implement(contract.channels.moveToSection)
   moveToSection() {
     return implement(contract.channels.moveToSection)

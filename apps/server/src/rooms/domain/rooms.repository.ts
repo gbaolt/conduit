@@ -1,4 +1,9 @@
-import type { NotifyLevel, Room, RoomMember } from '@conduit/contract';
+import type {
+  ChannelPermissions,
+  NotifyLevel,
+  Room,
+  RoomMember,
+} from '@conduit/contract';
 
 /** Whose view of a channel to load: the member counts and the `membership` field depend on it. */
 export type RoomScope = { userId: string; organizationId: string };
@@ -53,6 +58,12 @@ export abstract class RoomsRepository {
     scope: RoomScope,
     roomId: string,
     visibility: Room['visibility']
+  ): Promise<Room>;
+
+  abstract setPermissions(
+    scope: RoomScope,
+    roomId: string,
+    permissions: Partial<ChannelPermissions>
   ): Promise<Room>;
 
   abstract delete(roomId: string): Promise<void>;
