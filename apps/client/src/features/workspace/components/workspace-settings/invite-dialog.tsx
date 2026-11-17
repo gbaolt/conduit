@@ -14,6 +14,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@conduit/ui/components/dialog';
+import {
+  InputGroup,
+  InputGroupInput,
+} from '@conduit/ui/components/input-group';
 import { Label } from '@conduit/ui/components/label';
 import {
   Select,
@@ -22,9 +26,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@conduit/ui/components/select';
-import { Textarea } from '@conduit/ui/components/textarea';
+import { Tag } from '@conduit/ui/components/tag';
 import { IconLink } from '@tabler/icons-react';
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, type KeyboardEvent, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -45,12 +49,99 @@ const SKIP_REASONS = {
   invited: 'already invited',
 } as const;
 
-function parseEmails(text: string) {
-  const emails = text.split(/[\s,;]+/).filter(Boolean);
-  return {
-    emails,
-    invalid: emails.find((email) => !EmailSchema.safeParse(email).success),
+const SEPARATORS = /[\s,;]+/;
+
+const isEmail = (email: string) => EmailSchema.safeParse(email).success;
+
+/** Adds the typed or pasted addresses to the list once each, ignoring case. */
+function addEmails(emails: string[], text: string) {
+  const seen = new Set(emails.map((email) => email.toLowerCase()));
+  const added = text
+    .split(SEPARATORS)
+    .filter(Boolean)
+    .filter((email) => {
+      const key = email.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  return added.length ? [...emails, ...added] : emails;
+}
+
+/**
+ * The addresses as tags, with the one being typed after them. Space, comma, semicolon or Enter turns the text
+ * into a tag, a paste of many becomes many, and Backspace in the empty field takes the last tag back to edit.
+ */
+function InviteEmails({
+  emails,
+  onEmailsChange,
+  text,
+  onTextChange,
+  error,
+}: {
+  emails: string[];
+  onEmailsChange: (emails: string[]) => void;
+  text: string;
+  onTextChange: (text: string) => void;
+  error: string | null;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const change = (value: string) => {
+    // Every separator ends an address, so only what follows the last one stays as text.
+    const parts = value.split(SEPARATORS);
+    const rest = parts.pop() ?? '';
+    if (parts.length) onEmailsChange(addEmails(emails, parts.join(' ')));
+    onTextChange(rest);
   };
+
+  const keyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter' && text.trim()) {
+      event.preventDefault();
+      change(`${text} `);
+    }
+    if (event.key === 'Backspace' && !text && emails.length) {
+      event.preventDefault();
+      onTextChange(emails.at(-1) ?? '');
+      onEmailsChange(emails.slice(0, -1));
+    }
+  };
+
+  return (
+    <InputGroup
+      className="h-auto min-h-24 flex-wrap content-start items-start gap-1 p-1.5"
+      onClick={() => inputRef.current?.focus()}
+    >
+      {emails.map((email) => (
+        <Tag
+          key={email}
+          showCloseButton
+          closeLabel={`Remove ${email}`}
+          aria-invalid={!isEmail(email) || undefined}
+          onClose={() => {
+            onEmailsChange(emails.filter((other) => other !== email));
+            inputRef.current?.focus();
+          }}
+        >
+          {email}
+        </Tag>
+      ))}
+      <InputGroupInput
+        ref={inputRef}
+        id="invite-emails"
+        value={text}
+        onChange={(event) => change(event.target.value)}
+        onKeyDown={keyDown}
+        onBlur={() => text.trim() && change(`${text} `)}
+        placeholder={emails.length ? '' : 'name@example.com'}
+        className="h-6 min-w-40 px-1"
+        autoComplete="off"
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? 'invite-emails-error' : undefined}
+        autoFocus
+      />
+    </InputGroup>
+  );
 }
 
 // Resetting the link lives on Settings > Access; the invite dialog only shares it.
@@ -103,18 +194,22 @@ export function InviteDialog({
 }) {
   const createInvitations = useCreateInvitations();
   const canShareLink = canWorkspace('manageJoinLink', useWorkspaceRole());
+  const [emails, setEmails] = useState<string[]>([]);
   const [text, setText] = useState('');
   const [role, setRole] = useState<InviteRole>('member');
   const [result, setResult] = useState<CreateInvitationsResult | null>(null);
 
-  const { emails, invalid } = parseEmails(text);
+  // The address still being typed counts, so Send works without pressing Space first.
+  const all = addEmails(emails, text);
+  const invalid = all.find((email) => !isEmail(email));
   const invalidError = invalid ? `Not a valid email: ${invalid}` : null;
   const error =
-    emails.length > MAX_EMAILS
+    all.length > MAX_EMAILS
       ? `Invite up to ${MAX_EMAILS} people at a time.`
       : invalidError;
 
   const reset = () => {
+    setEmails([]);
     setText('');
     setResult(null);
     createInvitations.reset();
@@ -122,9 +217,9 @@ export function InviteDialog({
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (emails.length === 0 || error) return;
+    if (all.length === 0 || error) return;
     createInvitations.mutate(
-      { emails, role },
+      { emails: all, role },
       {
         onSuccess: setResult,
         onError: (e) => toast.error(e.message),
@@ -164,15 +259,12 @@ export function InviteDialog({
           <form className="flex flex-col gap-4" onSubmit={submit}>
             <div className="flex flex-col gap-2">
               <Label htmlFor="invite-emails">Email addresses</Label>
-              <Textarea
-                id="invite-emails"
-                value={text}
-                onChange={(event) => setText(event.target.value)}
-                placeholder="name@example.com, another@example.com"
-                className="min-h-24"
-                aria-invalid={error ? true : undefined}
-                aria-describedby={error ? 'invite-emails-error' : undefined}
-                autoFocus
+              <InviteEmails
+                emails={emails}
+                onEmailsChange={setEmails}
+                text={text}
+                onTextChange={setText}
+                error={error}
               />
 
               {error && (
@@ -207,7 +299,7 @@ export function InviteDialog({
               {canShareLink ? <CopyJoinLinkButton /> : <span />}
               <StatusButton
                 type="submit"
-                disabled={emails.length === 0 || error !== null}
+                disabled={all.length === 0 || error !== null}
                 status={createInvitations.isPending ? 'loading' : 'idle'}
               >
                 Send invitations

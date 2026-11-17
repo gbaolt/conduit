@@ -1,8 +1,6 @@
 import { cookies } from 'next/headers';
 import { type ReactNode, Suspense } from 'react';
 
-import { ChannelGroups } from '@/features/channels/components/sidebar/channel-groups';
-import { ChannelGroupsSkeleton } from '@/features/channels/components/sidebar/channel-groups-skeleton';
 import { ChannelDialogsProvider } from '@/features/channels/context/channel-dialogs-provider';
 import {
   DmList,
@@ -23,6 +21,10 @@ import {
 } from '@/features/workspace/components/workspace-sidebar';
 import { WorkspaceHeader } from '@/features/workspace/components/workspace-sidebar/workspace-header';
 import { WorkspaceNav } from '@/features/workspace/components/workspace-sidebar/workspace-nav';
+import {
+  WorkspaceRooms,
+  WorkspaceRoomsSkeleton,
+} from '@/features/workspace/components/workspace-sidebar/workspace-rooms';
 import {
   LAYOUT_COOKIE,
   parseLayout,
@@ -47,10 +49,10 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
                 <WorkspaceSidebarPanel>
                   <WorkspaceSidebarRooms
                     channels={
-                      <WorkspaceSidebarNav aria-label="Channels">
+                      <WorkspaceSidebarNav aria-label="Channels and direct messages">
                         <WorkspaceHeader />
                         <WorkspaceNav />
-                        <ChannelGroupsSkeleton />
+                        <WorkspaceRoomsSkeleton />
                       </WorkspaceSidebarNav>
                     }
                     dms={
@@ -93,10 +95,10 @@ async function WorkspacePanel({ children }: { children: ReactNode }) {
         <WorkspaceSidebarPanel>
           <WorkspaceSidebarRooms
             channels={
-              <WorkspaceSidebarNav aria-label="Channels">
+              <WorkspaceSidebarNav aria-label="Channels and direct messages">
                 <WorkspaceHeader />
                 <WorkspaceNav />
-                <ChannelGroups />
+                <WorkspaceRooms />
               </WorkspaceSidebarNav>
             }
             dms={

@@ -79,6 +79,7 @@ describe('findChannels', () => {
     sectionId: null,
     notify: null,
     mutedAt: null,
+    closedAt: null,
   } as const;
   const list = [
     channel('social', { memberCount: 9, description: 'Fun things' }),

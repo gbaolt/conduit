@@ -1,10 +1,8 @@
 import type { Room } from '@conduit/contract';
-import {
-  SidebarMenuAction,
-  SidebarMenuItem,
-} from '@conduit/ui/components/sidebar';
+import { SidebarMenuAction } from '@conduit/ui/components/sidebar';
 import { IconDots, IconHash, IconLock } from '@tabler/icons-react';
 
+import { RoomDndItem } from '@/features/rooms/components/room-dnd';
 import {
   RoomItem,
   RoomItemButton,
@@ -23,7 +21,20 @@ export function ChannelItem({ channel }: { channel: Room }) {
 
   return (
     <RoomItem roomId={channel.id}>
-      <ChannelActionsContextMenu channel={channel} render={<SidebarMenuItem />}>
+      <ChannelActionsContextMenu
+        channel={channel}
+        render={
+          <RoomDndItem
+            item={{ kind: 'channel', id: channel.id, channel }}
+            preview={
+              <>
+                <Glyph />
+                <span className="truncate">{channel.name}</span>
+              </>
+            }
+          />
+        }
+      >
         <RoomItemButton href={`/channels/${channel.id}`}>
           <Glyph />
           <RoomItemLabel>{channel.name}</RoomItemLabel>

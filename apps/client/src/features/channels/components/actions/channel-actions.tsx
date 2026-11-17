@@ -26,15 +26,15 @@ import {
   roomContextMenuParts,
   roomDropdownMenuParts,
   RoomMenuParts,
+  RoomMenuSplitItem,
 } from '@/features/rooms/components/room-menu';
 import { RoomNotifyMenu } from '@/features/rooms/components/room-notify-menu';
 import {
   useLeaveChannel,
   useMoveChannelToSection,
-  useStarChannel,
-  useUnstarChannel,
 } from '@/services/channels/hooks';
 import { channelSectionsQuery } from '@/services/channels/queries';
+import { useStarRoom, useUnstarRoom } from '@/services/rooms/hooks';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
 import { useChannelDialogs } from '../../context/channel-dialogs-provider';
@@ -51,8 +51,8 @@ function useChannelActions(channel: Room) {
   const workspaceRole = useWorkspaceRole();
   const exitOpenChannel = useExitOpenChannel();
   const { mutateAsync: leaveChannel } = useLeaveChannel();
-  const { mutate: star } = useStarChannel();
-  const { mutate: unstar } = useUnstarChannel();
+  const { mutate: star } = useStarRoom();
+  const { mutate: unstar } = useUnstarRoom();
   const { mutate: moveChannel } = useMoveChannelToSection();
   const { data: sections } = useQuery(channelSectionsQuery);
 
@@ -177,7 +177,15 @@ function ChannelMenuItems({ channel }: { channel: Room }) {
   };
 
   const groups = [
-    { id: 'main', content: rows('main') },
+    {
+      id: 'main',
+      content: (
+        <>
+          {rows('main')}
+          <RoomMenuSplitItem roomId={channel.id} />
+        </>
+      ),
+    },
     {
       id: 'notify',
       content: channel.membership ? <RoomNotifyMenu room={channel} /> : null,

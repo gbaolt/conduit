@@ -1,4 +1,4 @@
-import { DM_MEMBERS_MAX, type Room } from '@conduit/contract';
+import { type Dm, DM_MEMBERS_MAX, type Room } from '@conduit/contract';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -11,6 +11,15 @@ import {
   recipientsOf,
   type To,
 } from '../recipients';
+
+const membership: Dm['membership'] = {
+  role: 'member',
+  starredAt: null,
+  sectionId: null,
+  notify: null,
+  mutedAt: null,
+  closedAt: null,
+};
 
 const person = (userId: string, isViewer = false): Recipient => ({
   kind: 'person',
@@ -89,6 +98,7 @@ describe('recipientsOf', () => {
           ],
           lastMessageAt: at(3),
           createdAt: at(1),
+          membership,
         },
         {
           id: 'd2',
@@ -99,6 +109,7 @@ describe('recipientsOf', () => {
           })),
           lastMessageAt: at(1),
           createdAt: at(1),
+          membership,
         },
       ],
       people: ['me', 'ann', 'bo'].map((userId) => ({
@@ -144,6 +155,7 @@ describe('detailOf', () => {
           })),
           lastMessageAt: null,
           createdAt: new Date(2026, 10, 1),
+          membership,
         },
       ],
       people: [{ userId: 'ann', name: 'ann', image: null, email: 'ann@x.dev' }],

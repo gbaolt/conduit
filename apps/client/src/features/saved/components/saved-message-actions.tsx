@@ -16,22 +16,20 @@ import {
   IconMessageDots,
 } from '@tabler/icons-react';
 import Link from 'next/link';
-import { useQueryStates } from 'nuqs';
 
 import {
   MessageActionButton,
   MessageActionsBar,
   MessageActionsMoreTrigger,
 } from '@/features/messages/components/message/message-actions';
+import { useSplit } from '@/hooks/use-split';
 import { useSavedMessage } from '@/services/messages/hooks';
-
-import { savedSplitParams } from './saved-room-panel';
 
 /** A saved row's toolbar: Remove from saved, and a menu that opens the message where it was sent or beside the list. */
 export function SavedMessageActions({ item }: { item: SavedMessage }) {
   const { message, channelName } = item;
   const { saved, toggle } = useSavedMessage(message.id);
-  const [, setSplit] = useQueryStates(savedSplitParams);
+  const [, setSplit] = useSplit();
   const isDm = channelName === null;
 
   return (

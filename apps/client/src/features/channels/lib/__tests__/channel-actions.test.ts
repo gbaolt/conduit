@@ -29,6 +29,7 @@ function channel(
       sectionId: null,
       notify: null,
       mutedAt: null,
+      closedAt: null,
     },
     archivedByName: null,
   };
