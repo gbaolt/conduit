@@ -31,7 +31,7 @@ export function Providers({ children }: { children: ReactNode }) {
           <ReactQueryDevtools initialIsOpen={false} />
         </QueryClientProvider>
       </ProgressProvider>
-      <Toaster richColors closeButton />
+      <Toaster closeButton />
     </ThemeProvider>
   );
 }
