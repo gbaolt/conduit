@@ -31,6 +31,11 @@ function channel(
     topic: null,
     description: null,
     visibility: 'public',
+    permissions: {
+      post: 'everyone',
+      reply: 'everyone',
+      mentionEveryone: 'everyone',
+    },
     isDefault,
     archivedAt: null,
     memberCount: 1,
@@ -68,7 +73,7 @@ const group = (input: Partial<Parameters<typeof groupSidebar>[0]>) =>
   );
 
 describe('groupSidebar', () => {
-  it('always lists Starred, Channels and Direct messages, even when empty', () => {
+  it('always lists Favorites, Channels and Direct messages, even when empty', () => {
     expect(group({})).toEqual([
       ['starred', []],
       ['channels', []],
@@ -95,7 +100,7 @@ describe('groupSidebar', () => {
     ]);
   });
 
-  it('shows a starred channel only under Starred, and back in its section once unstarred', () => {
+  it('shows a starred channel only under Favorites, and back in its section once unstarred', () => {
     const sections = [section('p', 0)];
 
     expect(
@@ -135,7 +140,7 @@ describe('groupSidebar', () => {
     ).toEqual(['channels', ['design']]);
   });
 
-  it('lists starred channels before starred DMs, and a starred DM only under Starred', () => {
+  it('lists starred channels before starred DMs, and a starred DM only under Favorites', () => {
     expect(
       group({
         channels: [channel('design', starred)],
@@ -180,7 +185,7 @@ describe('groupSidebar', () => {
     ).toEqual(['dms', ['ana']]);
   });
 
-  it('keeps a closed DM listed while it is the open room, and under Starred when starred', () => {
+  it('keeps a closed DM listed while it is the open room, and under Favorites when starred', () => {
     const closed = { closedAt: new Date(10) };
 
     expect(group({ dms: [dm('ana', closed)], activeRoomId: 'ana' })[2]).toEqual(
@@ -209,7 +214,7 @@ describe('sidebarDrop', () => {
   const dmsGroup = { kind: 'dms', section: null } as const;
   const sectionGroup = { kind: 'section', section: section('p', 0) } as const;
 
-  it('stars any row dropped on Starred, and ignores one already there', () => {
+  it('stars any row dropped on Favorites, and ignores one already there', () => {
     expect(sidebarDrop(channelItem(), starredGroup)).toEqual({ starred: true });
     expect(sidebarDrop(dmItem(), starredGroup)).toEqual({ starred: true });
     expect(sidebarDrop(dmItem(starred), starredGroup)).toBeNull();

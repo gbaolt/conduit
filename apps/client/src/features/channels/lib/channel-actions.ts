@@ -104,7 +104,8 @@ const rows: Row[] = [
     submenu: 'details',
     label: 'Rename',
     policy: 'rename',
-    run: (channel, { open }) => open({ kind: 'rename', channel }),
+    run: (channel, { open }) =>
+      open({ kind: 'details', channel, renaming: true }),
   },
   {
     id: 'leave',

@@ -139,6 +139,16 @@ export function useSetChannelVisibility() {
   );
 }
 
+export function useSetChannelPermissions() {
+  const invalidate = useInvalidateChannels();
+
+  return useMutation(
+    orpc.channels.setPermissions.mutationOptions({
+      onSuccess: () => invalidate(),
+    })
+  );
+}
+
 export function useMoveChannelToSection() {
   return useMutation(
     orpc.channels.moveToSection.mutationOptions(

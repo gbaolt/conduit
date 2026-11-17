@@ -26,6 +26,11 @@ const channel = (name: string, extra: Partial<Room> = {}): Room => ({
   topic: null,
   description: null,
   visibility: 'public',
+  permissions: {
+    post: 'everyone',
+    reply: 'everyone',
+    mentionEveryone: 'everyone',
+  },
   isDefault: false,
   archivedAt: null,
   memberCount: 1,
