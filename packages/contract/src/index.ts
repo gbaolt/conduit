@@ -17,6 +17,7 @@ export * from './contracts/users';
 export * from './contracts/workspace-settings';
 export * from './lib/activity-pacing';
 export * from './lib/channel-policy';
+export * from './lib/dm-open';
 export * from './lib/feed-ranking';
 export * from './lib/message-body';
 export * from './lib/names';

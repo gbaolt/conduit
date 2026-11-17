@@ -5,21 +5,23 @@ import { createContext, type ReactNode, use, useMemo, useState } from 'react';
 
 import { AddMembersDialog } from '../components/dialogs/add-members-dialog';
 import { ArchiveChannelDialog } from '../components/dialogs/archive-channel-dialog';
-import { BrowseChannelsDialog } from '../components/dialogs/browse-channels-dialog';
 import { ChangeVisibilityDialog } from '../components/dialogs/change-visibility-dialog';
 import { ChannelDetailsDialog } from '../components/dialogs/channel-details-dialog';
 import { CreateChannelDialog } from '../components/dialogs/create-channel-dialog';
 import { DeleteChannelDialog } from '../components/dialogs/delete-channel-dialog';
-import { RenameChannelDialog } from '../components/dialogs/rename-channel-dialog';
 import { SectionNameDialog } from '../components/dialogs/section-name-dialog';
 
 /** Every dialog the channel UI can open. A new dialog adds one member here and one case in `OpenChannelDialog`. */
 export type ChannelDialog =
   | { kind: 'create' }
-  | { kind: 'browse' }
-  | { kind: 'rename'; channel: Room }
   | { kind: 'delete'; channel: Room }
-  | { kind: 'details'; channel: Room; tab?: 'about' | 'members' }
+  /** `renaming` opens with the channel name already in edit. */
+  | {
+      kind: 'details';
+      channel: Room;
+      tab?: 'about' | 'members';
+      renaming?: boolean;
+    }
   | { kind: 'add-members'; channel: Room }
   /** Archives an active channel and unarchives an archived one. */
   | { kind: 'archive'; channel: Room }
@@ -38,14 +40,16 @@ function OpenChannelDialog({ dialog }: { dialog: ChannelDialog }) {
   switch (dialog.kind) {
     case 'create':
       return <CreateChannelDialog />;
-    case 'browse':
-      return <BrowseChannelsDialog />;
-    case 'rename':
-      return <RenameChannelDialog channel={dialog.channel} />;
     case 'delete':
       return <DeleteChannelDialog channel={dialog.channel} />;
     case 'details':
-      return <ChannelDetailsDialog channel={dialog.channel} tab={dialog.tab} />;
+      return (
+        <ChannelDetailsDialog
+          channel={dialog.channel}
+          tab={dialog.tab}
+          renaming={dialog.renaming}
+        />
+      );
     case 'add-members':
       return <AddMembersDialog channel={dialog.channel} />;
     case 'archive':

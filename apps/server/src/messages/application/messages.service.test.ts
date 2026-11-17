@@ -43,6 +43,11 @@ function channelFor(
     topic: null,
     description: null,
     visibility: 'public',
+    permissions: {
+      post: 'everyone',
+      reply: 'everyone',
+      mentionEveryone: 'everyone',
+    },
     isDefault: false,
     archivedAt: null,
     memberCount: 2,
@@ -54,6 +59,7 @@ function channelFor(
       sectionId: null,
       notify: null,
       mutedAt: null,
+      closedAt: null,
     },
     archivedByName: null,
     ...overrides,
@@ -359,6 +365,86 @@ describe('MessagesService Activity items', () => {
     expect(reacted[0]).toEqual({
       remove: `reaction:${message.id}:other:👍`,
     });
+  });
+});
+
+describe('MessagesService posting permissions', () => {
+  const managersOnly = (permission: keyof Room['permissions']) => ({
+    permissions: { ...channelFor(null).permissions, [permission]: 'managers' },
+  });
+  const replyTo = (
+    service: MessagesService,
+    viewer: MessageViewer,
+    parentId: string
+  ) =>
+    service.send(viewer, {
+      roomId: 'c1',
+      clientId: 'k2',
+      body: 'reply',
+      parentId,
+    });
+
+  it('lets only managers and admins start a message when posting is for managers', async () => {
+    const { service, sent } = setup({
+      author: channelFor('member', managersOnly('post')),
+      other: channelFor('manager', managersOnly('post')),
+      admin: channelFor('member', managersOnly('post')),
+    });
+
+    await expect(sendAs(service, author)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    await sendAs(service, other);
+    await sendAs(service, admin);
+    expect(sent.map((message) => message.authorId)).toEqual(['other', 'admin']);
+  });
+
+  it('still lets a member reply when only starting a message is restricted', async () => {
+    const { service, sent } = setup({
+      author: channelFor('member', managersOnly('post')),
+      other: channelFor('manager', managersOnly('post')),
+    });
+    const { message: root } = await sendAs(service, other);
+
+    await replyTo(service, author, root.id);
+
+    expect(sent[1]).toMatchObject({ authorId: 'author', parentId: root.id });
+  });
+
+  it('refuses a member reply when replies are for managers', async () => {
+    const { service } = setup({
+      author: channelFor('member', managersOnly('reply')),
+      other: channelFor('manager', managersOnly('reply')),
+    });
+    const { message: root } = await sendAs(service, author);
+
+    await expect(replyTo(service, author, root.id)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    await expect(replyTo(service, other, root.id)).resolves.toBeDefined();
+  });
+
+  it('refuses @channel and @here from a member when they are for managers, on send and edit', async () => {
+    const { service } = setup({
+      author: channelFor('member', managersOnly('mentionEveryone')),
+      other: channelFor('manager', managersOnly('mentionEveryone')),
+    });
+
+    await expect(
+      sendAs(service, author, '<@channel> hi')
+    ).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    await expect(sendAs(service, author, '<@here> hi')).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    const { message } = await sendAs(service, author, 'hi');
+    await expect(
+      service.edit(author, message.id, '<@here> hi')
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(
+      sendAs(service, other, '<@channel> hi')
+    ).resolves.toBeDefined();
   });
 });
 

@@ -65,6 +65,28 @@ export class RoomsController {
       );
   }
 
+  @Implement(contract.rooms.star)
+  star() {
+    return implement(contract.rooms.star)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.roomsService.star(viewerOf(context), input.roomId)
+      );
+  }
+
+  @Implement(contract.rooms.unstar)
+  unstar() {
+    return implement(contract.rooms.unstar)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.roomsService.unstar(viewerOf(context), input.roomId)
+      );
+  }
+
   @Implement(contract.rooms.mute)
   mute() {
     return implement(contract.rooms.mute)

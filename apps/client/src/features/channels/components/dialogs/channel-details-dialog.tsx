@@ -1,20 +1,9 @@
 'use client';
 
-import {
-  canChannel,
-  CHANNEL_TEXT_MAX,
-  type Room,
-  type RoomMember,
-  UpdateChannelInputSchema,
-} from '@conduit/contract';
+import { canChannel, type Room, type RoomMember } from '@conduit/contract';
 import { Badge } from '@conduit/ui/components/badge';
 import { Button } from '@conduit/ui/components/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@conduit/ui/components/dialog';
+import { Dialog, DialogTitle } from '@conduit/ui/components/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,37 +11,45 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@conduit/ui/components/dropdown-menu';
-import { Input } from '@conduit/ui/components/input';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@conduit/ui/components/tabs';
-import { Textarea } from '@conduit/ui/components/textarea';
+import { Tabs, TabsContent } from '@conduit/ui/components/tabs';
 import { IconDots, IconHash, IconLock } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
-import { type FormEvent, useState } from 'react';
+import { format } from 'date-fns';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { StatusButton } from '@/components/async/status-button';
 import { PresenceDot } from '@/components/presence-dot';
 import { UserAvatar } from '@/components/user-avatar';
+import {
+  RoomDetailsActions,
+  RoomDetailsBody,
+  RoomDetailsCard,
+  RoomDetailsContent,
+  RoomDetailsEdit,
+  RoomDetailsHeader,
+  RoomDetailsId,
+  RoomDetailsRow,
+  RoomDetailsTab,
+  RoomDetailsTabList,
+} from '@/features/rooms/components/room-details';
 import { sessionQuery } from '@/services/auth/queries';
 import {
   useLeaveChannel,
   useRemoveChannelMember,
   useSetChannelMemberRole,
-  useUpdateChannel,
 } from '@/services/channels/hooks';
 import { roomMembersQuery, roomQuery } from '@/services/rooms/queries';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
 import { useChannelDialogs } from '../../context/channel-dialogs-provider';
 import { useExitOpenChannel } from '../../hooks/use-exit-open-channel';
-import { copy } from '../../lib/channel-actions';
-
-type TextField = 'topic' | 'description';
+import { ChannelTextForm, type TextField } from '../forms/channel-text-form';
+import {
+  PERMISSIONS,
+  PostingPermissionsForm,
+} from '../forms/posting-permissions-form';
+import { RenameChannelForm } from '../forms/rename-channel-form';
 
 function EditableText({
   channel,
@@ -65,175 +62,257 @@ function EditableText({
   label: string;
   canEdit: boolean;
 }) {
-  const updateChannel = useUpdateChannel();
-  const [draft, setDraft] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
   const value = channel[field];
-  const error =
-    draft === null
-      ? undefined
-      : UpdateChannelInputSchema.shape[field].safeParse(draft).error?.issues[0]
-          ?.message;
-  const Field = field === 'topic' ? Input : Textarea;
-
-  const save = (event: FormEvent) => {
-    event.preventDefault();
-    updateChannel.mutate(
-      { roomId: channel.id, [field]: draft },
-      {
-        onSuccess: () => setDraft(null),
-        onError: (e) => toast.error(e.message),
-      }
-    );
-  };
 
   return (
-    <section className="flex flex-col gap-1">
-      <h3 className="text-muted-foreground text-xs font-medium">{label}</h3>
-      {draft === null ? (
-        <div className="flex items-start gap-2">
-          <p className="min-w-0 flex-1 text-sm wrap-break-word whitespace-pre-wrap">
-            {value ?? <span className="text-muted-foreground">Not set</span>}
-          </p>
-          {canEdit && (
-            <Button
-              variant="ghost"
-              size="xs"
-              aria-label={`Edit ${label.toLowerCase()}`}
-              onClick={() => setDraft(value ?? '')}
-            >
-              Edit
-            </Button>
-          )}
-        </div>
+    <RoomDetailsRow
+      title={label}
+      action={
+        canEdit &&
+        !editing && (
+          <RoomDetailsEdit label={label} onClick={() => setEditing(true)} />
+        )
+      }
+    >
+      {editing ? (
+        <ChannelTextForm
+          channel={channel}
+          field={field}
+          label={label}
+          onDone={() => setEditing(false)}
+        />
       ) : (
-        <form className="flex flex-col gap-2" onSubmit={save}>
-          <Field
-            autoFocus
-            aria-label={label}
-            aria-invalid={!!error}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-          />
-          <div className="flex items-center justify-between gap-2">
-            {error ? (
-              <span role="alert" className="text-destructive text-xs">
-                {error}
-              </span>
-            ) : (
-              <span className="text-muted-foreground text-xs tabular-nums">
-                {CHANNEL_TEXT_MAX - draft.trim().length}
-              </span>
-            )}
-            <span className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="xs"
-                onClick={() => setDraft(null)}
-              >
-                Cancel
-              </Button>
-              <StatusButton
-                type="submit"
-                size="xs"
-                disabled={!!error}
-                status={updateChannel.isPending ? 'loading' : 'idle'}
-              >
-                Save
-              </StatusButton>
+        <p className="min-w-0 text-sm wrap-break-word whitespace-pre-wrap">
+          {value ?? (
+            <span className="text-muted-foreground">
+              {canEdit ? `Add a ${label.toLowerCase()}` : 'Not set'}
             </span>
-          </div>
-        </form>
+          )}
+        </p>
       )}
-    </section>
+    </RoomDetailsRow>
   );
 }
 
 function AboutTab({
   channel,
   members,
+  renaming,
 }: {
   channel: Room;
   members: RoomMember[];
+  renaming?: boolean;
 }) {
-  const { open, close } = useChannelDialogs();
   const workspaceRole = useWorkspaceRole();
-  const exitOpenChannel = useExitOpenChannel();
-  const leaveChannel = useLeaveChannel();
-  const Glyph = channel.visibility === 'private' ? IconLock : IconHash;
   const canEdit = canChannel('editDetails', workspaceRole, channel);
   const creator = members.find(
     (member) => member.userId === channel.createdById
   );
-  const created = channel.createdAt.toLocaleDateString(undefined, {
-    dateStyle: 'medium',
-  });
+  const created = format(channel.createdAt, 'MMMM d, yyyy');
 
   return (
-    <div className="flex flex-col gap-4">
-      <section className="flex flex-col gap-1">
-        <h3 className="text-muted-foreground text-xs font-medium">Name</h3>
-        <div className="flex items-center gap-2">
-          <Glyph className="size-4 shrink-0" />
-          <p className="min-w-0 flex-1 truncate text-sm">{channel.name}</p>
-          {canChannel('rename', workspaceRole, channel) && (
-            <Button
-              variant="ghost"
-              size="xs"
-              onClick={() => open({ kind: 'rename', channel })}
-            >
-              Rename
-            </Button>
-          )}
-        </div>
-      </section>
-      <EditableText
-        channel={channel}
-        field="topic"
-        label="Topic"
-        canEdit={canEdit}
-      />
-      <EditableText
-        channel={channel}
-        field="description"
-        label="Description"
-        canEdit={canEdit}
-      />
-      <p className="text-muted-foreground text-xs">
-        {creator
-          ? `Created by ${creator.name} on ${created}`
-          : `Created ${created}`}
-      </p>
-      <div className="flex gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => copy(`${location.origin}/channels/${channel.id}`)}
+    <div className="flex flex-col gap-3">
+      <ChannelNameCard channel={channel} renaming={renaming} />
+      <RoomDetailsCard>
+        <EditableText
+          channel={channel}
+          field="topic"
+          label="Topic"
+          canEdit={canEdit}
+        />
+        <EditableText
+          channel={channel}
+          field="description"
+          label="Description"
+          canEdit={canEdit}
+        />
+        <RoomDetailsRow title="Created by">
+          <p className="text-sm">
+            {creator ? `${creator.name} on ${created}` : created}
+          </p>
+        </RoomDetailsRow>
+      </RoomDetailsCard>
+      <RoomDetailsId label="Channel ID" id={channel.id} />
+    </div>
+  );
+}
+
+function ChannelNameCard({
+  channel,
+  renaming = false,
+}: {
+  channel: Room;
+  renaming?: boolean;
+}) {
+  const [editing, setEditing] = useState(renaming);
+  const workspaceRole = useWorkspaceRole();
+  const Glyph = channel.visibility === 'private' ? IconLock : IconHash;
+
+  return (
+    <RoomDetailsCard>
+      <RoomDetailsRow
+        title="Channel name"
+        action={
+          canChannel('rename', workspaceRole, channel) &&
+          !editing && (
+            <RoomDetailsEdit
+              label="Channel name"
+              onClick={() => setEditing(true)}
+            />
+          )
+        }
+      >
+        {editing ? (
+          <RenameChannelForm
+            channel={channel}
+            onDone={() => setEditing(false)}
+          />
+        ) : (
+          <p className="flex min-w-0 items-center gap-1 text-sm">
+            <Glyph className="text-muted-foreground size-4 shrink-0" />
+            <span className="truncate">{channel.name}</span>
+          </p>
+        )}
+      </RoomDetailsRow>
+    </RoomDetailsCard>
+  );
+}
+
+/** Who may post, reply and notify everyone. A manager or admin edits all three in place. */
+function PostingPermissionsCard({ channel }: { channel: Room }) {
+  const workspaceRole = useWorkspaceRole();
+  const [editing, setEditing] = useState(false);
+  const canEdit = canChannel('setPermissions', workspaceRole, channel);
+
+  return (
+    <RoomDetailsCard>
+      <RoomDetailsRow
+        title="Posting permissions"
+        action={
+          canEdit &&
+          !editing && (
+            <RoomDetailsEdit
+              label="Posting permissions"
+              onClick={() => setEditing(true)}
+            />
+          )
+        }
+      >
+        {editing ? (
+          <PostingPermissionsForm
+            channel={channel}
+            onDone={() => setEditing(false)}
+          />
+        ) : (
+          <ul className="list-disc space-y-1 pl-5 text-sm">
+            {PERMISSIONS.map(({ key, says }) => (
+              <li key={key}>{says[channel.permissions[key]]}</li>
+            ))}
+          </ul>
+        )}
+      </RoomDetailsRow>
+    </RoomDetailsCard>
+  );
+}
+
+/** What the viewer may change about the channel as a whole: who can find it, whether it is open, and leaving. */
+function SettingsTab({ channel }: { channel: Room }) {
+  const { open, close } = useChannelDialogs();
+  const workspaceRole = useWorkspaceRole();
+  const exitOpenChannel = useExitOpenChannel();
+  const leaveChannel = useLeaveChannel();
+  const isPrivate = channel.visibility === 'private';
+  const archived = channel.archivedAt !== null;
+  const canVisibility = canChannel(
+    isPrivate ? 'makePublic' : 'makePrivate',
+    workspaceRole,
+    channel
+  );
+  const canArchive = canChannel(
+    archived ? 'unarchive' : 'archive',
+    workspaceRole,
+    channel
+  );
+
+  return (
+    <div className="flex flex-col gap-3">
+      <ChannelNameCard channel={channel} />
+      <PostingPermissionsCard channel={channel} />
+      <RoomDetailsCard>
+        <RoomDetailsRow
+          title="Visibility"
+          action={
+            canVisibility && (
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={() => open({ kind: 'visibility', channel })}
+              >
+                {isPrivate ? 'Change to public' : 'Change to private'}
+              </Button>
+            )
+          }
         >
-          Copy link
-        </Button>
-        {canChannel('leave', workspaceRole, channel) && (
-          <StatusButton
-            variant="destructive"
-            size="sm"
-            status={leaveChannel.isPending ? 'loading' : 'idle'}
-            onClick={() =>
-              leaveChannel.mutate(
-                { roomId: channel.id },
-                {
-                  onSuccess: () => {
-                    close();
-                    exitOpenChannel(channel.id);
-                  },
-                  onError: (error) => toast.error(error.message),
-                }
-              )
+          <p className="text-muted-foreground text-sm">
+            {isPrivate
+              ? 'Private. Only people who are added can find and read it.'
+              : 'Public. Anyone in the workspace can find and join it.'}
+          </p>
+        </RoomDetailsRow>
+        {canArchive && (
+          <RoomDetailsRow
+            title={archived ? 'Unarchive channel' : 'Archive channel'}
+            action={
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={() => open({ kind: 'archive', channel })}
+              >
+                {archived ? 'Unarchive' : 'Archive'}
+              </Button>
             }
           >
-            Leave channel
-          </StatusButton>
+            <p className="text-muted-foreground text-sm">
+              {archived
+                ? 'People can post in it again.'
+                : 'Nobody can post in it. Everyone in it can still read it.'}
+            </p>
+          </RoomDetailsRow>
         )}
-      </div>
+        {canChannel('leave', workspaceRole, channel) && (
+          <RoomDetailsRow
+            title="Leave channel"
+            action={
+              <StatusButton
+                variant="destructive"
+                size="xs"
+                status={leaveChannel.isPending ? 'loading' : 'idle'}
+                onClick={() =>
+                  leaveChannel.mutate(
+                    { roomId: channel.id },
+                    {
+                      onSuccess: () => {
+                        close();
+                        exitOpenChannel(channel.id);
+                      },
+                      onError: (error) => toast.error(error.message),
+                    }
+                  )
+                }
+              >
+                Leave
+              </StatusButton>
+            }
+          >
+            <p className="text-muted-foreground text-sm">
+              {isPrivate
+                ? 'Someone in it has to add you again to come back.'
+                : 'You can join again from the channel directory.'}
+            </p>
+          </RoomDetailsRow>
+        )}
+      </RoomDetailsCard>
     </div>
   );
 }
@@ -370,9 +449,11 @@ function MembersTab({
 export function ChannelDetailsDialog({
   channel: opened,
   tab = 'about',
+  renaming,
 }: {
   channel: Room;
-  tab?: 'about' | 'members';
+  tab?: 'about' | 'members' | 'settings';
+  renaming?: boolean;
 }) {
   const { close } = useChannelDialogs();
   // The dialog outlives edits, so it reads the live channel instead of the snapshot it opened with.
@@ -380,30 +461,47 @@ export function ChannelDetailsDialog({
   const { data: members = [], isPending } = useQuery(
     roomMembersQuery(opened.id)
   );
+  const Glyph = channel.visibility === 'private' ? IconLock : IconHash;
 
   return (
     <Dialog open onOpenChange={(open) => !open && close()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="truncate pr-8">#{channel.name}</DialogTitle>
-        </DialogHeader>
-        <Tabs defaultValue={tab}>
-          <TabsList>
-            <TabsTrigger value="about">About</TabsTrigger>
-            <TabsTrigger value="members">Members</TabsTrigger>
-          </TabsList>
-          <TabsContent value="about" className="pt-2">
-            <AboutTab channel={channel} members={members} />
-          </TabsContent>
-          <TabsContent value="members" className="pt-2">
-            <MembersTab
-              channel={channel}
-              members={members}
-              isPending={isPending}
-            />
-          </TabsContent>
+      <RoomDetailsContent>
+        <RoomDetailsHeader>
+          <DialogTitle className="flex min-w-0 items-center gap-1 pr-8 text-xl font-semibold">
+            <Glyph className="size-5 shrink-0" aria-hidden />
+            <span className="truncate">{channel.name}</span>
+          </DialogTitle>
+          <RoomDetailsActions room={channel} />
+        </RoomDetailsHeader>
+        <Tabs defaultValue={tab} className="min-h-0 gap-0">
+          <RoomDetailsTabList>
+            <RoomDetailsTab value="about">About</RoomDetailsTab>
+            <RoomDetailsTab value="members" count={channel.memberCount}>
+              Members
+            </RoomDetailsTab>
+            <RoomDetailsTab value="settings">Settings</RoomDetailsTab>
+          </RoomDetailsTabList>
+          <RoomDetailsBody className="min-h-[30svh]">
+            <TabsContent value="about">
+              <AboutTab
+                channel={channel}
+                members={members}
+                renaming={renaming}
+              />
+            </TabsContent>
+            <TabsContent value="members">
+              <MembersTab
+                channel={channel}
+                members={members}
+                isPending={isPending}
+              />
+            </TabsContent>
+            <TabsContent value="settings">
+              <SettingsTab channel={channel} />
+            </TabsContent>
+          </RoomDetailsBody>
         </Tabs>
-      </DialogContent>
+      </RoomDetailsContent>
     </Dialog>
   );
 }

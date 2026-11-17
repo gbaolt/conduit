@@ -48,6 +48,29 @@ export class InMemoryActivityRepository implements ActivityRepository {
     return true;
   }
 
+  // shortcut: takes every room as one the member is in, and skips the workspace check
+  async markRoomsRead(input: {
+    userId: string;
+    organizationId: string;
+    roomIds: string[];
+  }) {
+    for (const roomId of input.roomIds) {
+      const latest = [...this.messages.entries()]
+        .filter(([, message]) => message.roomId === roomId)
+        .sort(
+          ([, a], [, b]) => b.createdAt.getTime() - a.createdAt.getTime()
+        )[0];
+      if (!latest) continue;
+
+      this.counts.markRead++;
+      const key = `${roomId}|${input.userId}`;
+      const current = this.reads.get(key);
+      if (!current || current.at < latest[1].createdAt) {
+        this.reads.set(key, { at: latest[1].createdAt, messageId: latest[0] });
+      }
+    }
+  }
+
   async getDraft(scope: ConversationScope) {
     return this.drafts.get(keyOf(scope)) ?? '';
   }

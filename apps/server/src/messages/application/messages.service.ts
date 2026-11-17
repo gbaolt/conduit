@@ -1,5 +1,6 @@
 import {
   addReaction,
+  canChannel,
   CATCH_UP_MESSAGES_MAX,
   type ChannelAction,
   checkChannel,
@@ -175,7 +176,7 @@ export class MessagesService {
     }
   ) {
     const channel = await this.find(viewer, input.roomId);
-    this.authorize(viewer, channel, 'post');
+    this.authorize(viewer, channel, input.parentId ? 'reply' : 'sendMessage');
 
     let root: Message | null = null;
     if (input.parentId) {
@@ -190,6 +191,7 @@ export class MessagesService {
 
     const body = input.body.trim();
     const mentions = await this.mentionsIn(viewer, channel.id, body);
+    this.authorizeMentions(viewer, channel, mentions);
     const lookup = await this.feed.recipientLookup({
       organizationId: viewer.organizationId,
       roomId: channel.id,
@@ -223,6 +225,7 @@ export class MessagesService {
 
     const trimmed = body.trim();
     const mentions = await this.mentionsIn(viewer, channel.id, trimmed);
+    this.authorizeMentions(viewer, channel, mentions);
     const lookup = await this.feed.recipientLookup({
       organizationId: viewer.organizationId,
       roomId: channel.id,
@@ -411,6 +414,23 @@ export class MessagesService {
       throw messageError('NOT_FOUND');
     }
     return { message, channel: await this.find(viewer, message.roomId) };
+  }
+
+  /** @channel and @here reach everyone, so the channel can keep them to its managers and admins. */
+  private authorizeMentions(
+    viewer: MessageViewer,
+    channel: Room,
+    mentions: { channel: boolean; here: boolean }
+  ) {
+    if (
+      (mentions.channel || mentions.here) &&
+      !canChannel('mentionEveryone', viewer.workspaceRole, channel)
+    ) {
+      throw messageError(
+        'FORBIDDEN',
+        'Only channel managers and admins can use @channel and @here here.'
+      );
+    }
   }
 
   private authorize(

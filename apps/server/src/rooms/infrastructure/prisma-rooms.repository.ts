@@ -1,5 +1,15 @@
-import type { NotifyLevel, Room, RoomMember } from '@conduit/contract';
-import { Prisma } from '@generated/prisma/client';
+import type {
+  ChannelAudience,
+  ChannelPermissions,
+  NotifyLevel,
+  Room,
+  RoomMember,
+  RoomMembership,
+} from '@conduit/contract';
+import {
+  type ChannelAudience as ChannelAudienceRow,
+  Prisma,
+} from '@generated/prisma/client';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { roomAddItemFor } from '@/feed/domain/feed-recipients';
@@ -11,6 +21,28 @@ import type {
   RoomScope,
   RoomsRepository,
 } from '@/rooms/domain/rooms.repository';
+
+export const membershipSelect = {
+  role: true,
+  starredAt: true,
+  sectionId: true,
+  notify: true,
+  mutedAt: true,
+  closedAt: true,
+} satisfies Prisma.RoomMemberSelect;
+
+export function toMembership(
+  row: Prisma.RoomMemberGetPayload<{ select: typeof membershipSelect }>
+): RoomMembership {
+  return {
+    role: row.role === 'MANAGER' ? 'manager' : 'member',
+    starredAt: row.starredAt,
+    sectionId: row.sectionId,
+    notify: (row.notify?.toLowerCase() as NotifyLevel | undefined) ?? null,
+    mutedAt: row.mutedAt,
+    closedAt: row.closedAt,
+  };
+}
 
 export function include(scope: RoomScope) {
   return {
@@ -28,13 +60,7 @@ export function include(scope: RoomScope) {
     },
     members: {
       where: { userId: scope.userId },
-      select: {
-        role: true,
-        starredAt: true,
-        sectionId: true,
-        notify: true,
-        mutedAt: true,
-      },
+      select: membershipSelect,
     },
     archivedBy: { select: { name: true } },
   } satisfies Prisma.RoomInclude;
@@ -43,6 +69,11 @@ export function include(scope: RoomScope) {
 type ChannelRow = Prisma.RoomGetPayload<{
   include: ReturnType<typeof include>;
 }>;
+
+const toAudience = (audience: ChannelAudienceRow): ChannelAudience =>
+  audience === 'MANAGERS' ? 'managers' : 'everyone';
+const fromAudience = (audience: ChannelAudience): ChannelAudienceRow =>
+  audience === 'managers' ? 'MANAGERS' : 'EVERYONE';
 
 export function toChannel(row: ChannelRow): Room {
   const membership = row.members[0];
@@ -55,22 +86,17 @@ export function toChannel(row: ChannelRow): Room {
     topic: row.topic,
     description: row.description,
     visibility: row.visibility === 'PRIVATE' ? 'private' : 'public',
+    permissions: {
+      post: toAudience(row.postAudience),
+      reply: toAudience(row.replyAudience),
+      mentionEveryone: toAudience(row.mentionEveryoneAudience),
+    },
     isDefault: row.defaultForOrganizationId !== null,
     archivedAt: row.archivedAt,
     memberCount: row._count.members,
     createdById: row.createdById,
     createdAt: row.createdAt,
-    membership: membership
-      ? {
-          role: membership.role === 'MANAGER' ? 'manager' : 'member',
-          starredAt: membership.starredAt,
-          sectionId: membership.sectionId,
-          notify:
-            (membership.notify?.toLowerCase() as NotifyLevel | undefined) ??
-            null,
-          mutedAt: membership.mutedAt,
-        }
-      : null,
+    membership: membership ? toMembership(membership) : null,
     archivedByName: row.archivedBy?.name ?? null,
   };
 }
@@ -184,6 +210,24 @@ export class PrismaRoomsRepository implements RoomsRepository {
       data: archived
         ? { archivedAt: new Date(), archivedById: scope.userId }
         : { archivedAt: null, archivedById: null },
+      include: include(scope),
+    });
+    return toChannel(row);
+  }
+
+  async setPermissions(
+    scope: RoomScope,
+    roomId: string,
+    { post, reply, mentionEveryone }: Partial<ChannelPermissions>
+  ) {
+    const row = await this.db.room.update({
+      where: { id: roomId },
+      data: {
+        postAudience: post && fromAudience(post),
+        replyAudience: reply && fromAudience(reply),
+        mentionEveryoneAudience:
+          mentionEveryone && fromAudience(mentionEveryone),
+      },
       include: include(scope),
     });
     return toChannel(row);

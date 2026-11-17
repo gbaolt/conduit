@@ -1,6 +1,5 @@
 'use client';
 
-import type { Room } from '@conduit/contract';
 import {
   partialMatchKey,
   useMutation,
@@ -9,8 +8,7 @@ import {
 import { toast } from 'sonner';
 
 import { orpc } from '@/lib/orpc';
-
-import { channelsQuery } from './queries';
+import { useOptimisticMembership } from '@/services/rooms/hooks';
 
 function useInvalidateChannels() {
   const queryClient = useQueryClient();
@@ -141,57 +139,13 @@ export function useSetChannelVisibility() {
   );
 }
 
-type Membership = NonNullable<Room['membership']>;
-
-/** Per-user state can't conflict, so the cache moves first and rolls back if the server refuses. */
-function useOptimisticMembership<TInput extends { roomId: string }>(
-  patchOf: (input: TInput) => Partial<Membership>
-) {
-  const queryClient = useQueryClient();
+export function useSetChannelPermissions() {
   const invalidate = useInvalidateChannels();
-  const { queryKey } = channelsQuery;
 
-  return {
-    onMutate: async (input: TInput) => {
-      await queryClient.cancelQueries({ queryKey });
-      const previous = queryClient.getQueryData(queryKey);
-      queryClient.setQueryData(queryKey, (channels) =>
-        channels?.map((channel) =>
-          channel.id === input.roomId && channel.membership
-            ? {
-                ...channel,
-                membership: { ...channel.membership, ...patchOf(input) },
-              }
-            : channel
-        )
-      );
-      return { previous };
-    },
-    onError: (
-      error: Error,
-      _input: TInput,
-      context: { previous: Room[] | undefined } | undefined
-    ) => {
-      queryClient.setQueryData(queryKey, context?.previous);
-      toast.error(error.message);
-    },
-    onSettled: () => invalidate(),
-  };
-}
-
-export function useStarChannel() {
   return useMutation(
-    orpc.channels.star.mutationOptions(
-      useOptimisticMembership(() => ({ starredAt: new Date() }))
-    )
-  );
-}
-
-export function useUnstarChannel() {
-  return useMutation(
-    orpc.channels.unstar.mutationOptions(
-      useOptimisticMembership(() => ({ starredAt: null }))
-    )
+    orpc.channels.setPermissions.mutationOptions({
+      onSuccess: () => invalidate(),
+    })
   );
 }
 
@@ -199,9 +153,13 @@ export function useMoveChannelToSection() {
   return useMutation(
     orpc.channels.moveToSection.mutationOptions(
       useOptimisticMembership(
-        ({ sectionId }: { roomId: string; sectionId: string | null }) => ({
+        ({
+          roomId,
           sectionId,
-        })
+        }: {
+          roomId: string;
+          sectionId: string | null;
+        }) => ({ roomIds: [roomId], patch: { sectionId } })
       )
     )
   );

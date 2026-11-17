@@ -30,6 +30,10 @@ export class DmsService {
     return this.dms.list(viewer);
   }
 
+  close(viewer: DmViewer, roomIds: string[]) {
+    return this.dms.close(viewer, roomIds);
+  }
+
   /** The viewer is always in the DM they open, so no people at all opens the self DM. */
   async open(viewer: DmViewer, userIds: string[]) {
     const ids = [...new Set([viewer.userId, ...userIds])];

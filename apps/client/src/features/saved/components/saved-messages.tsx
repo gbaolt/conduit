@@ -39,7 +39,6 @@ import { useClearSaved } from '@/services/messages/hooks';
 import { savedQuery } from '@/services/messages/queries';
 
 import { SavedMessageActions } from './saved-message-actions';
-import { SavedRoomPanel } from './saved-room-panel';
 
 function SavedItem({ item }: { item: SavedMessage }) {
   const { authorOf } = useAuthors();
@@ -173,23 +172,20 @@ function SavedList() {
   );
 }
 
-/** Messages the member saved for later, newest first. Only the member sees them. Render it inside `ThreadLayout`, so a saved reply can open its thread beside the list. */
+/** Messages the member saved for later, newest first. Only the member sees them. Render it inside `ThreadLayout`, which shows a saved reply's thread, or a saved message's room, beside the list. */
 export function SavedMessages() {
   const { names } = useAuthors();
 
   return (
-    <>
-      <div className="flex h-full min-h-0 flex-col">
-        <PageHeader icon={IconBookmark} title="Saved" className="border-b">
-          <SavedClearButton />
-        </PageHeader>
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pt-6 pb-10">
-          <MentionNames value={names}>
-            <SavedList />
-          </MentionNames>
-        </div>
+    <div className="flex h-full min-h-0 flex-col">
+      <PageHeader icon={IconBookmark} title="Saved" className="border-b">
+        <SavedClearButton />
+      </PageHeader>
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pt-6 pb-10">
+        <MentionNames value={names}>
+          <SavedList />
+        </MentionNames>
       </div>
-      <SavedRoomPanel />
-    </>
+    </div>
   );
 }

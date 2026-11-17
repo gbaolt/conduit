@@ -17,6 +17,16 @@ export abstract class ActivityRepository {
     messageId: string;
   }): Promise<boolean>;
 
+  /**
+   * Moves the member's read position in each room forward to the room's latest message, and never backward.
+   * Skips rooms the member is not in, in another workspace, or with no message yet.
+   */
+  abstract markRoomsRead(input: {
+    userId: string;
+    organizationId: string;
+    roomIds: string[];
+  }): Promise<void>;
+
   /** The draft's body, or an empty string when there is none. */
   abstract getDraft(scope: ConversationScope): Promise<string>;
 

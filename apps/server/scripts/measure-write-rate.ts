@@ -49,6 +49,7 @@ const channel = {
     sectionId: null,
     notify: null,
     mutedAt: null,
+    closedAt: null,
   },
 };
 

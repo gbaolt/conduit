@@ -1,19 +1,12 @@
 'use client';
 
 import { Button } from '@conduit/ui/components/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@conduit/ui/components/dropdown-menu';
-import { IconDots, IconUserPlus, IconUsers } from '@tabler/icons-react';
+import { IconDots, IconUsers } from '@tabler/icons-react';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
 import { ListBackLink } from '@/components/list-view';
-import { RoomNotifyMenu } from '@/features/rooms/components/room-notify-menu';
+import { RoomStarButton } from '@/features/rooms/components/room-star-button';
 import { useActivateRoomWorkspace } from '@/features/rooms/hooks/use-activate-room-workspace';
 import { sessionQuery } from '@/services/auth/queries';
 import { dmTitle } from '@/services/dms/dm-title';
@@ -21,8 +14,9 @@ import { useDm } from '@/services/dms/hooks';
 import { roomQuery } from '@/services/rooms/queries';
 
 import { useDmDialogs } from '../context/dm-dialogs-provider';
+import { DmActionsDropdown } from './actions/dm-actions';
 
-/** The bar above a DM: who it is with, and the menu that adds people or turns it into a channel. */
+/** The bar above a DM: who it is with, which opens its details, and the DM's actions menu. */
 export function DmHeader({
   roomId,
   children,
@@ -44,47 +38,48 @@ export function DmHeader({
   const count = dm?.members.length ?? 0;
 
   return (
-    <header className="flex min-h-12 shrink-0 items-center gap-1.5 border-b px-4 py-1.5">
+    <header className="flex min-h-12 shrink-0 items-center gap-1.5 border-b px-2">
       <ListBackLink />
-      <h1 className="min-w-0 flex-1 truncate text-sm font-semibold">{title}</h1>
+      <RoomStarButton room={channel} />
+      <h1 className="min-w-0 flex-1 text-sm font-semibold">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="max-w-full text-base font-semibold"
+          disabled={!dm}
+          onClick={() => open({ kind: 'dm-details', roomId })}
+        >
+          <span className="truncate">{title}</span>
+        </Button>
+      </h1>
       {children}
       {count > 1 && (
-        <span className="text-muted-foreground flex items-center gap-1 text-xs tabular-nums">
-          <IconUsers className="size-3.5" aria-hidden />
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label={`${count} people`}
+          onClick={() => open({ kind: 'dm-details', roomId })}
+        >
+          <IconUsers />
           {count}
-          <span className="sr-only">people</span>
-        </span>
+        </Button>
       )}
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
+      {/* The menu reads the DM list's row, so it waits for the list. */}
+      {dm && (
+        <DmActionsDropdown
+          dm={dm}
+          extra={menu}
+          trigger={
             <Button
               variant="ghost"
-              size="icon-xs"
+              size="icon-sm"
               aria-label="Conversation actions"
             />
           }
         >
           <IconDots />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-60">
-          <DropdownMenuItem
-            onClick={() => open({ kind: 'dm-add-people', roomId })}
-          >
-            <IconUserPlus />
-            Add people
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => open({ kind: 'dm-convert', roomId })}
-          >
-            <IconUsers />
-            Turn into a private channel
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <RoomNotifyMenu room={channel} />
-          {menu}
-        </DropdownMenuContent>
-      </DropdownMenu>
+        </DmActionsDropdown>
+      )}
     </header>
   );
 }

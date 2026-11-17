@@ -219,7 +219,8 @@ export function NewMessage() {
     () =>
       recipientsOf({
         channels: channels.filter(
-          (room) => room.membership && canChannel('post', workspaceRole, room)
+          (room) =>
+            room.membership && canChannel('sendMessage', workspaceRole, room)
         ),
         dms,
         people: members.filter((member) => member.status === 'active'),

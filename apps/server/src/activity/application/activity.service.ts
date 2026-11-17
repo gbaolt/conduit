@@ -41,9 +41,19 @@ export class ActivityService {
       throw activityError('NOT_FOUND', 'Message not found.');
     }
     await this.feed.markReadThroughPosition({
-      roomId: input.roomId,
+      roomIds: [input.roomId],
       userId: viewer.userId,
     });
+  }
+
+  /** Rooms the viewer is not in change nothing, so there is no per-room permission check. */
+  async markRoomsRead(viewer: ActivityViewer, roomIds: string[]) {
+    await this.activity.markRoomsRead({
+      userId: viewer.userId,
+      organizationId: viewer.organizationId,
+      roomIds,
+    });
+    await this.feed.markReadThroughPosition({ roomIds, userId: viewer.userId });
   }
 
   async getDraft(viewer: ActivityViewer, key: ConversationKey) {

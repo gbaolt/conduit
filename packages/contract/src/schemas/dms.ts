@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { ChannelNameSchema } from '@/schemas/rooms';
+import { ChannelNameSchema, RoomMembershipSchema } from '@/schemas/rooms';
 
 /** The most people one DM holds, the caller included. */
 export const DM_MEMBERS_MAX = 10;
@@ -19,6 +19,8 @@ export const DmSchema = z.object({
   members: z.array(DmMemberSchema),
   lastMessageAt: z.coerce.date().nullable(),
   createdAt: z.coerce.date(),
+  /** The caller's own settings. A DM is only listed to someone in it, so this is never null. */
+  membership: RoomMembershipSchema,
 });
 export type Dm = z.infer<typeof DmSchema>;
 
@@ -35,6 +37,10 @@ export const AddDmPeopleInputSchema = z.object({
 export const ConvertDmInputSchema = z.object({
   roomId: z.string(),
   name: ChannelNameSchema,
+});
+
+export const CloseDmsInputSchema = z.object({
+  roomIds: z.array(z.string()).min(1).max(100),
 });
 
 /** The viewer's DMs, most recent message first. */

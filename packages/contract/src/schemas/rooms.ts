@@ -12,6 +12,21 @@ export type ChannelVisibility = z.infer<typeof ChannelVisibilitySchema>;
 export const RoomRoleSchema = z.enum(['manager', 'member']);
 export type RoomRole = z.infer<typeof RoomRoleSchema>;
 
+/** Who a channel permission lets through. `managers` means channel managers and workspace admins. */
+export const ChannelAudienceSchema = z.enum(['everyone', 'managers']);
+export type ChannelAudience = z.infer<typeof ChannelAudienceSchema>;
+
+/** Who may write what in a channel. A DM is always `everyone`. */
+export const ChannelPermissionsSchema = z.object({
+  /** Start a message in the channel. */
+  post: ChannelAudienceSchema,
+  /** Reply in a thread. */
+  reply: ChannelAudienceSchema,
+  /** Use @channel and @here. */
+  mentionEveryone: ChannelAudienceSchema,
+});
+export type ChannelPermissions = z.infer<typeof ChannelPermissionsSchema>;
+
 export const NotifyLevelSchema = z.enum(['all', 'mentions', 'nothing']);
 export type NotifyLevel = z.infer<typeof NotifyLevelSchema>;
 
@@ -32,6 +47,19 @@ export const ChannelNameSchema = z
 export const RoomKindSchema = z.enum(['channel', 'dm']);
 export type RoomKind = z.infer<typeof RoomKindSchema>;
 
+/** The viewer's own settings on a room they belong to. */
+export const RoomMembershipSchema = z.object({
+  role: RoomRoleSchema,
+  starredAt: z.coerce.date().nullable(),
+  sectionId: z.string().nullable(),
+  /** Null means the default for the room's kind. See `effectiveNotify`. */
+  notify: NotifyLevelSchema.nullable(),
+  mutedAt: z.coerce.date().nullable(),
+  /** Set while the member has closed a DM. The DM counts as open again once a message arrives after it. */
+  closedAt: z.coerce.date().nullable(),
+});
+export type RoomMembership = z.infer<typeof RoomMembershipSchema>;
+
 export const RoomSchema = z.object({
   id: z.string(),
   organizationId: z.string(),
@@ -41,21 +69,13 @@ export const RoomSchema = z.object({
   topic: z.string().nullable(),
   description: z.string().nullable(),
   visibility: ChannelVisibilitySchema,
+  permissions: ChannelPermissionsSchema,
   isDefault: z.boolean(),
   archivedAt: z.coerce.date().nullable(),
   memberCount: z.number().int(),
   createdById: z.string().nullable(),
   createdAt: z.coerce.date(),
-  membership: z
-    .object({
-      role: RoomRoleSchema,
-      starredAt: z.coerce.date().nullable(),
-      sectionId: z.string().nullable(),
-      /** Null means the default for the room's kind. See `effectiveNotify`. */
-      notify: NotifyLevelSchema.nullable(),
-      mutedAt: z.coerce.date().nullable(),
-    })
-    .nullable(),
+  membership: RoomMembershipSchema.nullable(),
   archivedByName: z.string().nullable(),
 });
 export type Room = z.infer<typeof RoomSchema>;

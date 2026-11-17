@@ -21,6 +21,7 @@ const joined = {
   sectionId: null,
   notify: null,
   mutedAt: null,
+  closedAt: null,
 };
 const personas: [string, Persona][] = [
   ['admin outside', { role: 'admin', membership: null }],
@@ -36,11 +37,24 @@ const personas: [string, Persona][] = [
 const channel = (overrides: Partial<PolicyChannel> = {}): PolicyChannel => ({
   kind: 'channel',
   visibility: 'public',
+  permissions: {
+    post: 'everyone',
+    reply: 'everyone',
+    mentionEveryone: 'everyone',
+  },
   isDefault: false,
   archivedAt: null,
   membership: null,
   ...overrides,
 });
+
+const managersOnly = {
+  permissions: {
+    post: 'managers',
+    reply: 'managers',
+    mentionEveryone: 'managers',
+  },
+} as const;
 
 // Appendix E, one letter per persona above: y allowed, n refused.
 const table: [ChannelAction, string, Partial<PolicyChannel>?][] = [
@@ -57,6 +71,13 @@ const table: [ChannelAction, string, Partial<PolicyChannel>?][] = [
   ['makePublic', 'yynnn', { visibility: 'private' }],
   ['delete', 'yynnn'],
   ['join', 'yyyyy'],
+  ['sendMessage', 'nyyyn'],
+  ['sendMessage', 'nyynn', managersOnly],
+  ['reply', 'nyyyn'],
+  ['reply', 'nyynn', managersOnly],
+  ['mentionEveryone', 'nyyyn'],
+  ['mentionEveryone', 'nyynn', managersOnly],
+  ['setPermissions', 'yyynn'],
   ['leave', 'nyyyn'],
   ['star', 'nyyyn'],
   ['moveToSection', 'nyyyn'],
@@ -166,7 +187,11 @@ describe('channelPolicy for a DM', () => {
     for (const action of [
       'view',
       'post',
+      'sendMessage',
+      'reply',
+      'mentionEveryone',
       'join',
+      'star',
       'addDmPeople',
       'convertDm',
     ] as const) {
@@ -195,9 +220,9 @@ describe('channelPolicy for a DM', () => {
     'makePublic',
     'delete',
     'leave',
-    'star',
     'moveToSection',
     'deleteOthersMessages',
+    'setPermissions',
   ] as const)('refuses %s even to an admin inside the DM', (action) => {
     for (const role of ['member', 'admin', 'owner'] as const) {
       expect(checkChannel(action, role, dm(member))).toBe('FORBIDDEN');

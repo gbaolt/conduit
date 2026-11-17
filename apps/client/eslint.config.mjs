@@ -7,7 +7,7 @@ import conduit from './eslint-rules/family-prefix.mjs';
 const featureDeps = {
   auth: [],
   onboarding: ['auth'],
-  workspace: ['channels'],
+  workspace: ['rooms', 'channels', 'dms'],
   rooms: ['workspace', 'messages'],
   channels: ['rooms'],
   dms: ['rooms'],

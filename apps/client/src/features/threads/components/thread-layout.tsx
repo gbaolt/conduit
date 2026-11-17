@@ -1,18 +1,19 @@
 'use client';
 
-import { useQueryState } from 'nuqs';
-import { type ReactNode, useCallback, useMemo } from 'react';
+import type { ReactNode } from 'react';
 
 import { SidePanel } from '@/components/side-panel';
+import { ConversationSplit } from '@/features/messages/components/conversation/conversation-split';
 import { SummaryProvider } from '@/features/messages/context/summary';
 import { OpenThread } from '@/features/messages/context/thread';
 import { useMediaQuery } from '@/hooks/use-media-query';
+import { useSplit } from '@/hooks/use-split';
 
 import { ThreadPanel } from './thread-panel';
 
 /**
- * Puts the thread named by `?thread=` in the side card beside the main card from xl up. Narrower, the thread
- * replaces the main card's content, and its back button returns to it.
+ * Puts the thread named by `?thread=`, or the room named by `?room=`, in the side card beside the main card
+ * from xl up. Narrower, it replaces the main card's content, and its back button returns to it.
  */
 export function ThreadLayout({
   roomId,
@@ -22,36 +23,49 @@ export function ThreadLayout({
   roomId?: string;
   children: ReactNode;
 }) {
-  const [threadId, setThreadId] = useQueryState('thread');
+  const [{ thread: threadId, room }, setSplit] = useSplit();
   const docked = useMediaQuery('(min-width: 80rem)');
+  // The page's own room beside itself would be the same log twice.
+  const splitRoomId = room && room !== roomId ? room : null;
 
-  const close = useCallback(() => {
+  const closeThread = () => {
     const closing = threadId;
-    void setThreadId(null).then(() =>
+    void setSplit({ thread: null }).then(() =>
       requestAnimationFrame(() =>
         document
           .querySelector<HTMLElement>(`[data-thread-line="${closing}"]`)
           ?.focus()
       )
     );
-  }, [threadId, setThreadId]);
+  };
 
-  const open = useMemo(
-    () => (rootId: string) => void setThreadId(rootId),
-    [setThreadId]
-  );
+  // A thread and a room share the one side card. The page's thread takes it; the split room's thread keeps
+  // `room`, so closing that thread shows the room again.
+  const openThread = (rootId: string) =>
+    void setSplit({ thread: rootId, room: null });
+  const openSplitThread = (rootId: string) => void setSplit({ thread: rootId });
 
-  const panel = threadId && (
+  const panel = threadId ? (
     <ThreadPanel
       key={threadId}
-      roomId={roomId}
+      roomId={splitRoomId ?? roomId}
       threadId={threadId}
-      onClose={close}
+      onClose={closeThread}
     />
+  ) : (
+    splitRoomId && (
+      <OpenThread value={openSplitThread}>
+        <ConversationSplit
+          key={splitRoomId}
+          roomId={splitRoomId}
+          onClose={() => void setSplit({ room: null })}
+        />
+      </OpenThread>
+    )
   );
 
   const layout = (
-    <OpenThread value={open}>
+    <OpenThread value={openThread}>
       <div className="relative h-full min-h-0">
         {children}
         {panel && !docked && (

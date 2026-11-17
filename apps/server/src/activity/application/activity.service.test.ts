@@ -33,11 +33,12 @@ function setup(channel: Partial<Room> | null = {}) {
           sectionId: null,
           notify: null,
           mutedAt: null,
+          closedAt: null,
         },
         ...channel,
       },
   } as Partial<RoomsRepository> as RoomsRepository;
-  const feedReads: { roomId: string; userId: string }[] = [];
+  const feedReads: { roomIds: string[]; userId: string }[] = [];
   const feed = {
     markReadThroughPosition: async (input) => {
       feedReads.push(input);
@@ -71,7 +72,7 @@ describe('ActivityService', () => {
 
       await service.markRead(viewer, { roomId: 'c1', messageId: 'm2' });
 
-      expect(feedReads).toEqual([{ roomId: 'c1', userId: 'u1' }]);
+      expect(feedReads).toEqual([{ roomIds: ['c1'], userId: 'u1' }]);
     });
 
     it('leaves the mention items alone when the message is refused', async () => {
@@ -107,6 +108,18 @@ describe('ActivityService', () => {
       await expect(
         service.markRead(viewer, { roomId: 'c1', messageId: 'm1' })
       ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    });
+  });
+
+  describe('markRoomsRead', () => {
+    it("reads each room up to its latest message and clears the viewer's mention items there", async () => {
+      const { service, repository, feedReads } = setup();
+
+      await service.markRoomsRead(viewer, ['c1', 'c2']);
+
+      expect(repository.reads.get('c1|u1')?.messageId).toBe('m2');
+      expect(repository.reads.get('c2|u1')?.messageId).toBe('other');
+      expect(feedReads).toEqual([{ roomIds: ['c1', 'c2'], userId: 'u1' }]);
     });
   });
 

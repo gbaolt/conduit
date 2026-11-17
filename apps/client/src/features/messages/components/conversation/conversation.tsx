@@ -82,10 +82,16 @@ const PLACEHOLDERS: Record<ConversationKind, (title: string) => string> = {
 };
 
 /** What sits under the log: nothing in an archived channel, a notice, the composer, or a prompt to join. */
-function footerFor(archived: boolean, rootDeleted: boolean, canPost: boolean) {
+function footerFor(
+  archived: boolean,
+  rootDeleted: boolean,
+  canPost: boolean,
+  canWrite: boolean
+) {
   if (archived) return 'none';
   if (rootDeleted) return 'deleted';
-  return canPost ? 'composer' : 'join';
+  if (!canPost) return 'join';
+  return canWrite ? 'composer' : 'restricted';
 }
 
 /** True once `active` has held for `ms`. */
@@ -206,9 +212,14 @@ export function Conversation({
 
   const { authorOf, names } = useAuthors();
 
+  const canMentionEveryone = canChannel(
+    'mentionEveryone',
+    workspaceRole,
+    channel
+  );
   const suggestions = useMemo(
     () => [
-      ...(isDm
+      ...(isDm || !canMentionEveryone
         ? []
         : [
             { id: 'channel', name: 'channel', detail: 'Notify everyone here' },
@@ -226,7 +237,7 @@ export function Conversation({
         hint: userId === viewerId ? 'You' : undefined,
       })),
     ],
-    [channelMembers, isDm, viewerId]
+    [channelMembers, isDm, canMentionEveryone, viewerId]
   );
 
   const lastOwn = messages
@@ -244,7 +255,19 @@ export function Conversation({
     if (parentId) void rootQuery.refetch();
   };
   const kind = conversationKind(parentId, isDm, isSelf);
-  const footer = footerFor(Boolean(channel.archivedAt), rootDeleted, canPost);
+  // Joined but held back by the channel's posting permissions: a new message or a reply.
+  const canWrite = canChannel(
+    parentId ? 'reply' : 'sendMessage',
+    workspaceRole,
+    channel
+  );
+  const canAlsoSend = canChannel('sendMessage', workspaceRole, channel);
+  const footer = footerFor(
+    Boolean(channel.archivedAt),
+    rootDeleted,
+    canPost,
+    canWrite
+  );
 
   return (
     <MentionNames value={names}>
@@ -344,7 +367,8 @@ export function Conversation({
                       lastOwn ? () => setEditingId(lastOwn.id) : undefined
                     }
                     actions={
-                      parentId && (
+                      parentId &&
+                      canAlsoSend && (
                         <div className="flex min-w-0 items-center gap-1.5">
                           <Checkbox
                             id={`also-send-${parentId}`}
@@ -369,6 +393,13 @@ export function Conversation({
                   />
                   <ConversationTyping roomId={roomId} parentId={parentId} />
                 </>
+              )}
+              {footer === 'restricted' && (
+                <p className="border-input text-muted-foreground rounded-lg border px-3 py-2 text-sm">
+                  {parentId
+                    ? `Only channel managers and admins can reply in threads in ${title}.`
+                    : `Only channel managers and admins can post in ${title}.`}
+                </p>
               )}
               {footer === 'join' && (
                 <div className="border-input flex items-center justify-between gap-3 rounded-lg border px-3 py-2">

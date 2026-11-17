@@ -15,7 +15,10 @@ const viewer: RoomViewer = {
   workspaceRole: 'member',
 };
 
-const room = (membership: Room['membership']): Room => ({
+const room = (
+  membership: Room['membership'],
+  overrides: Partial<Room> = {}
+): Room => ({
   id: 'r1',
   organizationId: 'org',
   kind: 'channel',
@@ -23,6 +26,11 @@ const room = (membership: Room['membership']): Room => ({
   topic: null,
   description: null,
   visibility: 'public',
+  permissions: {
+    post: 'everyone',
+    reply: 'everyone',
+    mentionEveryone: 'everyone',
+  },
   isDefault: false,
   archivedAt: null,
   memberCount: 2,
@@ -30,6 +38,7 @@ const room = (membership: Room['membership']): Room => ({
   createdAt: new Date(0),
   membership,
   archivedByName: null,
+  ...overrides,
 });
 
 const joined: Room['membership'] = {
@@ -38,6 +47,7 @@ const joined: Room['membership'] = {
   sectionId: null,
   notify: null,
   mutedAt: null,
+  closedAt: null,
 };
 
 function setup(found: Room | null) {
@@ -60,6 +70,66 @@ function setup(found: Room | null) {
   );
   return { service, updates };
 }
+
+describe('RoomsService star', () => {
+  it('stars with a timestamp and unstars with null', async () => {
+    vi.useFakeTimers().setSystemTime(new Date('2026-11-13T12:00:00Z'));
+    const { service, updates } = setup(room(joined));
+
+    await service.star(viewer, 'r1');
+    await service.unstar(viewer, 'r1');
+    vi.useRealTimers();
+
+    expect(updates.map(({ patch }) => patch)).toEqual([
+      { starredAt: new Date('2026-11-13T12:00:00Z') },
+      { starredAt: null },
+    ]);
+  });
+
+  it('lets a member star and unstar a DM', async () => {
+    const { service, updates } = setup(
+      room(joined, { kind: 'dm', visibility: 'private' })
+    );
+
+    await service.star(viewer, 'r1');
+    await service.unstar(viewer, 'r1');
+
+    expect(updates).toHaveLength(2);
+  });
+
+  it('lets a member star an archived channel', async () => {
+    const { service, updates } = setup(
+      room(joined, { archivedAt: new Date(0) })
+    );
+
+    await service.star(viewer, 'r1');
+
+    expect(updates).toHaveLength(1);
+  });
+
+  it('refuses a viewer who can see the room but is not in it', async () => {
+    const { service, updates } = setup(room(null));
+
+    await expect(service.star(viewer, 'r1')).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    await expect(service.unstar(viewer, 'r1')).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    expect(updates).toEqual([]);
+  });
+
+  it('refuses a DM the viewer is not in as missing', async () => {
+    const { service, updates } = setup(
+      room(null, { kind: 'dm', visibility: 'private' })
+    );
+
+    await expect(service.star(viewer, 'r1')).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+    expect(updates).toEqual([]);
+  });
+});
 
 describe('RoomsService notification preferences', () => {
   it('stores a level for the member, and null to go back to the default', async () => {

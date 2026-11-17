@@ -18,6 +18,11 @@ function channel(
     topic: null,
     description: null,
     visibility: kind === 'private' ? 'private' : 'public',
+    permissions: {
+      post: 'everyone',
+      reply: 'everyone',
+      mentionEveryone: 'everyone',
+    },
     isDefault: kind === 'default',
     archivedAt,
     memberCount: 3,
@@ -29,6 +34,7 @@ function channel(
       sectionId: null,
       notify: null,
       mutedAt: null,
+      closedAt: null,
     },
     archivedByName: null,
   };

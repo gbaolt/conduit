@@ -12,8 +12,10 @@ import type { RoomScope } from '@/rooms/domain/rooms.repository';
 
 import {
   include,
+  membershipSelect,
   rethrowNameTaken,
   toChannel,
+  toMembership,
 } from '../../rooms/infrastructure/prisma-rooms.repository';
 
 const dmInclude = {
@@ -21,6 +23,7 @@ const dmInclude = {
     select: {
       userId: true,
       user: { select: { name: true, image: true } },
+      ...membershipSelect,
     },
     orderBy: { joinedAt: 'asc' },
   },
@@ -28,7 +31,11 @@ const dmInclude = {
 
 type DmRow = Prisma.RoomGetPayload<{ include: typeof dmInclude }>;
 
-function toDm(row: DmRow): Dm {
+function toDm(row: DmRow, userId: string): Dm {
+  const own = row.members.find((member) => member.userId === userId);
+  if (!own) {
+    throw dmError('NOT_FOUND');
+  }
   return {
     id: row.id,
     members: row.members.map(({ userId, user }) => ({
@@ -38,6 +45,7 @@ function toDm(row: DmRow): Dm {
     })),
     lastMessageAt: row.lastMessageAt,
     createdAt: row.createdAt,
+    membership: toMembership(own),
   };
 }
 
@@ -59,7 +67,7 @@ export class PrismaDmsRepository implements DmsRepository {
         { createdAt: 'desc' },
       ],
     });
-    return rows.map(toDm);
+    return rows.map((row) => toDm(row, scope.userId));
   }
 
   async open(scope: RoomScope, userIds: string[]) {
@@ -87,12 +95,30 @@ export class PrismaDmsRepository implements DmsRepository {
       skipDuplicates: true,
     });
 
+    // Starting a conversation brings back a DM the caller closed.
+    await this.db.roomMember.updateMany({
+      where: { roomId: id, userId: scope.userId },
+      data: { closedAt: null },
+    });
+
     return toDm(
       await this.db.room.findUniqueOrThrow({
         where: { id },
         include: dmInclude,
-      })
+      }),
+      scope.userId
     );
+  }
+
+  async close(scope: RoomScope, roomIds: string[]) {
+    await this.db.roomMember.updateMany({
+      where: {
+        userId: scope.userId,
+        roomId: { in: roomIds },
+        room: { kind: 'DM', organizationId: scope.organizationId },
+      },
+      data: { closedAt: new Date() },
+    });
   }
 
   async addPeople(scope: RoomScope, roomId: string, userIds: string[]) {
@@ -132,7 +158,8 @@ export class PrismaDmsRepository implements DmsRepository {
         await tx.room.findUniqueOrThrow({
           where: { id: roomId },
           include: dmInclude,
-        })
+        }),
+        scope.userId
       );
     });
   }

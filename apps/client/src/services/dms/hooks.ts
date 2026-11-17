@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { orpc } from '@/lib/orpc';
 import { isUnread, sidebarStateQuery } from '@/services/activity/queries';
+import { useOptimisticMembership } from '@/services/rooms/hooks';
 
 import { dmsQuery } from './queries';
 
@@ -18,6 +19,18 @@ export function useOpenDm() {
 
   return useMutation(
     orpc.dms.open.mutationOptions({ onSuccess: () => invalidate() })
+  );
+}
+
+/** Closes DMs for the viewer only. A DM shows again once a message arrives after the close. */
+export function useCloseDms() {
+  return useMutation(
+    orpc.dms.close.mutationOptions(
+      useOptimisticMembership(({ roomIds }) => ({
+        roomIds,
+        patch: { closedAt: new Date() },
+      }))
+    )
   );
 }
 

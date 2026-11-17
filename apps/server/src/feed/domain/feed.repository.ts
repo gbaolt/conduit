@@ -78,11 +78,11 @@ export abstract class FeedRepository {
   abstract markAllRead(userId: string, organizationId: string): Promise<void>;
 
   /**
-   * Sets `readAt` on the caller's `MENTION` items in the room whose message the conversation shows and
-   * whose time the caller's read position has reached.
+   * Sets `readAt` on the caller's `MENTION` items in the rooms whose message the conversation shows and
+   * whose time the caller's read position in that room has reached.
    */
   abstract markReadThroughPosition(input: {
-    roomId: string;
+    roomIds: string[];
     userId: string;
   }): Promise<void>;
 

@@ -17,10 +17,14 @@ export function ChannelNameField<
 >({
   control,
   name,
+  label = 'Name',
 }: Pick<
   FormControlProps<TFieldValues, FieldPath<TFieldValues>, TTransformedValues>,
   'control' | 'name'
->) {
+> & {
+  /** `null` drops the visible label where a heading already names the field. */
+  label?: string | null;
+}) {
   const typed = String(useWatch({ control, name }) ?? '');
   const normalized = toChannelName(typed);
 
@@ -28,7 +32,8 @@ export function ChannelNameField<
     <FormInput
       control={control}
       name={name}
-      label="Name"
+      label={label}
+      aria-label={label ? undefined : 'Channel name'}
       placeholder="e.g. design-team"
       autoComplete="off"
       autoFocus

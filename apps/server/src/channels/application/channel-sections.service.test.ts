@@ -100,12 +100,12 @@ describe.skipIf(!connectionString)('star and sections', () => {
   });
 
   it('stars and unstars only the caller’s own row, including the default channel', async () => {
-    await channels.star(member, defaultChannelId);
+    await rooms.star(member, defaultChannelId);
     expect((await membershipOf(member, defaultChannelId))?.starredAt).toEqual(
       expect.any(Date)
     );
     expect((await membershipOf(owner, defaultChannelId))?.starredAt).toBeNull();
-    await channels.unstar(member, defaultChannelId);
+    await rooms.unstar(member, defaultChannelId);
     expect(
       (await membershipOf(member, defaultChannelId))?.starredAt
     ).toBeNull();
@@ -116,14 +116,14 @@ describe.skipIf(!connectionString)('star and sections', () => {
       name: 'not-yours',
       visibility: 'public',
     });
-    await expect(channels.star(member, channel.id)).rejects.toMatchObject({
+    await expect(rooms.star(member, channel.id)).rejects.toMatchObject({
       code: 'FORBIDDEN',
     });
     const secret = await channels.create(owner, {
       name: 'secret',
       visibility: 'private',
     });
-    await expect(channels.star(member, secret.id)).rejects.toMatchObject({
+    await expect(rooms.star(member, secret.id)).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
   });

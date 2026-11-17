@@ -188,6 +188,12 @@ enum ChannelVisibility {
   PRIVATE
 }
 
+/// Who a channel's posting permission lets through. MANAGERS means channel managers and workspace admins.
+enum ChannelAudience {
+  EVERYONE
+  MANAGERS
+}
+
 enum RoomRole {
   MANAGER
   MEMBER
@@ -220,6 +226,9 @@ model Room {
   dmKey                    String?           @unique // `<organizationId>:<sorted user ids>`, set only on a DM
   lastMessageAt            DateTime?
   visibility               ChannelVisibility @default(PUBLIC)
+  postAudience             ChannelAudience   @default(EVERYONE) // who can start a message
+  replyAudience            ChannelAudience   @default(EVERYONE) // who can reply in a thread
+  mentionEveryoneAudience  ChannelAudience   @default(EVERYONE) // who can use @channel and @here
   defaultForOrganizationId String?           @unique // set only on the workspace's default channel
   createdById              String?
   createdBy                User?             @relation("ChannelCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
@@ -252,6 +261,8 @@ model RoomMember {
   notify    NotifyLevel?
   /// Set while the member has the room muted.
   mutedAt   DateTime?
+  /// Set while the member has closed a DM. The DM counts as open again once a message arrives after it.
+  closedAt  DateTime?
   joinedAt  DateTime        @default(now())
 
   @@id([roomId, userId])

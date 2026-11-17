@@ -20,7 +20,8 @@ import {
   IconUserPlus,
   type TablerIcon,
 } from '@tabler/icons-react';
-import { toast } from 'sonner';
+
+import { copyText } from '@/features/rooms/lib/copy-text';
 
 import type { ChannelDialog } from '../context/channel-dialogs-provider';
 
@@ -74,13 +75,6 @@ type Row = Pick<ChannelMenuAction, 'id' | 'label' | 'icon'> & {
       }
   );
 
-export function copy(text: string) {
-  navigator.clipboard.writeText(text).then(
-    () => toast.success('Copied'),
-    () => toast.error('Could not copy')
-  );
-}
-
 // The one table behind the dropdown and the context menu. Later PRs add rows here.
 const rows: Row[] = [
   {
@@ -88,14 +82,14 @@ const rows: Row[] = [
     icon: IconCopy,
     submenu: 'copy',
     label: 'Copy name',
-    run: (channel) => copy(`#${channel.name}`),
+    run: (channel) => copyText(`#${channel.name}`),
   },
   {
     id: 'copy-link',
     icon: IconLink,
     submenu: 'copy',
     label: 'Copy link',
-    run: (channel) => copy(`${location.origin}/channels/${channel.id}`),
+    run: (channel) => copyText(`${location.origin}/channels/${channel.id}`),
   },
   {
     id: 'details',
@@ -110,7 +104,8 @@ const rows: Row[] = [
     submenu: 'details',
     label: 'Rename',
     policy: 'rename',
-    run: (channel, { open }) => open({ kind: 'rename', channel }),
+    run: (channel, { open }) =>
+      open({ kind: 'details', channel, renaming: true }),
   },
   {
     id: 'leave',

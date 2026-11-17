@@ -1,18 +1,45 @@
 'use client';
 
 import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@conduit/ui/components/dropdown-menu';
+import {
   SidebarGroup,
+  SidebarGroupAction,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
+  SidebarMenuItem,
 } from '@conduit/ui/components/sidebar';
 import { cn } from '@conduit/ui/lib/utils';
-import { IconBellOff, IconChevronDown, IconPencil } from '@tabler/icons-react';
+import {
+  IconBellOff,
+  IconChecks,
+  IconChevronDown,
+  IconDots,
+  IconList,
+  IconPencil,
+  IconPlus,
+} from '@tabler/icons-react';
+import { useQuery } from '@tanstack/react-query';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { createContext, type ReactNode, use } from 'react';
+import {
+  Children,
+  type ComponentProps,
+  createContext,
+  type ReactElement,
+  type ReactNode,
+  use,
+  useId,
+} from 'react';
 
 import { useWorkspace } from '@/features/workspace/context/workspace-provider';
 import {
@@ -20,16 +47,33 @@ import {
   useIsMuted,
   useIsUnread,
 } from '@/services/activity/hooks';
+import { isUnread, sidebarStateQuery } from '@/services/activity/queries';
+import { useMarkRoomsRead } from '@/services/rooms/hooks';
 
-import { useCollapsedGroups } from '../hooks/use-collapsed-groups';
+import { useStoredGroups } from '../hooks/use-stored-groups';
+import { useRoomDndDrop } from './room-dnd';
 
 const RoomGroupContext = createContext<{
   collapsed: boolean;
   toggle: () => void;
+  unreadsOnly: boolean;
+  toggleUnreadsOnly: () => void;
   activeRoomId: string | undefined;
-}>({ collapsed: false, toggle: () => {}, activeRoomId: undefined });
+  /** The id of the element that names the group. */
+  labelId: string | undefined;
+}>({
+  collapsed: false,
+  toggle: () => {},
+  unreadsOnly: false,
+  toggleUnreadsOnly: () => {},
+  activeRoomId: undefined,
+  labelId: undefined,
+});
 
-/** A collapsible sidebar group of rooms. Collapsing it is remembered per workspace under `id`. */
+/**
+ * A collapsible sidebar group of rooms. Collapsing it, and showing only its unread rooms, are remembered per
+ * workspace under `id`. Inside `RoomDnd` it is also where a dragged row lands.
+ */
 export function RoomGroup({
   id,
   children,
@@ -38,18 +82,38 @@ export function RoomGroup({
   children: ReactNode;
 }) {
   const { activeWorkspace } = useWorkspace();
-  const { isCollapsed, toggle } = useCollapsedGroups(activeWorkspace?.id);
+  const collapsed = useStoredGroups(
+    'collapsed-sidebar-groups',
+    activeWorkspace?.id
+  );
+  const unreadsOnly = useStoredGroups(
+    'unreads-only-sidebar-groups',
+    activeWorkspace?.id
+  );
   const { roomId } = useParams<{ roomId?: string }>();
+  const drop = useRoomDndDrop(id);
+  const labelId = useId();
 
   return (
     <RoomGroupContext
       value={{
-        collapsed: isCollapsed(id),
-        toggle: () => toggle(id),
+        collapsed: collapsed.has(id),
+        toggle: () => collapsed.toggle(id),
+        unreadsOnly: unreadsOnly.has(id),
+        toggleUnreadsOnly: () => unreadsOnly.toggle(id),
         activeRoomId: roomId,
+        labelId,
       }}
     >
-      <SidebarGroup>{children}</SidebarGroup>
+      <SidebarGroup
+        ref={drop.ref}
+        role="group"
+        aria-labelledby={labelId}
+        data-drop-over={drop.over || undefined}
+        className="data-drop-over:bg-sidebar-accent/60 data-drop-over:ring-sidebar-ring/60 rounded-md transition-[background-color,box-shadow] duration-150 ease-out ring-inset data-drop-over:ring-1"
+      >
+        {children}
+      </SidebarGroup>
     </RoomGroupContext>
   );
 }
@@ -62,7 +126,7 @@ export function RoomGroupLabel({
   icon: ReactNode;
   children: ReactNode;
 }) {
-  const { collapsed, toggle } = use(RoomGroupContext);
+  const { collapsed, toggle, unreadsOnly, labelId } = use(RoomGroupContext);
 
   return (
     <SidebarGroupLabel
@@ -86,8 +150,154 @@ export function RoomGroupLabel({
           )}
         />
       </span>
-      <span className="truncate text-sm">{children}</span>
+      <span id={labelId} className="truncate text-sm">
+        {children}
+      </span>
+      {unreadsOnly && (
+        <span className="shrink-0 font-normal opacity-70">· Unreads</span>
+      )}
     </SidebarGroupLabel>
+  );
+}
+
+function RoomGroupMenuItems({
+  roomIds,
+  children,
+}: {
+  roomIds: string[];
+  children: ReactNode;
+}) {
+  const { unreadsOnly, toggleUnreadsOnly } = use(RoomGroupContext);
+  const { mutate: markRead } = useMarkRoomsRead();
+  const { data: unreadIds = [] } = useQuery({
+    ...sidebarStateQuery,
+    select: (rows) =>
+      rows
+        .filter((row) => roomIds.includes(row.roomId) && isUnread(row))
+        .map((row) => row.roomId),
+  });
+
+  return (
+    <>
+      {children}
+      {Children.toArray(children).length > 0 && <DropdownMenuSeparator />}
+      <DropdownMenuItem
+        disabled={unreadIds.length === 0}
+        onClick={() => markRead({ roomIds: unreadIds })}
+      >
+        <IconChecks />
+        Mark all as read
+      </DropdownMenuItem>
+      <DropdownMenuCheckboxItem
+        checked={unreadsOnly}
+        onCheckedChange={toggleUnreadsOnly}
+      >
+        Unreads only
+      </DropdownMenuCheckboxItem>
+    </>
+  );
+}
+
+/**
+ * The group's "More actions" menu. `children` are the rows only this group has. Every group ends with
+ * "Mark all as read" and "Unreads only", which act on `roomIds`.
+ */
+export function RoomGroupMenu({
+  name,
+  roomIds,
+  children,
+}: {
+  name: string;
+  roomIds: string[];
+  children?: ReactNode;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={<SidebarGroupAction aria-label={`More actions for ${name}`} />}
+      >
+        <IconDots />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <RoomGroupMenuItems roomIds={roomIds}>{children}</RoomGroupMenuItems>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+export type RoomGroupJumpItem = {
+  roomId: string;
+  /** The link the row becomes: `<Link href="…" />`. An element, so the route's type is checked where it is written. */
+  link: ReactElement;
+  /** The row's glyph and name, as the sidebar row shows them. */
+  label: ReactNode;
+};
+
+function RoomGroupJumpItems({ items }: { items: RoomGroupJumpItem[] }) {
+  const { toggle } = use(RoomGroupContext);
+  const { data: entries = [] } = useQuery(sidebarStateQuery);
+  const unreadIds = new Set(
+    entries.filter((entry) => isUnread(entry)).map((entry) => entry.roomId)
+  );
+  const unreadFirst = [
+    ...items.filter((item) => unreadIds.has(item.roomId)),
+    ...items.filter((item) => !unreadIds.has(item.roomId)),
+  ];
+
+  return (
+    <>
+      <div className="max-h-72 overflow-y-auto">
+        {unreadFirst.map(({ roomId, link, label }) => (
+          <DropdownMenuItem
+            key={roomId}
+            render={link}
+            className={cn(unreadIds.has(roomId) && 'font-semibold')}
+          >
+            {label}
+            {unreadIds.has(roomId) && <span className="sr-only">, unread</span>}
+          </DropdownMenuItem>
+        ))}
+      </div>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem onClick={toggle}>
+        <IconChevronDown />
+        Expand section
+      </DropdownMenuItem>
+    </>
+  );
+}
+
+/**
+ * "More conversations": a collapsed group's rooms as a menu, unread ones first, so one opens without
+ * expanding the group. It renders nothing while the group is expanded or has no rooms.
+ */
+export function RoomGroupJump({
+  name,
+  items,
+}: {
+  name: string;
+  items: RoomGroupJumpItem[];
+}) {
+  const { collapsed } = use(RoomGroupContext);
+  if (!collapsed || items.length === 0) return null;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <SidebarGroupAction
+            aria-label={`More conversations in ${name}`}
+            // Left of the "More actions" button.
+            className="right-9"
+          />
+        }
+      >
+        <IconList />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <RoomGroupJumpItems items={items} />
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -99,6 +309,43 @@ export function RoomGroupContent({ children }: { children: ReactNode }) {
   );
 }
 
+/** One line that stands in for the rows of a group that has none. Hidden while the group is collapsed. */
+export function RoomGroupEmpty({ children }: { children: ReactNode }) {
+  const { collapsed } = use(RoomGroupContext);
+  if (collapsed) return null;
+
+  return (
+    <SidebarMenuItem className="text-muted-foreground flex h-8 items-center truncate pr-2 pl-6 text-xs">
+      {children}
+    </SidebarMenuItem>
+  );
+}
+
+/**
+ * The group's last row, which adds a room to it: "Add channels". It is a button, or a menu's trigger through
+ * `render`. Hidden while the group is collapsed.
+ */
+export function RoomGroupAdd({
+  children,
+  className,
+  ...props
+}: ComponentProps<typeof SidebarMenuButton>) {
+  const { collapsed } = use(RoomGroupContext);
+  if (collapsed) return null;
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        className={cn('text-muted-foreground pl-6', className)}
+        {...props}
+      >
+        <IconPlus />
+        <span>{children}</span>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
+
 const RoomItemContext = createContext<{
   isActive: boolean;
   unread: boolean;
@@ -107,8 +354,8 @@ const RoomItemContext = createContext<{
 }>({ isActive: false, unread: false, muted: false, hasDraft: false });
 
 /**
- * One room's row: wrap a `SidebarMenuItem` in it. A collapsed group still shows the open room,
- * so the viewer keeps their place.
+ * One room's row: wrap a `SidebarMenuItem` in it. A collapsed group, and a group set to unreads only, still
+ * show the open room, so the viewer keeps their place.
  */
 export function RoomItem({
   roomId,
@@ -117,17 +364,19 @@ export function RoomItem({
   roomId: string;
   children: ReactNode;
 }) {
-  const { collapsed, activeRoomId } = use(RoomGroupContext);
+  const { collapsed, unreadsOnly, activeRoomId } = use(RoomGroupContext);
   const isActive = roomId === activeRoomId;
-  // The open room is being read, so it never reads as unread.
-  const unread = useIsUnread(roomId) && !isActive;
+  const hasUnread = useIsUnread(roomId);
   const muted = useIsMuted(roomId);
   const hasDraft = useHasDraft(roomId) && !isActive;
 
-  if (collapsed && !isActive) return null;
+  if ((collapsed || (unreadsOnly && !hasUnread)) && !isActive) return null;
 
   return (
-    <RoomItemContext value={{ isActive, unread, muted, hasDraft }}>
+    // The open room is being read, so it never reads as unread.
+    <RoomItemContext
+      value={{ isActive, unread: hasUnread && !isActive, muted, hasDraft }}
+    >
       {children}
     </RoomItemContext>
   );

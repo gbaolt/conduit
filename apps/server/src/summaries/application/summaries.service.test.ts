@@ -53,6 +53,11 @@ const channelFor = (
   topic: null,
   description: null,
   visibility: 'private',
+  permissions: {
+    post: 'everyone',
+    reply: 'everyone',
+    mentionEveryone: 'everyone',
+  },
   isDefault: false,
   archivedAt: null,
   memberCount: 2,
@@ -64,6 +69,7 @@ const channelFor = (
     sectionId: null,
     notify: null,
     mutedAt: null,
+    closedAt: null,
   },
   archivedByName: null,
   ...overrides,
@@ -503,6 +509,14 @@ describe('SummariesService', () => {
       ],
       lastMessageAt: null,
       createdAt: new Date(0),
+      membership: {
+        role: 'member',
+        starredAt: null,
+        sectionId: null,
+        notify: null,
+        mutedAt: null,
+        closedAt: null,
+      },
     });
     const post = (
       id: string,

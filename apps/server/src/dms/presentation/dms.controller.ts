@@ -44,6 +44,17 @@ export class DmsController {
       );
   }
 
+  @Implement(contract.dms.close)
+  close() {
+    return implement(contract.dms.close)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.dmsService.close(viewerOf(context), input.roomIds)
+      );
+  }
+
   @Implement(contract.dms.addPeople)
   addPeople() {
     return implement(contract.dms.addPeople)

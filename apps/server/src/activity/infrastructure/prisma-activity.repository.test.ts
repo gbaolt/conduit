@@ -85,6 +85,57 @@ describe.skipIf(!connectionString)('PrismaActivityRepository', () => {
     ).resolves.toBe(false);
   });
 
+  it('reads each room the member is in up to its latest message, and only forward', async () => {
+    const mine = `${run}-mine`;
+    const notMine = `${run}-not-mine`;
+    const quiet = `${run}-quiet`;
+    const all = [mine, notMine, quiet];
+    const at = new Date(Date.UTC(2026, 10, 8, 9));
+    await prisma.room.createMany({
+      data: [
+        { id: mine, organizationId, name: 'mine', lastMessageAt: at },
+        { id: notMine, organizationId, name: 'not-mine', lastMessageAt: at },
+        { id: quiet, organizationId, name: 'quiet' },
+      ],
+    });
+    await prisma.roomMember.createMany({
+      data: [mine, quiet].map((room) => ({ roomId: room, userId })),
+    });
+    await prisma.message.create({
+      data: {
+        id: `${run}-last`,
+        roomId: mine,
+        authorId: userId,
+        clientId: 'last',
+        body: 'last',
+        createdAt: at,
+      },
+    });
+    const states = () =>
+      prisma.readState.findMany({ where: { userId, roomId: { in: all } } });
+
+    await repository.markRoomsRead({ userId, organizationId, roomIds: all });
+
+    expect(await states()).toEqual([
+      expect.objectContaining({
+        roomId: mine,
+        lastReadAt: at,
+        lastReadMessageId: `${run}-last`,
+      }),
+    ]);
+
+    const later = new Date(at.getTime() + 3_600_000);
+    await prisma.readState.update({
+      where: { roomId_userId: { roomId: mine, userId } },
+      data: { lastReadAt: later },
+    });
+    await repository.markRoomsRead({ userId, organizationId, roomIds: all });
+
+    expect(await states()).toEqual([
+      expect.objectContaining({ roomId: mine, lastReadAt: later }),
+    ]);
+  });
+
   it('keeps a thread draft apart from the channel draft and deletes on an empty body', async () => {
     const thread = { ...scope, parentId: 'root' };
 

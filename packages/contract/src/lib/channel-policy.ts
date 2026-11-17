@@ -1,10 +1,15 @@
 import type { WorkspaceRole } from '@/schemas/organizations';
-import type { Room } from '@/schemas/rooms';
+import type { ChannelPermissions, Room } from '@/schemas/rooms';
 import type { WorkspaceSettings } from '@/schemas/workspace-settings';
 
 export type PolicyChannel = Pick<
   Room,
-  'kind' | 'visibility' | 'isDefault' | 'archivedAt' | 'membership'
+  | 'kind'
+  | 'visibility'
+  | 'permissions'
+  | 'isDefault'
+  | 'archivedAt'
+  | 'membership'
 >;
 
 type Rule = {
@@ -25,6 +30,13 @@ const adminOrManager = (role: WorkspaceRole, channel: PolicyChannel) =>
   isAdmin(role) || isManager(channel);
 const anyMember = (_role: WorkspaceRole, channel: PolicyChannel) =>
   isIn(channel);
+/** A member the channel's `permission` lets through: anyone in it, or only managers and admins. */
+const permitted =
+  (permission: keyof ChannelPermissions) =>
+  (role: WorkspaceRole, channel: PolicyChannel) =>
+    isIn(channel) &&
+    (channel.permissions[permission] === 'everyone' ||
+      adminOrManager(role, channel));
 const memberOfDm = (_role: WorkspaceRole, channel: PolicyChannel) =>
   channel.kind === 'dm' && isIn(channel);
 
@@ -83,8 +95,13 @@ export const channelPolicy = {
     openWhenArchived: true,
     notInDm: true,
   },
-  star: { allow: anyMember, openWhenArchived: true, notInDm: true },
+  star: { allow: anyMember, openWhenArchived: true },
+  // Taking part in what is already there: react, pin, edit or delete your own message.
   post: { allow: anyMember },
+  sendMessage: { allow: permitted('post') },
+  reply: { allow: permitted('reply') },
+  mentionEveryone: { allow: permitted('mentionEveryone') },
+  setPermissions: { allow: adminOrManager, notInDm: true },
   deleteOthersMessages: { allow: adminOrManager, notInDm: true },
   moveToSection: { allow: anyMember, notInDm: true },
   addDmPeople: { allow: memberOfDm },

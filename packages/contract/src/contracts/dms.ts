@@ -1,9 +1,11 @@
 import { oc } from '@orpc/contract';
 import { openapi } from '@orpc/openapi';
+import { z } from 'zod';
 
 import { RoomSchema } from '@/schemas/rooms';
 import {
   AddDmPeopleInputSchema,
+  CloseDmsInputSchema,
   ConvertDmInputSchema,
   DmSchema,
   ListDmsOutputSchema,
@@ -38,6 +40,11 @@ export const openDmContract = oc
   .errors({ NOT_FOUND, DM_FULL })
   .input(OpenDmInputSchema)
   .output(DmSchema);
+
+export const closeDmsContract = oc
+  .meta(openapi({ method: 'POST', path: '/dms/close' }))
+  .input(CloseDmsInputSchema)
+  .output(z.void());
 
 export const addDmPeopleContract = oc
   .meta(openapi({ method: 'POST', path: '/dms/{roomId}/people' }))

@@ -26,6 +26,11 @@ const channel = (name: string, extra: Partial<Room> = {}): Room => ({
   topic: null,
   description: null,
   visibility: 'public',
+  permissions: {
+    post: 'everyone',
+    reply: 'everyone',
+    mentionEveryone: 'everyone',
+  },
   isDefault: false,
   archivedAt: null,
   memberCount: 1,
@@ -79,6 +84,7 @@ describe('findChannels', () => {
     sectionId: null,
     notify: null,
     mutedAt: null,
+    closedAt: null,
   } as const;
   const list = [
     channel('social', { memberCount: 9, description: 'Fun things' }),

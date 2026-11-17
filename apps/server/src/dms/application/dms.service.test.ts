@@ -27,6 +27,11 @@ function channelFor(member: boolean, overrides: Partial<Room> = {}): Room {
     topic: null,
     description: null,
     visibility: 'private',
+    permissions: {
+      post: 'everyone',
+      reply: 'everyone',
+      mentionEveryone: 'everyone',
+    },
     isDefault: false,
     archivedAt: null,
     memberCount: 2,
@@ -39,6 +44,7 @@ function channelFor(member: boolean, overrides: Partial<Room> = {}): Room {
           sectionId: null,
           notify: null,
           mutedAt: null,
+          closedAt: null,
         }
       : null,
     archivedByName: null,
@@ -51,6 +57,14 @@ const dmOf = (...userIds: string[]): Dm => ({
   members: userIds.map((userId) => ({ userId, name: userId, image: null })),
   lastMessageAt: null,
   createdAt: new Date(0),
+  membership: {
+    role: 'member',
+    starredAt: null,
+    sectionId: null,
+    notify: null,
+    mutedAt: null,
+    closedAt: null,
+  },
 });
 
 function setup(

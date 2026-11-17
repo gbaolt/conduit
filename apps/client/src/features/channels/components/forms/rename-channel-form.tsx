@@ -2,13 +2,6 @@
 
 import type { Room } from '@conduit/contract';
 import { Button } from '@conduit/ui/components/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@conduit/ui/components/dialog';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { isDefinedError } from '@orpc/client';
 import { useForm } from 'react-hook-form';
@@ -20,14 +13,19 @@ import { useRenameChannel } from '@/services/channels/hooks';
 
 import { ChannelNameField } from '../../../rooms/components/channel-name-field';
 import { ChannelNameInputSchema } from '../../../rooms/lib/channel-name-input';
-import { useChannelDialogs } from '../../context/channel-dialogs-provider';
 
 const RenameChannelFormSchema = z.object({ name: ChannelNameInputSchema });
 type RenameChannelInput = z.input<typeof RenameChannelFormSchema>;
 type RenameChannelValues = z.output<typeof RenameChannelFormSchema>;
 
-export function RenameChannelDialog({ channel }: { channel: Room }) {
-  const { close } = useChannelDialogs();
+/** Renames a channel in place, inside its details card. */
+export function RenameChannelForm({
+  channel,
+  onDone,
+}: {
+  channel: Room;
+  onDone: () => void;
+}) {
   const renameChannel = useRenameChannel();
 
   const { control, handleSubmit, formState, setError } = useForm<
@@ -44,7 +42,7 @@ export function RenameChannelDialog({ channel }: { channel: Room }) {
     renameChannel.mutate(
       { roomId: channel.id, name },
       {
-        onSuccess: close,
+        onSuccess: onDone,
         onError: (error) => {
           if (isDefinedError(error) && error.code === 'NAME_TAKEN') {
             setError('name', { message: error.message });
@@ -57,27 +55,21 @@ export function RenameChannelDialog({ channel }: { channel: Room }) {
   });
 
   return (
-    <Dialog open onOpenChange={(open) => !open && close()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Rename #{channel.name}</DialogTitle>
-        </DialogHeader>
-        <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-          <ChannelNameField control={control} name="name" />
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={close}>
-              Cancel
-            </Button>
-            <StatusButton
-              type="submit"
-              disabled={!formState.isValid}
-              status={renameChannel.isPending ? 'loading' : 'idle'}
-            >
-              Rename channel
-            </StatusButton>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <form className="flex flex-col gap-2 pt-1" onSubmit={onSubmit}>
+      <ChannelNameField control={control} name="name" label={null} />
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" size="xs" onClick={onDone}>
+          Cancel
+        </Button>
+        <StatusButton
+          type="submit"
+          size="xs"
+          disabled={!formState.isValid}
+          status={renameChannel.isPending ? 'loading' : 'idle'}
+        >
+          Save
+        </StatusButton>
+      </div>
+    </form>
   );
 }

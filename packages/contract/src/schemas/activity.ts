@@ -8,6 +8,10 @@ export const MarkReadInputSchema = z.object({
   messageId: z.string(),
 });
 
+export const MarkRoomsReadInputSchema = z.object({
+  roomIds: z.array(z.string()).min(1).max(200),
+});
+
 /** A conversation, or one thread of it when `parentId` is set. */
 export const ConversationKeySchema = z.object({
   roomId: z.string(),

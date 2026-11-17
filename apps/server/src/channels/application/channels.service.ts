@@ -1,6 +1,7 @@
 import {
   canCreateChannel,
   type ChannelAction,
+  type ChannelPermissions,
   checkChannel,
   type Room,
   type RoomMember,
@@ -93,18 +94,13 @@ export class ChannelsService {
     return this.channels.setVisibility(viewer, roomId, visibility);
   }
 
-  async star(viewer: RoomViewer, roomId: string) {
-    await this.authorize(viewer, roomId, 'star');
-    await this.channels.updateMembership(roomId, viewer.userId, {
-      starredAt: new Date(),
-    });
-  }
-
-  async unstar(viewer: RoomViewer, roomId: string) {
-    await this.authorize(viewer, roomId, 'star');
-    await this.channels.updateMembership(roomId, viewer.userId, {
-      starredAt: null,
-    });
+  async setPermissions(
+    viewer: RoomViewer,
+    roomId: string,
+    permissions: Partial<ChannelPermissions>
+  ) {
+    await this.authorize(viewer, roomId, 'setPermissions');
+    return this.channels.setPermissions(viewer, roomId, permissions);
   }
 
   async moveToSection(

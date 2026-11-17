@@ -6,6 +6,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
 import { ListBackLink } from '@/components/list-view';
+import { RoomStarButton } from '@/features/rooms/components/room-star-button';
 import { useActivateRoomWorkspace } from '@/features/rooms/hooks/use-activate-room-workspace';
 import { roomQuery } from '@/services/rooms/queries';
 
@@ -32,17 +33,18 @@ export function ChannelHeader({
 
   return (
     <>
-      <header className="flex min-h-12 shrink-0 items-center gap-1.5 border-b px-2">
+      <header className="flex min-h-12 shrink-0 items-center gap-1.5 border-b p-2">
         <ListBackLink />
         <div className="min-w-0 flex-1">
           <h1 className="min-w-0 text-sm font-semibold">
+            <RoomStarButton room={channel} />
             <Button
               variant="ghost"
               size="sm"
               className="max-w-full text-base font-semibold"
               onClick={() => open({ kind: 'details', channel })}
             >
-              <Glyph />
+              <Glyph data-icon="inline-start" />
               <span className="truncate">{channel.name}</span>
             </Button>
           </h1>
