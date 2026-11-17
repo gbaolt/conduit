@@ -6,6 +6,7 @@ import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
 import { ListBackLink } from '@/components/list-view';
+import { RoomStarButton } from '@/features/rooms/components/room-star-button';
 import { useActivateRoomWorkspace } from '@/features/rooms/hooks/use-activate-room-workspace';
 import { sessionQuery } from '@/services/auth/queries';
 import { dmTitle } from '@/services/dms/dm-title';
@@ -39,6 +40,7 @@ export function DmHeader({
   return (
     <header className="flex min-h-12 shrink-0 items-center gap-1.5 border-b px-2">
       <ListBackLink />
+      <RoomStarButton room={channel} />
       <h1 className="min-w-0 flex-1 text-sm font-semibold">
         <Button
           variant="ghost"

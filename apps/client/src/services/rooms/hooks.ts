@@ -11,6 +11,8 @@ import { toast } from 'sonner';
 import { orpc } from '@/lib/orpc';
 import { sidebarStateQuery } from '@/services/activity/queries';
 
+import { roomQuery } from './queries';
+
 /** A room's level and mute state ride on its `membership`, which the room record, channel list, and DM list all carry. */
 function useRefreshMembership() {
   const queryClient = useQueryClient();
@@ -37,7 +39,7 @@ type WithMembership = { id: string; membership: RoomMembership | null };
 
 /**
  * Per-user state can't conflict, so the caches move first and roll back if the server refuses. The membership
- * rides on every channel list and on the DM list, so one patch moves them all.
+ * rides on every channel list, the DM list, and each room's own record, so one patch moves them all.
  */
 export function useOptimisticMembership<TInput>(
   patchOf: (input: TInput) => {
@@ -51,30 +53,44 @@ export function useOptimisticMembership<TInput>(
 
   return {
     onMutate: async (input: TInput) => {
-      await Promise.all(
-        listKeys.map((queryKey) => queryClient.cancelQueries({ queryKey }))
-      );
-      const previous = listKeys.flatMap((queryKey) =>
-        queryClient.getQueriesData<WithMembership[]>({ queryKey })
-      );
       const { roomIds, patch } = patchOf(input);
+      const roomKeys = roomIds.map((roomId) => roomQuery(roomId).queryKey);
+      const withPatch = <T extends WithMembership>(room: T) =>
+        roomIds.includes(room.id) && room.membership
+          ? { ...room, membership: { ...room.membership, ...patch } }
+          : room;
+
+      await Promise.all(
+        [...listKeys, ...roomKeys].map((queryKey) =>
+          queryClient.cancelQueries({ queryKey })
+        )
+      );
+      const previous: [QueryKey, unknown][] = [
+        ...listKeys.flatMap((queryKey) =>
+          queryClient.getQueriesData({ queryKey })
+        ),
+        ...roomKeys.map(
+          (queryKey) =>
+            [queryKey, queryClient.getQueryData(queryKey)] as [
+              QueryKey,
+              unknown,
+            ]
+        ),
+      ];
       for (const queryKey of listKeys) {
         queryClient.setQueriesData<WithMembership[]>({ queryKey }, (rooms) =>
-          rooms?.map((room) =>
-            roomIds.includes(room.id) && room.membership
-              ? { ...room, membership: { ...room.membership, ...patch } }
-              : room
-          )
+          rooms?.map(withPatch)
         );
+      }
+      for (const queryKey of roomKeys) {
+        queryClient.setQueryData(queryKey, (room) => room && withPatch(room));
       }
       return { previous };
     },
     onError: (
       error: Error,
       _input: TInput,
-      context:
-        | { previous: [QueryKey, WithMembership[] | undefined][] }
-        | undefined
+      context: { previous: [QueryKey, unknown][] } | undefined
     ) => {
       for (const [queryKey, data] of context?.previous ?? []) {
         queryClient.setQueryData(queryKey, data);
@@ -85,14 +101,22 @@ export function useOptimisticMembership<TInput>(
   };
 }
 
+/** Stars a room, with an Undo on the toast that confirms it. */
 export function useStarRoom() {
+  const { mutate: unstar } = useUnstarRoom();
+
   return useMutation(
-    orpc.rooms.star.mutationOptions(
-      useOptimisticMembership(({ roomId }) => ({
+    orpc.rooms.star.mutationOptions({
+      ...useOptimisticMembership(({ roomId }: { roomId: string }) => ({
         roomIds: [roomId],
         patch: { starredAt: new Date() },
-      }))
-    )
+      })),
+      onSuccess: (_data, { roomId }) => {
+        toast.success('Added to Favorites', {
+          action: { label: 'Undo', onClick: () => unstar({ roomId }) },
+        });
+      },
+    })
   );
 }
 

@@ -116,7 +116,7 @@ function jumpItem(item: SidebarItem, viewerId: string): RoomGroupJumpItem {
 }
 
 /**
- * Home's rooms: Starred, the viewer's own sections, Channels, then Direct messages. A row drags onto another
+ * Home's rooms: Favorites, the viewer's own sections, Channels, then Direct messages. A row drags onto another
  * group to star it, unstar it, or file a channel under a section.
  */
 export function WorkspaceRooms() {
@@ -207,7 +207,7 @@ const SKELETON_GROUPS = [
   { label: 'w-28', rows: ['w-28', 'w-20', 'w-24'] },
 ];
 
-/** Stands in for `WorkspaceRooms`: Starred, Channels and Direct messages, each a label row over 32px rows. */
+/** Stands in for `WorkspaceRooms`: Favorites, Channels and Direct messages, each a label row over 32px rows. */
 export function WorkspaceRoomsSkeleton() {
   return SKELETON_GROUPS.map(({ label, rows }) => (
     <SidebarGroup key={label} aria-hidden>

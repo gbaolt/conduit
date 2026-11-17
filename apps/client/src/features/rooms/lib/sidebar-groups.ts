@@ -32,8 +32,8 @@ const byDefaultThenName = (a: Room, b: Room) =>
   Number(b.isDefault) - Number(a.isDefault) || a.name.localeCompare(b.name);
 
 /**
- * The one place that decides which rooms the Home sidebar shows, in which group and in what order: Starred,
- * the viewer's sections by position, Channels, then Direct messages. A starred room shows only under Starred.
+ * The one place that decides which rooms the Home sidebar shows, in which group and in what order: Favorites,
+ * the viewer's sections by position, Channels, then Direct messages. A starred room shows only under Favorites.
  * A DM the viewer closed is left out until a message arrives after the close, unless it is the open room.
  */
 export function groupSidebar({
@@ -73,7 +73,7 @@ export function groupSidebar({
     {
       id: STARRED_GROUP_ID,
       kind: 'starred',
-      name: 'Starred',
+      name: 'Favorites',
       section: null,
       items: [...joined, ...conversations].filter(isStarred),
     },
@@ -114,8 +114,8 @@ export function groupSidebar({
 export type SidebarDrop = { starred?: boolean; sectionId?: string | null };
 
 /**
- * The change a drop makes, or null where the group does not take the row. Starred takes any row. A row leaves
- * Starred by landing on its own kind's group: a DM on Direct messages, a channel on Channels or a section,
+ * The change a drop makes, or null where the group does not take the row. Favorites takes any row. A row leaves
+ * Favorites by landing on its own kind's group: a DM on Direct messages, a channel on Channels or a section,
  * which also files it there.
  */
 export function sidebarDrop(

@@ -134,7 +134,7 @@ export function ChannelGroupSectionMenuItems({
 function ChannelGroupSectionPicker({ section }: { section: ChannelSection }) {
   const { data: channels = [] } = useQuery(channelsQuery);
   const { mutate: move } = useMoveChannelToSection();
-  // A starred channel shows under Starred wherever it is filed, so filing it here would look like nothing happened.
+  // A starred channel shows under Favorites wherever it is filed, so filing it here would look like nothing happened.
   const others = channels.filter(
     ({ membership }) =>
       membership && !membership.starredAt && membership.sectionId !== section.id

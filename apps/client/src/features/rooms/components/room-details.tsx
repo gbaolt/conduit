@@ -12,19 +12,13 @@ import {
 } from '@conduit/ui/components/dropdown-menu';
 import { TabsList, TabsTrigger } from '@conduit/ui/components/tabs';
 import { cn } from '@conduit/ui/lib/utils';
-import {
-  IconChevronDown,
-  IconCopy,
-  IconStar,
-  IconStarFilled,
-} from '@tabler/icons-react';
+import { IconChevronDown, IconCopy } from '@tabler/icons-react';
 import type { ComponentProps, ReactNode } from 'react';
-
-import { useStarRoom, useUnstarRoom } from '@/services/rooms/hooks';
 
 import { copyText } from '../lib/copy-text';
 import { roomDropdownMenuParts, RoomMenuParts } from './room-menu';
 import { RoomNotifyMenu, RoomNotifyMenuValue } from './room-notify-menu';
+import { RoomStarButton } from './room-star-button';
 
 type DetailsRoom = Pick<Room, 'id' | 'kind' | 'membership'>;
 
@@ -33,25 +27,11 @@ type DetailsRoom = Pick<Room, 'id' | 'kind' | 'membership'>;
  * Someone outside the room has neither, so they see nothing.
  */
 export function RoomDetailsActions({ room }: { room: DetailsRoom }) {
-  const { mutate: star } = useStarRoom();
-  const { mutate: unstar } = useUnstarRoom();
-
   if (!room.membership) return null;
-
-  const starred = !!room.membership.starredAt;
-  const noun = room.kind === 'dm' ? 'conversation' : 'channel';
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button
-        variant="outline"
-        size="icon-sm"
-        aria-pressed={starred}
-        aria-label={starred ? `Unstar ${noun}` : `Star ${noun}`}
-        onClick={() => (starred ? unstar : star)({ roomId: room.id })}
-      >
-        {starred ? <IconStarFilled className="text-amber-500" /> : <IconStar />}
-      </Button>
+      <RoomStarButton room={room} variant="outline" />
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
@@ -85,9 +65,8 @@ export function RoomDetailsContent({
 }: ComponentProps<typeof DialogContent>) {
   return (
     <DialogContent
-      // Pinned near the top, so a taller tab grows downward instead of moving the header.
       className={cn(
-        'top-[min(12vh,6rem)] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-lg',
+        'top-[min(12svh,6rem)] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-lg',
         className
       )}
       {...props}
@@ -149,7 +128,7 @@ export function RoomDetailsBody({
   return (
     <div
       className={cn(
-        'bg-muted/40 max-h-[min(36rem,70vh)] overflow-y-auto p-4',
+        'bg-muted/40 max-h-[min(30.5rem,64svh)] overflow-y-auto p-4',
         className
       )}
       {...props}
