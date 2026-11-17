@@ -64,6 +64,7 @@ const channelFor = (
     sectionId: null,
     notify: null,
     mutedAt: null,
+    closedAt: null,
   },
   archivedByName: null,
   ...overrides,
@@ -503,6 +504,14 @@ describe('SummariesService', () => {
       ],
       lastMessageAt: null,
       createdAt: new Date(0),
+      membership: {
+        role: 'member',
+        starredAt: null,
+        sectionId: null,
+        notify: null,
+        mutedAt: null,
+        closedAt: null,
+      },
     });
     const post = (
       id: string,

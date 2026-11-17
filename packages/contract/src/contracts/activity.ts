@@ -7,6 +7,7 @@ import {
   DraftSchema,
   HeartbeatInputSchema,
   MarkReadInputSchema,
+  MarkRoomsReadInputSchema,
   SaveDraftInputSchema,
 } from '@/schemas/activity';
 
@@ -25,6 +26,11 @@ export const markReadContract = oc
   .meta(openapi({ method: 'POST', path: '/rooms/{roomId}/read' }))
   .errors({ NOT_FOUND })
   .input(MarkReadInputSchema)
+  .output(z.void());
+
+export const markRoomsReadContract = oc
+  .meta(openapi({ method: 'POST', path: '/rooms/read' }))
+  .input(MarkRoomsReadInputSchema)
   .output(z.void());
 
 export const getDraftContract = oc

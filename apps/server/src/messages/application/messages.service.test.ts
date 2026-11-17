@@ -54,6 +54,7 @@ function channelFor(
       sectionId: null,
       notify: null,
       mutedAt: null,
+      closedAt: null,
     },
     archivedByName: null,
     ...overrides,

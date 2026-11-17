@@ -252,6 +252,8 @@ model RoomMember {
   notify    NotifyLevel?
   /// Set while the member has the room muted.
   mutedAt   DateTime?
+  /// Set while the member has closed a DM. The DM counts as open again once a message arrives after it.
+  closedAt  DateTime?
   joinedAt  DateTime        @default(now())
 
   @@id([roomId, userId])

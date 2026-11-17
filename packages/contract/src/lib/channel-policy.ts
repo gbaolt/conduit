@@ -83,7 +83,7 @@ export const channelPolicy = {
     openWhenArchived: true,
     notInDm: true,
   },
-  star: { allow: anyMember, openWhenArchived: true, notInDm: true },
+  star: { allow: anyMember, openWhenArchived: true },
   post: { allow: anyMember },
   deleteOthersMessages: { allow: adminOrManager, notInDm: true },
   moveToSection: { allow: anyMember, notInDm: true },

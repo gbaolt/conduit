@@ -93,20 +93,6 @@ export class ChannelsService {
     return this.channels.setVisibility(viewer, roomId, visibility);
   }
 
-  async star(viewer: RoomViewer, roomId: string) {
-    await this.authorize(viewer, roomId, 'star');
-    await this.channels.updateMembership(roomId, viewer.userId, {
-      starredAt: new Date(),
-    });
-  }
-
-  async unstar(viewer: RoomViewer, roomId: string) {
-    await this.authorize(viewer, roomId, 'star');
-    await this.channels.updateMembership(roomId, viewer.userId, {
-      starredAt: null,
-    });
-  }
-
   async moveToSection(
     viewer: RoomViewer,
     roomId: string,

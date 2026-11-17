@@ -58,12 +58,35 @@ export class RoomsService {
     return this.updateOwnMembership(viewer, roomId, { mutedAt: null });
   }
 
+  /** Any member may star, in an archived room too, and a DM is a room like any other. */
+  star(viewer: RoomViewer, roomId: string) {
+    return this.updateOwnMembership(
+      viewer,
+      roomId,
+      { starredAt: new Date() },
+      'star'
+    );
+  }
+
+  unstar(viewer: RoomViewer, roomId: string) {
+    return this.updateOwnMembership(
+      viewer,
+      roomId,
+      { starredAt: null },
+      'star'
+    );
+  }
+
   private async updateOwnMembership(
     viewer: RoomViewer,
     roomId: string,
-    patch: MembershipPatch
+    patch: MembershipPatch,
+    action?: 'star'
   ) {
     const room = await this.find(viewer, roomId);
+    if (action && checkChannel(action, viewer.workspaceRole, room)) {
+      throw roomError('FORBIDDEN');
+    }
     if (!room.membership) {
       throw roomError('NOT_FOUND');
     }

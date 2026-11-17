@@ -1,4 +1,9 @@
-import type { NotifyLevel, Room, RoomMember } from '@conduit/contract';
+import type {
+  NotifyLevel,
+  Room,
+  RoomMember,
+  RoomMembership,
+} from '@conduit/contract';
 import { Prisma } from '@generated/prisma/client';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -11,6 +16,28 @@ import type {
   RoomScope,
   RoomsRepository,
 } from '@/rooms/domain/rooms.repository';
+
+export const membershipSelect = {
+  role: true,
+  starredAt: true,
+  sectionId: true,
+  notify: true,
+  mutedAt: true,
+  closedAt: true,
+} satisfies Prisma.RoomMemberSelect;
+
+export function toMembership(
+  row: Prisma.RoomMemberGetPayload<{ select: typeof membershipSelect }>
+): RoomMembership {
+  return {
+    role: row.role === 'MANAGER' ? 'manager' : 'member',
+    starredAt: row.starredAt,
+    sectionId: row.sectionId,
+    notify: (row.notify?.toLowerCase() as NotifyLevel | undefined) ?? null,
+    mutedAt: row.mutedAt,
+    closedAt: row.closedAt,
+  };
+}
 
 export function include(scope: RoomScope) {
   return {
@@ -28,13 +55,7 @@ export function include(scope: RoomScope) {
     },
     members: {
       where: { userId: scope.userId },
-      select: {
-        role: true,
-        starredAt: true,
-        sectionId: true,
-        notify: true,
-        mutedAt: true,
-      },
+      select: membershipSelect,
     },
     archivedBy: { select: { name: true } },
   } satisfies Prisma.RoomInclude;
@@ -60,17 +81,7 @@ export function toChannel(row: ChannelRow): Room {
     memberCount: row._count.members,
     createdById: row.createdById,
     createdAt: row.createdAt,
-    membership: membership
-      ? {
-          role: membership.role === 'MANAGER' ? 'manager' : 'member',
-          starredAt: membership.starredAt,
-          sectionId: membership.sectionId,
-          notify:
-            (membership.notify?.toLowerCase() as NotifyLevel | undefined) ??
-            null,
-          mutedAt: membership.mutedAt,
-        }
-      : null,
+    membership: membership ? toMembership(membership) : null,
     archivedByName: row.archivedBy?.name ?? null,
   };
 }

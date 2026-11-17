@@ -21,6 +21,7 @@ const joined = {
   sectionId: null,
   notify: null,
   mutedAt: null,
+  closedAt: null,
 };
 const personas: [string, Persona][] = [
   ['admin outside', { role: 'admin', membership: null }],
@@ -167,6 +168,7 @@ describe('channelPolicy for a DM', () => {
       'view',
       'post',
       'join',
+      'star',
       'addDmPeople',
       'convertDm',
     ] as const) {
@@ -195,7 +197,6 @@ describe('channelPolicy for a DM', () => {
     'makePublic',
     'delete',
     'leave',
-    'star',
     'moveToSection',
     'deleteOthersMessages',
   ] as const)('refuses %s even to an admin inside the DM', (action) => {

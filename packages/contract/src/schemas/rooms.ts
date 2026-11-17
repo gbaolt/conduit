@@ -32,6 +32,19 @@ export const ChannelNameSchema = z
 export const RoomKindSchema = z.enum(['channel', 'dm']);
 export type RoomKind = z.infer<typeof RoomKindSchema>;
 
+/** The viewer's own settings on a room they belong to. */
+export const RoomMembershipSchema = z.object({
+  role: RoomRoleSchema,
+  starredAt: z.coerce.date().nullable(),
+  sectionId: z.string().nullable(),
+  /** Null means the default for the room's kind. See `effectiveNotify`. */
+  notify: NotifyLevelSchema.nullable(),
+  mutedAt: z.coerce.date().nullable(),
+  /** Set while the member has closed a DM. The DM counts as open again once a message arrives after it. */
+  closedAt: z.coerce.date().nullable(),
+});
+export type RoomMembership = z.infer<typeof RoomMembershipSchema>;
+
 export const RoomSchema = z.object({
   id: z.string(),
   organizationId: z.string(),
@@ -46,16 +59,7 @@ export const RoomSchema = z.object({
   memberCount: z.number().int(),
   createdById: z.string().nullable(),
   createdAt: z.coerce.date(),
-  membership: z
-    .object({
-      role: RoomRoleSchema,
-      starredAt: z.coerce.date().nullable(),
-      sectionId: z.string().nullable(),
-      /** Null means the default for the room's kind. See `effectiveNotify`. */
-      notify: NotifyLevelSchema.nullable(),
-      mutedAt: z.coerce.date().nullable(),
-    })
-    .nullable(),
+  membership: RoomMembershipSchema.nullable(),
   archivedByName: z.string().nullable(),
 });
 export type Room = z.infer<typeof RoomSchema>;

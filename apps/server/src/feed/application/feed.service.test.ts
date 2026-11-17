@@ -472,7 +472,7 @@ describe.skipIf(!connectionString)('FeedService against the database', () => {
       data: { roomId, userId: bo, lastReadAt: early.createdAt },
     });
 
-    await repository.markReadThroughPosition({ roomId, userId: bo });
+    await repository.markReadThroughPosition({ roomIds: [roomId], userId: bo });
 
     expect(await readAt(onEarly.id)).not.toBeNull();
     expect(await readAt(onLate.id)).toBeNull();

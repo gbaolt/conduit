@@ -13,6 +13,7 @@ import {
   getDraftContract,
   heartbeatContract,
   markReadContract,
+  markRoomsReadContract,
   saveDraftContract,
   typingPingContract,
 } from './contracts/activity';
@@ -27,8 +28,6 @@ import {
   moveChannelToSectionContract,
   removeChannelMemberContract,
   renameChannelContract,
-  starChannelContract,
-  unstarChannelContract,
   setChannelMemberRoleContract,
   updateChannelContract,
   setChannelVisibilityContract,
@@ -36,6 +35,7 @@ import {
 } from './contracts/channels';
 import {
   addDmPeopleContract,
+  closeDmsContract,
   convertDmContract,
   listDmsContract,
   openDmContract,
@@ -106,7 +106,9 @@ import {
   listRoomMembersContract,
   muteRoomContract,
   setRoomNotifyContract,
+  starRoomContract,
   unmuteRoomContract,
+  unstarRoomContract,
 } from './contracts/rooms';
 import {
   catchUpContract,
@@ -182,6 +184,8 @@ export const contract = {
     setNotify: setRoomNotifyContract,
     mute: muteRoomContract,
     unmute: unmuteRoomContract,
+    star: starRoomContract,
+    unstar: unstarRoomContract,
     members: {
       list: listRoomMembersContract,
     },
@@ -203,8 +207,6 @@ export const contract = {
     archive: archiveChannelContract,
     unarchive: unarchiveChannelContract,
     setVisibility: setChannelVisibilityContract,
-    star: starChannelContract,
-    unstar: unstarChannelContract,
     moveToSection: moveChannelToSectionContract,
   },
   messages: {
@@ -226,6 +228,7 @@ export const contract = {
     open: openDmContract,
     addPeople: addDmPeopleContract,
     convertToChannel: convertDmContract,
+    close: closeDmsContract,
   },
   saved: {
     add: saveMessageContract,
@@ -255,6 +258,7 @@ export const contract = {
   },
   readState: {
     mark: markReadContract,
+    markRooms: markRoomsReadContract,
   },
   drafts: {
     get: getDraftContract,

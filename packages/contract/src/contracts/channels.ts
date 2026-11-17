@@ -128,18 +128,6 @@ export const setChannelVisibilityContract = oc
   .input(SetChannelVisibilityInputSchema)
   .output(RoomSchema);
 
-export const starChannelContract = oc
-  .meta(openapi({ method: 'POST', path: '/channels/{roomId}/star' }))
-  .errors({ NOT_FOUND, FORBIDDEN })
-  .input(RoomIdInputSchema)
-  .output(z.void());
-
-export const unstarChannelContract = oc
-  .meta(openapi({ method: 'DELETE', path: '/channels/{roomId}/star' }))
-  .errors({ NOT_FOUND, FORBIDDEN })
-  .input(RoomIdInputSchema)
-  .output(z.void());
-
 export const moveChannelToSectionContract = oc
   .meta(openapi({ method: 'PATCH', path: '/channels/{roomId}/section' }))
   .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED })

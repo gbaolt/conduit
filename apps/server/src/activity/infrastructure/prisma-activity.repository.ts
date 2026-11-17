@@ -59,6 +59,33 @@ export class PrismaActivityRepository implements ActivityRepository {
     return true;
   }
 
+  async markRoomsRead({
+    userId,
+    organizationId,
+    roomIds,
+  }: {
+    userId: string;
+    organizationId: string;
+    roomIds: string[];
+  }) {
+    // The sidebar compares a room's `lastMessageAt` with `lastReadAt`, so reading up to it clears the dot.
+    // The message picked is the one `lastMessageAt` came from, with the same predicate the sidebar uses.
+    await this.db.$executeRaw`
+      INSERT INTO "ReadState" ("channelId", "userId", "lastReadAt", "lastReadMessageId")
+      SELECT c."id", ${userId}, c."lastMessageAt", (
+        SELECT m."id" FROM "Message" m
+        WHERE m."channelId" = c."id" AND m."createdAt" = c."lastMessageAt" AND m."deletedAt" IS NULL
+          AND (m."parentId" IS NULL OR m."alsoSentToChannel")
+        LIMIT 1
+      )
+      FROM "Channel" c
+      JOIN "ChannelMember" cm ON cm."channelId" = c."id" AND cm."userId" = ${userId}
+      WHERE c."id" = ANY(${roomIds}) AND c."organizationId" = ${organizationId} AND c."lastMessageAt" IS NOT NULL
+      ON CONFLICT ("channelId", "userId") DO UPDATE
+        SET "lastReadAt" = EXCLUDED."lastReadAt", "lastReadMessageId" = EXCLUDED."lastReadMessageId"
+        WHERE "ReadState"."lastReadAt" < EXCLUDED."lastReadAt"`;
+  }
+
   async getDraft(scope: ConversationScope) {
     const draft = await this.db.draft.findUnique({
       where: keyOf(scope),

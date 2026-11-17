@@ -10,8 +10,15 @@ export abstract class DmsRepository {
   /**
    * Finds or creates the DM for exactly these people, and makes sure each one is in it.
    * `userIds` holds the scope user. Opening the same set twice, even at once, returns one DM.
+   * Also clears the scope user's close, so a DM they closed shows again.
    */
   abstract open(scope: RoomScope, userIds: string[]): Promise<Dm>;
+
+  /**
+   * Closes the scope user's own side of each id that is a DM they are in, in the scope's workspace, and
+   * skips every other id. A message sent after the close opens the DM again.
+   */
+  abstract close(scope: RoomScope, roomIds: string[]): Promise<void>;
 
   /**
    * Adds people and rekeys the DM to the new set, under a lock on the DM.

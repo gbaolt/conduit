@@ -188,28 +188,6 @@ export class ChannelsController {
       );
   }
 
-  @Implement(contract.channels.star)
-  star() {
-    return implement(contract.channels.star)
-      .use(authorized)
-      .use(arcjet.write)
-      .use(workspaceMember)
-      .handler(({ context, input }) =>
-        this.channelsService.star(viewerOf(context), input.roomId)
-      );
-  }
-
-  @Implement(contract.channels.unstar)
-  unstar() {
-    return implement(contract.channels.unstar)
-      .use(authorized)
-      .use(arcjet.write)
-      .use(workspaceMember)
-      .handler(({ context, input }) =>
-        this.channelsService.unstar(viewerOf(context), input.roomId)
-      );
-  }
-
   @Implement(contract.channels.moveToSection)
   moveToSection() {
     return implement(contract.channels.moveToSection)

@@ -12,6 +12,10 @@ import {
 /** Errors of the procedures every room answers, a channel or a DM. */
 export const roomErrors = {
   NOT_FOUND: { status: 404, message: 'Channel not found.' },
+  FORBIDDEN: {
+    status: 403,
+    message: 'You do not have permission to do that here.',
+  },
   NAME_TAKEN: { status: 409, message: 'That channel name is already taken.' },
   LAST_MANAGER: {
     status: 409,
@@ -19,7 +23,7 @@ export const roomErrors = {
   },
 } as const;
 
-const { NOT_FOUND } = roomErrors;
+const { NOT_FOUND, FORBIDDEN } = roomErrors;
 
 export const getRoomContract = oc
   .meta(openapi({ method: 'GET', path: '/rooms/{roomId}' }))
@@ -37,6 +41,18 @@ export const setRoomNotifyContract = oc
   .meta(openapi({ method: 'PUT', path: '/rooms/{roomId}/notify' }))
   .errors({ NOT_FOUND })
   .input(SetRoomNotifyInputSchema)
+  .output(z.void());
+
+export const starRoomContract = oc
+  .meta(openapi({ method: 'POST', path: '/rooms/{roomId}/star' }))
+  .errors({ NOT_FOUND, FORBIDDEN })
+  .input(RoomIdInputSchema)
+  .output(z.void());
+
+export const unstarRoomContract = oc
+  .meta(openapi({ method: 'DELETE', path: '/rooms/{roomId}/star' }))
+  .errors({ NOT_FOUND, FORBIDDEN })
+  .input(RoomIdInputSchema)
   .output(z.void());
 
 export const muteRoomContract = oc

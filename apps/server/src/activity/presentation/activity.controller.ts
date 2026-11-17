@@ -40,6 +40,17 @@ export class ActivityController {
       );
   }
 
+  @Implement(contract.readState.markRooms)
+  markRoomsRead() {
+    return implement(contract.readState.markRooms)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.activityService.markRoomsRead(viewerOf(context), input.roomIds)
+      );
+  }
+
   @Implement(contract.drafts.get)
   getDraft() {
     return implement(contract.drafts.get)

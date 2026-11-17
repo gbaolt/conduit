@@ -190,32 +190,22 @@ export class PrismaFeedRepository implements FeedRepository {
   }
 
   async markReadThroughPosition({
-    roomId,
+    roomIds,
     userId,
   }: {
-    roomId: string;
+    roomIds: string[];
     userId: string;
   }) {
-    const position = await this.db.readState.findUnique({
-      where: { roomId_userId: { roomId, userId } },
-      select: { lastReadAt: true },
-    });
-    if (!position) return;
-
-    await this.db.activityItem.updateMany({
-      where: {
-        userId,
-        roomId,
-        kind: 'MENTION',
-        readAt: null,
-        // The conversation shows top-level messages and replies sent to the channel, not other thread replies.
-        message: {
-          createdAt: { lte: position.lastReadAt },
-          OR: [{ parentId: null }, { alsoSentToChannel: true }],
-        },
-      },
-      data: { readAt: new Date() },
-    });
+    const now = new Date();
+    // One statement for every room, because the position to compare with differs per room.
+    // The conversation shows top-level messages and replies sent to the channel, not other thread replies.
+    await this.db.$executeRaw`
+      UPDATE "ActivityItem" a SET "readAt" = ${now}, "updatedAt" = ${now}
+      FROM "ReadState" rs, "Message" m
+      WHERE a."userId" = ${userId} AND a."channelId" = ANY(${roomIds}) AND a."kind" = 'MENTION' AND a."readAt" IS NULL
+        AND rs."channelId" = a."channelId" AND rs."userId" = a."userId"
+        AND m."id" = a."messageId" AND m."createdAt" <= rs."lastReadAt"
+        AND (m."parentId" IS NULL OR m."alsoSentToChannel")`;
   }
 
   async unranked(input: {

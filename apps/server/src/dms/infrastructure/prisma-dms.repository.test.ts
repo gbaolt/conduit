@@ -120,6 +120,42 @@ describe.skipIf(!connectionString)('PrismaDmsRepository', () => {
     );
   });
 
+  it('closes the viewer’s own side of a DM, and opening it again brings it back', async () => {
+    const dm = await dms.open(scope(linh), [linh, cy]);
+    expect(dm.membership.closedAt).toBeNull();
+
+    await dms.close(scope(linh), [dm.id]);
+
+    const listed = await dms.list(scope(linh));
+    expect(
+      listed.find((d) => d.id === dm.id)?.membership.closedAt
+    ).toBeInstanceOf(Date);
+    const theirs = await dms.list(scope(cy));
+    expect(theirs.find((d) => d.id === dm.id)?.membership.closedAt).toBeNull();
+
+    const reopened = await dms.open(scope(linh), [linh, cy]);
+    expect(reopened.membership.closedAt).toBeNull();
+  });
+
+  it('skips ids that are not a DM the viewer is in', async () => {
+    const others = await dms.open(scope(bao), [bao, cy]);
+    const channel = await channels.create(scope(linh), {
+      name: `close-${run.slice(0, 8)}`,
+      visibility: 'public',
+    });
+
+    await dms.close(scope(linh), [others.id, channel.id, 'missing']);
+
+    expect(
+      (await dms.list(scope(bao))).find((d) => d.id === others.id)?.membership
+        .closedAt
+    ).toBeNull();
+    const own = await prisma.roomMember.findUniqueOrThrow({
+      where: { roomId_userId: { roomId: channel.id, userId: linh } },
+    });
+    expect(own.closedAt).toBeNull();
+  });
+
   it('adds people, rekeys the DM, and then opens to the same DM', async () => {
     const pair = await dms.open(scope(linh), [linh, bao]);
 
