@@ -78,7 +78,7 @@ function composeRefs<T>(...refs: PossibleRef<T>[]): React.RefCallback<T> {
  * Accepts callback refs and RefObject(s)
  */
 function useComposedRefs<T>(...refs: PossibleRef<T>[]): React.RefCallback<T> {
-  // biome-ignore lint/correctness/useExhaustiveDependencies: we want to memoize by all values
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- memoized by every ref passed in
   return React.useCallback(composeRefs(...refs), refs);
 }
 
@@ -941,7 +941,7 @@ function ColorPickerRootImpl(props: ColorPickerRootImplProps) {
       store.setOpen(newOpen);
       onOpenChange?.(newOpen);
     },
-    [store.setOpen, onOpenChange]
+    [store, onOpenChange]
   );
 
   if (inline) {
