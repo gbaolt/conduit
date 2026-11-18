@@ -4,6 +4,7 @@
   "globalEnv": [
     "DATABASE_URL",
     "DATABASE_DIRECT_URL",
+    "TEST_DATABASE_URL",
     "PORT",
     "APP_URL",
     "SERVER_URL",
@@ -26,7 +27,8 @@
     "NEON_REALTIME_SECRET",
     "NODE_ENV",
     "HOST",
-    "PORTLESS_URL"
+    "PORTLESS_URL",
+    "CRON_SECRET"
   ],
   "tasks": {
     "build": {

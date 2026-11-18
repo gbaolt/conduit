@@ -1,6 +1,5 @@
 import { nextJsConfig } from '@conduit/config/eslint/next-js';
-
-import conduit from './eslint-rules/family-prefix.mjs';
+import conduit from '@conduit/config/eslint/plugin';
 
 // Each feature lists the features it may import. Adding an edge here is the
 // review point for a new cross-feature dependency.
@@ -91,6 +90,13 @@ const searchParams = {
     'Read and set search params with nuqs (useQueryState / useQueryStates). See DESIGN.md › Code style.',
 };
 
+const throwingFetch = {
+  selector:
+    'CallExpression[callee.property.name="fetchQuery"]:not(MemberExpression[property.name="catch"] > CallExpression.object)',
+  message:
+    'fetchQuery throws when the API refuses (a 429, a deploy, a 5xx), and a server render that throws loses the whole page. Chain .catch() and render without the data, or load it in the browser with useQuery.',
+};
+
 const restrict = (files, patterns) => ({
   files,
   rules: {
@@ -106,14 +112,19 @@ export default [
     [orpc, authClient]
   ),
   {
-    files: ['src/app/**'],
+    files: ['src/**/*.ts'],
+    ignores: ['src/**/__tests__/**'],
+    rules: { 'no-restricted-syntax': ['error', throwingFetch] },
+  },
+  {
+    files: ['src/app/(dashboard)/**/page.tsx'],
     rules: {
       'no-restricted-properties': [
         'error',
         {
-          property: 'fetchQuery',
+          property: 'prefetchQuery',
           message:
-            'fetchQuery throws when the API refuses, and a route that throws loses the page. Prefetch with prefetchQuery, or load the data in the browser.',
+            'A dashboard page renders on the server on every in-app click, so a prefetch here spends the user’s API rate limit per navigation. Load the data in the browser with useQuery; the layout already prefetches for the first load.',
         },
       ],
     },
@@ -135,6 +146,7 @@ export default [
     rules: {
       'no-restricted-syntax': [
         'error',
+        throwingFetch,
         {
           // A render prop hands the element to a primitive, and a file input has no primitive.
           selector:
