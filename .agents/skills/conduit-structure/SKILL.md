@@ -95,4 +95,5 @@ A feature folder is a domain, not a screen. The domains are `workspace`, `rooms`
 
 Import rules. `apps/client/eslint.config.mjs` enforces the layer, room, and feature boundaries, and each error names its fix. Its `featureDeps` table lists the features each feature may import. Treat a new edge there as a design decision: add it in the same change that needs it, or move the shared code up a level.
 
-- A server component fetches inside a `<Suspense>` boundary, then wraps its children in `HydrateClient`. `app/(dashboard)/(home)/channels/[roomId]/page.tsx` is the reference.
+- Pages load their data in the browser. A dashboard page renders on the server on every in-app click, and each server call spends the user's per-minute API budget. Only a layout prefetches, for the first load, inside a `<Suspense>` boundary wrapped in `HydrateClient`. `app/(dashboard)/(workspace)/layout.tsx` is the reference. Lint rejects a page `prefetchQuery` and an uncaught `fetchQuery`.
+- A query that fails renders its failure state, never its empty state. Check `isError` before you show "no messages" or a channel intro, keep cached data on screen when a refresh fails, and re-throw only `NOT_FOUND` and redirects. `features/rooms/components/room-gate.tsx` is the reference.
