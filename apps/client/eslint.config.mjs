@@ -1,6 +1,5 @@
 import { nextJsConfig } from '@conduit/config/eslint/next-js';
-
-import conduit from './eslint-rules/family-prefix.mjs';
+import conduit from '@conduit/config/eslint/plugin';
 
 // Each feature lists the features it may import. Adding an edge here is the
 // review point for a new cross-feature dependency.

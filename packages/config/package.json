@@ -8,6 +8,7 @@
     "./eslint/next-js": "./eslint/next.js",
     "./eslint/node": "./eslint/node.js",
     "./eslint/react-internal": "./eslint/react-internal.js",
+    "./eslint/plugin": "./eslint/plugin.js",
     "./typescript/base.json": "./typescript/base.json",
     "./typescript/nextjs.json": "./typescript/nextjs.json",
     "./typescript/react-library.json": "./typescript/react-library.json"
