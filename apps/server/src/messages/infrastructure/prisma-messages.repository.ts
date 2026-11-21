@@ -1,4 +1,9 @@
-import type { LinkPreview, Message, ReactionSummary } from '@conduit/contract';
+import type {
+  LinkPreview,
+  Message,
+  MessageFile,
+  ReactionSummary,
+} from '@conduit/contract';
 import { Prisma } from '@generated/prisma/client';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -9,6 +14,8 @@ import type {
   MessageMentions,
   MessagesRepository,
 } from '@/messages/domain/messages.repository';
+
+import { attachFiles } from './attach-files';
 
 type MessageRow = Prisma.MessageGetPayload<object>;
 
@@ -28,6 +35,7 @@ export function toMessage(row: MessageRow): Message {
     replyCount: row.replyCount,
     lastReplyAt: row.lastReplyAt,
     linkPreview: row.linkPreview as LinkPreview | null,
+    files: row.files as MessageFile[],
     pinnedAt: row.pinnedAt,
     pinnedById: row.pinnedById,
     editedAt: row.editedAt,
@@ -223,6 +231,7 @@ export class PrismaMessagesRepository implements MessagesRepository {
     clientId: string;
     body: string;
     mentions: MessageMentions;
+    fileIds?: string[];
     parentId?: string;
     alsoSentToChannel?: boolean;
     items: (message: Message) => NewActivityItem[];
@@ -248,10 +257,23 @@ export class PrismaMessagesRepository implements MessagesRepository {
         },
         skipDuplicates: true,
       });
-      const row = await tx.message.findUniqueOrThrow({ where: key });
+      const inserted = await tx.message.findUniqueOrThrow({ where: key });
       if (count === 0) {
-        return { message: toMessage(row), txid: null };
+        return { message: toMessage(inserted), txid: null };
       }
+      const files = await attachFiles(tx, {
+        fileIds: input.fileIds ?? [],
+        messageId: inserted.id,
+        roomId: input.roomId,
+        authorId: input.authorId,
+      });
+      const row =
+        files.length === 0
+          ? inserted
+          : await tx.message.update({
+              where: { id: inserted.id },
+              data: { files },
+            });
 
       if (!row.parentId || row.alsoSentToChannel) {
         await tx.room.update({
@@ -310,11 +332,17 @@ export class PrismaMessagesRepository implements MessagesRepository {
           mentionsChannel: false,
           mentionsHere: false,
           linkPreview: Prisma.DbNull,
+          files: [],
         },
       });
       if (count === 0) return;
 
       await tx.activityItem.deleteMany({ where: { messageId } });
+      // The cleanup sweep removes the objects. Until then the bytes still count toward the cap.
+      await tx.file.updateMany({
+        where: { messageId, deletedAt: null },
+        data: { deletedAt: new Date() },
+      });
       const { parentId } = await tx.message.findUniqueOrThrow({
         where: { id: messageId },
         select: { parentId: true },

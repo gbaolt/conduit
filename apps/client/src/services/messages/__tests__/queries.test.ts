@@ -32,6 +32,7 @@ function message(overrides: Partial<Message> & { id: string }): Message {
     replyCount: 0,
     lastReplyAt: null,
     linkPreview: null,
+    files: [],
     pinnedAt: null,
     pinnedById: null,
     editedAt: null,

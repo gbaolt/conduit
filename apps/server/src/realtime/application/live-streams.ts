@@ -18,6 +18,7 @@ const MESSAGE_COLUMNS = [
   'replyCount',
   'lastReplyAt',
   'linkPreview',
+  'files',
   'pinnedAt',
   'pinnedById',
   'editedAt',

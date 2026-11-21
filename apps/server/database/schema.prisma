@@ -43,6 +43,7 @@ model User {
   activityActed        ActivityItem[]         @relation("ActivityActor")
   pushSubscriptions    PushSubscription[]
   digestStates         DigestState[]
+  files                File[]
 }
 
 model Session {
@@ -78,6 +79,7 @@ model Organization {
   presences            Presence[]
   notificationSettings NotificationSettings[]
   digestStates         DigestState[]
+  files                File[]
 }
 
 model Member {
@@ -244,6 +246,7 @@ model Room {
   messages                 Message[]
   summaries                Summary[]
   activityItems            ActivityItem[]
+  files                    File[]
 
   @@unique([organizationId, name])
   @@map("Channel")
@@ -309,6 +312,9 @@ model Message {
   replyCount        Int            @default(0)
   lastReplyAt       DateTime?
   linkPreview       Json?
+  /// `MessageFile[]`, copied from the attached `File` rows when the message is sent, so the live stream carries them.
+  files             Json           @default("[]")
+  attachedFiles     File[]
   pinnedAt          DateTime?
   pinnedById        String?
   editedAt          DateTime?
@@ -319,6 +325,43 @@ model Message {
   @@unique([authorId, clientId])
   @@index([roomId, parentId, createdAt, id])
   @@index([roomId, updatedAt])
+}
+
+enum FileStatus {
+  /// The upload URL was handed out and the bytes may not have arrived.
+  PENDING
+  /// Storage holds the object at the promised size.
+  READY
+}
+
+/// App-owned. An uploaded file. Every row that is not deleted counts toward the workspace's storage cap, pending ones included.
+model File {
+  id             String       @id
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  uploaderId     String
+  uploader       User         @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  /// The room it was uploaded to. A message may attach it only in this room.
+  roomId         String       @map("channelId")
+  room           Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  /// Set once a message carries it.
+  messageId      String?
+  message        Message?     @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  name           String
+  contentType    String
+  size           Int
+  /// `files/<organizationId>/<id>/<safe name>`, under a prefix the bucket never serves publicly.
+  key            String       @unique
+  width          Int?
+  height         Int?
+  status         FileStatus   @default(PENDING)
+  createdAt      DateTime     @default(now())
+  /// Set when its message is deleted or the upload is cancelled. The sweep removes the object, then the row.
+  deletedAt      DateTime?
+
+  @@index([organizationId, createdAt, id])
+  @@index([messageId])
+  @@index([status, createdAt])
 }
 
 enum ActivityKind {

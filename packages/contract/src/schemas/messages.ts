@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
-import { MessageBodySchema } from '@/lib/message-body';
+import { MESSAGE_FILES_MAX } from '@/lib/file-limits';
+import { MESSAGE_BODY_MAX, MessageBodySchema } from '@/lib/message-body';
+import { MessageFileSchema } from '@/schemas/files';
 
 /** `Record<emoji, userId[]>`. */
 export const ReactionSummarySchema = z.record(z.string(), z.array(z.string()));
@@ -32,6 +34,8 @@ export const MessageSchema = z.object({
   replyCount: z.number().int(),
   lastReplyAt: z.coerce.date().nullable(),
   linkPreview: LinkPreviewSchema.nullable(),
+  /** Cleared when the message is deleted. */
+  files: z.array(MessageFileSchema).default([]),
   pinnedAt: z.coerce.date().nullable(),
   pinnedById: z.string().nullable(),
   editedAt: z.coerce.date().nullable(),
@@ -58,16 +62,26 @@ export const ListMessagesOutputSchema = z.object({
 });
 export type ListMessagesOutput = z.infer<typeof ListMessagesOutputSchema>;
 
-export const SendMessageInputSchema = z.object({
-  roomId: z.string(),
-  /** Chosen by the client for each new message, so a retry cannot post it twice. */
-  clientId: z.string().min(1).max(64),
-  body: MessageBodySchema,
-  /** A top-level message of the channel to reply to. Omit it for a message in the channel itself. */
-  parentId: z.string().optional(),
-  /** Also shows the reply in the channel's log. Ignored without `parentId`. */
-  alsoSentToChannel: z.boolean().optional(),
-});
+export const SendMessageInputSchema = z
+  .object({
+    roomId: z.string(),
+    /** Chosen by the client for each new message, so a retry cannot post it twice. */
+    clientId: z.string().min(1).max(64),
+    /** May be blank when the message carries files. */
+    body: z
+      .string()
+      .max(MESSAGE_BODY_MAX, `Use ${MESSAGE_BODY_MAX} characters or fewer.`),
+    /** Files uploaded to this room by the sender that no message carries yet. */
+    fileIds: z.array(z.string()).max(MESSAGE_FILES_MAX).optional(),
+    /** A top-level message of the channel to reply to. Omit it for a message in the channel itself. */
+    parentId: z.string().optional(),
+    /** Also shows the reply in the channel's log. Ignored without `parentId`. */
+    alsoSentToChannel: z.boolean().optional(),
+  })
+  .refine(
+    (input) => input.body.trim().length > 0 || (input.fileIds?.length ?? 0) > 0,
+    { message: 'Write a message.', path: ['body'] }
+  );
 
 export const SendMessageOutputSchema = z.object({
   message: MessageSchema,

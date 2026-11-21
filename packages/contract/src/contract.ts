@@ -48,6 +48,11 @@ import {
   markFeedUnreadContract,
   rankFeedContract,
 } from './contracts/feed';
+import {
+  cancelFileContract,
+  completeFileContract,
+  fileUploadUrlContract,
+} from './contracts/files';
 import { healthCheckContract } from './contracts/health';
 import {
   getNotificationSettingsContract,
@@ -224,6 +229,11 @@ export const contract = {
     unpin: unpinMessageContract,
     listPinned: listPinnedMessagesContract,
     removeLinkPreview: removeLinkPreviewContract,
+  },
+  files: {
+    uploadUrl: fileUploadUrlContract,
+    complete: completeFileContract,
+    cancel: cancelFileContract,
   },
   dms: {
     list: listDmsContract,

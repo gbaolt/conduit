@@ -29,6 +29,7 @@ function message(
     replyCount: 0,
     lastReplyAt: null,
     linkPreview: null,
+    files: [],
     pinnedAt: null,
     pinnedById: null,
     editedAt: null,
