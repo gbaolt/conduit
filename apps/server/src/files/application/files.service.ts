@@ -3,9 +3,11 @@ import {
   checkChannel,
   FILE_SIZE_MAX,
   fileKind,
+  FILES_PAGE_DEFAULT,
   fileTooLargeMessage,
   type FileUploadInput,
   type FileUrl,
+  type ListFilesInput,
   type MessageFile,
   storageFullMessage,
   WORKSPACE_STORAGE_MAX,
@@ -122,6 +124,24 @@ export class FilesService {
   }
 
   /** Links for attached files in rooms the viewer can read. Anything else is left out, so a refusal looks like a missing file. */
+  /** The Files page: sent files in rooms the viewer can read. A room they cannot read lists nothing. */
+  async list(viewer: FileViewer, input: ListFilesInput) {
+    const readable = await this.rooms.accessibleRoomIds(viewer);
+    const roomIds = input.roomId
+      ? readable.filter((id) => id === input.roomId)
+      : readable;
+    if (roomIds.length === 0) return { files: [], hasMore: false };
+    return this.files.list({
+      organizationId: viewer.organizationId,
+      roomIds,
+      uploaderId: input.uploaderId,
+      kind: input.kind,
+      name: input.name || undefined,
+      before: input.before,
+      limit: input.limit ?? FILES_PAGE_DEFAULT,
+    });
+  }
+
   async urls(viewer: FileViewer, fileIds: string[]): Promise<FileUrl[]> {
     const [files, readable] = await Promise.all([
       this.files.findMany(fileIds),

@@ -9,6 +9,8 @@ import {
   FileUploadSchema,
   FileUrlSchema,
   FileUrlsInputSchema,
+  ListFilesInputSchema,
+  ListFilesOutputSchema,
   MessageFileSchema,
 } from '@/schemas/files';
 
@@ -76,3 +78,9 @@ export const fileUrlsContract = oc
   .errors({ STORAGE_UNAVAILABLE })
   .input(FileUrlsInputSchema)
   .output(z.array(FileUrlSchema));
+
+/** Sent files in rooms the caller can read, newest first. */
+export const listFilesContract = oc
+  .meta(openapi({ method: 'GET', path: '/files' }))
+  .input(ListFilesInputSchema)
+  .output(ListFilesOutputSchema);

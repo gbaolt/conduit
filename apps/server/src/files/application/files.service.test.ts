@@ -6,6 +6,7 @@ import {
 import { describe, expect, it } from 'vitest';
 
 import type {
+  FileListQuery,
   FilesRepository,
   StoredFile,
 } from '@/files/domain/files.repository';
@@ -59,6 +60,7 @@ function roomFor(member: boolean, overrides: Partial<Room> = {}): Room {
 
 function setup(room: Room | null = roomFor(true), readable = ['c1']) {
   const rows = new Map<string, StoredFile>();
+  const listed: FileListQuery[] = [];
   const files = {
     createPending: async (file, cap) => {
       const used = [...rows.values()]
@@ -87,6 +89,10 @@ function setup(room: Room | null = roomFor(true), readable = ['c1']) {
       rows.set(id, next);
       return next;
     },
+    list: async (query) => {
+      listed.push(query);
+      return { files: [], hasMore: false };
+    },
     cancel: async (id) => {
       const row = rows.get(id)!;
       if (!row.messageId) rows.set(id, { ...row, deletedAt: new Date() });
@@ -97,7 +103,12 @@ function setup(room: Room | null = roomFor(true), readable = ['c1']) {
     accessibleRoomIds: async () => readable,
   } as Partial<RoomsRepository> as RoomsRepository;
   const { storage, objects } = createFakeStorage();
-  return { service: new FilesService(files, rooms, storage), rows, objects };
+  return {
+    service: new FilesService(files, rooms, storage),
+    rows,
+    objects,
+    listed,
+  };
 }
 
 const upload = {
@@ -313,6 +324,31 @@ describe('FilesService', () => {
           'missing',
         ])
       ).toEqual([]);
+    });
+  });
+
+  describe('list', () => {
+    it('lists only the rooms the viewer can read, and narrows to one of them', async () => {
+      const { service, listed } = setup(roomFor(true), ['c1', 'c2']);
+
+      await service.list(other, {});
+      await service.list(other, { roomId: 'c2', name: '' });
+
+      expect(listed.map((query) => query.roomIds)).toEqual([
+        ['c1', 'c2'],
+        ['c2'],
+      ]);
+      expect(listed[1]!.name).toBeUndefined();
+    });
+
+    it('lists nothing for a room the viewer cannot read, without asking the repository', async () => {
+      const { service, listed } = setup(roomFor(true), ['c1']);
+
+      expect(await service.list(other, { roomId: 'secret' })).toEqual({
+        files: [],
+        hasMore: false,
+      });
+      expect(listed).toEqual([]);
     });
   });
 });

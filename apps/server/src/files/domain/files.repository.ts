@@ -1,4 +1,4 @@
-import type { MessageFile } from '@conduit/contract';
+import type { FileKind, ListFilesOutput, MessageFile } from '@conduit/contract';
 
 /** A file row as the app sees it. */
 export type StoredFile = MessageFile & {
@@ -24,6 +24,17 @@ export type NewFile = Pick<
   | 'key'
 >;
 
+/** What `list` narrows to. `roomIds` are the rooms the viewer can read, so no other room's file is listed. */
+export type FileListQuery = {
+  organizationId: string;
+  roomIds: string[];
+  uploaderId?: string;
+  kind?: FileKind;
+  name?: string;
+  before?: string;
+  limit: number;
+};
+
 /** Uploaded files. Callers check room access first; this port knows only rows. */
 export abstract class FilesRepository {
   /**
@@ -48,4 +59,7 @@ export abstract class FilesRepository {
 
   /** Marks a file no message carries as deleted. Does nothing to an attached file. */
   abstract cancel(fileId: string): Promise<void>;
+
+  /** Sent, unremoved files in `roomIds`, newest first. An unknown `before` lists nothing. */
+  abstract list(query: FileListQuery): Promise<ListFilesOutput>;
 }

@@ -53,6 +53,7 @@ import {
   completeFileContract,
   fileUploadUrlContract,
   fileUrlsContract,
+  listFilesContract,
 } from './contracts/files';
 import { healthCheckContract } from './contracts/health';
 import {
@@ -236,6 +237,7 @@ export const contract = {
     complete: completeFileContract,
     cancel: cancelFileContract,
     urls: fileUrlsContract,
+    list: listFilesContract,
   },
   dms: {
     list: listDmsContract,

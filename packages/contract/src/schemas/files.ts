@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
+import { FILE_KINDS } from '@/lib/file-kind';
 import { MESSAGE_FILES_MAX } from '@/lib/file-limits';
+import { RoomKindSchema } from '@/schemas/rooms';
 
 /** What a message carries about each attached file. It never changes once the message is sent. */
 export const MessageFileSchema = z.object({
@@ -54,3 +56,48 @@ export const FileUrlSchema = z.object({
   downloadUrl: z.string(),
 });
 export type FileUrl = z.infer<typeof FileUrlSchema>;
+
+export const FileKindSchema = z.enum(FILE_KINDS);
+
+export const FILES_PAGE_DEFAULT = 50;
+export const FILES_PAGE_MAX = 100;
+export const FILE_SEARCH_MAX = 100;
+
+export const ListFilesInputSchema = z.object({
+  roomId: z.string().optional(),
+  uploaderId: z.string().optional(),
+  kind: FileKindSchema.optional(),
+  /** Part of the file name, ignoring case. */
+  name: z.string().trim().max(FILE_SEARCH_MAX).optional(),
+  /** The oldest file already loaded. The page ends just before it. */
+  before: z.string().optional(),
+  limit: z.number().int().min(1).max(FILES_PAGE_MAX).optional(),
+});
+export type ListFilesInput = z.infer<typeof ListFilesInputSchema>;
+
+/** A sent file on the Files page, with where it was shared and by whom. */
+export const ListedFileSchema = MessageFileSchema.extend({
+  messageId: z.string(),
+  /** The thread the message replies in, so a link can open it there. */
+  parentId: z.string().nullable(),
+  room: z.object({
+    id: z.string(),
+    /** Empty for a DM. */
+    name: z.string(),
+    kind: RoomKindSchema,
+  }),
+  uploader: z.object({
+    id: z.string(),
+    name: z.string(),
+    image: z.string().nullable(),
+  }),
+  createdAt: z.coerce.date(),
+});
+export type ListedFile = z.infer<typeof ListedFileSchema>;
+
+export const ListFilesOutputSchema = z.object({
+  /** Newest first. */
+  files: z.array(ListedFileSchema),
+  hasMore: z.boolean(),
+});
+export type ListFilesOutput = z.infer<typeof ListFilesOutputSchema>;
