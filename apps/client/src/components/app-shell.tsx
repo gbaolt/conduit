@@ -45,7 +45,7 @@ const railItems: {
     icon: IconBell,
     badge: <FeedUnreadBadge />,
   },
-  { href: '#', label: 'Files', icon: IconFolder },
+  { href: '/files', label: 'Files', icon: IconFolder },
   { href: '#', label: 'More', icon: IconDots },
 ];
 

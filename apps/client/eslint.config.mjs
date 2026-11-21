@@ -14,6 +14,7 @@ const featureDeps = {
   feed: ['rooms', 'messages'],
   threads: ['rooms', 'messages'],
   directoris: ['workspace', 'channels'],
+  files: ['rooms', 'messages'],
 };
 
 const services = [

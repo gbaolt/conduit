@@ -200,7 +200,7 @@ Teams share files in chat and need to find old answers. Ask Conduit answers from
 | M3.1  | Upload by dragging, pasting, or picking a file. The browser uploads straight to S3.    | Shipped     |     |
 | M3.2  | Attach files to messages                                                               | Shipped     |     |
 | M3.3  | Preview images, video, and PDFs inside the message                                     | Shipped     |     |
-| M3.4  | A **Files** page with every file you can access, filtered by channel, person, and type | Not started |     |
+| M3.4  | A **Files** page with every file you can access, filtered by channel, person, and type | Shipped     |     |
 | M3.5  | Cap each file at 50 MB                                                                 | Shipped     |     |
 | M3.6  | Cap each workspace at 10 GB, and stop uploads at the cap with a message that says why  | Shipped     |     |
 | M3.7  | Search messages, files, channels, and people                                           | Not started |     |
