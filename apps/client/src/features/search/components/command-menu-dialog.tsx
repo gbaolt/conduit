@@ -82,11 +82,7 @@ function CommandMenuDialogRoom({
 }) {
   const Glyph = GLYPHS[room.kind];
   return (
-    <CommandItem
-      value={room.id}
-      onSelect={() => onSelect(room)}
-      className="h-9 py-0"
-    >
+    <CommandItem value={room.id} onSelect={() => onSelect(room)}>
       <Glyph className="text-muted-foreground" />
       <span className="truncate">{room.label}</span>
       {room.unread && (
@@ -135,11 +131,11 @@ function CommandMenuDialogFooter({
   action?: string;
 }) {
   return (
-    <div className="flex h-10 shrink-0 items-center gap-2 px-3 text-xs">
+    <div className="-mb-1 flex h-10 shrink-0 items-center gap-2 px-3 text-xs font-medium">
       <span className="text-muted-foreground min-w-0 flex-1 truncate">
         {detail}
       </span>
-      <div className="flex shrink-0 items-center gap-2 font-medium max-sm:hidden">
+      <div className="flex shrink-0 items-center gap-2 max-sm:hidden">
         {action && (
           <>
             <span>{action}</span>
@@ -213,15 +209,14 @@ export function CommandMenuDialog() {
           const room = byId.get(value);
           return room ? commandMenuScore(room, search) : 0;
         }}
-        className="bg-accent/50 dark:bg-popover p-0 **:[[cmdk-group-heading]]:font-medium"
       >
         <CommandInput
           value={query}
           onValueChange={setQuery}
           placeholder="Search or jump to…"
         />
-        <div className="bg-background ring-border mx-1 mt-1 rounded-lg ring-1">
-          <CommandList className="dark:bg-background/50 h-80 max-h-none rounded-lg p-1">
+        <div className="bg-background ring-border mx-1 rounded-md ring-1">
+          <CommandList className="dark:bg-background/50 min-h-80 rounded-lg">
             <CommandEmpty>
               <Empty className="h-full gap-2">
                 <EmptyMedia variant="icon">
@@ -247,7 +242,6 @@ export function CommandMenuDialog() {
                       `/search?q=${encodeURIComponent(query.trim())}` as Route
                     );
                   }}
-                  className="h-9 py-0"
                 >
                   <IconSearch className="text-muted-foreground" />
                   <span className="truncate">Search for “{query.trim()}”</span>
