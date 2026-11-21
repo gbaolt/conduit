@@ -101,7 +101,7 @@ Each milestone ships its core features first, then the AI feature that depends o
 | [M0](#m0-workspace-admin)                  | Invitations, member management, settings | None                        | Shipped     |
 | [M1](#m1-messaging)                        | Messages, threads, DMs, realtime         | Summaries                   | Shipped     |
 | [M2](#m2-activity-and-notifications)       | Activity feed, notifications             | Smart Activity, Catch me up | Shipped     |
-| [M3](#m3-files-and-search)                 | Files, search, quick switcher            | Ask Conduit                 | In progress |
+| [M3](#m3-files-and-search)                 | Files, search, command menu              | Ask Conduit                 | In progress |
 | [M4](#m4-canvas)                           | Canvas                                   | Thread to canvas            | Not started |
 | [M5](#m5-kanban)                           | Kanban boards                            | Actions and decisions       | Not started |
 | [M6](#m6-workflows)                        | Workflows                                | Plain-English workflows     | Not started |
@@ -206,7 +206,7 @@ Teams share files in chat and need to find old answers. Ask Conduit answers from
 | M3.6  | Cap each workspace at 10 GB, and stop uploads at the cap with a message that says why  | Shipped     |     |
 | M3.7  | Search messages, files, channels, and people                                           | Shipped     |     |
 | M3.8  | Search filters: `in:`, `from:`, `has:file`, `before:`, and `after:`                    | Shipped     |     |
-| M3.9  | A `Ctrl+K` quick switcher to jump to any channel or DM                                 | Shipped     |     |
+| M3.9  | A `Ctrl+K` command menu to jump to any channel or DM                                   | Shipped     |     |
 | M3.10 | Show only results the member can access                                                | Shipped     |     |
 | M3.11 | AI: Ask Conduit answers questions and cites each source                                | Not started |     |
 

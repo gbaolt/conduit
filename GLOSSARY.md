@@ -116,9 +116,9 @@ _Avoid_: Attachment (in UI copy), upload (as a noun), document
 The 10 GB a workspace's files may take up in total, counting uploads still in progress. An upload that would pass it is refused before it starts.
 _Avoid_: Quota, storage limit, plan limit
 
-**Quick switcher**:
+**Command menu**:
 The dialog that `Ctrl+K` (`⌘K` on a Mac), or the Search Conduit bar at the top of the app, opens from anywhere. Typing part of a name jumps to a channel or a DM, and its last row hands the words to Search.
-_Avoid_: Command palette, jump bar, search (search finds messages and files)
+_Avoid_: Quick switcher, command palette, jump bar
 
 **Search**:
 The page that finds messages, files, channels, and people by words and by filters such as `in:#design`, `from:@linh`, `has:file`, `before:`, and `after:`. It shows only what the Member can already read.

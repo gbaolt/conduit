@@ -5,8 +5,8 @@ import type { Route } from 'next';
 import { isUnread } from '@/services/activity/queries';
 import { dmTitle } from '@/services/dms/dm-title';
 
-/** One conversation the quick switcher can open. */
-export type SwitcherRoom = {
+/** One conversation the command menu can open. */
+export type CommandMenuRoom = {
   id: string;
   kind: 'channel' | 'private' | 'dm';
   label: string;
@@ -25,7 +25,7 @@ const STARRED_BONUS = 0.001;
 const time = (date: Date | null | undefined) => date?.getTime() ?? 0;
 
 /** The viewer's channels and DMs, plus public channels they haven't joined. */
-export function switcherRooms({
+export function commandMenuRooms({
   channels,
   dms,
   entries,
@@ -35,7 +35,7 @@ export function switcherRooms({
   dms: readonly Dm[];
   entries: readonly SidebarEntry[];
   viewerId: string;
-}): SwitcherRoom[] {
+}): CommandMenuRoom[] {
   const entryOf = new Map(entries.map((entry) => [entry.roomId, entry]));
   const state = (id: string) => {
     const entry = entryOf.get(id);
@@ -46,7 +46,7 @@ export function switcherRooms({
     };
   };
 
-  const rooms: SwitcherRoom[] = channels
+  const rooms: CommandMenuRoom[] = channels
     .filter(
       (channel) =>
         !channel.archivedAt &&
@@ -80,7 +80,7 @@ export function switcherRooms({
 }
 
 /** What an empty query shows: the conversations read most recently, the other unread ones newest first, then the rest. */
-export function emptyQueryRooms(rooms: readonly SwitcherRoom[]) {
+export function emptyQueryRooms(rooms: readonly CommandMenuRoom[]) {
   const recent = [...rooms]
     .filter((room) => room.lastReadAt > 0)
     .sort((a, b) => b.lastReadAt - a.lastReadAt)
@@ -95,7 +95,7 @@ export function emptyQueryRooms(rooms: readonly SwitcherRoom[]) {
 }
 
 /** cmdk's fuzzy score for a typed query, with starred conversations breaking ties. */
-export function switcherScore(room: SwitcherRoom, search: string) {
+export function commandMenuScore(room: CommandMenuRoom, search: string) {
   const score = defaultFilter(room.label, search);
   return score > 0 && room.starred ? score + STARRED_BONUS : score;
 }
