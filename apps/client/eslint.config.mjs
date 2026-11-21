@@ -22,6 +22,7 @@ const services = [
   'channels',
   'dms',
   'feed',
+  'files',
   'messages',
   'notifications',
   'rooms',

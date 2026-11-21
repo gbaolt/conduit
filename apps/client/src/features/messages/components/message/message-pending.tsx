@@ -14,6 +14,7 @@ import {
   MessageContent,
   MessageHeader,
 } from './message';
+import { MessageFileCard } from './message-files';
 import { MessageMarkdown } from './message-markdown';
 
 const SENDING_LABEL_MS = 3000;
@@ -61,6 +62,15 @@ export function MessagePending({
           updatedAt={pending.createdAt}
           body={pending.body}
         />
+        {pending.files.length > 0 && (
+          <ul aria-label="Files" className="mt-1 flex flex-col gap-1.5">
+            {pending.files.map((file) => (
+              <li key={file.id}>
+                <MessageFileCard file={file} />
+              </li>
+            ))}
+          </ul>
+        )}
         {failed && (
           <p className="flex gap-1">
             <Button variant="link" size="xs" onClick={onRetry}>

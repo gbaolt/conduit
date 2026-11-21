@@ -122,6 +122,7 @@ describe('buildLog', () => {
       parentId: null,
       alsoSentToChannel: false,
       body: clientId,
+      files: [],
       createdAt: at(7, 9, 2),
       status: 'sending',
     });
