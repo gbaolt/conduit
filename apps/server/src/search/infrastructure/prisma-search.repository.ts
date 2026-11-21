@@ -70,6 +70,7 @@ const toMessage = (row: MessageRow): MessageHit => ({
   room: toRoom(row.room),
   author: row.author,
   createdAt: row.createdAt,
+  updatedAt: row.updatedAt,
 });
 
 const toFile = (row: FileRow): ListedFile[] =>

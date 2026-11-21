@@ -120,6 +120,10 @@ _Avoid_: Quota, storage limit, plan limit
 The dialog `Ctrl+K` (`⌘K` on a Mac) opens from anywhere to jump to a channel or a DM by typing part of its name.
 _Avoid_: Command palette, jump bar, search (search finds messages and files)
 
+**Search**:
+The page that finds messages, files, channels, and people by words and by filters such as `in:#design`, `from:@linh`, `has:file`, `before:`, and `after:`. It shows only what the Member can already read.
+_Avoid_: Find, lookup, query (in UI copy)
+
 ### Work
 
 **Canvas**:

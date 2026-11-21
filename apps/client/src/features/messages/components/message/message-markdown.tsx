@@ -1,13 +1,14 @@
 import { Twemoji } from '@conduit/ui/components/twemoji';
 import { usePathname } from 'next/navigation';
 import { parseAsString, useQueryStates } from 'nuqs';
-import { type ComponentProps, memo, use } from 'react';
+import { type ComponentProps, memo, use, useMemo } from 'react';
 import type { Components } from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 
 import { dom, Markdown, MarkdownLink } from '@/components/markdown';
 
 import { MentionViewer, useMentionName } from '../../context/mention-names';
+import { remarkHighlight } from '../../lib/remark-highlight';
 import { remarkMentions } from '../../lib/remark-mentions';
 import { remarkTwemoji } from '../../lib/remark-twemoji';
 import { MentionCard } from '../mention-card';
@@ -86,20 +87,36 @@ const components: Components = {
   },
 };
 
-type MessageMarkdownProps = { id: string; updatedAt: Date; body: string };
+type MessageMarkdownProps = {
+  id: string;
+  updatedAt: Date;
+  body: string;
+  /** Search terms to mark in the text. */
+  highlight?: readonly string[];
+};
 
 /** Renders in the browser, because live messages arrive there. Re-renders only when the message changes. */
 export const MessageMarkdown = memo(
-  function MessageMarkdown({ body }: MessageMarkdownProps) {
+  function MessageMarkdown({ body, highlight }: MessageMarkdownProps) {
+    const key = JSON.stringify(highlight ?? []);
+    const plugins = useMemo(() => {
+      const terms: string[] = JSON.parse(key);
+      return terms.length > 0
+        ? [...remarkPlugins, remarkHighlight(terms)]
+        : remarkPlugins;
+    }, [key]);
     return (
       <Markdown
         className="typeset-chat max-w-[72ch]"
-        remarkPlugins={remarkPlugins}
+        remarkPlugins={plugins}
         components={components}
       >
         {body}
       </Markdown>
     );
   },
-  (a, b) => a.id === b.id && a.updatedAt.getTime() === b.updatedAt.getTime()
+  (a, b) =>
+    a.id === b.id &&
+    a.updatedAt.getTime() === b.updatedAt.getTime() &&
+    JSON.stringify(a.highlight ?? []) === JSON.stringify(b.highlight ?? [])
 );

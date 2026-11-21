@@ -35,7 +35,7 @@ import {
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useQueryStates } from 'nuqs';
-import { useMemo, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 
 import { FileKindIcon } from '@/components/file-kind-icon';
 import { FileViewer } from '@/components/file-viewer';
@@ -311,12 +311,6 @@ export function FilesList() {
     () => data?.pages.flatMap((page) => page.files) ?? [],
     [data]
   );
-  const [viewing, setViewing] = useState<ListedFile | null>(null);
-  const { data: urls } = useQuery({
-    ...fileUrlsQuery(viewing ? [viewing.id] : []),
-    enabled: viewing !== null,
-  });
-
   if (isPending) return <FilesListSkeleton />;
   if (isError) {
     return (
@@ -350,10 +344,43 @@ export function FilesList() {
   }
 
   return (
+    <FilesTable files={files} busy={isPlaceholderData}>
+      {hasNextPage && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-3"
+          disabled={isFetchingNextPage}
+          onClick={() => void fetchNextPage()}
+        >
+          Load older
+        </Button>
+      )}
+    </FilesTable>
+  );
+}
+
+/** Files as the Files page shows them, each name opening the viewer. `children` sit under the table. */
+export function FilesTable({
+  files,
+  busy = false,
+  children,
+}: {
+  files: ListedFile[];
+  busy?: boolean;
+  children?: ReactNode;
+}) {
+  const [viewing, setViewing] = useState<ListedFile | null>(null);
+  const { data: urls } = useQuery({
+    ...fileUrlsQuery(viewing ? [viewing.id] : []),
+    enabled: viewing !== null,
+  });
+
+  return (
     <div className="px-2 sm:px-4">
       <Table
-        aria-busy={isPlaceholderData}
-        className={cn('transition-opacity', isPlaceholderData && 'opacity-60')}
+        aria-busy={busy}
+        className={cn('transition-opacity', busy && 'opacity-60')}
       >
         <caption className="sr-only">Files</caption>
         <FilesTableHeader />
@@ -367,17 +394,7 @@ export function FilesList() {
           ))}
         </TableBody>
       </Table>
-      {hasNextPage && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-3"
-          disabled={isFetchingNextPage}
-          onClick={() => void fetchNextPage()}
-        >
-          Load older
-        </Button>
-      )}
+      {children}
       <FileViewer
         file={viewing}
         url={viewing ? urls?.get(viewing.id) : undefined}

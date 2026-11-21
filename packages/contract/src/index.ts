@@ -23,6 +23,7 @@ export * from './lib/dm-open';
 export * from './lib/feed-ranking';
 export * from './lib/file-kind';
 export * from './lib/file-limits';
+export * from './lib/highlight-terms';
 export * from './lib/message-body';
 export * from './lib/names';
 export * from './lib/notification-policy';

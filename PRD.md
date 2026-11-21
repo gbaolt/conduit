@@ -204,10 +204,10 @@ Teams share files in chat and need to find old answers. Ask Conduit answers from
 | M3.4  | A **Files** page with every file you can access, filtered by channel, person, and type | Shipped     |     |
 | M3.5  | Cap each file at 50 MB                                                                 | Shipped     |     |
 | M3.6  | Cap each workspace at 10 GB, and stop uploads at the cap with a message that says why  | Shipped     |     |
-| M3.7  | Search messages, files, channels, and people                                           | Not started |     |
-| M3.8  | Search filters: `in:`, `from:`, `has:file`, `before:`, and `after:`                    | Not started |     |
+| M3.7  | Search messages, files, channels, and people                                           | Shipped     |     |
+| M3.8  | Search filters: `in:`, `from:`, `has:file`, `before:`, and `after:`                    | Shipped     |     |
 | M3.9  | A `Ctrl+K` quick switcher to jump to any channel or DM                                 | Shipped     |     |
-| M3.10 | Show only results the member can access                                                | Not started |     |
+| M3.10 | Show only results the member can access                                                | Shipped     |     |
 | M3.11 | AI: Ask Conduit answers questions and cites each source                                | Not started |     |
 
 **Exit check.** A member uploads a PDF to a private channel. A member outside that channel can't find it in search or on the **Files** page, and Ask Conduit doesn't use it in their answers.

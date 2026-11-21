@@ -17,6 +17,7 @@ import {
   IconSearch,
 } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
+import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -67,6 +68,9 @@ function SwitcherRow({
 }
 
 const FOCUS_WAIT_MS = 3000;
+const SEARCH_ROW = 'search';
+// Below any room that matches, so the search row always comes last.
+const SEARCH_ROW_SCORE = 1e-6;
 
 /** Focuses the conversation's composer once its route has rendered it, or gives up. */
 function focusComposer(roomId: string) {
@@ -128,7 +132,10 @@ export function RoomSwitcher() {
   };
 
   const { recent, unread, rest } = emptyQueryRooms(rooms);
-  const detail = byId.get(highlighted)?.detail;
+  const detail =
+    highlighted === SEARCH_ROW
+      ? 'Search messages, files, channels, and people'
+      : byId.get(highlighted)?.detail;
 
   return (
     <>
@@ -158,6 +165,7 @@ export function RoomSwitcher() {
           value={highlighted}
           onValueChange={setHighlighted}
           filter={(value, search) => {
+            if (value === SEARCH_ROW) return SEARCH_ROW_SCORE;
             const room = byId.get(value);
             return room ? switcherScore(room, search) : 0;
           }}
@@ -170,9 +178,24 @@ export function RoomSwitcher() {
           <CommandList>
             <CommandEmpty>No conversations match.</CommandEmpty>
             {query ? (
-              rooms.map((room) => (
-                <SwitcherRow key={room.id} room={room} onSelect={select} />
-              ))
+              <>
+                {rooms.map((room) => (
+                  <SwitcherRow key={room.id} room={room} onSelect={select} />
+                ))}
+                <CommandItem
+                  value={SEARCH_ROW}
+                  onSelect={() => {
+                    setOpen(false);
+                    router.push(
+                      `/search?q=${encodeURIComponent(query.trim())}` as Route
+                    );
+                  }}
+                  className="h-8 py-0"
+                >
+                  <IconSearch />
+                  <span className="truncate">Search for “{query.trim()}”</span>
+                </CommandItem>
+              </>
             ) : (
               <>
                 {recent.length > 0 && (

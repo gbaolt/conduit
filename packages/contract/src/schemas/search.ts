@@ -36,6 +36,7 @@ export const MessageHitSchema = z.object({
   room: SearchRoomSchema,
   author: SearchPersonSchema,
   createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
 });
 export type MessageHit = z.infer<typeof MessageHitSchema>;
 
