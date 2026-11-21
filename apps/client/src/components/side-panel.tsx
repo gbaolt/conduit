@@ -45,7 +45,7 @@ export function SidePanelLayout({ children }: { children: ReactNode }) {
 
   return (
     <DockContext value={dock}>
-      <ResizablePanelGroup className="min-h-0 min-w-0 flex-1 overflow-hidden py-2 pe-2">
+      <ResizablePanelGroup className="min-h-0 min-w-0 flex-1 overflow-hidden pe-2 pb-2">
         <ResizablePanel
           id="main"
           minSize="60%"

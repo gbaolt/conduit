@@ -117,7 +117,7 @@ The 10 GB a workspace's files may take up in total, counting uploads still in pr
 _Avoid_: Quota, storage limit, plan limit
 
 **Quick switcher**:
-The dialog `Ctrl+K` (`⌘K` on a Mac) opens from anywhere to jump to a channel or a DM by typing part of its name.
+The dialog that `Ctrl+K` (`⌘K` on a Mac), or the Search Conduit bar at the top of the app, opens from anywhere. Typing part of a name jumps to a channel or a DM, and its last row hands the words to Search.
 _Avoid_: Command palette, jump bar, search (search finds messages and files)
 
 **Search**:

@@ -140,14 +140,12 @@ export function RoomSwitcher() {
   return (
     <>
       <Button
-        variant="ghost"
+        variant="outline"
         onClick={() => setOpen(true)}
-        className="group/rail text-muted-foreground h-auto flex-col gap-1 p-0 text-[10px] font-normal hover:bg-transparent!"
+        className="text-muted-foreground bg-background/60 dark:bg-input/20 h-8 w-full justify-start gap-2 rounded-lg px-3 font-normal"
       >
-        <span className="group-hover/rail:bg-sidebar-accent flex size-8 items-center justify-center rounded-md">
-          <IconSearch className="size-4" />
-        </span>
-        Search
+        <IconSearch data-icon="inline-start" />
+        <span className="truncate">Search Conduit</span>
       </Button>
       <CommandDialog
         open={open}
@@ -158,8 +156,8 @@ export function RoomSwitcher() {
           if (opening.current) focusComposer(opening.current);
           opening.current = null;
         }}
-        title="Jump to a conversation"
-        description="Type a channel or a person's name."
+        title="Search Conduit"
+        description="Jump to a channel or DM, or search messages and files."
       >
         <Command
           value={highlighted}
@@ -173,7 +171,7 @@ export function RoomSwitcher() {
           <CommandInput
             value={query}
             onValueChange={setQuery}
-            placeholder="Jump to…"
+            placeholder="Search or jump to…"
           />
           <CommandList>
             <CommandEmpty>No conversations match.</CommandEmpty>
