@@ -26,6 +26,7 @@ export * from './lib/message-body';
 export * from './lib/names';
 export * from './lib/notification-policy';
 export * from './lib/reactions';
+export * from './lib/search-query';
 export * from './lib/summary-sources';
 export * from './lib/workspace-policy';
 export * from './schemas/activity';
