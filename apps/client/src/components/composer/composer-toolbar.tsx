@@ -269,7 +269,7 @@ export function ComposerFormattingBar({
       <Divider />
       <ToolbarButton
         label="Link"
-        shortcut="Ctrl+K"
+        shortcut="Ctrl+Shift+U"
         pressed={active.link}
         onClick={toggleLink}
       >

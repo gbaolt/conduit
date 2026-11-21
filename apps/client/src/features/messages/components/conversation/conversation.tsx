@@ -342,6 +342,7 @@ export function Conversation({
 
             <div
               ref={composerRef}
+              data-room-composer={parentId ? undefined : roomId}
               className="absolute inset-x-0 bottom-0 z-20 px-4"
             >
               {history.isRefetchError && (

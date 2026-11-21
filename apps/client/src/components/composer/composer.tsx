@@ -307,7 +307,7 @@ function ComposerBehavior({
         KEY_MODIFIER_COMMAND,
         (event) => {
           const key = event.key.toLowerCase();
-          if (key === 'k' && !event.shiftKey) {
+          if (key === 'u' && event.shiftKey) {
             event.preventDefault();
             setIsLinkEditMode(true);
             return editor.dispatchCommand(

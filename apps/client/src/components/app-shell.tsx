@@ -22,6 +22,7 @@ import { SidePanelLayout } from '@/components/side-panel';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { DmUnreadBadge } from '@/features/dms/components/dm-unread-badge';
 import { FeedUnreadBadge } from '@/features/feed/components/feed-unread-badge';
+import { RoomSwitcher } from '@/features/rooms/components/room-switcher';
 import { WorkspaceActivity } from '@/features/workspace/components/workspace-activity';
 import { WorkspaceSwitcher } from '@/features/workspace/components/workspace-switcher';
 import { WorkspaceProvider } from '@/features/workspace/context/workspace-provider';
@@ -61,7 +62,7 @@ export function AppShellSkeleton() {
           <Skeleton className="size-9 rounded-lg" />
         </div>
         <div className="flex flex-1 flex-col items-center gap-2.5">
-          {railItems.map(({ label }) => (
+          {[...railItems.map(({ label }) => label), 'Search'].map((label) => (
             <div key={label} className="flex flex-col items-center gap-1.5">
               <Skeleton className="size-8.5 rounded-md" />
               <Skeleton className="h-3 text-[10px] text-transparent">
@@ -113,6 +114,7 @@ export function AppShell({
                 icon={<Icon className="size-4" />}
               />
             ))}
+            <RoomSwitcher />
           </SidebarContent>
           <SidebarFooter className="mt-auto items-center gap-3 pt-2 pb-4">
             <ThemeToggle />

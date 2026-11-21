@@ -206,7 +206,7 @@ Teams share files in chat and need to find old answers. Ask Conduit answers from
 | M3.6  | Cap each workspace at 10 GB, and stop uploads at the cap with a message that says why  | Shipped     |     |
 | M3.7  | Search messages, files, channels, and people                                           | Not started |     |
 | M3.8  | Search filters: `in:`, `from:`, `has:file`, `before:`, and `after:`                    | Not started |     |
-| M3.9  | A `Ctrl+K` quick switcher to jump to any channel or DM                                 | Not started |     |
+| M3.9  | A `Ctrl+K` quick switcher to jump to any channel or DM                                 | Shipped     |     |
 | M3.10 | Show only results the member can access                                                | Not started |     |
 | M3.11 | AI: Ask Conduit answers questions and cites each source                                | Not started |     |
 

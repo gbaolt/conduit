@@ -108,6 +108,18 @@ _Avoid_: Offline, idle
 The line labelled "New" above the first message a Member has not read, shown when they open a conversation and kept until they leave it. A conversation with messages the Member has not read is also bold in the sidebar.
 _Avoid_: Unread badge (a badge is a count, and plain unread has none), read receipt (nobody else sees where a Member stopped)
 
+**File**:
+Anything a Member attaches to a message: an image, a video, a PDF, or any other upload up to 50 MB. It belongs to the message, so deleting the message deletes its files, and the Files page lists every file in a room the Member can read.
+_Avoid_: Attachment (in UI copy), upload (as a noun), document
+
+**Storage cap**:
+The 10 GB a workspace's files may take up in total, counting uploads still in progress. An upload that would pass it is refused before it starts.
+_Avoid_: Quota, storage limit, plan limit
+
+**Quick switcher**:
+The dialog `Ctrl+K` (`⌘K` on a Mac) opens from anywhere to jump to a channel or a DM by typing part of its name.
+_Avoid_: Command palette, jump bar, search (search finds messages and files)
+
 ### Work
 
 **Canvas**:
