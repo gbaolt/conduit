@@ -13,6 +13,7 @@ import {
   type MessageViewer,
 } from '@/messages/application/messages.service';
 import { PushNotificationsService } from '@/notifications/application/push-notifications.service';
+import { SearchSyncService } from '@/search/application/search-sync.service';
 
 function viewerOf(context: {
   user: { id: string };
@@ -33,7 +34,8 @@ export class MessagesController {
     @Inject(LinkPreviewsService)
     private readonly linkPreviews: LinkPreviewsService,
     @Inject(PushNotificationsService)
-    private readonly notifications: PushNotificationsService
+    private readonly notifications: PushNotificationsService,
+    @Inject(SearchSyncService) private readonly searchSync: SearchSyncService
   ) {}
 
   @Implement(contract.messages.list)
@@ -81,6 +83,7 @@ export class MessagesController {
         if (sent.txid) {
           waitUntil(this.linkPreviews.attach(sent.message));
           waitUntil(this.notifications.dispatchMessage(sent.message));
+          waitUntil(this.searchSync.drainQuietly(context.organizationId));
         }
         return sent;
       });
@@ -92,13 +95,15 @@ export class MessagesController {
       .use(authorized)
       .use(arcjet.write)
       .use(workspaceMember)
-      .handler(({ context, input }) =>
-        this.messagesService.edit(
+      .handler(async ({ context, input }) => {
+        const edited = await this.messagesService.edit(
           viewerOf(context),
           input.messageId,
           input.body
-        )
-      );
+        );
+        waitUntil(this.searchSync.drainQuietly(context.organizationId));
+        return edited;
+      });
   }
 
   @Implement(contract.messages.delete)
@@ -107,9 +112,14 @@ export class MessagesController {
       .use(authorized)
       .use(arcjet.write)
       .use(workspaceMember)
-      .handler(({ context, input }) =>
-        this.messagesService.delete(viewerOf(context), input.messageId)
-      );
+      .handler(async ({ context, input }) => {
+        const deleted = await this.messagesService.delete(
+          viewerOf(context),
+          input.messageId
+        );
+        waitUntil(this.searchSync.drainQuietly(context.organizationId));
+        return deleted;
+      });
   }
 
   @Implement(contract.messages.react)

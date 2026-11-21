@@ -25,4 +25,7 @@ export abstract class ObjectStorage {
 
   /** Removes each object. A key with nothing stored is not an error. */
   abstract delete(keys: string[]): Promise<void>;
+
+  /** The stored bytes. Throws when nothing is stored at `key`. */
+  abstract read(key: string): Promise<Uint8Array>;
 }

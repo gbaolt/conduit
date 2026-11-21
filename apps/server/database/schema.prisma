@@ -80,6 +80,7 @@ model Organization {
   notificationSettings NotificationSettings[]
   digestStates         DigestState[]
   files                File[]
+  searchSyncs          SearchSync[]
 }
 
 model Member {
@@ -358,6 +359,8 @@ model File {
   createdAt      DateTime     @default(now())
   /// Set when its message is deleted or the upload is cancelled. The sweep removes the object, then the row.
   deletedAt      DateTime?
+  /// How many chunks the search index holds for it, so a shorter re-extraction deletes the rest.
+  indexedChunks  Int          @default(0)
 
   @@index([organizationId, createdAt, id])
   @@index([messageId])
@@ -540,4 +543,26 @@ model PushSubscription {
   lastSuccessAt DateTime?
 
   @@index([userId])
+}
+
+enum SearchSyncKind {
+  MESSAGE
+  FILE
+}
+
+/// A message or file the search index must be made to match. Written in the transaction of the change, so none is lost.
+/// The drain reads the target's current state, so running a row twice or out of order ends the same.
+model SearchSync {
+  kind           SearchSyncKind
+  targetId       String
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// When it may run next. A drain claims a row by pushing this forward, so two drains never take the same row.
+  dueAt          DateTime       @default(now())
+  attempts       Int            @default(0)
+  lastError      String?
+
+  @@id([kind, targetId])
+  @@index([organizationId, dueAt])
+  @@index([dueAt])
 }

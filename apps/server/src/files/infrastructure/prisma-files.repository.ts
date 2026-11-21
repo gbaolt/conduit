@@ -166,4 +166,28 @@ export class PrismaFilesRepository implements FilesRepository {
     );
     return { files, hasMore: rows.length > query.limit };
   }
+
+  async sweepable(pendingBefore: Date, limit: number) {
+    const rows = await this.db.file.findMany({
+      where: {
+        OR: [
+          { status: 'PENDING', createdAt: { lt: pendingBefore } },
+          { deletedAt: { not: null } },
+        ],
+      },
+      select: { id: true, key: true },
+      take: limit,
+    });
+    // A file still waiting on the drain keeps its row, which knows how many documents to delete.
+    const waiting = await this.db.searchSync.findMany({
+      where: { kind: 'FILE', targetId: { in: rows.map((row) => row.id) } },
+      select: { targetId: true },
+    });
+    const held = new Set(waiting.map((row) => row.targetId));
+    return rows.filter((row) => !held.has(row.id));
+  }
+
+  async purge(fileIds: string[]) {
+    await this.db.file.deleteMany({ where: { id: { in: fileIds } } });
+  }
 }

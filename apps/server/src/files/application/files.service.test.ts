@@ -89,6 +89,15 @@ function setup(room: Room | null = roomFor(true), readable = ['c1']) {
       rows.set(id, next);
       return next;
     },
+    sweepable: async (pendingBefore) =>
+      [...rows.values()].filter(
+        (row) =>
+          row.deletedAt !== null ||
+          (row.status === 'pending' && row.createdAt < pendingBefore)
+      ),
+    purge: async (ids) => {
+      for (const id of ids) rows.delete(id);
+    },
     list: async (query) => {
       listed.push(query);
       return { files: [], hasMore: false };
@@ -350,5 +359,24 @@ describe('FilesService', () => {
       });
       expect(listed).toEqual([]);
     });
+  });
+
+  it('sweeps an upload abandoned for a day and a cancelled one, with their objects, and keeps the rest', async () => {
+    const { service, rows, objects } = setup();
+    const kept = await service.uploadUrl(author, upload);
+    const abandoned = await service.uploadUrl(author, upload);
+    const cancelled = await service.uploadUrl(author, upload);
+    for (const { fileId } of [kept, abandoned, cancelled]) {
+      objects.set(rows.get(fileId)!.key, 1000);
+    }
+    rows.set(abandoned.fileId, {
+      ...rows.get(abandoned.fileId)!,
+      createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
+    });
+    await service.cancel(author, cancelled.fileId);
+
+    expect(await service.sweep(new Date())).toBe(2);
+    expect([...rows.keys()]).toEqual([kept.fileId]);
+    expect(objects.size).toBe(1);
   });
 });

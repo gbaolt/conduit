@@ -14,6 +14,7 @@ import type {
   MessageMentions,
   MessagesRepository,
 } from '@/messages/domain/messages.repository';
+import { markForSearch } from '@/search/infrastructure/mark-for-search';
 
 import { attachFiles } from './attach-files';
 
@@ -289,6 +290,10 @@ export class PrismaMessagesRepository implements MessagesRepository {
         });
       }
       await createActivityItems(tx, input.items(toMessage(row)));
+      await markForSearch(tx, row.roomId, [
+        { kind: 'message', targetId: row.id },
+        ...files.map((file) => ({ kind: 'file' as const, targetId: file.id })),
+      ]);
       const [{ txid }] = await tx.$queryRaw<
         [{ txid: string }]
       >`SELECT pg_current_xact_id()::text AS txid`;
@@ -316,6 +321,9 @@ export class PrismaMessagesRepository implements MessagesRepository {
         },
       });
       await createActivityItems(tx, mentionItems);
+      await markForSearch(tx, row.roomId, [
+        { kind: 'message', targetId: row.id },
+      ]);
       return toMessage(row);
     });
   }
@@ -339,14 +347,22 @@ export class PrismaMessagesRepository implements MessagesRepository {
 
       await tx.activityItem.deleteMany({ where: { messageId } });
       // The cleanup sweep removes the objects. Until then the bytes still count toward the cap.
-      await tx.file.updateMany({
+      const removed = await tx.file.updateManyAndReturn({
         where: { messageId, deletedAt: null },
         data: { deletedAt: new Date() },
+        select: { id: true },
       });
-      const { parentId } = await tx.message.findUniqueOrThrow({
+      const { parentId, roomId } = await tx.message.findUniqueOrThrow({
         where: { id: messageId },
-        select: { parentId: true },
+        select: { parentId: true, roomId: true },
       });
+      await markForSearch(tx, roomId, [
+        { kind: 'message', targetId: messageId },
+        ...removed.map((file) => ({
+          kind: 'file' as const,
+          targetId: file.id,
+        })),
+      ]);
       if (parentId) {
         await tx.message.updateMany({
           where: { id: parentId, replyCount: { gt: 0 } },

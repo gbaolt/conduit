@@ -1,0 +1,29 @@
+name: Search sync
+
+# Sends drain their own rows right away. This run retries what failed and removes abandoned uploads.
+# GitHub starts scheduled runs late, and the endpoint is idempotent, so a late or repeated run is harmless.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: search-sync
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  sync:
+    name: Sync the search index
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call the search sync endpoint
+        env:
+          API_URL: ${{ secrets.API_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: >
+          curl --fail --silent --show-error --max-time 240 --request POST
+          --header "Authorization: Bearer $CRON_SECRET"
+          "$API_URL/internal/search-sync"

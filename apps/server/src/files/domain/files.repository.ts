@@ -62,4 +62,15 @@ export abstract class FilesRepository {
 
   /** Sent, unremoved files in `roomIds`, newest first. An unknown `before` lists nothing. */
   abstract list(query: FileListQuery): Promise<ListFilesOutput>;
+
+  /**
+   * Files to remove for good: uploads left pending since before `pendingBefore`, and deleted files whose
+   * search documents are already gone.
+   */
+  abstract sweepable(
+    pendingBefore: Date,
+    limit: number
+  ): Promise<{ id: string; key: string }[]>;
+
+  abstract purge(fileIds: string[]): Promise<void>;
 }

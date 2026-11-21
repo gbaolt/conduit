@@ -86,9 +86,10 @@ Targets get set once M2 ships and there is a baseline to measure against.
 - Prisma 7 talks to Postgres on Neon. The schema is `apps/server/database/schema.prisma`.
 - Arcjet protects the Nest API and the Better Auth routes.
 - `packages/ui` holds the shared components, including `Message` and `MessageScroller`. A Lexical editor kit lives in `apps/client/src/components/editor/`.
-- Files will be stored in S3.
+- Message files live in S3-compatible storage (Cloudflare R2). The browser uploads straight to it, and the API signs every link.
+- Upstash Vector is the search index: a Hybrid index with BM25 and an embedding model Upstash runs, one namespace per workspace. Postgres stays the source of truth and decides access.
 
-Nothing yet handles file storage or search. AI calls already power summaries, Smart Activity, and Catch me up. Messages are stored in Postgres and delivered live through Neon Realtime.
+AI calls already power summaries, Smart Activity, and Catch me up. Messages are stored in Postgres and delivered live through Neon Realtime.
 
 ## Milestones
 

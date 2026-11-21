@@ -24,6 +24,10 @@ import {
 import { RoomsRepository } from '@/rooms/domain/rooms.repository';
 import { ObjectStorage } from '@/storage/domain/object-storage';
 
+/** An upload not completed within a day is abandoned. */
+const PENDING_TTL_MS = 24 * 60 * 60 * 1000;
+const SWEEP_LIMIT = 1000;
+
 export type FileViewer = {
   userId: string;
   organizationId: string;
@@ -124,6 +128,18 @@ export class FilesService {
   }
 
   /** Links for attached files in rooms the viewer can read. Anything else is left out, so a refusal looks like a missing file. */
+  /** Deletes the objects and rows of abandoned uploads and deleted files. Returns how many it removed. */
+  async sweep(now: Date) {
+    const files = await this.files.sweepable(
+      new Date(now.getTime() - PENDING_TTL_MS),
+      SWEEP_LIMIT
+    );
+    if (files.length === 0) return 0;
+    await this.storage.delete(files.map((file) => file.key));
+    await this.files.purge(files.map((file) => file.id));
+    return files.length;
+  }
+
   /** The Files page: sent files in rooms the viewer can read. A room they cannot read lists nothing. */
   async list(viewer: FileViewer, input: ListFilesInput) {
     const readable = await this.rooms.accessibleRoomIds(viewer);

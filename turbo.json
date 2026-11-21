@@ -28,7 +28,9 @@
     "NODE_ENV",
     "HOST",
     "PORTLESS_URL",
-    "CRON_SECRET"
+    "CRON_SECRET",
+    "UPSTASH_VECTOR_REST_URL",
+    "UPSTASH_VECTOR_REST_TOKEN"
   ],
   "tasks": {
     "build": {
