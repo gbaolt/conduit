@@ -61,4 +61,15 @@ export class FilesController {
         this.filesService.cancel(viewerOf(context), input.fileId)
       );
   }
+
+  @Implement(contract.files.urls)
+  urls() {
+    return implement(contract.files.urls)
+      .use(authorized)
+      .use(arcjet.read)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.filesService.urls(viewerOf(context), input.fileIds)
+      );
+  }
 }

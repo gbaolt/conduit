@@ -58,6 +58,13 @@ export class PrismaFilesRepository implements FilesRepository {
     return row && toStoredFile(row);
   }
 
+  async findMany(fileIds: string[]) {
+    const rows = await this.db.file.findMany({
+      where: { id: { in: fileIds } },
+    });
+    return rows.map(toStoredFile);
+  }
+
   async markReady(
     fileId: string,
     dimensions: { width: number | null; height: number | null }

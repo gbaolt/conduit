@@ -57,7 +57,7 @@ function roomFor(member: boolean, overrides: Partial<Room> = {}): Room {
   };
 }
 
-function setup(room: Room | null = roomFor(true)) {
+function setup(room: Room | null = roomFor(true), readable = ['c1']) {
   const rows = new Map<string, StoredFile>();
   const files = {
     createPending: async (file, cap) => {
@@ -77,6 +77,7 @@ function setup(room: Room | null = roomFor(true)) {
       return { created: true };
     },
     find: async (id) => rows.get(id) ?? null,
+    findMany: async (ids) => ids.flatMap((id) => rows.get(id) ?? []),
     markReady: async (id, dimensions) => {
       const next = {
         ...rows.get(id)!,
@@ -93,6 +94,7 @@ function setup(room: Room | null = roomFor(true)) {
   } as FilesRepository;
   const rooms = {
     find: async () => room,
+    accessibleRoomIds: async () => readable,
   } as Partial<RoomsRepository> as RoomsRepository;
   const { storage, objects } = createFakeStorage();
   return { service: new FilesService(files, rooms, storage), rows, objects };
@@ -253,6 +255,64 @@ describe('FilesService', () => {
     expect(rows.get(fileId)!.deletedAt).not.toBeNull();
     await expect(service.cancel(author, fileId)).rejects.toMatchObject({
       code: 'NOT_FOUND',
+    });
+  });
+
+  describe('urls', () => {
+    const stored = (overrides: Partial<StoredFile>): StoredFile => ({
+      id: 'f1',
+      organizationId,
+      uploaderId: 'author',
+      roomId: 'c1',
+      messageId: 'm1',
+      name: 'q3.pdf',
+      contentType: 'application/pdf',
+      size: 10,
+      width: null,
+      height: null,
+      key: 'files/org/f1/q3.pdf',
+      status: 'ready',
+      createdAt: new Date(0),
+      deletedAt: null,
+      ...overrides,
+    });
+
+    it('signs a view and a download link for a file in a room the viewer can read', async () => {
+      const { service, rows } = setup();
+      rows.set('f1', stored({}));
+
+      expect(await service.urls(other, ['f1'])).toEqual([
+        {
+          id: 'f1',
+          viewUrl: 'https://download.test/files/org/f1/q3.pdf?inline',
+          downloadUrl: 'https://download.test/files/org/f1/q3.pdf?attachment',
+        },
+      ]);
+    });
+
+    it('gives a file the browser should not open in place no view link', async () => {
+      const { service, rows } = setup();
+      rows.set('f1', stored({ contentType: 'text/html', name: 'a.html' }));
+
+      expect((await service.urls(other, ['f1']))[0]!.viewUrl).toBeNull();
+    });
+
+    it('leaves out a file in a room the viewer cannot read, a deleted one, an unsent one, and one from another workspace', async () => {
+      const { service, rows } = setup(roomFor(true), ['c1']);
+      rows.set('private', stored({ id: 'private', roomId: 'secret' }));
+      rows.set('deleted', stored({ id: 'deleted', deletedAt: new Date() }));
+      rows.set('unsent', stored({ id: 'unsent', messageId: null }));
+      rows.set('elsewhere', stored({ id: 'elsewhere', organizationId: 'x' }));
+
+      expect(
+        await service.urls(other, [
+          'private',
+          'deleted',
+          'unsent',
+          'elsewhere',
+          'missing',
+        ])
+      ).toEqual([]);
     });
   });
 });

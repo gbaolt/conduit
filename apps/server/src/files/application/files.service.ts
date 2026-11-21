@@ -5,6 +5,7 @@ import {
   fileKind,
   fileTooLargeMessage,
   type FileUploadInput,
+  type FileUrl,
   type MessageFile,
   storageFullMessage,
   WORKSPACE_STORAGE_MAX,
@@ -118,6 +119,38 @@ export class FilesService {
       throw fileError('NOT_FOUND');
     }
     await this.files.cancel(file.id);
+  }
+
+  /** Links for attached files in rooms the viewer can read. Anything else is left out, so a refusal looks like a missing file. */
+  async urls(viewer: FileViewer, fileIds: string[]): Promise<FileUrl[]> {
+    const [files, readable] = await Promise.all([
+      this.files.findMany(fileIds),
+      this.rooms.accessibleRoomIds(viewer),
+    ]);
+    const rooms = new Set(readable);
+    const visible = files.filter(
+      (file) =>
+        file.organizationId === viewer.organizationId &&
+        file.status === 'ready' &&
+        file.messageId !== null &&
+        !file.deletedAt &&
+        rooms.has(file.roomId)
+    );
+    return Promise.all(
+      visible.map(async (file) => {
+        const options = { filename: file.name, contentType: file.contentType };
+        const [viewUrl, downloadUrl] = await Promise.all([
+          fileKind(file.contentType) === 'other'
+            ? null
+            : this.storage.presignDownload(file.key, {
+                ...options,
+                inline: true,
+              }),
+          this.storage.presignDownload(file.key, { ...options, inline: false }),
+        ]);
+        return { id: file.id, viewUrl, downloadUrl };
+      })
+    );
   }
 
   private async ownFile(viewer: FileViewer, fileId: string) {

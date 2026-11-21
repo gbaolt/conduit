@@ -7,6 +7,8 @@ import {
   FileIdInputSchema,
   FileUploadInputSchema,
   FileUploadSchema,
+  FileUrlSchema,
+  FileUrlsInputSchema,
   MessageFileSchema,
 } from '@/schemas/files';
 
@@ -68,3 +70,9 @@ export const cancelFileContract = oc
   .errors({ NOT_FOUND })
   .input(FileIdInputSchema)
   .output(z.void());
+
+export const fileUrlsContract = oc
+  .meta(openapi({ method: 'POST', path: '/files/urls' }))
+  .errors({ STORAGE_UNAVAILABLE })
+  .input(FileUrlsInputSchema)
+  .output(z.array(FileUrlSchema));

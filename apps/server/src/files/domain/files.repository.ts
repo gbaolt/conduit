@@ -38,6 +38,8 @@ export abstract class FilesRepository {
 
   abstract find(fileId: string): Promise<StoredFile | null>;
 
+  abstract findMany(fileIds: string[]): Promise<StoredFile[]>;
+
   /** Marks a pending file ready, with the size the browser measured. A ready file stays as it is. */
   abstract markReady(
     fileId: string,
