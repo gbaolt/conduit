@@ -22,13 +22,16 @@ export function MessageExcerpt({
   message,
   author,
   context,
+  highlight,
   children,
   className,
 }: {
-  message: MessageData;
+  message: Pick<MessageData, 'id' | 'body' | 'createdAt' | 'updatedAt'>;
   author: Author | null;
   /** Where the message was sent, above the author line. */
   context?: ReactNode;
+  /** Search terms to mark in the body. */
+  highlight?: readonly string[];
   /** Controls at the end of the excerpt. */
   children?: ReactNode;
   className?: string;
@@ -50,6 +53,7 @@ export function MessageExcerpt({
           id={message.id}
           updatedAt={message.updatedAt}
           body={message.body}
+          highlight={highlight}
         />
         {children}
       </MessageContent>

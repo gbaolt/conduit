@@ -15,6 +15,7 @@ const featureDeps = {
   threads: ['rooms', 'messages'],
   directoris: ['workspace', 'channels'],
   files: ['rooms', 'messages'],
+  search: ['rooms', 'messages', 'files'],
 };
 
 const services = [
@@ -27,6 +28,7 @@ const services = [
   'messages',
   'notifications',
   'rooms',
+  'search',
   'workspaces',
 ];
 

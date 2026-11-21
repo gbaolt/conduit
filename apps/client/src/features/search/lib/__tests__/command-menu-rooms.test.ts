@@ -2,10 +2,10 @@ import type { Dm, Room, SidebarEntry } from '@conduit/contract';
 import { describe, expect, it } from 'vitest';
 
 import {
+  commandMenuRooms,
+  commandMenuScore,
   emptyQueryRooms,
-  switcherRooms,
-  switcherScore,
-} from '../switcher-rooms';
+} from '../command-menu-rooms';
 
 const membership = (starred = false) => ({
   role: 'member' as const,
@@ -67,9 +67,9 @@ const entry = (
   lastBody: null,
 });
 
-describe('switcherRooms', () => {
+describe('commandMenuRooms', () => {
   it('lists joined channels, DMs, and public channels not joined', () => {
-    const rooms = switcherRooms({
+    const rooms = commandMenuRooms({
       channels: [channel('design'), channel('launch', { joined: false })],
       dms: [dm('linh', 'Linh')],
       entries: [],
@@ -86,7 +86,7 @@ describe('switcherRooms', () => {
 
 describe('emptyQueryRooms', () => {
   it('shows the rooms read most recently, then the other unread ones, then the rest', () => {
-    const rooms = switcherRooms({
+    const rooms = commandMenuRooms({
       channels: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map((name) =>
         channel(name)
       ),
@@ -113,9 +113,9 @@ describe('emptyQueryRooms', () => {
   });
 });
 
-describe('switcherScore', () => {
+describe('commandMenuScore', () => {
   it('ranks a better match first, and a starred room first among equal matches', () => {
-    const rooms = switcherRooms({
+    const rooms = commandMenuRooms({
       channels: [
         channel('design-review'),
         channel('design', { starred: true }),
@@ -127,7 +127,7 @@ describe('switcherScore', () => {
       viewerId: 'me',
     });
     const ranked = rooms
-      .map((room) => [room.label, switcherScore(room, 'des')] as const)
+      .map((room) => [room.label, commandMenuScore(room, 'des')] as const)
       .filter(([, score]) => score > 0)
       .sort((a, b) => b[1] - a[1])
       .map(([label]) => label);
@@ -135,9 +135,9 @@ describe('switcherScore', () => {
     expect(ranked[0]).toBe('design');
     expect(ranked).not.toContain('marketing');
     const design = rooms[1]!;
-    expect(switcherScore(design, 'des')).toBeGreaterThan(
-      switcherScore({ ...design, starred: false }, 'des')
+    expect(commandMenuScore(design, 'des')).toBeGreaterThan(
+      commandMenuScore({ ...design, starred: false }, 'des')
     );
-    expect(switcherScore(design, 'zzz')).toBe(0);
+    expect(commandMenuScore(design, 'zzz')).toBe(0);
   });
 });
