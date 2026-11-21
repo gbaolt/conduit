@@ -56,6 +56,7 @@ import {
   listFilesContract,
 } from './contracts/files';
 import { healthCheckContract } from './contracts/health';
+import { searchContract } from './contracts/search';
 import {
   getNotificationSettingsContract,
   updateNotificationSettingsContract,
@@ -238,6 +239,9 @@ export const contract = {
     cancel: cancelFileContract,
     urls: fileUrlsContract,
     list: listFilesContract,
+  },
+  search: {
+    query: searchContract,
   },
   dms: {
     list: listDmsContract,
