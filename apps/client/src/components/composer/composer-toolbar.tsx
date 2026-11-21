@@ -30,6 +30,7 @@ import {
   IconList,
   IconListNumbers,
   IconMoodSmile,
+  IconPaperclip,
   IconSend2,
   IconStrikethrough,
   IconTable,
@@ -46,7 +47,7 @@ import {
   SELECTION_CHANGE_COMMAND,
   type TextFormatType,
 } from 'lexical';
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import { useEditorModal } from '@/components/editor/editor-hooks/use-modal';
 import { InsertTableDialog } from '@/components/editor/plugins/table-plugin';
@@ -268,7 +269,7 @@ export function ComposerFormattingBar({
       <Divider />
       <ToolbarButton
         label="Link"
-        shortcut="Ctrl+K"
+        shortcut="Ctrl+Shift+U"
         pressed={active.link}
         onClick={toggleLink}
       >
@@ -328,6 +329,8 @@ export function ComposerActionBar({
   onToggleFormatting,
   onSubmit,
   onCancel,
+  onFiles,
+  sendBlocked,
   children,
 }: {
   length: number;
@@ -337,11 +340,16 @@ export function ComposerActionBar({
   onToggleFormatting: () => void;
   onSubmit: () => void;
   onCancel?: () => void;
+  /** Adds the Attach files button. */
+  onFiles?: (files: File[]) => void;
+  /** Why Send waits, such as "Uploading 2 files…". */
+  sendBlocked?: string;
   /** Extra controls placed before the length and Send. */
   children?: ReactNode;
 }) {
   const [editor] = useLexicalComposerContext();
   const overLimit = length > MESSAGE_BODY_MAX;
+  const picker = useRef<HTMLInputElement>(null);
 
   return (
     <div className="flex items-center gap-0.5 px-1.5 pb-1.5">
@@ -369,8 +377,40 @@ export function ComposerActionBar({
       >
         <IconAt />
       </ToolbarButton>
+      {onFiles && (
+        <>
+          <ToolbarButton
+            label="Attach files"
+            className={ACTION_BUTTON}
+            onClick={() => picker.current?.click()}
+          >
+            <IconPaperclip />
+          </ToolbarButton>
+          <input
+            ref={picker}
+            type="file"
+            multiple
+            hidden
+            tabIndex={-1}
+            onChange={(event) => {
+              const files = [...(event.currentTarget.files ?? [])];
+              // Cleared so picking the same file again still fires a change.
+              event.currentTarget.value = '';
+              if (files.length > 0) onFiles(files);
+            }}
+          />
+        </>
+      )}
       <div className="ml-auto flex min-w-0 items-center gap-2">
         {children}
+        {sendBlocked && (
+          <span
+            className="text-muted-foreground truncate text-xs"
+            aria-live="polite"
+          >
+            {sendBlocked}
+          </span>
+        )}
         {length >= MESSAGE_BODY_MAX - 200 && (
           <span
             className={cn(

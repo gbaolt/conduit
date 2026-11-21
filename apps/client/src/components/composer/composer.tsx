@@ -27,6 +27,7 @@ import {
   KEY_ESCAPE_COMMAND,
   KEY_MODIFIER_COMMAND,
   type LexicalEditorWithDispose,
+  PASTE_COMMAND,
 } from 'lexical';
 import {
   type ReactNode,
@@ -81,6 +82,14 @@ export type ComposerProps = {
   onChange?: (markdown: string) => void;
   /** Controls in the bottom bar, before Send, such as a thread's "Also send to channel" checkbox. */
   actions?: ReactNode;
+  /** Takes files from the Attach button and from a paste. */
+  onFiles?: (files: File[]) => void;
+  /** Files waiting to send, shown above the bottom bar. */
+  attachments?: ReactNode;
+  /** True while ready files are attached, so a message with no text can send. */
+  hasFiles?: boolean;
+  /** Why Send waits, such as "Uploading 2 files…". Send stays disabled while it is set. */
+  sendBlocked?: string;
   /** Rendered under the frame, such as the edit hint. */
   children?: ReactNode;
 };
@@ -138,6 +147,10 @@ function ComposerBehavior({
   onEditLast,
   onChange,
   actions,
+  onFiles,
+  attachments,
+  hasFiles = false,
+  sendBlocked,
 }: Required<Pick<ComposerProps, 'mode' | 'placeholder'>> &
   Pick<
     ComposerProps,
@@ -148,6 +161,10 @@ function ComposerBehavior({
     | 'onChange'
     | 'initialMarkdown'
     | 'actions'
+    | 'onFiles'
+    | 'attachments'
+    | 'hasFiles'
+    | 'sendBlocked'
   > & {
     anchor: HTMLDivElement | null;
     menuOpen: RefObject<boolean>;
@@ -158,8 +175,11 @@ function ComposerBehavior({
   const suggestions = use(MentionSuggestions);
   const [markdown, setMarkdown] = useState(initialMarkdown ?? '');
   const [formattingOpen, setFormattingOpen] = useState(false);
-  const canSend =
-    markdown.trim().length > 0 && markdown.length <= MESSAGE_BODY_MAX;
+  const sendable = (text: string) =>
+    (text.trim().length > 0 || hasFiles) &&
+    text.length <= MESSAGE_BODY_MAX &&
+    !sendBlocked;
+  const canSend = sendable(markdown);
 
   const handleChange = useEffectEvent((next: string) => onChange?.(next));
 
@@ -179,7 +199,7 @@ function ComposerBehavior({
 
   const submit = () => {
     const text = markdownOf(editor).trim();
-    if (!text || text.length > MESSAGE_BODY_MAX) return;
+    if (!sendable(text)) return;
     onSubmit(text);
     if (mode === 'send') {
       editor.update(() => {
@@ -197,6 +217,8 @@ function ComposerBehavior({
   const handleEditLast = useEffectEvent(() => onEditLast?.());
   const canCancel = Boolean(onCancel);
   const canEditLast = Boolean(onEditLast);
+  const handleFiles = useEffectEvent((files: File[]) => onFiles?.(files));
+  const takesFiles = Boolean(onFiles);
 
   useEffect(() => {
     return mergeRegister(
@@ -267,10 +289,25 @@ function ComposerBehavior({
         COMMAND_PRIORITY_HIGH
       ),
       editor.registerCommand(
+        PASTE_COMMAND,
+        (event) => {
+          // A screenshot or a copied file attaches. Copied text that also carries an image pastes as text.
+          if (!takesFiles || !(event instanceof ClipboardEvent)) return false;
+          const data = event.clipboardData;
+          const files = [...(data?.files ?? [])];
+          if (files.length === 0 || data?.types.includes('text/plain'))
+            return false;
+          event.preventDefault();
+          handleFiles(files);
+          return true;
+        },
+        COMMAND_PRIORITY_HIGH
+      ),
+      editor.registerCommand(
         KEY_MODIFIER_COMMAND,
         (event) => {
           const key = event.key.toLowerCase();
-          if (key === 'k' && !event.shiftKey) {
+          if (key === 'u' && event.shiftKey) {
             event.preventDefault();
             setIsLinkEditMode(true);
             return editor.dispatchCommand(
@@ -287,7 +324,7 @@ function ComposerBehavior({
         COMMAND_PRIORITY_HIGH
       )
     );
-  }, [editor, canCancel, canEditLast, menuOpen, setIsLinkEditMode]);
+  }, [editor, canCancel, canEditLast, takesFiles, menuOpen, setIsLinkEditMode]);
 
   return (
     <>
@@ -328,6 +365,7 @@ function ComposerBehavior({
         setIsLinkEditMode={setIsLinkEditMode}
       />
       <ComposerEditable placeholder={placeholder} />
+      {attachments}
       <ComposerActionBar
         length={markdown.length}
         canSend={canSend}
@@ -336,6 +374,8 @@ function ComposerBehavior({
         onToggleFormatting={() => setFormattingOpen((open) => !open)}
         onSubmit={submit}
         onCancel={onCancel}
+        onFiles={onFiles}
+        sendBlocked={sendBlocked}
       >
         {actions}
       </ComposerActionBar>

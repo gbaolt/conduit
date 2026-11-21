@@ -86,9 +86,10 @@ Targets get set once M2 ships and there is a baseline to measure against.
 - Prisma 7 talks to Postgres on Neon. The schema is `apps/server/database/schema.prisma`.
 - Arcjet protects the Nest API and the Better Auth routes.
 - `packages/ui` holds the shared components, including `Message` and `MessageScroller`. A Lexical editor kit lives in `apps/client/src/components/editor/`.
-- Files will be stored in S3.
+- Message files live in S3-compatible storage (Cloudflare R2). The browser uploads straight to it, and the API signs every link.
+- Upstash Vector is the search index: a Hybrid index with BM25 and an embedding model Upstash runs, one namespace per workspace. Postgres stays the source of truth and decides access.
 
-Nothing yet handles file storage or search. AI calls already power summaries, Smart Activity, and Catch me up. Messages are stored in Postgres and delivered live through Neon Realtime.
+AI calls already power summaries, Smart Activity, and Catch me up. Messages are stored in Postgres and delivered live through Neon Realtime.
 
 ## Milestones
 
@@ -100,7 +101,7 @@ Each milestone ships its core features first, then the AI feature that depends o
 | [M0](#m0-workspace-admin)                  | Invitations, member management, settings | None                        | Shipped     |
 | [M1](#m1-messaging)                        | Messages, threads, DMs, realtime         | Summaries                   | Shipped     |
 | [M2](#m2-activity-and-notifications)       | Activity feed, notifications             | Smart Activity, Catch me up | Shipped     |
-| [M3](#m3-files-and-search)                 | Files, search, quick switcher            | Ask Conduit                 | Not started |
+| [M3](#m3-files-and-search)                 | Files, search, quick switcher            | Ask Conduit                 | In progress |
 | [M4](#m4-canvas)                           | Canvas                                   | Thread to canvas            | Not started |
 | [M5](#m5-kanban)                           | Kanban boards                            | Actions and decisions       | Not started |
 | [M6](#m6-workflows)                        | Workflows                                | Plain-English workflows     | Not started |
@@ -197,15 +198,15 @@ Teams share files in chat and need to find old answers. Ask Conduit answers from
 
 | ID    | Sub-feature                                                                            | Status      | PR  |
 | ----- | -------------------------------------------------------------------------------------- | ----------- | --- |
-| M3.1  | Upload by dragging, pasting, or picking a file. The browser uploads straight to S3.    | Not started |     |
-| M3.2  | Attach files to messages                                                               | Not started |     |
-| M3.3  | Preview images, video, and PDFs inside the message                                     | Not started |     |
-| M3.4  | A **Files** page with every file you can access, filtered by channel, person, and type | Not started |     |
-| M3.5  | Cap each file at 50 MB                                                                 | Not started |     |
-| M3.6  | Cap each workspace at 10 GB, and stop uploads at the cap with a message that says why  | Not started |     |
+| M3.1  | Upload by dragging, pasting, or picking a file. The browser uploads straight to S3.    | Shipped     |     |
+| M3.2  | Attach files to messages                                                               | Shipped     |     |
+| M3.3  | Preview images, video, and PDFs inside the message                                     | Shipped     |     |
+| M3.4  | A **Files** page with every file you can access, filtered by channel, person, and type | Shipped     |     |
+| M3.5  | Cap each file at 50 MB                                                                 | Shipped     |     |
+| M3.6  | Cap each workspace at 10 GB, and stop uploads at the cap with a message that says why  | Shipped     |     |
 | M3.7  | Search messages, files, channels, and people                                           | Not started |     |
 | M3.8  | Search filters: `in:`, `from:`, `has:file`, `before:`, and `after:`                    | Not started |     |
-| M3.9  | A `Ctrl+K` quick switcher to jump to any channel or DM                                 | Not started |     |
+| M3.9  | A `Ctrl+K` quick switcher to jump to any channel or DM                                 | Shipped     |     |
 | M3.10 | Show only results the member can access                                                | Not started |     |
 | M3.11 | AI: Ask Conduit answers questions and cites each source                                | Not started |     |
 

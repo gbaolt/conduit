@@ -171,6 +171,7 @@ export class MessagesService {
       roomId: string;
       clientId: string;
       body: string;
+      fileIds?: string[];
       parentId?: string;
       alsoSentToChannel?: boolean;
     }
@@ -205,6 +206,7 @@ export class MessagesService {
       clientId: input.clientId,
       body,
       mentions,
+      fileIds: [...new Set(input.fileIds ?? [])],
       parentId: input.parentId,
       alsoSentToChannel: Boolean(input.parentId && input.alsoSentToChannel),
       items: (message) =>

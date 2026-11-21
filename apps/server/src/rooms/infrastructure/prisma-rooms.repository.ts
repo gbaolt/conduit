@@ -141,6 +141,21 @@ export class PrismaRoomsRepository implements RoomsRepository {
     return rows.map(toChannel);
   }
 
+  /** Matches `channelPolicy.view`: public, or the user is in it. A DM is always private. */
+  async accessibleRoomIds(scope: RoomScope) {
+    const rows = await this.db.room.findMany({
+      where: {
+        organizationId: scope.organizationId,
+        OR: [
+          { kind: 'CHANNEL', visibility: 'PUBLIC' },
+          { members: { some: { userId: scope.userId } } },
+        ],
+      },
+      select: { id: true },
+    });
+    return rows.map((row) => row.id);
+  }
+
   /** Any channel in the scope's workspace, private or not. Callers check visibility. */
   async find(scope: RoomScope, roomId: string) {
     const row = await this.db.room.findFirst({

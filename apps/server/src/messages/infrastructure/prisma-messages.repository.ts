@@ -1,4 +1,9 @@
-import type { LinkPreview, Message, ReactionSummary } from '@conduit/contract';
+import type {
+  LinkPreview,
+  Message,
+  MessageFile,
+  ReactionSummary,
+} from '@conduit/contract';
 import { Prisma } from '@generated/prisma/client';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -9,6 +14,9 @@ import type {
   MessageMentions,
   MessagesRepository,
 } from '@/messages/domain/messages.repository';
+import { markForSearch } from '@/search/infrastructure/mark-for-search';
+
+import { attachFiles } from './attach-files';
 
 type MessageRow = Prisma.MessageGetPayload<object>;
 
@@ -28,6 +36,7 @@ export function toMessage(row: MessageRow): Message {
     replyCount: row.replyCount,
     lastReplyAt: row.lastReplyAt,
     linkPreview: row.linkPreview as LinkPreview | null,
+    files: row.files as MessageFile[],
     pinnedAt: row.pinnedAt,
     pinnedById: row.pinnedById,
     editedAt: row.editedAt,
@@ -223,6 +232,7 @@ export class PrismaMessagesRepository implements MessagesRepository {
     clientId: string;
     body: string;
     mentions: MessageMentions;
+    fileIds?: string[];
     parentId?: string;
     alsoSentToChannel?: boolean;
     items: (message: Message) => NewActivityItem[];
@@ -248,10 +258,23 @@ export class PrismaMessagesRepository implements MessagesRepository {
         },
         skipDuplicates: true,
       });
-      const row = await tx.message.findUniqueOrThrow({ where: key });
+      const inserted = await tx.message.findUniqueOrThrow({ where: key });
       if (count === 0) {
-        return { message: toMessage(row), txid: null };
+        return { message: toMessage(inserted), txid: null };
       }
+      const files = await attachFiles(tx, {
+        fileIds: input.fileIds ?? [],
+        messageId: inserted.id,
+        roomId: input.roomId,
+        authorId: input.authorId,
+      });
+      const row =
+        files.length === 0
+          ? inserted
+          : await tx.message.update({
+              where: { id: inserted.id },
+              data: { files },
+            });
 
       if (!row.parentId || row.alsoSentToChannel) {
         await tx.room.update({
@@ -267,6 +290,10 @@ export class PrismaMessagesRepository implements MessagesRepository {
         });
       }
       await createActivityItems(tx, input.items(toMessage(row)));
+      await markForSearch(tx, row.roomId, [
+        { kind: 'message', targetId: row.id },
+        ...files.map((file) => ({ kind: 'file' as const, targetId: file.id })),
+      ]);
       const [{ txid }] = await tx.$queryRaw<
         [{ txid: string }]
       >`SELECT pg_current_xact_id()::text AS txid`;
@@ -294,6 +321,9 @@ export class PrismaMessagesRepository implements MessagesRepository {
         },
       });
       await createActivityItems(tx, mentionItems);
+      await markForSearch(tx, row.roomId, [
+        { kind: 'message', targetId: row.id },
+      ]);
       return toMessage(row);
     });
   }
@@ -310,15 +340,29 @@ export class PrismaMessagesRepository implements MessagesRepository {
           mentionsChannel: false,
           mentionsHere: false,
           linkPreview: Prisma.DbNull,
+          files: [],
         },
       });
       if (count === 0) return;
 
       await tx.activityItem.deleteMany({ where: { messageId } });
-      const { parentId } = await tx.message.findUniqueOrThrow({
-        where: { id: messageId },
-        select: { parentId: true },
+      // The cleanup sweep removes the objects. Until then the bytes still count toward the cap.
+      const removed = await tx.file.updateManyAndReturn({
+        where: { messageId, deletedAt: null },
+        data: { deletedAt: new Date() },
+        select: { id: true },
       });
+      const { parentId, roomId } = await tx.message.findUniqueOrThrow({
+        where: { id: messageId },
+        select: { parentId: true, roomId: true },
+      });
+      await markForSearch(tx, roomId, [
+        { kind: 'message', targetId: messageId },
+        ...removed.map((file) => ({
+          kind: 'file' as const,
+          targetId: file.id,
+        })),
+      ]);
       if (parentId) {
         await tx.message.updateMany({
           where: { id: parentId, replyCount: { gt: 0 } },

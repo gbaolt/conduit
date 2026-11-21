@@ -23,6 +23,7 @@ import {
   timeFormat,
 } from './message';
 import { MessageActions } from './message-actions';
+import { MessageFiles } from './message-files';
 import { MessageLinkPreview } from './message-link-preview';
 import { MessageMarkdown } from './message-markdown';
 import { MessageReactions } from './message-reactions';
@@ -174,6 +175,7 @@ export function MessageRow({
               updatedAt={message.updatedAt}
               body={message.body}
             />
+            <MessageFiles files={message.files} />
             {message.linkPreview && (
               <MessagePreview
                 messageId={message.id}

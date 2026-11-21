@@ -25,6 +25,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { useRoomName } from '@/features/messages/hooks/use-room-name';
 import { sessionQuery } from '@/services/auth/queries';
 import { useJoinChannel } from '@/services/channels/hooks';
+import { useFileUploads } from '@/services/files/upload';
 import { useSendMessage } from '@/services/messages/hooks';
 import { type LiveStatus, useLiveStream } from '@/services/messages/live';
 import {
@@ -46,6 +47,7 @@ import { useIsClient } from '../../hooks/use-is-client';
 import { useNewMarker } from '../../hooks/use-new-marker';
 import { SummaryDialog } from '../summary/summary-dialog';
 import { ConversationComposer } from './conversation-composer';
+import { ConversationDropOverlay, useFileDrop } from './conversation-drop';
 import { ConversationLoading } from './conversation-loading';
 import { ConversationMessages } from './conversation-messages';
 import { ConversationTyping } from './conversation-typing';
@@ -159,6 +161,7 @@ export function Conversation({
   const { send, retry, discard } = useSendMessage(roomId, parentId);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [alsoSend, setAlsoSend] = useState(false);
+  const uploads = useFileUploads(roomId);
   const composerRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
 
@@ -268,12 +271,17 @@ export function Conversation({
     canPost,
     canWrite
   );
+  const drop = useFileDrop(footer === 'composer' ? uploads.add : undefined);
 
   return (
     <MentionNames value={names}>
       <MentionViewer value={viewerId}>
         <MentionSuggestions value={suggestions}>
-          <div ref={frameRef} className="relative flex min-h-0 flex-1 flex-col">
+          <div
+            ref={frameRef}
+            className="relative flex min-h-0 flex-1 flex-col"
+            {...drop.handlers}
+          >
             {isClient && history.data && !waitingForRoot ? (
               <ConversationMessages
                 roomId={roomId}
@@ -325,6 +333,7 @@ export function Conversation({
             )}
 
             <ComposerFade />
+            <ConversationDropOverlay dragging={drop.dragging} title={title} />
             <SummaryDialog
               shareLabel={SHARE_LABELS[kind]}
               canShare={canPost}
@@ -333,6 +342,7 @@ export function Conversation({
 
             <div
               ref={composerRef}
+              data-room-composer={parentId ? undefined : roomId}
               className="absolute inset-x-0 bottom-0 z-20 px-4"
             >
               {history.isRefetchError && (
@@ -357,10 +367,12 @@ export function Conversation({
                   <ConversationComposer
                     roomId={roomId}
                     parentId={parentId}
+                    uploads={uploads}
                     placeholder={PLACEHOLDERS[kind](title)}
                     autoFocus={Boolean(parentId)}
                     onSubmit={(body) => {
-                      send(body, alsoSend);
+                      send(body, alsoSend, uploads.ready);
+                      uploads.clear();
                       setAlsoSend(false);
                     }}
                     onEditLast={

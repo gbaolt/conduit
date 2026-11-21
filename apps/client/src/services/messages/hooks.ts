@@ -1,6 +1,11 @@
 'use client';
 
-import { addReaction, type Message, removeReaction } from '@conduit/contract';
+import {
+  addReaction,
+  type Message,
+  type MessageFile,
+  removeReaction,
+} from '@conduit/contract';
 import {
   type QueryClient,
   useMutation,
@@ -29,6 +34,8 @@ export type PendingMessage = {
   parentId: string | null;
   alsoSentToChannel: boolean;
   body: string;
+  /** Uploaded already, so a retry sends the same ones. */
+  files: MessageFile[];
   createdAt: Date;
   status: 'sending' | 'failed';
 };
@@ -78,13 +85,14 @@ const removePending = (clientId: string) =>
   setPending(pending.filter((message) => message.clientId !== clientId));
 
 async function deliver(queryClient: QueryClient, message: PendingMessage) {
-  const { clientId, roomId, body, alsoSentToChannel } = message;
+  const { clientId, roomId, body, alsoSentToChannel, files } = message;
   patchPending(clientId, { status: 'sending' });
   try {
     const sent = await client.messages.send({
       roomId,
       clientId,
       body,
+      fileIds: files.length > 0 ? files.map((file) => file.id) : undefined,
       parentId: message.parentId ?? undefined,
       alsoSentToChannel,
     });
@@ -105,7 +113,7 @@ function enqueue(
   queryClient: QueryClient,
   message: Pick<
     PendingMessage,
-    'roomId' | 'parentId' | 'alsoSentToChannel' | 'body'
+    'roomId' | 'parentId' | 'alsoSentToChannel' | 'body' | 'files'
   >
 ) {
   const queued: PendingMessage = {
@@ -128,6 +136,7 @@ export function useSendToRoom() {
         parentId: null,
         alsoSentToChannel: false,
         body,
+        files: [],
       }),
     [queryClient]
   );
@@ -141,12 +150,13 @@ export function useSendMessage(roomId: string, parentId?: string) {
   const queryClient = useQueryClient();
 
   const send = useCallback(
-    (body: string, alsoSentToChannel = false) =>
+    (body: string, alsoSentToChannel = false, files: MessageFile[] = []) =>
       enqueue(queryClient, {
         roomId,
         parentId: parentId ?? null,
         alsoSentToChannel: Boolean(parentId) && alsoSentToChannel,
         body,
+        files,
       }),
     [roomId, parentId, queryClient]
   );

@@ -533,4 +533,82 @@ describe.skipIf(!connectionString)('PrismaMessagesRepository', () => {
       expect(none.messages).toEqual([]);
     });
   });
+  describe('files', () => {
+    const readyFile = async (overrides: { uploaderId?: string } = {}) => {
+      const id = crypto.randomUUID();
+      await prisma.file.create({
+        data: {
+          id,
+          organizationId,
+          uploaderId: overrides.uploaderId ?? userId,
+          roomId,
+          name: 'q3.pdf',
+          contentType: 'application/pdf',
+          size: 10,
+          key: `files/${organizationId}/${id}/q3.pdf`,
+          status: 'READY',
+        },
+      });
+      return id;
+    };
+    const sendWith = (clientId: string, fileIds: string[]) =>
+      repository.send({
+        roomId,
+        authorId: userId,
+        clientId,
+        body: '',
+        mentions,
+        fileIds,
+        items: () => [],
+      });
+
+    it('attaches files in the order sent, and a retried send attaches nothing new', async () => {
+      const [a, b] = [await readyFile(), await readyFile()];
+
+      const { message } = await sendWith('with-files', [b!, a!]);
+      const retried = await sendWith('with-files', [await readyFile()]);
+
+      expect(message.files.map((file) => file.id)).toEqual([b, a]);
+      expect(retried.txid).toBeNull();
+      expect(retried.message.files.map((file) => file.id)).toEqual([b, a]);
+      expect(
+        await prisma.file.count({ where: { messageId: message.id } })
+      ).toBe(2);
+    });
+
+    it("refuses another member's file, a file already sent, and a pending one, and stores no message", async () => {
+      const theirs = await readyFile({ uploaderId: recipientId });
+      const sent = await readyFile();
+      await sendWith('first-use', [sent]);
+      const pending = await readyFile();
+      await prisma.file.update({
+        where: { id: pending },
+        data: { status: 'PENDING' },
+      });
+
+      for (const [clientId, fileId] of [
+        ['theirs', theirs],
+        ['twice', sent],
+        ['pending', pending],
+      ] as const) {
+        await expect(sendWith(clientId, [fileId])).rejects.toMatchObject({
+          code: 'FILE_UNAVAILABLE',
+        });
+        expect(await prisma.message.count({ where: { clientId } })).toBe(0);
+      }
+    });
+
+    it('clears the files of a deleted message and marks them deleted', async () => {
+      const fileId = await readyFile();
+      const { message } = await sendWith('files-to-delete', [fileId]);
+
+      await repository.markDeleted(message.id);
+
+      expect((await repository.find(message.id))!.files).toEqual([]);
+      expect(
+        (await prisma.file.findUniqueOrThrow({ where: { id: fileId } }))
+          .deletedAt
+      ).not.toBeNull();
+    });
+  });
 });
