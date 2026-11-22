@@ -1,8 +1,13 @@
 'use client';
 
+import { Button } from '@conduit/ui/components/button';
+import { IconPaperclip } from '@tabler/icons-react';
+
+import { AttachMenu } from '@/components/attach/attach-menu';
 import { Composer, type ComposerProps } from '@/components/composer/composer';
 import { ComposerAttachments } from '@/components/composer/composer-attachments';
 import { ComposerSkeleton } from '@/components/composer/composer-skeleton';
+import { ACTION_BUTTON } from '@/components/composer/composer-toolbar';
 import { useComposerActivity, useDraft } from '@/services/activity/hooks';
 import type { FileUploads } from '@/services/files/upload';
 
@@ -41,6 +46,21 @@ export function ConversationComposer({
       initialMarkdown={draft}
       onChange={onChange}
       onFiles={uploads.add}
+      attach={
+        <AttachMenu
+          onFiles={uploads.add}
+          trigger={
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              className={ACTION_BUTTON}
+            >
+              <IconPaperclip />
+            </Button>
+          }
+        />
+      }
       hasFiles={uploads.ready.length > 0}
       sendBlocked={sendBlockedBy(uploads)}
       attachments={
