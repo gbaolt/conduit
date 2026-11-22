@@ -2,6 +2,8 @@ import {
   contentTypesOf,
   type ListedFile,
   PREVIEWABLE_CONTENT_TYPES,
+  TEXT_CONTENT_PREFIX,
+  TEXT_CONTENT_TYPES,
 } from '@conduit/contract';
 import type { Prisma } from '@generated/prisma/client';
 import { Inject, Injectable } from '@nestjs/common';
@@ -35,10 +37,21 @@ export function toStoredFile(row: FileRow): StoredFile {
   };
 }
 
+const TEXT: Prisma.FileWhereInput = {
+  OR: [
+    { contentType: { startsWith: TEXT_CONTENT_PREFIX } },
+    { contentType: { in: TEXT_CONTENT_TYPES } },
+  ],
+};
+
 function ofKind(kind: FileListQuery['kind']): Prisma.FileWhereInput {
   if (!kind) return {};
+  if (kind === 'text') return TEXT;
   if (kind === 'other') {
-    return { contentType: { notIn: PREVIEWABLE_CONTENT_TYPES } };
+    return {
+      contentType: { notIn: PREVIEWABLE_CONTENT_TYPES },
+      NOT: TEXT,
+    };
   }
   return { contentType: { in: contentTypesOf(kind) } };
 }

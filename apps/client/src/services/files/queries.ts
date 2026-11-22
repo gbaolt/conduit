@@ -14,6 +14,14 @@ export const fileUrlsQuery = (fileIds: string[]) =>
     select: (urls) => new Map(urls.map((url) => [url.id, url])),
   });
 
+/** The start of a sent text file. A sent file never changes, so it is fetched once. */
+export const fileTextQuery = (fileId: string) =>
+  orpc.files.text.queryOptions({
+    input: { fileId },
+    staleTime: Infinity,
+    retry: false,
+  });
+
 export type FilesListInput = Omit<ListFilesInput, 'before' | 'limit'>;
 
 /** Pages of the Files page, newest first. Empty filters are left out, so `?type=` and none share a cache entry. */

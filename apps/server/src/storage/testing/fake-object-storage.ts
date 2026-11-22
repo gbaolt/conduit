@@ -1,9 +1,13 @@
 import type { ObjectStorage } from '@/storage/domain/object-storage';
 
-/** Storage in memory. `objects` holds the size a browser PUT would have stored, by key, and `bytes` any content a test set. */
+/**
+ * Storage in memory. `objects` holds the size a browser PUT would have stored, by key, and `bytes` any content a
+ * test set. `ranges` records each ranged read as `[key, bytes]`.
+ */
 export function createFakeStorage() {
   const objects = new Map<string, number>();
   const bytes = new Map<string, Uint8Array>();
+  const ranges: [string, number][] = [];
   const storage: ObjectStorage = {
     presignUpload: ({ key }) =>
       Promise.resolve({
@@ -28,8 +32,14 @@ export function createFakeStorage() {
       bytes.has(key)
         ? Promise.resolve(bytes.get(key)!)
         : Promise.reject(new Error(`Nothing is stored at ${key}.`)),
+    readRange: (key, size) => {
+      ranges.push([key, size]);
+      return bytes.has(key)
+        ? Promise.resolve(bytes.get(key)!.slice(0, size))
+        : Promise.reject(new Error(`Nothing is stored at ${key}.`));
+    },
   };
-  return { storage, objects, bytes };
+  return { storage, objects, bytes, ranges };
 }
 
 export const fakeStorage = createFakeStorage().storage;

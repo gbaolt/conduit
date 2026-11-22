@@ -73,6 +73,17 @@ export class FilesController {
       );
   }
 
+  @Implement(contract.files.text)
+  text() {
+    return implement(contract.files.text)
+      .use(authorized)
+      .use(arcjet.read)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.filesService.text(viewerOf(context), input.fileId)
+      );
+  }
+
   @Implement(contract.files.list)
   list() {
     return implement(contract.files.list)

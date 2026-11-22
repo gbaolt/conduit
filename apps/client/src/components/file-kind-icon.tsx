@@ -1,6 +1,7 @@
 import { type FileKind, fileKind } from '@conduit/contract';
 import {
   IconFile,
+  IconFileCode,
   IconFileTypePdf,
   IconMovie,
   IconPhoto,
@@ -12,6 +13,7 @@ const ICONS: Record<FileKind, ComponentType<IconProps>> = {
   image: IconPhoto,
   video: IconMovie,
   pdf: IconFileTypePdf,
+  text: IconFileCode,
   other: IconFile,
 };
 

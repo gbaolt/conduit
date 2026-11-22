@@ -98,6 +98,18 @@ export class S3ObjectStorage implements ObjectStorage {
     return object.Body.transformToByteArray();
   }
 
+  async readRange(key: string, bytes: number) {
+    const object = await this.s3().send(
+      new GetObjectCommand({
+        Bucket: this.config().bucket,
+        Key: key,
+        Range: `bytes=0-${bytes - 1}`,
+      })
+    );
+    if (!object.Body) throw new Error(`Nothing is stored at ${key}.`);
+    return object.Body.transformToByteArray();
+  }
+
   async delete(keys: string[]) {
     const { bucket } = this.config();
     for (let start = 0; start < keys.length; start += DELETE_BATCH) {

@@ -32,6 +32,7 @@ export const KIND_LABELS: Record<FileKind, string> = {
   image: 'Images',
   video: 'Videos',
   pdf: 'PDFs',
+  text: 'Text and code',
   other: 'Other files',
 };
 

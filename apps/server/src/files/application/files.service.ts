@@ -2,8 +2,10 @@ import {
   canChannel,
   checkChannel,
   FILE_SIZE_MAX,
+  FILE_TEXT_PREVIEW_MAX,
   fileKind,
   FILES_PAGE_DEFAULT,
+  type FileText,
   fileTooLargeMessage,
   type FileUploadInput,
   type FileUrl,
@@ -17,6 +19,7 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import { fileError } from '@/files/domain/file-errors';
 import { fileKey } from '@/files/domain/file-key';
+import { readableText } from '@/files/domain/file-text';
 import {
   FilesRepository,
   type StoredFile,
@@ -158,13 +161,14 @@ export class FilesService {
     });
   }
 
-  async urls(viewer: FileViewer, fileIds: string[]): Promise<FileUrl[]> {
+  /** The sent files of `fileIds` the viewer can read now. The rest are left out, as if they did not exist. */
+  private async readableFiles(viewer: FileViewer, fileIds: string[]) {
     const [files, readable] = await Promise.all([
       this.files.findMany(fileIds),
       this.rooms.accessibleRoomIds(viewer),
     ]);
     const rooms = new Set(readable);
-    const visible = files.filter(
+    return files.filter(
       (file) =>
         file.organizationId === viewer.organizationId &&
         file.status === 'ready' &&
@@ -172,11 +176,31 @@ export class FilesService {
         !file.deletedAt &&
         rooms.has(file.roomId)
     );
+  }
+
+  /**
+   * The start of a text file the viewer can read, for its preview. Only the first `FILE_TEXT_PREVIEW_MAX` bytes
+   * are read from storage, so a large log costs no more than a small one.
+   */
+  async text(viewer: FileViewer, fileId: string): Promise<FileText> {
+    const [file] = await this.readableFiles(viewer, [fileId]);
+    if (!file) throw fileError('NOT_FOUND');
+    if (fileKind(file.contentType) !== 'text') throw fileError('NOT_TEXT');
+    const truncated = file.size > FILE_TEXT_PREVIEW_MAX;
+    const bytes = await this.storage.readRange(file.key, FILE_TEXT_PREVIEW_MAX);
+    const text = readableText(bytes, truncated);
+    if (text === null) throw fileError('NOT_TEXT');
+    return { text, truncated };
+  }
+
+  async urls(viewer: FileViewer, fileIds: string[]): Promise<FileUrl[]> {
+    const visible = await this.readableFiles(viewer, fileIds);
     return Promise.all(
       visible.map(async (file) => {
         const options = { filename: file.name, contentType: file.contentType };
         const [viewUrl, downloadUrl] = await Promise.all([
-          fileKind(file.contentType) === 'other'
+          // Text stays out of the browser's own viewer, so an uploaded page never runs from storage.
+          ['other', 'text'].includes(fileKind(file.contentType))
             ? null
             : this.storage.presignDownload(file.key, {
                 ...options,

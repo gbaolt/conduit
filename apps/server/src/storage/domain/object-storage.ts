@@ -28,4 +28,7 @@ export abstract class ObjectStorage {
 
   /** The stored bytes. Throws when nothing is stored at `key`. */
   abstract read(key: string): Promise<Uint8Array>;
+
+  /** At most the first `bytes` of the stored object, read without fetching the rest. Throws when nothing is stored. */
+  abstract readRange(key: string, bytes: number): Promise<Uint8Array>;
 }

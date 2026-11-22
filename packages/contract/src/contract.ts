@@ -52,6 +52,7 @@ import {
   cancelFileContract,
   completeFileContract,
   fileUploadUrlContract,
+  fileTextContract,
   fileUrlsContract,
   listFilesContract,
 } from './contracts/files';
@@ -247,6 +248,7 @@ export const contract = {
     complete: completeFileContract,
     cancel: cancelFileContract,
     urls: fileUrlsContract,
+    text: fileTextContract,
     list: listFilesContract,
   },
   search: {
