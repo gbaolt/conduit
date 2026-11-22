@@ -39,6 +39,7 @@ model User {
   savedMessages        SavedMessage[]
   summaries            Summary[]
   askChats             AskChat[]
+  askAttachments       AskAttachment[]
   notificationSettings NotificationSettings[]
   activityItems        ActivityItem[]         @relation("ActivityRecipient")
   activityActed        ActivityItem[]         @relation("ActivityActor")
@@ -78,6 +79,7 @@ model Organization {
   settings             WorkspaceSettings?
   summaries            Summary[]
   askChats             AskChat[]
+  askAttachments       AskAttachment[]
   presences            Presence[]
   notificationSettings NotificationSettings[]
   digestStates         DigestState[]
@@ -471,19 +473,45 @@ model AskChat {
 
 /// One turn of an Ask chat: a question and its answer, stored together once the answer settles.
 model Answer {
-  id        String   @id @default(cuid())
-  chatId    String
-  chat      AskChat  @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  question  String
+  id          String          @id @default(cuid())
+  chatId      String
+  chat        AskChat         @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  question    String
   /// False when the sources the asker could read didn't answer the question.
-  found     Boolean
+  found       Boolean
   /// Markdown, with each `[n]` citing `sources[n - 1]`.
-  body      String
+  body        String
   /// `{ type: 'message' | 'file', id }[]`, the cited sources in order of first citation.
-  sources   Json
-  createdAt DateTime @default(now())
+  sources     Json
+  attachments AskAttachment[]
+  createdAt   DateTime        @default(now())
 
   @@index([chatId, createdAt])
+}
+
+/// A file the asker attached to an Ask question. It belongs to the asker, not to a room, and nobody else reads it.
+model AskAttachment {
+  id             String       @id
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  ownerId        String
+  owner          User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  /// Set once a question carries it. Deleting the chat sets it back to null, and the sweep removes the object.
+  answerId       String?
+  answer         Answer?      @relation(fields: [answerId], references: [id], onDelete: SetNull)
+  /// `ask/<organizationId>/<ownerId>/<id>/<safe name>`, under a prefix the bucket never serves publicly.
+  key            String       @unique
+  name           String
+  contentType    String
+  size           Int
+  width          Int?
+  height         Int?
+  /// Set once storage holds the promised bytes.
+  ready          Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  @@index([answerId])
+  @@index([createdAt])
 }
 
 /// App-owned. How far a member has read a conversation. The sidebar compares it with `Channel.lastMessageAt`.

@@ -22,6 +22,7 @@ export * from './lib/activity-pacing';
 export * from './lib/channel-policy';
 export * from './lib/dm-open';
 export * from './lib/feed-ranking';
+export * from './lib/ask-attachments';
 export * from './lib/file-kind';
 export * from './lib/file-limits';
 export * from './lib/highlight-terms';

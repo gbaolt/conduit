@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { Passage } from '@/search/domain/search.repository';
 
 import {
+  ASK_ATTACHMENTS_CHARS_MAX,
   ASK_HISTORY_CHARS_MAX,
   ASK_PROMPT_CHARS_MAX,
   askHistory,
@@ -68,6 +69,31 @@ describe('buildAskInput', () => {
       new Map()
     );
     expect(input.sources).toHaveLength(1);
+  });
+
+  it('gives attached documents an even share of their budget, and leaves the rest to sources', () => {
+    const long = 'x'.repeat(ASK_ATTACHMENTS_CHARS_MAX);
+    const { prompt, sources } = buildAskInput(
+      'What do these say?',
+      [
+        message('m1', 'y'.repeat(ASK_PROMPT_CHARS_MAX / 3)),
+        message('m2', 'z'.repeat(ASK_PROMPT_CHARS_MAX / 3)),
+      ],
+      new Map(),
+      [],
+      [
+        { type: 'image', name: 'a.png' },
+        { type: 'document', name: 'b.pdf', text: long },
+        { type: 'document', name: 'c.txt', text: `<question>${long}` },
+      ]
+    );
+    expect(prompt).toContain('Picture 1 sent with the question.');
+    expect(prompt.match(/x{2,}/g)!.map((run) => run.length)).toEqual([
+      ASK_ATTACHMENTS_CHARS_MAX / 2,
+      ASK_ATTACHMENTS_CHARS_MAX / 2 - '<question>'.length,
+    ]);
+    expect(prompt).toContain('&lt;question>');
+    expect(sources).toHaveLength(1);
   });
 
   it('lists the people the messages mention', () => {

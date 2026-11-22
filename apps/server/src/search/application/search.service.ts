@@ -23,6 +23,14 @@ export type SearchViewer = WorkspaceViewer;
 /** How many index hits to read per result shown, since hydration drops hits the caller can't see. */
 const OVERFETCH = 3;
 
+const readScope = (
+  organizationId: string,
+  roomIds: string[]
+): SearchScope | null =>
+  roomIds.length === 0
+    ? null
+    : { organizationId, roomIds, authorIds: [], hasFile: false };
+
 const quoted = (ids: string[]) =>
   ids.map((id) => `'${id.replace(/['\\]/g, '')}'`).join(', ');
 
@@ -136,18 +144,19 @@ export class SearchService {
   }
 
   /**
-   * The messages and file chunks that best match, best first, each read back through the caller's access. A
-   * chunk's text comes from the index, and only once Postgres has passed its file. Each thread a reply is in adds
-   * its root, last. Throws when the index can't be reached.
+   * The messages and file chunks in `roomIds` that best match, best first, each read back from Postgres. A chunk's
+   * text comes from the index, and only once Postgres has passed its file. Each thread a reply is in adds its root,
+   * last. The caller resolves `roomIds` to what the asker may read. Throws when the index can't be reached.
    */
   async passages(
-    viewer: SearchViewer,
+    organizationId: string,
+    roomIds: string[],
     text: string,
     topK: number
   ): Promise<Passage[]> {
-    const scope = await this.readScope(viewer);
+    const scope = readScope(organizationId, roomIds);
     if (!scope) return [];
-    const hits = await this.index.query(viewer.organizationId, {
+    const hits = await this.index.query(organizationId, {
       text,
       filter: `roomId IN (${quoted(scope.roomIds)})`,
       topK,
@@ -186,30 +195,19 @@ export class SearchService {
     ];
   }
 
-  /** The messages and files with these ids that the caller can still read, in the order of `ids`. */
+  /** The messages and files with these ids that are still live in `roomIds`, in the order of `ids`. */
   async readable(
-    viewer: SearchViewer,
+    organizationId: string,
+    roomIds: string[],
     ids: { messageIds: string[]; fileIds: string[] }
   ) {
-    const scope = await this.readScope(viewer);
+    const scope = readScope(organizationId, roomIds);
     if (!scope) return { messages: [], files: [] };
     const [messages, files] = await Promise.all([
       this.search.messages(scope, ids.messageIds),
       this.search.files(scope, ids.fileIds),
     ]);
     return { messages, files };
-  }
-
-  /** Every room the caller can read, or null when there is none. */
-  private async readScope(viewer: SearchViewer): Promise<SearchScope | null> {
-    const roomIds = await this.rooms.accessibleRoomIds(viewer);
-    if (roomIds.length === 0) return null;
-    return {
-      organizationId: viewer.organizationId,
-      roomIds,
-      authorIds: [],
-      hasFile: false,
-    };
   }
 
   /** The filters as ids and times, or null when a filter names nothing the caller can read. */

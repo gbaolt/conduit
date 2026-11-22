@@ -56,7 +56,9 @@ import {
   listFilesContract,
 } from './contracts/files';
 import {
+  askAttachmentUrlContract,
   askQuestionContract,
+  completeAskAttachmentContract,
   deleteAskChatContract,
   getAskChatContract,
   listAskChatsContract,
@@ -254,6 +256,8 @@ export const contract = {
     chats: listAskChatsContract,
     chat: getAskChatContract,
     deleteChat: deleteAskChatContract,
+    attachmentUrl: askAttachmentUrlContract,
+    completeAttachment: completeAskAttachmentContract,
   },
   dms: {
     list: listDmsContract,

@@ -1,6 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import { gateway, type LanguageModel, Output, streamText } from 'ai';
+import {
+  gateway,
+  hasToolCall,
+  isStepCount,
+  type LanguageModel,
+  Output,
+  parsePartialJson,
+  streamText,
+  type TextStreamPart,
+  tool,
+  type ToolSet,
+} from 'ai';
 
 import { aiError } from '@/ai/domain/ai-errors';
 import type {
@@ -57,7 +68,16 @@ export function selectModel(
   throw aiError('AI_UNAVAILABLE');
 }
 
-/** Structured output from the AI SDK. Reads the environment on each call, so a server with no provider still boots. */
+/** The tool a request with tools answers through. No tool of the caller's may take its name. */
+const ANSWER_TOOL = 'answer';
+
+/**
+ * Structured output from the AI SDK. Reads the environment on each call, so a server with no provider still boots.
+ *
+ * With tools, the answer is one more tool the model must call last. The JSON response format that `Output.object`
+ * sends on every step kept the model from calling a tool at all: it answered at once from the prompt, and made up
+ * what it could not see. Measured in November 2026 with DeepSeek V4.1 Flash, which then called `channel` when asked.
+ */
 @Injectable()
 export class AiSdkModel implements ModelPort {
   async *streamObject<T>(
@@ -66,25 +86,76 @@ export class AiSdkModel implements ModelPort {
     const model = selectModel(process.env);
 
     let failure: unknown;
-    const result = streamText({
+    const common = {
       model,
-      system: request.system,
-      prompt: request.prompt,
-      output: Output.object({ schema: request.schema }),
+      ...(request.images?.length
+        ? {
+            messages: [
+              {
+                role: 'user' as const,
+                content: [
+                  { type: 'text' as const, text: request.prompt },
+                  ...request.images.map((image) => ({
+                    type: 'file' as const,
+                    data: image.data,
+                    mediaType: image.mediaType,
+                  })),
+                ],
+              },
+            ],
+          }
+        : { prompt: request.prompt }),
       maxOutputTokens: request.maxOutputTokens,
       // A reasoning model otherwise spends the whole output cap thinking and never writes the object.
-      reasoning: 'none',
+      reasoning: 'none' as const,
       // OpenRouter takes its order from the model above; only the gateway reads this.
       providerOptions: { gateway: { order: GATEWAY_ORDER } },
       abortSignal: request.signal,
       temperature: 0.2,
       maxRetries: 1,
-      onError: ({ error }) => {
+      onError: ({ error }: { error: unknown }) => {
         failure = error;
       },
-    });
+    };
 
     try {
+      if (request.tools) {
+        const result = streamText({
+          ...common,
+          system: `${request.system}\nWhen you are ready to answer, call ${ANSWER_TOOL} once, with the answer.`,
+          tools: {
+            ...Object.fromEntries(
+              Object.entries(request.tools).map(
+                ([name, { description, input, execute }]) => [
+                  name,
+                  tool({ description, inputSchema: input, execute }),
+                ]
+              )
+            ),
+            [ANSWER_TOOL]: tool({
+              description: 'Give the final answer. Call it last, once.',
+              inputSchema: request.schema,
+            }),
+          },
+          toolChoice: 'required',
+          // Answering is one more step after the tool rounds.
+          stopWhen: [
+            hasToolCall(ANSWER_TOOL),
+            isStepCount((request.maxToolSteps ?? 0) + 1),
+          ],
+        });
+        const answer = yield* answerInputs<T>(result.fullStream);
+        if (failure) throw failure;
+        // The tool rounds ran out before the model answered.
+        if (answer === undefined) throw new Error('The model gave no answer.');
+        yield request.schema.parse(answer) as PartialObject<T>;
+        return;
+      }
+      const result = streamText({
+        ...common,
+        system: request.system,
+        output: Output.object({ schema: request.schema }),
+      });
       for await (const partial of result.partialOutputStream) {
         yield partial as PartialObject<T>;
       }
@@ -100,4 +171,26 @@ export class AiSdkModel implements ModelPort {
       throw aiError('AI_UNAVAILABLE');
     }
   }
+}
+
+/** Yields the `answer` tool's input as it streams, and returns it as the model finished it. */
+async function* answerInputs<T>(
+  stream: AsyncIterable<TextStreamPart<ToolSet>>
+): AsyncGenerator<PartialObject<T>, unknown> {
+  let answerId: string | undefined;
+  let text = '';
+  let answer: unknown;
+  for await (const part of stream) {
+    if (part.type === 'tool-input-start' && part.toolName === ANSWER_TOOL) {
+      answerId = part.id;
+      text = '';
+    } else if (part.type === 'tool-input-delta' && part.id === answerId) {
+      text += part.delta;
+      const { value } = await parsePartialJson(text);
+      if (value && typeof value === 'object') yield value as PartialObject<T>;
+    } else if (part.type === 'tool-call' && part.toolName === ANSWER_TOOL) {
+      answer = part.input;
+    }
+  }
+  return answer;
 }

@@ -5,6 +5,7 @@ import { implement } from '@orpc/server';
 import { waitUntil } from '@vercel/functions';
 
 import { AskService } from '@/ask/application/ask.service';
+import { AskAttachmentsService } from '@/ask/application/ask-attachments.service';
 import { authorized } from '@/infrastructure/orpc/authorized';
 import { translateStreamErrors } from '@/infrastructure/orpc/errors';
 import { workspaceMember } from '@/infrastructure/orpc/workspace-member';
@@ -25,7 +26,11 @@ function viewerOf(context: {
 
 @Controller()
 export class AskController {
-  constructor(@Inject(AskService) private readonly ask: AskService) {}
+  constructor(
+    @Inject(AskService) private readonly ask: AskService,
+    @Inject(AskAttachmentsService)
+    private readonly attachments: AskAttachmentsService
+  ) {}
 
   @Implement(contract.ask.question)
   question() {
@@ -68,6 +73,28 @@ export class AskController {
       .use(workspaceMember)
       .handler(({ context, input }) =>
         this.ask.deleteChat(viewerOf(context), input.chatId)
+      );
+  }
+
+  @Implement(contract.ask.attachmentUrl)
+  attachmentUrl() {
+    return implement(contract.ask.attachmentUrl)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.attachments.uploadUrl(viewerOf(context), input)
+      );
+  }
+
+  @Implement(contract.ask.completeAttachment)
+  completeAttachment() {
+    return implement(contract.ask.completeAttachment)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.attachments.complete(viewerOf(context), input)
       );
   }
 }

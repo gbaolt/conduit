@@ -29,6 +29,6 @@ import { SearchSyncController } from './presentation/search-sync.controller';
     { provide: SearchIndex, useClass: UpstashSearchIndex },
     { provide: FileText, useClass: StorageFileText },
   ],
-  exports: [SearchService, SearchSyncService, SearchIndex],
+  exports: [SearchService, SearchSyncService, SearchIndex, FileText],
 })
 export class SearchModule {}

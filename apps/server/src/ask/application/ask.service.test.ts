@@ -10,6 +10,8 @@ import type {
 } from '@/ai/domain/model.port';
 import { ASK_REWRITE_PROMPT } from '@/ask/domain/ask-prompt';
 import { PrismaAnswersRepository } from '@/ask/infrastructure/prisma-answers.repository';
+import { PrismaAskAttachmentsRepository } from '@/ask/infrastructure/prisma-ask-attachments.repository';
+import { PrismaAskContextRepository } from '@/ask/infrastructure/prisma-ask-context.repository';
 import { prisma } from '@/infrastructure/database/prisma.service';
 import { PrismaMessagesRepository } from '@/messages/infrastructure/prisma-messages.repository';
 import { NotificationSettingsService } from '@/notifications/application/notification-settings.service';
@@ -20,8 +22,10 @@ import { SearchSyncService } from '@/search/application/search-sync.service';
 import { PrismaSearchRepository } from '@/search/infrastructure/prisma-search.repository';
 import { PrismaSearchSyncRepository } from '@/search/infrastructure/prisma-search-sync.repository';
 import { createFakeSearchIndex } from '@/search/testing/fake-search-index';
+import { createFakeStorage } from '@/storage/testing/fake-object-storage';
 
 import { AskService } from './ask.service';
+import { AskAttachmentsService } from './ask-attachments.service';
 
 vi.hoisted(() => {
   // The prisma singleton reads DATABASE_URL on import; never let tests reach the shared database.
@@ -36,11 +40,18 @@ const connectionString = process.env.TEST_DATABASE_URL;
  * follow-up's query rewrite gets `rewrite`, or throws when it is an error.
  */
 function fakeModel(
-  partials: PartialObject<ModelAnswer>[],
+  /** Or a function, read once the tools have run, for an answer that cites what they returned. */
+  partials: PartialObject<ModelAnswer>[] | (() => PartialObject<ModelAnswer>[]),
   {
     gate,
     rewrite = 'rewritten query',
-  }: { gate?: Promise<void>; rewrite?: string | Error } = {}
+    tools,
+  }: {
+    gate?: Promise<void>;
+    rewrite?: string | Error;
+    /** Calls the request's tools before the answer, as a model would. */
+    tools?: (request: ModelRequest<unknown>) => Promise<void>;
+  } = {}
 ) {
   const requests: ModelRequest<unknown>[] = [];
   const model = {
@@ -51,7 +62,9 @@ function fakeModel(
         yield { query: rewrite };
         return;
       }
-      const [first, ...rest] = partials;
+      await tools?.(request);
+      const [first, ...rest] =
+        typeof partials === 'function' ? partials() : partials;
       yield first;
       await gate;
       yield* rest;
@@ -100,15 +113,50 @@ describe.skipIf(!connectionString)('AskService', () => {
     organizationId: org,
     workspaceRole: 'member' as const,
   });
+  const access = (aiEnabled: boolean) =>
+    new AiAccessService({
+      get: async () => ({ aiEnabled }),
+    } as Partial<AiSettingsRepository> as AiSettingsRepository);
+  const storage = createFakeStorage();
+  const attachments = new AskAttachmentsService(
+    access(true),
+    new PrismaAskAttachmentsRepository(prisma),
+    storage.storage,
+    {
+      extract: async (file) =>
+        new TextDecoder().decode(await storage.storage.read(file.key)),
+    }
+  );
   const service = (model: ModelPort, aiEnabled = true) =>
     new AskService(
-      new AiAccessService({
-        get: async () => ({ aiEnabled }),
-      } as Partial<AiSettingsRepository> as AiSettingsRepository),
+      access(aiEnabled),
       model,
       search,
-      answers
+      answers,
+      new PrismaAskContextRepository(prisma),
+      attachments
     );
+  /** Uploads a file as the browser would, and completes it. */
+  const attach = async (
+    userId: string,
+    name: string,
+    contentType: string,
+    content: string
+  ) => {
+    const bytes = new TextEncoder().encode(content);
+    const { attachmentId } = await attachments.uploadUrl(viewerOf(userId), {
+      name,
+      contentType,
+      size: bytes.length,
+    });
+    const { key } = (await prisma.askAttachment.findUnique({
+      where: { id: attachmentId },
+    }))!;
+    storage.objects.set(key, bytes.length);
+    storage.bytes.set(key, bytes);
+    await attachments.complete(viewerOf(userId), { attachmentId });
+    return attachmentId;
+  };
   const ids: Record<string, string> = {};
   const mentions = { userIds: [], channel: false, here: false };
 
@@ -186,7 +234,20 @@ describe.skipIf(!connectionString)('AskService', () => {
       },
     });
 
+    await prisma.room.create({
+      data: {
+        id: room('dm'),
+        organizationId: org,
+        name: `dm-${run}`,
+        kind: 'DM',
+        dmKey: `${org}:${ana}:${bao}`,
+        visibility: 'PRIVATE',
+        members: { create: [{ userId: ana }, { userId: bao }] },
+      },
+    });
+
     await send('root', room('design'), 'Should the starter plan change?');
+    await send('payroll', room('dm'), 'Payroll is due Friday');
     await send('reply', room('design'), 'Starter stays at 10 dollars', {
       parentId: ids.root,
     });
@@ -391,7 +452,8 @@ describe.skipIf(!connectionString)('AskService', () => {
     );
 
     expect(passages).toHaveBeenLastCalledWith(
-      viewerOf(ana),
+      org,
+      expect.any(Array),
       'Pro price? and Starter?',
       expect.any(Number)
     );
@@ -460,5 +522,250 @@ describe.skipIf(!connectionString)('AskService', () => {
       service(model, false).question(viewerOf(ana), { question: 'Anything?' })
     ).rejects.toMatchObject({ code: 'AI_DISABLED' });
     expect(requests).toHaveLength(0);
+  });
+
+  it('keeps every direct message out, even one the asker is in', async () => {
+    let searched = '';
+    const { model, requests } = fakeModel([{ found: false, body: '' }], {
+      tools: async (request) => {
+        searched = await request.tools!.search!.execute({ query: 'Payroll' });
+      },
+    });
+    await answerOf(
+      await service(model).question(viewerOf(ana), {
+        question: 'When is payroll due?',
+      })
+    );
+
+    expect(requests.at(-1)!.prompt).not.toContain('Payroll is due');
+    expect(searched).not.toContain('Payroll is due');
+  });
+
+  it('cites what a tool reads, and reads it back when the chat reopens', async () => {
+    const results: Record<string, string> = {};
+    const { model } = fakeModel(
+      () => {
+        const n = results.design!.match(/<source n="(\d+)" type="channel"/)![1];
+        return [
+          { found: true, body: `Ana Silva and Bao Tran are in design [${n}].` },
+        ];
+      },
+      {
+        tools: async ({ tools }) => {
+          results.design = await tools!.channel!.execute({ name: 'design' });
+          results.secret = await tools!.channel!.execute({ name: 'secret' });
+          results.people = await tools!.people!.execute({ name: 'Bao' });
+        },
+      }
+    );
+
+    const answer = await answerOf(
+      await service(model).question(viewerOf(ana), {
+        question: 'Who is in design?',
+      })
+    );
+
+    expect(results.design).toContain('Ana Silva');
+    expect(results.design).toContain('Bao Tran');
+    expect(results.secret).toBe('Nothing found.');
+    expect(results.people).toContain('role="member"');
+    expect(results.people).not.toContain('@test.local');
+    expect(answer).toMatchObject({
+      found: true,
+      body: 'Ana Silva and Bao Tran are in design [1].',
+      sources: [{ type: 'channel', channel: { id: room('design') } }],
+    });
+    expect(
+      (await service(model).chat(viewerOf(ana), answer.chatId)).answers[0]
+    ).toMatchObject({
+      sources: [{ type: 'channel', channel: { id: room('design') } }],
+    });
+  });
+
+  it("reads the asker's own saved messages and drafts, never one in a DM", async () => {
+    await prisma.savedMessage.createMany({
+      data: [
+        { userId: ana, messageId: ids.reply! },
+        { userId: ana, messageId: ids.payroll! },
+        { userId: bao, messageId: ids.root! },
+      ],
+    });
+    await prisma.draft.createMany({
+      data: [
+        { userId: ana, roomId: room('design'), body: 'Draft about pricing' },
+        { userId: ana, roomId: room('dm'), body: 'Draft to Bao alone' },
+        { userId: bao, roomId: room('design'), body: 'Bao draft' },
+      ],
+    });
+    const results: Record<string, string> = {};
+    const { model } = fakeModel([{ found: false, body: '' }], {
+      tools: async ({ tools }) => {
+        results.saved = await tools!.saved!.execute({});
+        results.drafts = await tools!.drafts!.execute({ query: 'pricing' });
+      },
+    });
+    await answerOf(
+      await service(model).question(viewerOf(ana), {
+        question: 'What did I save?',
+      })
+    );
+
+    expect(results.saved).toContain('Starter stays at 10 dollars');
+    expect(results.saved).not.toContain('Payroll');
+    expect(results.saved).not.toContain('Should the starter plan change?');
+    expect(results.drafts).toContain('Draft about pricing');
+    expect(results.drafts).not.toContain('Bao');
+  });
+
+  it('answers from attached files, and shows them when the chat reopens', async () => {
+    const image = await attach(ana, 'receipt.png', 'image/png', 'png bytes');
+    const notes = await attach(
+      ana,
+      'notes.md',
+      'text/markdown',
+      'The launch moves to Tuesday.'
+    );
+    const { model, requests } = fakeModel([
+      { found: true, body: 'The launch moves to Tuesday, as notes.md says.' },
+    ]);
+    const answer = await answerOf(
+      await service(model).question(viewerOf(ana), {
+        question: 'When is the launch?',
+        attachmentIds: [image, notes],
+      })
+    );
+
+    const request = requests.at(-1)!;
+    expect(request.images).toEqual([
+      { mediaType: 'image/png', data: new TextEncoder().encode('png bytes') },
+    ]);
+    expect(request.prompt).toContain(
+      '<attachment name="receipt.png" type="image">\nPicture 1 sent with the question.\n</attachment>'
+    );
+    expect(request.prompt).toContain(
+      '<attachment name="notes.md" type="document">\nThe launch moves to Tuesday.\n</attachment>'
+    );
+    // It cites no source, and still answers, because it read the attachments.
+    expect(answer).toMatchObject({ found: true, sources: [] });
+    expect(answer.attachments.map((a) => a.name)).toEqual([
+      'receipt.png',
+      'notes.md',
+    ]);
+
+    const chat = await service(model).chat(viewerOf(ana), answer.chatId);
+    expect(chat.answers[0]!.attachments).toEqual([
+      expect.objectContaining({
+        id: image,
+        url: expect.stringMatching(
+          /^https:\/\/download\.test\/ask\/.*\?inline$/
+        ),
+      }),
+      expect.objectContaining({ id: notes }),
+    ]);
+
+    const followUp = fakeModel([{ found: false, body: '' }]);
+    await collect(
+      (
+        await service(followUp.model).question(viewerOf(ana), {
+          chatId: answer.chatId,
+          question: 'And the deck?',
+        })
+      ).events
+    );
+    const asked = followUp.requests.at(-1)!;
+    expect(asked.images).toEqual([]);
+    expect(asked.prompt).toContain(
+      '<attached>receipt.png, notes.md</attached>'
+    );
+    expect(asked.prompt).not.toContain('<attachment ');
+  });
+
+  it("refuses an attachment that is another asker's, unfinished, or already sent", async () => {
+    const { model } = fakeModel([{ found: false, body: '' }]);
+    const baos = await attach(bao, 'b.txt', 'text/plain', 'Bao only');
+    await expect(
+      service(model).question(viewerOf(ana), {
+        question: 'What does it say?',
+        attachmentIds: [baos],
+      })
+    ).rejects.toMatchObject({ code: 'ATTACHMENT_NOT_FOUND' });
+    await expect(
+      attachments.complete(viewerOf(ana), { attachmentId: baos })
+    ).rejects.toMatchObject({ code: 'ATTACHMENT_NOT_FOUND' });
+
+    const { attachmentId: unfinished } = await attachments.uploadUrl(
+      viewerOf(ana),
+      { name: 'big.pdf', contentType: 'application/pdf', size: 100 }
+    );
+    await expect(
+      attachments.complete(viewerOf(ana), { attachmentId: unfinished })
+    ).rejects.toMatchObject({ code: 'UPLOAD_MISSING' });
+    await expect(
+      service(model).question(viewerOf(ana), {
+        question: 'What does it say?',
+        attachmentIds: [unfinished],
+      })
+    ).rejects.toMatchObject({ code: 'ATTACHMENT_NOT_FOUND' });
+
+    const sent = await attach(ana, 'a.txt', 'text/plain', 'Ana only');
+    await answerOf(
+      await service(model).question(viewerOf(ana), {
+        question: 'What does it say?',
+        attachmentIds: [sent],
+      })
+    );
+    await expect(
+      service(model).question(viewerOf(ana), {
+        question: 'And again?',
+        attachmentIds: [sent],
+      })
+    ).rejects.toMatchObject({ code: 'ATTACHMENT_NOT_FOUND' });
+  });
+
+  it('accepts only images, PDFs and text files it can read', async () => {
+    await expect(
+      attachments.uploadUrl(viewerOf(ana), {
+        name: 'clip.mp4',
+        contentType: 'video/mp4',
+        size: 10,
+      })
+    ).rejects.toMatchObject({ code: 'ATTACHMENT_REJECTED' });
+    await expect(
+      attachments.uploadUrl(viewerOf(ana), {
+        name: 'huge.png',
+        contentType: 'image/png',
+        size: 6 * 1024 * 1024,
+      })
+    ).rejects.toMatchObject({
+      code: 'ATTACHMENT_REJECTED',
+      message: 'Images can be up to 5 MB here. This one is 6 MB.',
+    });
+  });
+
+  it("sweeps an unsent upload after a day, and a deleted chat's files", async () => {
+    const unsent = await attach(ana, 'old.txt', 'text/plain', 'Old');
+    const sent = await attach(ana, 'kept.txt', 'text/plain', 'Kept');
+    const { model } = fakeModel([{ found: true, body: 'Kept says Kept.' }]);
+    const answer = await answerOf(
+      await service(model).question(viewerOf(ana), {
+        question: 'What does it say?',
+        attachmentIds: [sent],
+      })
+    );
+    const keyOf = async (id: string) =>
+      (await prisma.askAttachment.findUnique({ where: { id } }))?.key;
+    const unsentKey = (await keyOf(unsent))!;
+    const sentKey = (await keyOf(sent))!;
+
+    const tomorrow = new Date(Date.now() + 25 * 60 * 60 * 1000);
+    await attachments.sweep(tomorrow);
+    expect(await keyOf(unsent)).toBeUndefined();
+    expect(storage.objects.has(unsentKey)).toBe(false);
+    expect(await keyOf(sent)).toBe(sentKey);
+
+    await service(model).deleteChat(viewerOf(ana), answer.chatId);
+    await attachments.sweep(tomorrow);
+    expect(await keyOf(sent)).toBeUndefined();
+    expect(storage.objects.has(sentKey)).toBe(false);
   });
 });

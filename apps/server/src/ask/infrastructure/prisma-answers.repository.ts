@@ -10,7 +10,15 @@ import type {
 } from '@/ask/domain/answers.repository';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 
-const toStored = (row: Prisma.AnswerGetPayload<object>): StoredAnswer => ({
+const withAttachments = {
+  attachments: {
+    orderBy: [{ createdAt: 'asc' as const }, { id: 'asc' as const }],
+  },
+} satisfies Prisma.AnswerInclude;
+
+const toStored = (
+  row: Prisma.AnswerGetPayload<{ include: typeof withAttachments }>
+): StoredAnswer => ({
   ...row,
   sources: row.sources as AnswerRef[],
 });
@@ -27,28 +35,43 @@ const chatFields = {
 export class PrismaAnswersRepository implements AnswersRepository {
   constructor(@Inject(PrismaService) private readonly db: PrismaService) {}
 
-  async addAnswer(target: AnswerTarget, answer: NewAnswer) {
-    if ('newChat' in target) {
-      const chat = await this.db.askChat.create({
-        data: { ...target.newChat, answers: { create: answer } },
-        select: { answers: true },
-      });
-      return toStored(chat.answers[0]!);
-    }
-    const [row] = await this.db.$transaction([
-      this.db.answer.create({ data: { ...answer, chatId: target.chatId } }),
-      this.db.askChat.update({
-        where: { id: target.chatId },
-        data: { updatedAt: new Date() },
-      }),
-    ]);
-    return toStored(row);
+  async addAnswer(
+    target: AnswerTarget,
+    { attachmentIds, ...answer }: NewAnswer
+  ) {
+    return this.db.$transaction(async (tx) => {
+      const chatId =
+        'newChat' in target
+          ? (await tx.askChat.create({ data: target.newChat })).id
+          : (
+              await tx.askChat.update({
+                where: { id: target.chatId },
+                data: { updatedAt: new Date() },
+              })
+            ).id;
+      const { id } = await tx.answer.create({ data: { ...answer, chatId } });
+      if (attachmentIds.length > 0) {
+        await tx.askAttachment.updateMany({
+          where: { id: { in: attachmentIds }, answerId: null },
+          data: { answerId: id },
+        });
+      }
+      return toStored(
+        await tx.answer.findUniqueOrThrow({
+          where: { id },
+          include: withAttachments,
+        })
+      );
+    });
   }
 
   async findChat(chatId: string) {
     const chat = await this.db.askChat.findUnique({
       where: { id: chatId },
-      select: { ...chatFields, answers: { orderBy: { createdAt: 'asc' } } },
+      select: {
+        ...chatFields,
+        answers: { orderBy: { createdAt: 'asc' }, include: withAttachments },
+      },
     });
     return chat && { ...chat, answers: chat.answers.map(toStored) };
   }

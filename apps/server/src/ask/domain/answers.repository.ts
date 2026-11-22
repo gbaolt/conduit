@@ -1,5 +1,10 @@
+import type { StoredAskAttachment } from '@/ask/domain/ask-attachments.repository';
+
 /** A cited source as stored: what it was, never its text, so a later read checks access again. */
-export type AnswerRef = { type: 'message' | 'file'; id: string };
+export type AnswerRef = {
+  type: 'message' | 'file' | 'channel' | 'person' | 'draft';
+  id: string;
+};
 
 export type StoredAnswer = {
   id: string;
@@ -9,10 +14,18 @@ export type StoredAnswer = {
   /** Each `[n]` cites `sources[n - 1]`. */
   body: string;
   sources: AnswerRef[];
+  /** What the question carried, in the order it was attached. */
+  attachments: StoredAskAttachment[];
   createdAt: Date;
 };
 
-export type NewAnswer = Omit<StoredAnswer, 'id' | 'chatId' | 'createdAt'>;
+export type NewAnswer = Omit<
+  StoredAnswer,
+  'id' | 'chatId' | 'createdAt' | 'attachments'
+> & {
+  /** Attachments to link to the answer. One another question carried already stays with that question. */
+  attachmentIds: string[];
+};
 
 export type StoredChat = {
   id: string;

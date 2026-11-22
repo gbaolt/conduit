@@ -1,6 +1,7 @@
 name: Search sync
 
-# Sends drain their own rows right away. This run retries what failed and removes abandoned uploads.
+# Sends drain their own rows right away. This run retries what failed and removes abandoned uploads,
+# room files and Ask attachments alike.
 # GitHub starts scheduled runs late, and the endpoint is idempotent, so a late or repeated run is harmless.
 on:
   schedule:
@@ -27,3 +28,11 @@ jobs:
           curl --fail --silent --show-error --max-time 240 --request POST
           --header "Authorization: Bearer $CRON_SECRET"
           "$API_URL/internal/search-sync"
+      - name: Call the Ask attachment sweep endpoint
+        env:
+          API_URL: ${{ secrets.API_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: >
+          curl --fail --silent --show-error --max-time 60 --request POST
+          --header "Authorization: Bearer $CRON_SECRET"
+          "$API_URL/internal/ask-sweep"
