@@ -1,4 +1,5 @@
 import {
+  CopyObjectCommand,
   DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
@@ -108,6 +109,18 @@ export class S3ObjectStorage implements ObjectStorage {
     );
     if (!object.Body) throw new Error(`Nothing is stored at ${key}.`);
     return object.Body.transformToByteArray();
+  }
+
+  async copy(from: string, to: string) {
+    const { bucket } = this.config();
+    const source = from.split('/').map(encodeURIComponent).join('/');
+    await this.s3().send(
+      new CopyObjectCommand({
+        Bucket: bucket,
+        CopySource: `${bucket}/${source}`,
+        Key: to,
+      })
+    );
   }
 
   async delete(keys: string[]) {

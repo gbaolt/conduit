@@ -12,9 +12,21 @@ import {
   TooltipTrigger,
 } from '@conduit/ui/components/tooltip';
 import { IconFileCode, IconFiles, IconUpload } from '@tabler/icons-react';
-import { type ReactElement, useRef, useState } from 'react';
+import {
+  type ComponentProps,
+  type ReactElement,
+  useRef,
+  useState,
+} from 'react';
 
+import { FilesDialog } from './files-dialog';
 import { SnippetDialog } from './snippet-dialog';
+
+/** What the Files dialog offers, and where its picks go. Without it, Files stays disabled. */
+type AttachFiles = Omit<
+  ComponentProps<typeof FilesDialog>,
+  'open' | 'onOpenChange' | 'onUpload'
+>;
 
 /**
  * The paperclip's menu: pick a file shared in the workspace, write a snippet, or upload from the device. Every
@@ -26,6 +38,7 @@ export function AttachMenu({
   onFiles,
   accept,
   full,
+  files,
 }: {
   /** The paperclip button, styled for its composer. */
   trigger: ReactElement;
@@ -34,9 +47,11 @@ export function AttachMenu({
   accept?: string;
   /** Why no more files can join, such as "Up to 4 files". */
   full?: string;
+  files?: AttachFiles;
 }) {
   const picker = useRef<HTMLInputElement>(null);
   const [snippetOpen, setSnippetOpen] = useState(false);
+  const [filesOpen, setFilesOpen] = useState(false);
 
   return (
     <>
@@ -55,7 +70,10 @@ export function AttachMenu({
           <TooltipContent>{full ?? 'Attach'}</TooltipContent>
         </Tooltip>
         <DropdownMenuContent side="top" align="start" className="w-56">
-          <DropdownMenuItem disabled>
+          <DropdownMenuItem
+            disabled={!files || Boolean(full)}
+            onClick={() => setFilesOpen(true)}
+          >
             <IconFiles />
             Files
           </DropdownMenuItem>
@@ -89,6 +107,17 @@ export function AttachMenu({
           if (files.length > 0) onFiles(files);
         }}
       />
+      {files && (
+        <FilesDialog
+          {...files}
+          open={filesOpen}
+          onOpenChange={setFilesOpen}
+          onUpload={() => {
+            setFilesOpen(false);
+            picker.current?.click();
+          }}
+        />
+      )}
       <SnippetDialog
         open={snippetOpen}
         onOpenChange={setSnippetOpen}

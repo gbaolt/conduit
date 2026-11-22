@@ -302,7 +302,7 @@ export function FilesList() {
     ...filesQuery({
       roomId: room,
       uploaderId: person,
-      kind: type ?? undefined,
+      kinds: type ? [type] : undefined,
       name,
     }),
     placeholderData: keepPreviousData,

@@ -17,7 +17,11 @@ import {
 import { FileViewer } from '@/components/file-viewer';
 
 const linkOf = (file: MessageFile | AskAttachment) =>
-  'url' in file ? file.url : undefined;
+  ('url' in file && file.url) || undefined;
+
+/** A file picked from Files that the asker can no longer open. */
+const unavailable = (file: MessageFile | AskAttachment) =>
+  'available' in file && !file.available;
 
 /**
  * What a question carried, above its bubble. A picture shows small and opens full size, a PDF opens in the
@@ -29,7 +33,9 @@ export function AskQuestionAttachments({
 }: {
   attachments: readonly (MessageFile | AskAttachment)[];
 }) {
-  const [opened, setOpened] = useState<AskAttachment | null>(null);
+  const [opened, setOpened] = useState<(MessageFile & { url: string }) | null>(
+    null
+  );
   if (attachments.length === 0) return null;
 
   return (
@@ -45,7 +51,15 @@ export function AskQuestionAttachments({
               data={{ ...file, previewUrl: picture ? url : undefined }}
             >
               <AttachmentPreview />
-              {!picture && <AttachmentInfo className="pr-6" />}
+              {!picture && (
+                <AttachmentInfo className="pr-6">
+                  {unavailable(file) && (
+                    <span className="text-muted-foreground text-xs leading-4">
+                      No longer available
+                    </span>
+                  )}
+                </AttachmentInfo>
+              )}
               {url && (kind === 'image' || kind === 'pdf') && (
                 <AttachmentOpen onClick={() => setOpened({ ...file, url })} />
               )}

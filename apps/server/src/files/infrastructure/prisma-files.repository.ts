@@ -1,5 +1,9 @@
 import {
   contentTypesOf,
+  FILE_KINDS,
+  type FileCounts,
+  type FileKind,
+  fileKind,
   type ListedFile,
   PREVIEWABLE_CONTENT_TYPES,
   TEXT_CONTENT_PREFIX,
@@ -9,6 +13,7 @@ import type { Prisma } from '@generated/prisma/client';
 import { Inject, Injectable } from '@nestjs/common';
 
 import type {
+  FileFilterQuery,
   FileListQuery,
   FilesRepository,
   NewFile,
@@ -34,6 +39,7 @@ export function toStoredFile(row: FileRow): StoredFile {
     status: row.status === 'READY' ? 'ready' : 'pending',
     createdAt: row.createdAt,
     deletedAt: row.deletedAt,
+    sourceFileId: row.sourceFileId,
   };
 }
 
@@ -44,8 +50,7 @@ const TEXT: Prisma.FileWhereInput = {
   ],
 };
 
-function ofKind(kind: FileListQuery['kind']): Prisma.FileWhereInput {
-  if (!kind) return {};
+function ofKind(kind: FileKind): Prisma.FileWhereInput {
   if (kind === 'text') return TEXT;
   if (kind === 'other') {
     return {
@@ -54,6 +59,31 @@ function ofKind(kind: FileListQuery['kind']): Prisma.FileWhereInput {
     };
   }
   return { contentType: { in: contentTypesOf(kind) } };
+}
+
+function ofKinds(kinds: FileListQuery['kinds']): Prisma.FileWhereInput {
+  return kinds?.length ? { OR: kinds.map(ofKind) } : {};
+}
+
+/** Sent, unremoved files the filters keep. */
+function filtered(query: FileFilterQuery): Prisma.FileWhereInput {
+  return {
+    organizationId: query.organizationId,
+    roomId: { in: query.roomIds },
+    status: 'READY',
+    deletedAt: null,
+    messageId: { not: null },
+    ...((query.uploaderId || query.notUploaderId) && {
+      uploaderId: {
+        ...(query.uploaderId && { equals: query.uploaderId }),
+        ...(query.notUploaderId && { not: query.notUploaderId }),
+      },
+    }),
+    ...(query.name && {
+      name: { contains: query.name, mode: 'insensitive' as const },
+    }),
+    ...(query.roomKind && { room: { kind: 'CHANNEL' as const } }),
+  };
 }
 
 /** File rows. Returns domain types, so no Prisma row leaves this file. */
@@ -123,17 +153,9 @@ export class PrismaFilesRepository implements FilesRepository {
 
     const rows = await this.db.file.findMany({
       where: {
-        organizationId: query.organizationId,
-        roomId: { in: query.roomIds },
-        status: 'READY',
-        deletedAt: null,
-        messageId: { not: null },
-        ...(query.uploaderId && { uploaderId: query.uploaderId }),
-        ...(query.name && {
-          name: { contains: query.name, mode: 'insensitive' as const },
-        }),
+        ...filtered(query),
         AND: [
-          ofKind(query.kind),
+          ofKinds(query.kinds),
           cursor
             ? {
                 OR: [
@@ -145,7 +167,9 @@ export class PrismaFilesRepository implements FilesRepository {
         ],
       },
       include: {
-        room: { select: { id: true, name: true, kind: true } },
+        room: {
+          select: { id: true, name: true, kind: true, visibility: true },
+        },
         uploader: { select: { id: true, name: true, image: true } },
         message: { select: { id: true, parentId: true } },
       },
@@ -170,6 +194,10 @@ export class PrismaFilesRepository implements FilesRepository {
                 // A DM stores its key in `name`, and shows no name.
                 name: row.room.kind === 'DM' ? '' : row.room.name,
                 kind: row.room.kind === 'DM' ? 'dm' : 'channel',
+                visibility:
+                  row.room.kind === 'DM' || row.room.visibility === 'PRIVATE'
+                    ? 'private'
+                    : 'public',
               },
               uploader: row.uploader,
               createdAt: row.createdAt,
@@ -178,6 +206,21 @@ export class PrismaFilesRepository implements FilesRepository {
         : []
     );
     return { files, hasMore: rows.length > query.limit };
+  }
+
+  async counts(query: FileFilterQuery) {
+    const groups = await this.db.file.groupBy({
+      by: ['contentType'],
+      where: filtered(query),
+      _count: { _all: true },
+    });
+    const counts = Object.fromEntries(
+      FILE_KINDS.map((kind) => [kind, 0])
+    ) as FileCounts;
+    for (const group of groups) {
+      counts[fileKind(group.contentType)] += group._count._all;
+    }
+    return counts;
   }
 
   async sweepable(pendingBefore: Date, limit: number) {

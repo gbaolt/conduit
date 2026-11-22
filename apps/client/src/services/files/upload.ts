@@ -4,6 +4,7 @@ import {
   FILE_SIZE_MAX,
   fileKind,
   fileTooLargeMessage,
+  type ListedFile,
   type MessageFile,
 } from '@conduit/contract';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -46,6 +47,8 @@ export type UploadTarget = {
   ) => Promise<MessageFile>;
   /** Drops an upload the composer removed. Without it, the server's sweep removes it later. */
   cancel?: (id: string) => Promise<void>;
+  /** Adds a file already sent in the workspace, picked from the Files dialog. */
+  attach?: (file: ListedFile) => Promise<MessageFile>;
 };
 
 /** A message in `roomId`. Its files count toward the workspace's storage. */
@@ -62,6 +65,7 @@ export const roomUploads = (roomId: string): UploadTarget => ({
   complete: (fileId, dimensions) =>
     client.files.complete({ fileId, ...dimensions }),
   cancel: (fileId) => client.files.cancel({ fileId }),
+  attach: (file) => client.files.attach({ fileId: file.id, roomId }),
 });
 
 /** Sends the bytes with XMLHttpRequest, since fetch reports no upload progress. */
@@ -191,8 +195,12 @@ export function useFileUploads(target: UploadTarget) {
     [target, patch]
   );
 
-  const add = useCallback(
-    (files: File[]) => {
+  /** New chips for `files`, in order. Those past `target.max` fail at once with a note. */
+  const join = useCallback(
+    (
+      files: { name: string; size: number; contentType: string }[],
+      thumbnailOf: (index: number) => string | null
+    ) => {
       const room =
         target.max === undefined
           ? files.length
@@ -202,13 +210,8 @@ export function useFileUploads(target: UploadTarget) {
       const added = files.map(
         (file, index): Upload => ({
           localId: crypto.randomUUID(),
-          name: file.name || 'Pasted file',
-          size: file.size,
-          contentType: contentTypeOf(file),
-          thumbnailUrl:
-            fileKind(contentTypeOf(file)) === 'image'
-              ? URL.createObjectURL(file)
-              : null,
+          ...file,
+          thumbnailUrl: index < room ? thumbnailOf(index) : null,
           ...(index < room
             ? { status: 'uploading', progress: 0 }
             : {
@@ -219,13 +222,74 @@ export function useFileUploads(target: UploadTarget) {
       );
       uploadsRef.current = [...uploadsRef.current, ...added];
       setUploads((current) => [...current, ...added]);
+      return added;
+    },
+    [target.max]
+  );
+
+  const add = useCallback(
+    (files: File[]) => {
+      const added = join(
+        files.map((file) => ({
+          name: file.name || 'Pasted file',
+          size: file.size,
+          contentType: contentTypeOf(file),
+        })),
+        (index) =>
+          fileKind(contentTypeOf(files[index]!)) === 'image'
+            ? URL.createObjectURL(files[index]!)
+            : null
+      );
       added.forEach((upload, index) => {
         if (upload.status === 'uploading') {
           void start(upload.localId, files[index]!);
         }
       });
     },
-    [start, target.max]
+    [join, start]
+  );
+
+  /**
+   * Adds files already sent in the workspace. Each chip turns ready when the server's call returns, or shows its
+   * refusal. A chip removed before then has its file dropped once the call returns.
+   */
+  const attach = useCallback(
+    (files: ListedFile[]) => {
+      const pick = target.attach;
+      if (!pick) return Promise.resolve();
+      const added = join(
+        files.map(({ name, size, contentType }) => ({
+          name,
+          size,
+          contentType,
+        })),
+        () => null
+      );
+      return Promise.all(
+        added.map(async (upload, index) => {
+          if (upload.status !== 'uploading') return;
+          try {
+            const stored = await pick(files[index]!);
+            if (
+              !uploadsRef.current.some(
+                (item) => item.localId === upload.localId
+              )
+            ) {
+              void target.cancel?.(stored.id).catch(() => undefined);
+              return;
+            }
+            serverIds.current.set(upload.localId, stored.id);
+            patch(upload.localId, { status: 'ready', file: stored });
+          } catch (error) {
+            patch(upload.localId, {
+              status: 'failed',
+              error: errorMessage(error),
+            });
+          }
+        })
+      ).then(() => undefined);
+    },
+    [join, patch, target]
   );
 
   const remove = useCallback(
@@ -234,6 +298,9 @@ export function useFileUploads(target: UploadTarget) {
       const id = serverIds.current.get(localId);
       if (id) void target.cancel?.(id).catch(() => undefined);
       serverIds.current.delete(localId);
+      uploadsRef.current = uploadsRef.current.filter(
+        (item) => item.localId !== localId
+      );
       setUploads((current) => {
         const upload = current.find((item) => item.localId === localId);
         if (upload?.thumbnailUrl) URL.revokeObjectURL(upload.thumbnailUrl);
@@ -268,7 +335,16 @@ export function useFileUploads(target: UploadTarget) {
     (upload) => upload.status === 'uploading'
   ).length;
 
-  return { uploads, ready, uploading, add, remove, clear };
+  return {
+    uploads,
+    ready,
+    uploading,
+    add,
+    attach,
+    remove,
+    clear,
+    canAttach: Boolean(target.attach),
+  };
 }
 
 export type FileUploads = ReturnType<typeof useFileUploads>;

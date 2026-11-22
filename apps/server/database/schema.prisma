@@ -365,7 +365,11 @@ model File {
   deletedAt      DateTime?
   /// How many chunks the search index holds for it, so a shorter re-extraction deletes the rest.
   indexedChunks  Int          @default(0)
+  /// The original a copy was attached from, or null for an upload. A copy of a copy points at the original.
+  /// No foreign key, so the link outlives the original's row and an admin can still find every copy.
+  sourceFileId   String?
 
+  @@index([sourceFileId])
   @@index([organizationId, createdAt, id])
   @@index([messageId])
   @@index([status, createdAt])
@@ -500,7 +504,11 @@ model AskAttachment {
   answerId       String?
   answer         Answer?      @relation(fields: [answerId], references: [id], onDelete: SetNull)
   /// `ask/<organizationId>/<ownerId>/<id>/<safe name>`, under a prefix the bucket never serves publicly.
-  key            String       @unique
+  /// Null when `fileId` is set.
+  key            String?      @unique
+  /// Set when the asker picked a sent file from Files. Each read checks the asker can still open it, so no
+  /// foreign key: a purged file reads as no longer available.
+  fileId         String?
   name           String
   contentType    String
   size           Int

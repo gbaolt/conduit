@@ -54,9 +54,12 @@ import {
   fileUploadUrlContract,
   fileTextContract,
   fileUrlsContract,
+  attachFileContract,
+  fileCountsContract,
   listFilesContract,
 } from './contracts/files';
 import {
+  askAttachFileContract,
   askAttachmentUrlContract,
   askQuestionContract,
   completeAskAttachmentContract,
@@ -250,6 +253,8 @@ export const contract = {
     urls: fileUrlsContract,
     text: fileTextContract,
     list: listFilesContract,
+    counts: fileCountsContract,
+    attach: attachFileContract,
   },
   search: {
     query: searchContract,
@@ -262,6 +267,7 @@ export const contract = {
     attachmentUrl: askAttachmentUrlContract,
     completeAttachment: completeAskAttachmentContract,
     guide: getAskGuideContract,
+    attachFile: askAttachFileContract,
   },
   dms: {
     list: listDmsContract,

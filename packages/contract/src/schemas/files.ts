@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { FILE_KINDS } from '@/lib/file-kind';
 import { MESSAGE_FILES_MAX } from '@/lib/file-limits';
-import { RoomKindSchema } from '@/schemas/rooms';
+import { ChannelVisibilitySchema, RoomKindSchema } from '@/schemas/rooms';
 
 /** What a message carries about each attached file. It never changes once the message is sent. */
 export const MessageFileSchema = z.object({
@@ -73,12 +73,22 @@ export const FILES_PAGE_DEFAULT = 50;
 export const FILES_PAGE_MAX = 100;
 export const FILE_SEARCH_MAX = 100;
 
-export const ListFilesInputSchema = z.object({
+/** The filters `files.list` and `files.counts` share. */
+export const FileFiltersSchema = z.object({
   roomId: z.string().optional(),
   uploaderId: z.string().optional(),
-  kind: FileKindSchema.optional(),
   /** Part of the file name, ignoring case. */
   name: z.string().trim().max(FILE_SEARCH_MAX).optional(),
+  /** `me` keeps the caller's own files. `others` keeps everyone else's. */
+  owner: z.enum(['me', 'others']).optional(),
+  /** `channel` leaves out files shared in DMs. */
+  roomKind: z.literal('channel').optional(),
+});
+export type FileFilters = z.infer<typeof FileFiltersSchema>;
+
+export const ListFilesInputSchema = FileFiltersSchema.extend({
+  /** Any of these kinds. Empty or left out keeps every kind. */
+  kinds: z.array(FileKindSchema).max(FILE_KINDS.length).optional(),
   /** The oldest file already loaded. The page ends just before it. */
   before: z.string().optional(),
   limit: z.number().int().min(1).max(FILES_PAGE_MAX).optional(),
@@ -95,6 +105,8 @@ export const ListedFileSchema = MessageFileSchema.extend({
     /** Empty for a DM. */
     name: z.string(),
     kind: RoomKindSchema,
+    /** A DM reads as private. */
+    visibility: ChannelVisibilitySchema,
   }),
   uploader: z.object({
     id: z.string(),
@@ -111,3 +123,13 @@ export const ListFilesOutputSchema = z.object({
   hasMore: z.boolean(),
 });
 export type ListFilesOutput = z.infer<typeof ListFilesOutputSchema>;
+
+/** How many sent files of each kind match the filters, so a picker can show its counts. */
+export const FileCountsSchema = z.record(FileKindSchema, z.number().int());
+export type FileCounts = z.infer<typeof FileCountsSchema>;
+
+/** Attaches a sent file to a new message in `roomId`, as a copy of its own. */
+export const FileAttachInputSchema = z.object({
+  fileId: z.string(),
+  roomId: z.string(),
+});

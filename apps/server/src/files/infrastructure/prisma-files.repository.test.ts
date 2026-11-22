@@ -163,17 +163,17 @@ describe.skipIf(!connectionString)('PrismaFilesRepository', () => {
       });
 
       expect(
-        (await repository.list({ ...query, kind: 'image' })).files.map(
+        (await repository.list({ ...query, kinds: ['image'] })).files.map(
           (f) => f.id
         )
       ).toEqual([image]);
       expect(
-        (await repository.list({ ...query, kind: 'other' })).files.map(
+        (await repository.list({ ...query, kinds: ['other'] })).files.map(
           (f) => f.id
         )
       ).toEqual([zip]);
       expect(
-        (await repository.list({ ...query, kind: 'text' })).files
+        (await repository.list({ ...query, kinds: ['text'] })).files
           .map((f) => f.id)
           .sort()
       ).toEqual([data, code].sort());
@@ -182,6 +182,40 @@ describe.skipIf(!connectionString)('PrismaFilesRepository', () => {
           (f) => f.id
         )
       ).toEqual([image]);
+    });
+
+    it('counts each kind, and narrows to an uploader, to everyone else, and to channels', async () => {
+      const dmId = `${run}-dm`;
+      await prisma.room.create({
+        data: { id: dmId, organizationId, name: `${run}-key`, kind: 'DM' },
+      });
+      const scoped = { organizationId, roomIds: [dmId], limit: 10 };
+      const note = await sent('note.txt', {
+        roomId: dmId,
+        contentType: 'text/plain',
+      });
+      await sent('shot.png', { roomId: dmId, contentType: 'image/png' });
+      const none = { image: 0, video: 0, pdf: 0, text: 0, other: 0 };
+
+      expect(await repository.counts(scoped)).toEqual({
+        ...none,
+        image: 1,
+        text: 1,
+      });
+      expect(
+        await repository.counts({ ...scoped, roomKind: 'channel' })
+      ).toEqual(none);
+      expect(
+        (await repository.list({ ...scoped, kinds: ['text'] })).files
+      ).toMatchObject([
+        { id: note, room: { kind: 'dm', name: '', visibility: 'private' } },
+      ]);
+      expect(
+        (await repository.list({ ...scoped, notUploaderId: userId })).files
+      ).toEqual([]);
+      expect(
+        (await repository.list({ ...scoped, uploaderId: userId })).files
+      ).toHaveLength(2);
     });
 
     it('pages through files that share a time without skipping or repeating one', async () => {

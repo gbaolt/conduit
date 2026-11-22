@@ -12,6 +12,8 @@ import { ASK_REWRITE_PROMPT } from '@/ask/domain/ask-prompt';
 import { PrismaAnswersRepository } from '@/ask/infrastructure/prisma-answers.repository';
 import { PrismaAskAttachmentsRepository } from '@/ask/infrastructure/prisma-ask-attachments.repository';
 import { PrismaAskContextRepository } from '@/ask/infrastructure/prisma-ask-context.repository';
+import { FilesService } from '@/files/application/files.service';
+import { PrismaFilesRepository } from '@/files/infrastructure/prisma-files.repository';
 import { prisma } from '@/infrastructure/database/prisma.service';
 import { PrismaMessagesRepository } from '@/messages/infrastructure/prisma-messages.repository';
 import { NotificationSettingsService } from '@/notifications/application/notification-settings.service';
@@ -125,7 +127,12 @@ describe.skipIf(!connectionString)('AskService', () => {
     {
       extract: async (file) =>
         new TextDecoder().decode(await storage.storage.read(file.key)),
-    }
+    },
+    new FilesService(
+      new PrismaFilesRepository(prisma),
+      new PrismaRoomsRepository(prisma),
+      storage.storage
+    )
   );
   const service = (model: ModelPort, aiEnabled = true) =>
     new AskService(
@@ -152,8 +159,8 @@ describe.skipIf(!connectionString)('AskService', () => {
     const { key } = (await prisma.askAttachment.findUnique({
       where: { id: attachmentId },
     }))!;
-    storage.objects.set(key, bytes.length);
-    storage.bytes.set(key, bytes);
+    storage.objects.set(key!, bytes.length);
+    storage.bytes.set(key!, bytes);
     await attachments.complete(viewerOf(userId), { attachmentId });
     return attachmentId;
   };
@@ -808,6 +815,88 @@ describe.skipIf(!connectionString)('AskService', () => {
         attachmentIds: [sent],
       })
     ).rejects.toMatchObject({ code: 'ATTACHMENT_NOT_FOUND' });
+  });
+
+  it("attaches a private channel's file in place, and stops reading it once the asker leaves", async () => {
+    const q3 = `${run}-q3`;
+    storage.bytes.set(
+      `files/${q3}`,
+      new TextEncoder().encode('The Q3 sheet says Team costs 40.')
+    );
+    const objects = storage.objects.size;
+
+    const picked = await attachments.attachFile(viewerOf(bao), q3);
+    expect(picked).toMatchObject({ name: 'q3.pdf', available: true });
+    expect(picked.url).toMatch(/files\/.*q3\?inline$/);
+    expect(storage.objects.size).toBe(objects);
+
+    const { model, requests } = fakeModel([
+      { found: true, body: 'Team costs 40.' },
+    ]);
+    const answer = await answerOf(
+      await service(model).question(viewerOf(bao), {
+        question: 'What does Team cost?',
+        attachmentIds: [picked.id],
+      })
+    );
+    expect(requests.at(-1)!.prompt).toContain(
+      'The Q3 sheet says Team costs 40.'
+    );
+
+    const unsent = await attachments.attachFile(viewerOf(bao), q3);
+    await prisma.roomMember.deleteMany({
+      where: { roomId: room('secret'), userId: bao },
+    });
+    try {
+      const chat = await service(model).chat(viewerOf(bao), answer.chatId);
+      expect(chat.answers[0]!.attachments).toEqual([
+        expect.objectContaining({ id: picked.id, available: false, url: null }),
+      ]);
+      await expect(
+        service(model).question(viewerOf(bao), {
+          chatId: answer.chatId,
+          question: 'And now?',
+          attachmentIds: [unsent.id],
+        })
+      ).rejects.toMatchObject({ code: 'ATTACHMENT_NOT_FOUND' });
+    } finally {
+      await prisma.roomMember.create({
+        data: { roomId: room('secret'), userId: bao },
+      });
+    }
+  });
+
+  it("refuses a DM's file, another channel's file the asker can't read, and a video", async () => {
+    const file = async (key: string, roomId: string, contentType: string) => {
+      const id = `${run}-${key}`;
+      await prisma.file.create({
+        data: {
+          id,
+          organizationId: org,
+          uploaderId: bao,
+          roomId,
+          name: key,
+          contentType,
+          size: 10,
+          key: `files/${id}`,
+          status: 'READY',
+        },
+      });
+      await send(`with-${key}`, roomId, '', { fileIds: [id] });
+      return id;
+    };
+    const inDm = await file('dm.pdf', room('dm'), 'application/pdf');
+    const clip = await file('clip.mp4', room('design'), 'video/mp4');
+
+    await expect(
+      attachments.attachFile(viewerOf(ana), inDm)
+    ).rejects.toMatchObject({ code: 'ATTACHMENT_NOT_FOUND' });
+    await expect(
+      attachments.attachFile(viewerOf(ana), `${run}-q3`)
+    ).rejects.toMatchObject({ code: 'ATTACHMENT_NOT_FOUND' });
+    await expect(
+      attachments.attachFile(viewerOf(ana), clip)
+    ).rejects.toMatchObject({ code: 'ATTACHMENT_REJECTED' });
   });
 
   it('accepts only images, PDFs and text files it can read', async () => {

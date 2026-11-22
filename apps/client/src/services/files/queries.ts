@@ -1,4 +1,4 @@
-import type { ListFilesInput } from '@conduit/contract';
+import type { FileFilters, ListFilesInput } from '@conduit/contract';
 
 import { orpc } from '@/lib/orpc';
 
@@ -22,20 +22,25 @@ export const fileTextQuery = (fileId: string) =>
     retry: false,
   });
 
+/** Empty filters left out, so a blank field and none share a cache entry. */
+const cleanFilters = ({ roomId, uploaderId, name, ...rest }: FileFilters) => ({
+  ...rest,
+  roomId: roomId || undefined,
+  uploaderId: uploaderId || undefined,
+  name: name?.trim() || undefined,
+});
+
+/** How many files of each kind match the filters, for a picker's counts. */
+export const fileCountsQuery = (filters: FileFilters) =>
+  orpc.files.counts.queryOptions({ input: cleanFilters(filters) });
+
 export type FilesListInput = Omit<ListFilesInput, 'before' | 'limit'>;
 
 /** Pages of the Files page, newest first. Empty filters are left out, so `?type=` and none share a cache entry. */
-export const filesQuery = ({
-  roomId,
-  uploaderId,
-  kind,
-  name,
-}: FilesListInput) => {
+export const filesQuery = ({ kinds, ...filters }: FilesListInput) => {
   const input = {
-    roomId: roomId || undefined,
-    uploaderId: uploaderId || undefined,
-    kind,
-    name: name?.trim() || undefined,
+    ...cleanFilters(filters),
+    kinds: kinds?.length ? kinds : undefined,
   };
   return orpc.files.list.infiniteOptions({
     input: (before: string | undefined) => ({ ...input, before }),

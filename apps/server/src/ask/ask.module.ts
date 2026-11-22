@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { AiModule } from '@/ai/ai.module';
+import { FilesModule } from '@/files/files.module';
 import { SearchModule } from '@/search/search.module';
 import { StorageModule } from '@/storage/storage.module';
 
@@ -16,7 +17,7 @@ import { AskController } from './presentation/ask.controller';
 import { AskSweepController } from './presentation/ask-sweep.controller';
 
 @Module({
-  imports: [AiModule, SearchModule, StorageModule],
+  imports: [AiModule, FilesModule, SearchModule, StorageModule],
   controllers: [AskController, AskSweepController],
   providers: [
     AskService,

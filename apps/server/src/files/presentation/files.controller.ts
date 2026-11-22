@@ -84,6 +84,28 @@ export class FilesController {
       );
   }
 
+  @Implement(contract.files.attach)
+  attach() {
+    return implement(contract.files.attach)
+      .use(authorized)
+      .use(arcjet.heavyWrite)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.filesService.attach(viewerOf(context), input)
+      );
+  }
+
+  @Implement(contract.files.counts)
+  counts() {
+    return implement(contract.files.counts)
+      .use(authorized)
+      .use(arcjet.read)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.filesService.counts(viewerOf(context), input)
+      );
+  }
+
   @Implement(contract.files.list)
   list() {
     return implement(contract.files.list)

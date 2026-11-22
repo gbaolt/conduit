@@ -25,6 +25,7 @@ export * from './lib/feed-ranking';
 export * from './lib/ask-attachments';
 export * from './lib/file-kind';
 export * from './lib/file-limits';
+export * from './lib/file-share';
 export * from './lib/highlight-terms';
 export * from './lib/message-body';
 export * from './lib/names';

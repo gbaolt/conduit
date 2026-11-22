@@ -31,4 +31,7 @@ export abstract class ObjectStorage {
 
   /** At most the first `bytes` of the stored object, read without fetching the rest. Throws when nothing is stored. */
   abstract readRange(key: string, bytes: number): Promise<Uint8Array>;
+
+  /** Copies the object at `from` to `to` inside storage, so the bytes never pass through the server. */
+  abstract copy(from: string, to: string): Promise<void>;
 }

@@ -1,8 +1,12 @@
 import {
+  canAttachToRoom,
   canChannel,
   checkChannel,
+  FILE_KINDS,
   FILE_SIZE_MAX,
   FILE_TEXT_PREVIEW_MAX,
+  type FileCounts,
+  type FileFilters,
   fileKind,
   FILES_PAGE_DEFAULT,
   type FileText,
@@ -56,9 +60,9 @@ export class FilesService {
     @Inject(ObjectStorage) private readonly storage: ObjectStorage
   ) {}
 
-  /** A file for a message the viewer can start or reply with in the room. */
-  async uploadUrl(viewer: FileViewer, input: FileUploadInput) {
-    const room = await this.rooms.find(viewer, input.roomId);
+  /** The room, when the viewer can start or reply with a message there. */
+  private async postableRoom(viewer: FileViewer, roomId: string) {
+    const room = await this.rooms.find(viewer, roomId);
     if (!room || checkChannel('view', viewer.workspaceRole, room)) {
       throw fileError('NOT_FOUND', 'Channel not found.');
     }
@@ -68,6 +72,12 @@ export class FilesService {
     ) {
       throw fileError(room.archivedAt ? 'CHANNEL_ARCHIVED' : 'FORBIDDEN');
     }
+    return room;
+  }
+
+  /** A file for a message the viewer can start or reply with in the room. */
+  async uploadUrl(viewer: FileViewer, input: FileUploadInput) {
+    const room = await this.postableRoom(viewer, input.roomId);
     if (input.size > FILE_SIZE_MAX) {
       throw fileError('FILE_TOO_LARGE', fileTooLargeMessage(input.size));
     }
@@ -97,6 +107,48 @@ export class FilesService {
       throw fileError('STORAGE_FULL', storageFullMessage(result.used));
     }
     return { fileId: id, uploadUrl };
+  }
+
+  /**
+   * Copies a sent file into `roomId` for the viewer's next message there. The source room's visibility is read
+   * now, so a channel made private since the picker opened is refused. A failed copy leaves a pending row, which
+   * the sweep removes as it does an abandoned upload.
+   */
+  async attach(viewer: FileViewer, input: { fileId: string; roomId: string }) {
+    const [source] = await this.readableFiles(viewer, [input.fileId]);
+    const sourceRoom = source && (await this.rooms.find(viewer, source.roomId));
+    if (!source || !sourceRoom) throw fileError('NOT_FOUND');
+    if (!canAttachToRoom({ room: sourceRoom }, input.roomId)) {
+      throw fileError('FILE_NOT_SHAREABLE');
+    }
+    const room = await this.postableRoom(viewer, input.roomId);
+
+    const id = crypto.randomUUID();
+    const key = fileKey(viewer.organizationId, id, source.name);
+    const result = await this.files.createPending(
+      {
+        id,
+        organizationId: viewer.organizationId,
+        uploaderId: viewer.userId,
+        roomId: room.id,
+        name: source.name,
+        contentType: source.contentType,
+        size: source.size,
+        key,
+        sourceFileId: source.sourceFileId ?? source.id,
+      },
+      WORKSPACE_STORAGE_MAX
+    );
+    if (!result.created) {
+      throw fileError('STORAGE_FULL', storageFullMessage(result.used));
+    }
+    await this.storage.copy(source.key, key);
+    return toMessageFile(
+      await this.files.markReady(id, {
+        width: source.width,
+        height: source.height,
+      })
+    );
   }
 
   /** Only the uploader finishes an upload, and only once storage holds the promised bytes. */
@@ -130,7 +182,6 @@ export class FilesService {
     await this.files.cancel(file.id);
   }
 
-  /** Links for attached files in rooms the viewer can read. Anything else is left out, so a refusal looks like a missing file. */
   /** Deletes the objects and rows of abandoned uploads and deleted files. Returns how many it removed. */
   async sweep(now: Date) {
     const files = await this.files.sweepable(
@@ -143,22 +194,46 @@ export class FilesService {
     return files.length;
   }
 
-  /** The Files page: sent files in rooms the viewer can read. A room they cannot read lists nothing. */
-  async list(viewer: FileViewer, input: ListFilesInput) {
+  /** The query for `filters` over rooms the viewer can read, or null when nothing can match. */
+  private async filterQuery(viewer: FileViewer, filters: FileFilters) {
     const readable = await this.rooms.accessibleRoomIds(viewer);
-    const roomIds = input.roomId
-      ? readable.filter((id) => id === input.roomId)
+    const roomIds = filters.roomId
+      ? readable.filter((id) => id === filters.roomId)
       : readable;
-    if (roomIds.length === 0) return { files: [], hasMore: false };
-    return this.files.list({
+    const mine = filters.owner === 'me';
+    if (roomIds.length === 0) return null;
+    if (mine && filters.uploaderId && filters.uploaderId !== viewer.userId) {
+      return null;
+    }
+    return {
       organizationId: viewer.organizationId,
       roomIds,
-      uploaderId: input.uploaderId,
-      kind: input.kind,
-      name: input.name || undefined,
+      uploaderId: mine ? viewer.userId : filters.uploaderId,
+      notUploaderId: filters.owner === 'others' ? viewer.userId : undefined,
+      name: filters.name || undefined,
+      roomKind: filters.roomKind,
+    };
+  }
+
+  /** The Files page: sent files in rooms the viewer can read. A room they cannot read lists nothing. */
+  async list(viewer: FileViewer, input: ListFilesInput) {
+    const query = await this.filterQuery(viewer, input);
+    if (!query) return { files: [], hasMore: false };
+    return this.files.list({
+      ...query,
+      kinds: input.kinds,
       before: input.before,
       limit: input.limit ?? FILES_PAGE_DEFAULT,
     });
+  }
+
+  /** How many files of each kind `list` would show for the same filters. */
+  async counts(viewer: FileViewer, filters: FileFilters) {
+    const query = await this.filterQuery(viewer, filters);
+    if (query) return this.files.counts(query);
+    return Object.fromEntries(
+      FILE_KINDS.map((kind) => [kind, 0])
+    ) as FileCounts;
   }
 
   /** The sent files of `fileIds` the viewer can read now. The rest are left out, as if they did not exist. */
@@ -178,6 +253,19 @@ export class FilesService {
     );
   }
 
+  /** The sent files of `fileIds` the viewer can read now in a channel, public or private. DM files are left out. */
+  async channelFiles(viewer: FileViewer, fileIds: string[]) {
+    const files = await this.readableFiles(viewer, fileIds);
+    const roomIds = [...new Set(files.map((file) => file.roomId))];
+    const rooms = await Promise.all(
+      roomIds.map((roomId) => this.rooms.find(viewer, roomId))
+    );
+    const channels = new Set(
+      rooms.flatMap((room) => (room?.kind === 'channel' ? [room.id] : []))
+    );
+    return files.filter((file) => channels.has(file.roomId));
+  }
+
   /**
    * The start of a text file the viewer can read, for its preview. Only the first `FILE_TEXT_PREVIEW_MAX` bytes
    * are read from storage, so a large log costs no more than a small one.
@@ -193,6 +281,7 @@ export class FilesService {
     return { text, truncated };
   }
 
+  /** Links for attached files in rooms the viewer can read. Anything else is left out, so a refusal looks like a missing file. */
   async urls(viewer: FileViewer, fileIds: string[]): Promise<FileUrl[]> {
     const visible = await this.readableFiles(viewer, fileIds);
     return Promise.all(

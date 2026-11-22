@@ -4,6 +4,9 @@ import { z } from 'zod';
 
 import {
   CompleteFileInputSchema,
+  FileAttachInputSchema,
+  FileCountsSchema,
+  FileFiltersSchema,
   FileIdInputSchema,
   FileTextSchema,
   FileUploadInputSchema,
@@ -36,6 +39,10 @@ export const fileErrors = {
     message: 'File uploads are not set up for this deployment.',
   },
   NOT_TEXT: { status: 415, message: 'This file is not text.' },
+  FILE_NOT_SHAREABLE: {
+    status: 403,
+    message: 'Files from private channels and DMs stay where they were shared.',
+  },
 } as const;
 
 const {
@@ -47,6 +54,7 @@ const {
   UPLOAD_MISSING,
   STORAGE_UNAVAILABLE,
   NOT_TEXT,
+  FILE_NOT_SHAREABLE,
 } = fileErrors;
 
 export const fileUploadUrlContract = oc
@@ -82,7 +90,6 @@ export const fileUrlsContract = oc
   .input(FileUrlsInputSchema)
   .output(z.array(FileUrlSchema));
 
-/** Sent files in rooms the caller can read, newest first. */
 /** The start of a text file the caller can read, for its preview in a message. */
 export const fileTextContract = oc
   .meta(openapi({ method: 'GET', path: '/files/{fileId}/text' }))
@@ -90,7 +97,31 @@ export const fileTextContract = oc
   .input(FileIdInputSchema)
   .output(FileTextSchema);
 
+/** Sent files in rooms the caller can read, newest first. */
 export const listFilesContract = oc
   .meta(openapi({ method: 'GET', path: '/files' }))
   .input(ListFilesInputSchema)
   .output(ListFilesOutputSchema);
+
+/** How many files of each kind `files.list` would show for the same filters. */
+export const fileCountsContract = oc
+  .meta(openapi({ method: 'GET', path: '/files/counts' }))
+  .input(FileFiltersSchema)
+  .output(FileCountsSchema);
+
+/**
+ * Copies a sent file into `roomId`, ready for the caller's next message there. Only a public channel's file may
+ * leave its room. The copy counts toward the workspace's storage.
+ */
+export const attachFileContract = oc
+  .meta(openapi({ method: 'POST', path: '/files/{fileId}/attach' }))
+  .errors({
+    NOT_FOUND,
+    FORBIDDEN,
+    CHANNEL_ARCHIVED,
+    FILE_NOT_SHAREABLE,
+    STORAGE_FULL,
+    STORAGE_UNAVAILABLE,
+  })
+  .input(FileAttachInputSchema)
+  .output(MessageFileSchema);

@@ -1,5 +1,6 @@
 'use client';
 
+import { MESSAGE_FILES_MAX } from '@conduit/contract';
 import { Button } from '@conduit/ui/components/button';
 import { IconPaperclip } from '@tabler/icons-react';
 
@@ -49,6 +50,14 @@ export function ConversationComposer({
       attach={
         <AttachMenu
           onFiles={uploads.add}
+          files={{
+            targetRoomId: roomId,
+            max:
+              MESSAGE_FILES_MAX -
+              uploads.uploads.filter((upload) => upload.status !== 'failed')
+                .length,
+            onInsert: uploads.attach,
+          }}
           trigger={
             <Button
               type="button"

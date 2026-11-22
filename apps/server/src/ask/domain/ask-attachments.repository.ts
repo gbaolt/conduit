@@ -5,7 +5,10 @@ export type StoredAskAttachment = {
   ownerId: string;
   /** Null until a question carries it, and again once its chat is deleted. */
   answerId: string | null;
-  key: string;
+  /** The uploaded object. Null when `fileId` is set. */
+  key: string | null;
+  /** The sent file the asker picked from Files, read in place. Null for an upload. */
+  fileId: string | null;
   name: string;
   contentType: string;
   size: number;
@@ -18,8 +21,15 @@ export type StoredAskAttachment = {
 
 export type NewAskAttachment = Pick<
   StoredAskAttachment,
-  'id' | 'organizationId' | 'ownerId' | 'key' | 'name' | 'contentType' | 'size'
->;
+  'id' | 'organizationId' | 'ownerId' | 'name' | 'contentType' | 'size'
+> &
+  (
+    | { key: string }
+    | (Pick<StoredAskAttachment, 'width' | 'height'> & {
+        fileId: string;
+        ready: true;
+      })
+  );
 
 /** Ask attachments through their upload. `AnswersRepository.addAnswer` links them to the answer. */
 export abstract class AskAttachmentsRepository {
