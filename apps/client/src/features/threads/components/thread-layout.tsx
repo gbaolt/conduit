@@ -71,7 +71,10 @@ export function ThreadLayout({
         {panel && !docked && (
           <div className="bg-background absolute inset-0 z-20">{panel}</div>
         )}
-        {panel && docked && <SidePanel>{panel}</SidePanel>}
+        {/* Keyed, so another thread mounts anew and shows over a panel that covered the last one. */}
+        {panel && docked && (
+          <SidePanel key={threadId ?? splitRoomId}>{panel}</SidePanel>
+        )}
       </div>
     </OpenThread>
   );
