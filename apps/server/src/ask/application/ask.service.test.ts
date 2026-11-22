@@ -582,6 +582,94 @@ describe.skipIf(!connectionString)('AskService', () => {
     });
   });
 
+  it('cites a guide article it reads, and reads it back when the chat reopens', async () => {
+    const results: Record<string, string> = {};
+    const { model, requests } = fakeModel(
+      () => {
+        const n = results.guide!.match(
+          /<source n="(\d+)" type="guide" slug="what-is-conduit"/
+        )![1];
+        return [{ found: true, body: `Conduit is team chat [${n}].` }];
+      },
+      {
+        tools: async ({ tools }) => {
+          results.guide = await tools!.guide!.execute({
+            slugs: ['what-is-conduit', 'no-such-article'],
+          });
+        },
+      }
+    );
+
+    const answer = await answerOf(
+      await service(model).question(viewerOf(ana), {
+        question: 'What is Conduit?',
+      })
+    );
+
+    expect(requests.at(-1)!.system).toContain('- what-is-conduit: ');
+    expect(results.guide).toContain('team chat with the work built in');
+    expect(results.guide).not.toContain('no-such-article');
+    const cited = [
+      {
+        type: 'guide',
+        article: { slug: 'what-is-conduit', title: 'What Conduit is' },
+      },
+    ];
+    expect(answer).toMatchObject({
+      found: true,
+      body: 'Conduit is team chat [1].',
+      sources: cited,
+    });
+    expect(
+      (await service(model).chat(viewerOf(ana), answer.chatId)).answers[0]
+    ).toMatchObject({ body: 'Conduit is team chat [1].', sources: cited });
+  });
+
+  it('drops a cited guide article that no longer exists when the chat reopens', async () => {
+    const stored = await answers.addAnswer(
+      {
+        newChat: { organizationId: org, ownerId: ana, title: 'Old guide' },
+      },
+      {
+        question: 'How big can a file be?',
+        found: true,
+        body: 'Removed [1]. Still here [2].',
+        sources: [
+          { type: 'guide', id: 'removed-article' },
+          { type: 'guide', id: 'files' },
+        ],
+        attachmentIds: [],
+      }
+    );
+
+    const { model } = fakeModel([]);
+    const [reloaded] = (await service(model).chat(viewerOf(ana), stored.chatId))
+      .answers;
+
+    expect(reloaded).toMatchObject({
+      body: 'Removed. Still here [1].',
+      sources: [
+        {
+          type: 'guide',
+          article: { slug: 'files', title: 'Files and uploads' },
+        },
+      ],
+    });
+  });
+
+  it('opens a guide article by slug, and refuses one that does not exist', async () => {
+    const { model } = fakeModel([]);
+    await expect(
+      service(model).guide(viewerOf(ana), 'search')
+    ).resolves.toMatchObject({
+      slug: 'search',
+      title: 'Search and the command menu',
+    });
+    await expect(
+      service(model).guide(viewerOf(ana), 'no-such-article')
+    ).rejects.toMatchObject({ code: 'ARTICLE_NOT_FOUND' });
+  });
+
   it("reads the asker's own saved messages and drafts, never one in a DM", async () => {
     await prisma.savedMessage.createMany({
       data: [

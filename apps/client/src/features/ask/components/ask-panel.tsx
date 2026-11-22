@@ -6,6 +6,7 @@ import { SidePanel } from '@/components/side-panel';
 import { useMediaQuery } from '@/hooks/use-media-query';
 
 import { useAsk } from '../context/ask-provider';
+import { AskGuidePanel } from './ask-guide-panel';
 import { AskPanelHeader } from './ask-panel-header';
 import { AskPromptForm } from './ask-prompt-form';
 import { AskTranscript } from './ask-transcript';
@@ -34,19 +35,27 @@ function AskChat({ onOpenSource }: { onOpenSource: () => void }) {
 const keepOpen = () => {};
 
 /**
- * Ask Conduit's chat. From xl it sits in the side card, so a cited message opens beside it. Narrower, it covers
- * the screen in a sheet, and opening a source closes it.
+ * Ask Conduit's chat. From xl it sits in the side card, so a cited message opens beside it, and a cited guide
+ * article stacks over it. Narrower, it covers the screen in a sheet, opening a source closes it, and a guide
+ * article shows in its place while the chat stays mounted behind it.
  */
 export function AskPanel() {
-  const { open, close } = useAsk();
+  const { open, close, guide } = useAsk();
   const docked = useMediaQuery('(min-width: 80rem)');
 
   if (docked) {
     return (
       open && (
-        <SidePanel>
-          <AskChat onOpenSource={keepOpen} />
-        </SidePanel>
+        <>
+          <SidePanel>
+            <AskChat onOpenSource={keepOpen} />
+          </SidePanel>
+          {guide && (
+            <SidePanel>
+              <AskGuidePanel key={guide} slug={guide} />
+            </SidePanel>
+          )}
+        </>
       )
     );
   }
@@ -58,7 +67,10 @@ export function AskPanel() {
         aria-label="Ask Conduit"
         className="gap-0 p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-md"
       >
-        <AskChat onOpenSource={close} />
+        <div className={guide ? 'hidden' : 'contents'}>
+          <AskChat onOpenSource={close} />
+        </div>
+        {guide && <AskGuidePanel key={guide} slug={guide} />}
       </SheetContent>
     </Sheet>
   );

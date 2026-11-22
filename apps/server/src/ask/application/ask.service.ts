@@ -4,6 +4,7 @@ import {
   type AskChat,
   type AskChatSummary,
   type AskEvent,
+  type AskGuideArticle,
   type ModelAnswer,
   ModelAnswerSchema,
 } from '@conduit/contract';
@@ -33,6 +34,7 @@ import { askError } from '@/ask/domain/ask-errors';
 import {
   ASK_CHAT_TURNS_MAX,
   ASK_CHATS_LIST_MAX,
+  ASK_GUIDE_READS_MAX,
   ASK_MAX_OUTPUT_TOKENS,
   ASK_REWRITE_MAX_OUTPUT_TOKENS,
   ASK_REWRITE_PROMPT,
@@ -55,6 +57,7 @@ import {
   standaloneQueryPrompt,
   StandaloneQuerySchema,
 } from '@/ask/domain/ask-prompt';
+import { guideArticle } from '@/ask/domain/guide/guide';
 import {
   SearchService,
   type SearchViewer,
@@ -76,6 +79,10 @@ function toSource(passage: AskPassage): AnswerSource {
     }
     case 'draft':
       return { type: 'draft', draft: passage.draft };
+    case 'guide': {
+      const { slug, title } = passage.article;
+      return { type: 'guide', article: { slug, title } };
+    }
   }
 }
 
@@ -343,6 +350,24 @@ export class AskService {
           );
         },
       },
+      guide: {
+        description:
+          'Read articles of the Conduit guide, which explains the Conduit app itself, by their slugs.',
+        input: z.object({
+          slugs: z
+            .array(z.string())
+            .min(1)
+            .max(ASK_GUIDE_READS_MAX)
+            .describe('Slugs from the list of guide articles.'),
+        }),
+        execute: async ({ slugs }: { slugs: string[] }) => {
+          const articles = slugs.flatMap((slug) => {
+            const article = guideArticle(slug);
+            return article ? [article] : [];
+          });
+          return add(articles.map((article) => ({ type: 'guide', article })));
+        },
+      },
       drafts: {
         description:
           "The asker's own unsent drafts, newest first, optionally only those holding a word of query.",
@@ -384,6 +409,14 @@ export class AskService {
       title: chat.title,
       answers: await this.hydrate(await this.scope(viewer), chat.answers),
     };
+  }
+
+  /** An article of the Conduit guide, for the panel a cited article opens in. */
+  async guide(viewer: SearchViewer, slug: string): Promise<AskGuideArticle> {
+    await this.access.assertEnabled(viewer.organizationId);
+    const article = guideArticle(slug);
+    if (!article) throw askError('ARTICLE_NOT_FOUND');
+    return { slug: article.slug, title: article.title, body: article.body };
   }
 
   async deleteChat(viewer: SearchViewer, chatId: string) {
@@ -475,6 +508,20 @@ export class AskService {
       ...files.map(
         (file) => [`file:${file.id}`, { type: 'file', file }] as const
       ),
+      ...idsOf('guide').flatMap((slug) => {
+        const article = guideArticle(slug);
+        return article
+          ? [
+              [
+                `guide:${slug}`,
+                {
+                  type: 'guide',
+                  article: { slug, title: article.title },
+                },
+              ] as const,
+            ]
+          : [];
+      }),
     ]);
     return Promise.all(
       stored.map(async (answer) => {

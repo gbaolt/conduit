@@ -65,6 +65,17 @@ export class AskController {
       );
   }
 
+  @Implement(contract.ask.guide)
+  guide() {
+    return implement(contract.ask.guide)
+      .use(authorized)
+      .use(arcjet.read)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.ask.guide(viewerOf(context), input.slug)
+      );
+  }
+
   @Implement(contract.ask.deleteChat)
   deleteChat() {
     return implement(contract.ask.deleteChat)

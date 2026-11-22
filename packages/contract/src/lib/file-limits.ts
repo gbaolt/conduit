@@ -3,7 +3,7 @@ const MB = 1024 * 1024;
 /** The largest file one upload may be. */
 export const FILE_SIZE_MAX = 50 * MB;
 
-/** What a workspace may store in all. The PRD marks it as a placeholder. */
+/** What a workspace may store in all. */
 export const WORKSPACE_STORAGE_MAX = 10 * 1024 * MB;
 
 /** How many files one message may carry. */

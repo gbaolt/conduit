@@ -82,6 +82,17 @@ export const AskDraftSchema = z.object({
 });
 export type AskDraft = z.infer<typeof AskDraftSchema>;
 
+/** An article of the Conduit guide, which explains the app itself. */
+export const AskGuideArticleSchema = z.object({
+  slug: z.string(),
+  title: z.string(),
+  /** Markdown. */
+  body: z.string(),
+});
+export type AskGuideArticle = z.infer<typeof AskGuideArticleSchema>;
+
+export const AskGuideInputSchema = z.object({ slug: z.string().max(100) });
+
 /** A cited source, as Postgres holds it now. */
 export const AnswerSourceSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('message'), message: MessageHitSchema }),
@@ -89,6 +100,10 @@ export const AnswerSourceSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('channel'), channel: AskChannelSchema }),
   z.object({ type: z.literal('person'), person: AskPersonSchema }),
   z.object({ type: z.literal('draft'), draft: AskDraftSchema }),
+  z.object({
+    type: z.literal('guide'),
+    article: AskGuideArticleSchema.pick({ slug: true, title: true }),
+  }),
 ]);
 export type AnswerSource = z.infer<typeof AnswerSourceSchema>;
 

@@ -3,13 +3,12 @@
 import type { AnswerSource } from '@conduit/contract';
 import { buttonVariants } from '@conduit/ui/components/button';
 import { cn } from '@conduit/ui/lib/utils';
-import Link from 'next/link';
 import { useMemo } from 'react';
 import type { Components } from 'react-markdown';
 
 import { Markdown } from '@/components/markdown';
 
-import { sourceHref } from '../lib/source-href';
+import { AskSourceLink } from './ask-source-link';
 
 // A `[n]` in the answer becomes a link Markdown keeps, which `citations` below draws as a pill.
 const CITE = /\[(\d+)\](?!\()/g;
@@ -25,9 +24,10 @@ function citations(
       const source = sources[number - 1];
       if (!source) return <>{children}</>;
       return (
-        <Link
-          href={sourceHref(source)}
-          onClick={onOpen}
+        <AskSourceLink
+          source={source}
+          onOpen={onOpen}
+          variant="link"
           aria-label={`Source ${number}`}
           className={cn(
             buttonVariants({ size: 'xs', variant: 'link' }),
@@ -35,7 +35,7 @@ function citations(
           )}
         >
           {number}
-        </Link>
+        </AskSourceLink>
       );
     },
   };

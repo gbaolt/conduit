@@ -35,6 +35,10 @@ type AskValue = {
   openAsk: (question?: string, options?: { submit?: boolean }) => void;
   /** Closes the panel. A question in flight keeps streaming into its chat. */
   close: () => void;
+  /** The guide article open beside the chat, by slug. */
+  guide: string | null;
+  openGuide: (slug: string) => void;
+  closeGuide: () => void;
   /** Shows the chat `chatId`, or a new one with null, and stops reading the question in flight. */
   startChat: (chatId: string | null) => void;
   send: (question: string, attachments?: MessageFile[]) => void;
@@ -56,6 +60,7 @@ export function AskProvider({ children }: { children: ReactNode }) {
   const [chatId, setChatId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [announcement, setAnnouncement] = useState('');
+  const [guide, setGuide] = useState<string | null>(null);
 
   const onAnswer = useCallback((answer: Answer) => {
     setChatId(answer.chatId);
@@ -90,7 +95,11 @@ export function AskProvider({ children }: { children: ReactNode }) {
     },
     [sendTurn, startChat]
   );
-  const close = useCallback(() => setOpen(false), []);
+  const close = useCallback(() => {
+    setOpen(false);
+    setGuide(null);
+  }, []);
+  const closeGuide = useCallback(() => setGuide(null), []);
 
   const value = useMemo(
     () => ({
@@ -102,6 +111,9 @@ export function AskProvider({ children }: { children: ReactNode }) {
       announcement,
       openAsk,
       close,
+      guide,
+      openGuide: setGuide,
+      closeGuide,
       startChat,
       send,
       stop,
@@ -115,6 +127,8 @@ export function AskProvider({ children }: { children: ReactNode }) {
       announcement,
       openAsk,
       close,
+      guide,
+      closeGuide,
       startChat,
       send,
       stop,
