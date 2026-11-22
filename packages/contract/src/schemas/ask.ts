@@ -30,14 +30,22 @@ export const AskAttachmentUploadSchema = z.object({
   uploadUrl: z.string(),
 });
 
+/** A sent file from a channel the asker can read, attached without a copy. */
+export const AskAttachFileInputSchema = z.object({ fileId: z.string() });
+
 export const CompleteAskAttachmentInputSchema = CompleteFileInputSchema.omit({
   fileId: true,
 }).extend({ attachmentId: z.string() });
 
 /** A file the asker attached to a question. Only the asker ever sees it. */
 export const AskAttachmentSchema = MessageFileSchema.extend({
-  /** Shows the file in place for 10 minutes. */
-  url: z.string(),
+  /** Shows the file in place for 10 minutes. Null once the file is no longer available. */
+  url: z.string().nullable(),
+  /**
+   * False once the asker can't open the file it points at, or the file is gone. The model no longer reads it.
+   * An uploaded attachment is always available.
+   */
+  available: z.boolean(),
 });
 export type AskAttachment = z.infer<typeof AskAttachmentSchema>;
 

@@ -98,6 +98,17 @@ export class AskController {
       );
   }
 
+  @Implement(contract.ask.attachFile)
+  attachFile() {
+    return implement(contract.ask.attachFile)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.attachments.attachFile(viewerOf(context), input.fileId)
+      );
+  }
+
   @Implement(contract.ask.completeAttachment)
   completeAttachment() {
     return implement(contract.ask.completeAttachment)

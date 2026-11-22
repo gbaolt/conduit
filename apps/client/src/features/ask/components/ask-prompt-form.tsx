@@ -18,7 +18,11 @@ import { useState } from 'react';
 import { AttachMenu } from '@/components/attach/attach-menu';
 import { ComposerAttachments } from '@/components/composer/composer-attachments';
 import { useFileDrop } from '@/features/messages/components/conversation/conversation-drop';
-import { ASK_ATTACHMENT_ACCEPT, askUploads } from '@/services/ask/attachments';
+import {
+  ASK_ATTACHMENT_ACCEPT,
+  ASK_FILE_KINDS,
+  askUploads,
+} from '@/services/ask/attachments';
 import { useFileUploads } from '@/services/files/upload';
 
 import { useAsk } from '../context/ask-provider';
@@ -103,6 +107,15 @@ export function AskPromptForm() {
           <AttachMenu
             onFiles={uploads.add}
             accept={ASK_ATTACHMENT_ACCEPT}
+            files={{
+              kinds: ASK_FILE_KINDS,
+              roomKind: 'channel',
+              max:
+                ASK_ATTACHMENTS_MAX -
+                uploads.uploads.filter((upload) => upload.status !== 'failed')
+                  .length,
+              onInsert: uploads.attach,
+            }}
             full={full ? `Up to ${ASK_ATTACHMENTS_MAX} files` : undefined}
             trigger={
               <InputGroupButton

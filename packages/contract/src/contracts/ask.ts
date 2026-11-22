@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { aiErrors } from '@/contracts/ai-settings';
 import { fileErrors } from '@/contracts/files';
 import {
+  AskAttachFileInputSchema,
   AskAttachmentSchema,
   AskAttachmentUploadInputSchema,
   AskAttachmentUploadSchema,
@@ -87,6 +88,13 @@ export const askAttachmentUrlContract = oc
   .errors({ ATTACHMENT_REJECTED, AI_DISABLED, STORAGE_UNAVAILABLE })
   .input(AskAttachmentUploadInputSchema)
   .output(AskAttachmentUploadSchema);
+
+/** Attaches a sent file from a channel the caller can read. Every later read checks that access again. */
+export const askAttachFileContract = oc
+  .meta(openapi({ method: 'POST', path: '/ask/attachments/files' }))
+  .errors({ ATTACHMENT_NOT_FOUND, ATTACHMENT_REJECTED, AI_DISABLED })
+  .input(AskAttachFileInputSchema)
+  .output(AskAttachmentSchema);
 
 /** Marks the caller's upload ready to send, once storage holds its bytes. */
 export const completeAskAttachmentContract = oc

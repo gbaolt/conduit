@@ -9,13 +9,24 @@ import type {
 } from '@/search/domain/search.repository';
 
 const person = { select: { id: true, name: true, image: true } } as const;
-const room = { select: { id: true, name: true, kind: true } } as const;
+const room = {
+  select: { id: true, name: true, kind: true, visibility: true },
+} as const;
 
-const toRoom = (row: { id: string; name: string; kind: 'CHANNEL' | 'DM' }) => ({
+const toRoom = (row: {
+  id: string;
+  name: string;
+  kind: 'CHANNEL' | 'DM';
+  visibility: 'PUBLIC' | 'PRIVATE';
+}) => ({
   id: row.id,
   // A DM stores its key in `name`, and shows no name.
   name: row.kind === 'DM' ? '' : row.name,
   kind: row.kind === 'DM' ? ('dm' as const) : ('channel' as const),
+  visibility:
+    row.kind === 'DM' || row.visibility === 'PRIVATE'
+      ? ('private' as const)
+      : ('public' as const),
 });
 
 const createdIn = (scope: SearchScope) =>

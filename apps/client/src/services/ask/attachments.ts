@@ -11,6 +11,9 @@ import {
 import { client } from '@/lib/orpc';
 import type { UploadTarget } from '@/services/files/upload';
 
+/** What Ask reads from the Files dialog: no video and no file it can't read. */
+export const ASK_FILE_KINDS = ['image', 'pdf', 'text'] as const;
+
 /** What the Ask composer's file picker offers. */
 export const ASK_ATTACHMENT_ACCEPT =
   'image/png,image/jpeg,image/gif,image/webp,application/pdf,text/*,.md,.csv,.json,.xml';
@@ -66,4 +69,5 @@ export const askUploads: UploadTarget = {
   },
   complete: (attachmentId, dimensions) =>
     client.ask.completeAttachment({ attachmentId, ...dimensions }),
+  attach: (file) => client.ask.attachFile({ fileId: file.id }),
 };

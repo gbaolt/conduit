@@ -1,9 +1,37 @@
+import { CopyObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { contentDisposition, S3ObjectStorage } from './s3-object-storage';
 
 describe('S3ObjectStorage', () => {
-  afterEach(() => vi.unstubAllEnvs());
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
+  it('copies inside the bucket, naming the source by bucket and encoded key', async () => {
+    vi.stubEnv('S3_BUCKET', 'bkt');
+    vi.stubEnv('S3_REGION', 'us-east-1');
+    vi.stubEnv('S3_ACCESS_KEY_ID', 'AKIATEST');
+    vi.stubEnv('S3_SECRET_ACCESS_KEY', 'secret');
+    vi.stubEnv('S3_PUBLIC_BASE_URL', 'https://cdn.test');
+    const send = vi
+      .spyOn(S3Client.prototype, 'send')
+      .mockResolvedValue({} as never);
+
+    await new S3ObjectStorage().copy(
+      'files/o/a/Q3 plan.pdf',
+      'files/o/b/Q3 plan.pdf'
+    );
+
+    const [command] = send.mock.calls[0]!;
+    expect(command).toBeInstanceOf(CopyObjectCommand);
+    expect((command as CopyObjectCommand).input).toEqual({
+      Bucket: 'bkt',
+      CopySource: 'bkt/files/o/a/Q3%20plan.pdf',
+      Key: 'files/o/b/Q3 plan.pdf',
+    });
+  });
 
   it('fails with STORAGE_UNAVAILABLE when the S3 settings are missing', async () => {
     vi.stubEnv('S3_BUCKET', '');

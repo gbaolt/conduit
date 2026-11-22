@@ -59,7 +59,12 @@ function roomFor(member: boolean, overrides: Partial<Room> = {}): Room {
   };
 }
 
-function setup(room: Room | null = roomFor(true), readable = ['c1']) {
+function setup(
+  room: Room | null = roomFor(true),
+  readable = ['c1'],
+  /** Other rooms `rooms.find` knows, by id. Any other id finds `room`. */
+  others: Room[] = []
+) {
   const rows = new Map<string, StoredFile>();
   const listed: FileListQuery[] = [];
   const files = {
@@ -76,6 +81,7 @@ function setup(room: Room | null = roomFor(true), readable = ['c1']) {
         status: 'pending',
         createdAt: new Date(),
         deletedAt: null,
+        sourceFileId: file.sourceFileId ?? null,
       });
       return { created: true };
     },
@@ -103,13 +109,15 @@ function setup(room: Room | null = roomFor(true), readable = ['c1']) {
       listed.push(query);
       return { files: [], hasMore: false };
     },
+    counts: async () => ({ image: 0, video: 0, pdf: 0, text: 0, other: 0 }),
     cancel: async (id) => {
       const row = rows.get(id)!;
       if (!row.messageId) rows.set(id, { ...row, deletedAt: new Date() });
     },
   } as FilesRepository;
   const rooms = {
-    find: async () => room,
+    find: async (_viewer: unknown, id: string) =>
+      others.find((other) => other.id === id) ?? room,
     accessibleRoomIds: async () => readable,
   } as Partial<RoomsRepository> as RoomsRepository;
   const { storage, objects, bytes, ranges } = createFakeStorage();
@@ -138,6 +146,7 @@ const stored = (overrides: Partial<StoredFile>): StoredFile => ({
   status: 'ready',
   createdAt: new Date(0),
   deletedAt: null,
+  sourceFileId: null,
   ...overrides,
 });
 
@@ -412,7 +421,129 @@ describe('FilesService', () => {
     });
   });
 
+  describe('attach', () => {
+    const design = roomFor(true, { id: 'design', name: 'design' });
+    const leads = roomFor(true, {
+      id: 'leads',
+      name: 'leads',
+      visibility: 'private',
+    });
+    const dm = roomFor(true, { id: 'dm1', kind: 'dm', visibility: 'private' });
+    const sent = (roomId: string, overrides: Partial<StoredFile> = {}) =>
+      stored({ roomId, key: `files/org/f1/q3.pdf`, ...overrides });
+    const setupWith = (target: Room = roomFor(true)) => {
+      const context = setup(
+        target,
+        ['c1', 'design', 'leads', 'dm1'],
+        [design, leads, dm]
+      );
+      context.objects.set('files/org/f1/q3.pdf', 10);
+      return context;
+    };
+    const copies = (rows: Map<string, StoredFile>) =>
+      [...rows.values()].filter((row) => row.id !== 'f1');
+
+    it("copies a public channel's file into the room, as the viewer's own, linked to the original", async () => {
+      const { service, rows, objects } = setupWith();
+      rows.set('f1', sent('design'));
+
+      const file = await service.attach(other, { fileId: 'f1', roomId: 'c1' });
+
+      expect(file).toMatchObject({ name: 'q3.pdf', size: 10 });
+      const [copy] = copies(rows);
+      expect(copy).toMatchObject({
+        id: file.id,
+        roomId: 'c1',
+        uploaderId: 'other',
+        status: 'ready',
+        messageId: null,
+        sourceFileId: 'f1',
+      });
+      expect(copy!.key).not.toBe('files/org/f1/q3.pdf');
+      expect(objects.get(copy!.key)).toBe(10);
+    });
+
+    it('links a copy of a copy to the original', async () => {
+      const { service, rows } = setupWith();
+      rows.set('f1', sent('design', { sourceFileId: 'original' }));
+
+      await service.attach(other, { fileId: 'f1', roomId: 'c1' });
+
+      expect(copies(rows)[0]!.sourceFileId).toBe('original');
+    });
+
+    it("refuses a private channel's file and a DM's file, even for a member, and stores nothing", async () => {
+      const { service, rows, objects } = setupWith();
+      rows.set('f1', sent('leads'));
+      rows.set('f2', sent('dm1', { id: 'f2' }));
+
+      for (const fileId of ['f1', 'f2']) {
+        await expect(
+          service.attach(other, { fileId, roomId: 'c1' })
+        ).rejects.toMatchObject({ code: 'FILE_NOT_SHAREABLE' });
+      }
+      expect(rows.size).toBe(2);
+      expect(objects.size).toBe(1);
+    });
+
+    it("copies a private channel's file back into that channel", async () => {
+      const { service, rows } = setupWith(leads);
+      rows.set('f1', sent('leads'));
+
+      await service.attach(other, { fileId: 'f1', roomId: 'leads' });
+
+      expect(copies(rows)[0]!.roomId).toBe('leads');
+    });
+
+    it('hides a file the viewer cannot read, and refuses an archived room or a full workspace', async () => {
+      const unreadable = setupWith();
+      unreadable.rows.set('f1', sent('secret'));
+      await expect(
+        unreadable.service.attach(other, { fileId: 'f1', roomId: 'c1' })
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+
+      const archived = setupWith(roomFor(true, { archivedAt: new Date() }));
+      archived.rows.set('f1', sent('design'));
+      await expect(
+        archived.service.attach(other, { fileId: 'f1', roomId: 'c1' })
+      ).rejects.toMatchObject({ code: 'CHANNEL_ARCHIVED' });
+
+      const full = setupWith();
+      full.rows.set('f1', sent('design', { size: WORKSPACE_STORAGE_MAX }));
+      await expect(
+        full.service.attach(other, { fileId: 'f1', roomId: 'c1' })
+      ).rejects.toMatchObject({ code: 'STORAGE_FULL' });
+    });
+  });
+
   describe('list', () => {
+    it('narrows to the viewer, to everyone else, to kinds, and to channels', async () => {
+      const { service, listed } = setup();
+
+      await service.list(other, { owner: 'me' });
+      await service.list(other, { owner: 'others' });
+      await service.list(other, {
+        kinds: ['pdf', 'text'],
+        roomKind: 'channel',
+      });
+
+      expect(listed[0]).toMatchObject({ uploaderId: 'other' });
+      expect(listed[1]).toMatchObject({ notUploaderId: 'other' });
+      expect(listed[2]).toMatchObject({
+        kinds: ['pdf', 'text'],
+        roomKind: 'channel',
+      });
+    });
+
+    it("lists nothing for the viewer's own files from someone else", async () => {
+      const { service, listed } = setup();
+
+      expect(
+        await service.list(other, { owner: 'me', uploaderId: 'author' })
+      ).toEqual({ files: [], hasMore: false });
+      expect(listed).toEqual([]);
+    });
+
     it('lists only the rooms the viewer can read, and narrows to one of them', async () => {
       const { service, listed } = setup(roomFor(true), ['c1', 'c2']);
 

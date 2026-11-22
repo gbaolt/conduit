@@ -32,6 +32,14 @@ export function createFakeStorage() {
       bytes.has(key)
         ? Promise.resolve(bytes.get(key)!)
         : Promise.reject(new Error(`Nothing is stored at ${key}.`)),
+    copy: (from, to) => {
+      if (!objects.has(from)) {
+        return Promise.reject(new Error(`Nothing is stored at ${from}.`));
+      }
+      objects.set(to, objects.get(from)!);
+      if (bytes.has(from)) bytes.set(to, bytes.get(from)!);
+      return Promise.resolve();
+    },
     readRange: (key, size) => {
       ranges.push([key, size]);
       return bytes.has(key)

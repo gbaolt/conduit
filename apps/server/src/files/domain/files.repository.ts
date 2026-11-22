@@ -1,4 +1,9 @@
-import type { FileKind, ListFilesOutput, MessageFile } from '@conduit/contract';
+import type {
+  FileCounts,
+  FileKind,
+  ListFilesOutput,
+  MessageFile,
+} from '@conduit/contract';
 
 /** A file row as the app sees it. */
 export type StoredFile = MessageFile & {
@@ -10,6 +15,8 @@ export type StoredFile = MessageFile & {
   status: 'pending' | 'ready';
   createdAt: Date;
   deletedAt: Date | null;
+  /** The original this file was copied from, or null for an upload. */
+  sourceFileId: string | null;
 };
 
 export type NewFile = Pick<
@@ -22,15 +29,24 @@ export type NewFile = Pick<
   | 'contentType'
   | 'size'
   | 'key'
->;
+> &
+  Partial<Pick<StoredFile, 'sourceFileId'>>;
 
-/** What `list` narrows to. `roomIds` are the rooms the viewer can read, so no other room's file is listed. */
-export type FileListQuery = {
+/** What `list` and `counts` narrow to. `roomIds` are the rooms the viewer can read, so no other room's file is listed. */
+export type FileFilterQuery = {
   organizationId: string;
   roomIds: string[];
   uploaderId?: string;
-  kind?: FileKind;
+  /** Leaves out this uploader's files. */
+  notUploaderId?: string;
   name?: string;
+  /** `channel` leaves out files shared in DMs. */
+  roomKind?: 'channel';
+};
+
+export type FileListQuery = FileFilterQuery & {
+  /** Any of these kinds. Empty or left out keeps every kind. */
+  kinds?: FileKind[];
   before?: string;
   limit: number;
 };
@@ -62,6 +78,9 @@ export abstract class FilesRepository {
 
   /** Sent, unremoved files in `roomIds`, newest first. An unknown `before` lists nothing. */
   abstract list(query: FileListQuery): Promise<ListFilesOutput>;
+
+  /** How many of the files `list` would show for the same filters are of each kind. */
+  abstract counts(query: FileFilterQuery): Promise<FileCounts>;
 
   /**
    * Files to remove for good: uploads left pending since before `pendingBefore`, and deleted files whose

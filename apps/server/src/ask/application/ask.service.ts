@@ -136,6 +136,7 @@ export type AskRun = {
 
 /** One question in a chat, the files it carries, and where its answer is stored. */
 type Turn = {
+  viewer: SearchViewer;
   question: string;
   attachments: ReadAttachments['attachments'];
   images: ModelImage[];
@@ -207,6 +208,7 @@ export class AskService {
     }
     const read = await this.attachments.read(viewer, attachmentIds);
     const turn: Turn = {
+      viewer,
       question,
       attachments: read.attachments,
       images: read.images,
@@ -407,7 +409,11 @@ export class AskService {
     return {
       id: chat.id,
       title: chat.title,
-      answers: await this.hydrate(await this.scope(viewer), chat.answers),
+      answers: await this.hydrate(
+        viewer,
+        await this.scope(viewer),
+        chat.answers
+      ),
     };
   }
 
@@ -465,6 +471,7 @@ export class AskService {
 
   /** Every answer's sources, read in one pass through the asker's scope now, and renumbered without the gone. */
   private async hydrate(
+    viewer: SearchViewer,
     scope: AskScope,
     stored: readonly StoredAnswer[]
   ): Promise<Answer[]> {
@@ -539,11 +546,7 @@ export class AskService {
           found: answer.found,
           body,
           sources: keys.map((key) => readable.get(key)!),
-          attachments: await Promise.all(
-            answer.attachments.map((attachment) =>
-              this.attachments.view(attachment)
-            )
-          ),
+          attachments: await this.attachments.views(viewer, answer.attachments),
           createdAt: answer.createdAt,
         };
       })
@@ -644,10 +647,9 @@ export class AskService {
       found,
       body: stored.body,
       sources: found ? answer.sources : [],
-      attachments: await Promise.all(
-        stored.attachments.map((attachment) =>
-          this.attachments.view(attachment)
-        )
+      attachments: await this.attachments.views(
+        turn.viewer,
+        stored.attachments
       ),
       createdAt: stored.createdAt,
     };
