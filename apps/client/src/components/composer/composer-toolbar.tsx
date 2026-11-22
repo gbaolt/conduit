@@ -30,7 +30,6 @@ import {
   IconList,
   IconListNumbers,
   IconMoodSmile,
-  IconPaperclip,
   IconSend2,
   IconStrikethrough,
   IconTable,
@@ -47,7 +46,7 @@ import {
   SELECTION_CHANGE_COMMAND,
   type TextFormatType,
 } from 'lexical';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 
 import { useEditorModal } from '@/components/editor/editor-hooks/use-modal';
 import { InsertTableDialog } from '@/components/editor/plugins/table-plugin';
@@ -142,7 +141,7 @@ function useActiveFormats(editor: LexicalEditor) {
 
 const FORMAT_BUTTON =
   "text-muted-foreground size-7 pointer-coarse:size-10 [&_svg:not([class*='size-'])]:size-4";
-const ACTION_BUTTON =
+export const ACTION_BUTTON =
   "text-muted-foreground size-8 pointer-coarse:size-11 [&_svg:not([class*='size-'])]:size-5";
 
 function ToolbarButton({
@@ -329,7 +328,7 @@ export function ComposerActionBar({
   onToggleFormatting,
   onSubmit,
   onCancel,
-  onFiles,
+  attach,
   sendBlocked,
   children,
 }: {
@@ -340,8 +339,8 @@ export function ComposerActionBar({
   onToggleFormatting: () => void;
   onSubmit: () => void;
   onCancel?: () => void;
-  /** Adds the Attach files button. */
-  onFiles?: (files: File[]) => void;
+  /** The attach control, after Mention. */
+  attach?: ReactNode;
   /** Why Send waits, such as "Uploading 2 files…". */
   sendBlocked?: string;
   /** Extra controls placed before the length and Send. */
@@ -349,7 +348,6 @@ export function ComposerActionBar({
 }) {
   const [editor] = useLexicalComposerContext();
   const overLimit = length > MESSAGE_BODY_MAX;
-  const picker = useRef<HTMLInputElement>(null);
 
   return (
     <div className="flex items-center gap-0.5 px-1.5 pb-1.5">
@@ -377,30 +375,7 @@ export function ComposerActionBar({
       >
         <IconAt />
       </ToolbarButton>
-      {onFiles && (
-        <>
-          <ToolbarButton
-            label="Attach files"
-            className={ACTION_BUTTON}
-            onClick={() => picker.current?.click()}
-          >
-            <IconPaperclip />
-          </ToolbarButton>
-          <input
-            ref={picker}
-            type="file"
-            multiple
-            hidden
-            tabIndex={-1}
-            onChange={(event) => {
-              const files = [...(event.currentTarget.files ?? [])];
-              // Cleared so picking the same file again still fires a change.
-              event.currentTarget.value = '';
-              if (files.length > 0) onFiles(files);
-            }}
-          />
-        </>
-      )}
+      {attach}
       <div className="ml-auto flex min-w-0 items-center gap-2">
         {children}
         {sendBlocked && (

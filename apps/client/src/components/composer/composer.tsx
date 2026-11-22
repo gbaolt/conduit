@@ -82,8 +82,10 @@ export type ComposerProps = {
   onChange?: (markdown: string) => void;
   /** Controls in the bottom bar, before Send, such as a thread's "Also send to channel" checkbox. */
   actions?: ReactNode;
-  /** Takes files from the Attach button and from a paste. */
+  /** Takes files from a paste or a drop. */
   onFiles?: (files: File[]) => void;
+  /** The attach control in the bottom bar, such as `AttachMenu`. */
+  attach?: ReactNode;
   /** Files waiting to send, shown above the bottom bar. */
   attachments?: ReactNode;
   /** True while ready files are attached, so a message with no text can send. */
@@ -148,6 +150,7 @@ function ComposerBehavior({
   onChange,
   actions,
   onFiles,
+  attach,
   attachments,
   hasFiles = false,
   sendBlocked,
@@ -162,6 +165,7 @@ function ComposerBehavior({
     | 'initialMarkdown'
     | 'actions'
     | 'onFiles'
+    | 'attach'
     | 'attachments'
     | 'hasFiles'
     | 'sendBlocked'
@@ -374,7 +378,7 @@ function ComposerBehavior({
         onToggleFormatting={() => setFormattingOpen((open) => !open)}
         onSubmit={submit}
         onCancel={onCancel}
-        onFiles={onFiles}
+        attach={attach}
         sendBlocked={sendBlocked}
       >
         {actions}
