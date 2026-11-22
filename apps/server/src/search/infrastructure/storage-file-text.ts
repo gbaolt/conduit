@@ -24,8 +24,10 @@ async function pdfText(bytes: Uint8Array) {
     const page = await pdf.getPage(n);
     const content = await page.getTextContent();
     for (const item of content.items) {
-      if ('str' in item) text += `${item.str} `;
+      if ('str' in item) text += item.str + (item.hasEOL ? '\n' : ' ');
     }
+    // A page break is the nearest thing a PDF has to a paragraph, so chunks prefer to end there.
+    text += '\n\n';
     page.cleanup();
   }
   return text;

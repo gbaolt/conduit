@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   FILE_CHUNK_CHARS,
+  FILE_CHUNK_OVERLAP,
   FILE_CHUNKS_MAX,
   fileDocIds,
   fileDocs,
@@ -69,13 +70,12 @@ describe('messageDoc', () => {
 });
 
 describe('fileDocs', () => {
-  it('makes chunk 0 the name and slices the text after it', () => {
-    const docs = fileDocs(file, 'x'.repeat(FILE_CHUNK_CHARS + 10));
+  it('makes chunk 0 the name and keeps a short text in one chunk', () => {
+    const docs = fileDocs(file, 'Prices rise.\n\nPlans stay.');
 
-    expect(docs.map((doc) => [doc.id, doc.data.length])).toEqual([
-      ['file:f1:0', 'Q3 pricing.pdf'.length],
-      ['file:f1:1', FILE_CHUNK_CHARS],
-      ['file:f1:2', 10],
+    expect(docs.map((doc) => [doc.id, doc.data])).toEqual([
+      ['file:f1:0', 'Q3 pricing.pdf'],
+      ['file:f1:1', 'Prices rise. Plans stay.'],
     ]);
     expect(docs[0]!.metadata).toEqual({
       kind: 'file',
@@ -87,6 +87,42 @@ describe('fileDocs', () => {
       messageId: 'm1',
       parentId: 't1',
     });
+  });
+
+  it('ends chunks between sentences, and starts each later chunk with the end of the one before', () => {
+    const sentences = Array.from(
+      { length: 120 },
+      (_, n) => `Sentence ${n} talks about pricing for plan ${n}.`
+    );
+    const chunks = fileDocs(file, sentences.join(' '))
+      .slice(1)
+      .map((doc) => doc.data);
+
+    expect(chunks.length).toBeGreaterThan(2);
+    for (const [n, chunk] of chunks.entries()) {
+      expect(chunk.length).toBeLessThanOrEqual(FILE_CHUNK_CHARS);
+      expect(chunk).toMatch(/\.$/);
+      if (n === 0) continue;
+      const before = chunks[n - 1]!;
+      const repeated = before
+        .slice(-FILE_CHUNK_OVERLAP)
+        .split(' ')
+        .slice(1)
+        .join(' ');
+      expect(chunk.startsWith(repeated)).toBe(true);
+    }
+  });
+
+  it('splits a sentence longer than a chunk at its words', () => {
+    const chunks = fileDocs(file, 'word '.repeat(1000))
+      .slice(1)
+      .map((doc) => doc.data);
+
+    expect(chunks.length).toBeGreaterThan(1);
+    for (const chunk of chunks) {
+      expect(chunk.length).toBeLessThanOrEqual(FILE_CHUNK_CHARS);
+      expect(chunk.split(' ').every((word) => word === 'word')).toBe(true);
+    }
   });
 
   it('gives a file with no text one document, its name', () => {

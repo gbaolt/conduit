@@ -2,6 +2,8 @@ import { type FileKind, fileKind, plainText } from '@conduit/contract';
 
 /** Each chunk of a file's text, in characters. */
 export const FILE_CHUNK_CHARS = 2000;
+/** How much of the chunk before each later chunk repeats, so a sentence cut at a chunk's edge is still found whole. */
+export const FILE_CHUNK_OVERLAP = 300;
 /** A file's chunks, its name included, so one huge PDF cannot take over a workspace's index. */
 export const FILE_CHUNKS_MAX = 200;
 /** The most text a file's chunks can hold. Reading past it is wasted work. */
@@ -92,18 +94,60 @@ export function fileDocs(file: FileSource, text: string): SearchDoc[] {
     messageId: file.messageId,
     ...(file.parentId && { parentId: file.parentId }),
   };
-  const flat = text.replace(/\s+/g, ' ').trim();
-  const chunks = [file.name];
-  for (
-    let start = 0;
-    start < flat.length && chunks.length < FILE_CHUNKS_MAX;
-    start += FILE_CHUNK_CHARS
-  ) {
-    chunks.push(flat.slice(start, start + FILE_CHUNK_CHARS));
-  }
+  const chunks = [file.name, ...textChunks(text)];
   return chunks.map((data, chunk) => ({
     id: fileDocId(file.id, chunk),
     data,
     metadata,
   }));
+}
+
+/** The longest piece a chunk takes whole. Longer ones split at words, so a chunk with its overlap never passes the cap. */
+const PIECE_CHARS = FILE_CHUNK_CHARS - FILE_CHUNK_OVERLAP - 1;
+
+/** Paragraphs that fit, else their sentences, else their words, else slices of a word. */
+function* pieces(text: string) {
+  for (const paragraph of text.split(/\n\s*\n/)) {
+    const flat = paragraph.replace(/\s+/g, ' ').trim();
+    if (flat.length <= PIECE_CHARS) {
+      if (flat) yield flat;
+      continue;
+    }
+    for (const sentence of flat.split(/(?<=[.!?])\s+/)) {
+      if (sentence.length <= PIECE_CHARS) {
+        yield sentence;
+        continue;
+      }
+      for (const word of sentence.split(' ')) {
+        for (let start = 0; start < word.length; start += PIECE_CHARS) {
+          yield word.slice(start, start + PIECE_CHARS);
+        }
+      }
+    }
+  }
+}
+
+/** The last `FILE_CHUNK_OVERLAP` characters of a chunk, starting at a word when there is one. */
+function overlap(chunk: string) {
+  const tail = chunk.slice(-FILE_CHUNK_OVERLAP);
+  const midWord =
+    chunk.length > tail.length && chunk.at(-tail.length - 1) !== ' ';
+  const space = tail.indexOf(' ');
+  return midWord && space >= 0 ? tail.slice(space + 1) : tail;
+}
+
+/** Packs the text's pieces into chunks, each after the first starting with the end of the one before. */
+function textChunks(text: string) {
+  const chunks: string[] = [];
+  let chunk = '';
+  for (const piece of pieces(text)) {
+    if (chunk && chunk.length + 1 + piece.length > FILE_CHUNK_CHARS) {
+      chunks.push(chunk);
+      if (chunks.length === FILE_CHUNKS_MAX - 1) return chunks;
+      chunk = overlap(chunk);
+    }
+    chunk = chunk ? `${chunk} ${piece}` : piece;
+  }
+  if (chunk) chunks.push(chunk);
+  return chunks;
 }
