@@ -37,7 +37,7 @@ These shapes come first. Each PR below adds the ones it needs.
 | `SearchIndex`                            | `apps/server/src/search/domain/search-index.port.ts` | The port: `upsert(org, docs)`, `delete(org, ids)`, `query(org, { text, filter, topK, mode })`. One namespace per workspace. `UpstashSearchIndex` is the only adapter. A fake adapter in `testing/` returns every doc, which is how the access tests prove that Postgres is the guard.                                                                                                                                                                                                           |
 | `SearchQuery`                            | `packages/contract/src/lib/search-query.ts`          | `parseSearchQuery(text) => { terms, in?: string[], from?: string[], hasFile, before?, after? }`. Pure, and shared, so the search field can show the filters as chips while the person types.                                                                                                                                                                                                                                                                                                    |
 | `SearchHit`                              | `packages/contract/src/schemas/search.ts`            | What `search.query` returns. A union of `{ type: 'message', message, room }`, `{ type: 'file', file, room, excerpt? }`, `{ type: 'channel', room }`, and `{ type: 'person', user }`.                                                                                                                                                                                                                                                                                                            |
-| `Answer`                                 | Prisma model, app-owned                              | `{ id, organizationId, requesterId, question, found, body, sources Json, createdAt }`. `found` is false when the model called `cannot_answer`, and then `body` is empty and `sources` is `[]`. `sources` is an array of `{ type: 'message' \| 'file', id }`. Only the requester can read it.                                                                                                                                                                                                    |
+| `Answer`                                 | Prisma model, app-owned                              | `{ id, chatId, question, found, body, sources Json, createdAt }`, one turn of an `AskChat` (see [`m3-ask-chat.md`](m3-ask-chat.md)). `found` is false when the model said the sources don't answer, and then `body` is empty and `sources` is `[]`. `sources` is an array of `{ type: 'message' \| 'file', id }`. Only the chat's owner can read it.                                                                                                                                            |
 
 **Why one namespace per workspace.** Each request names one namespace, so a bug in a filter can't reach another workspace's documents. Upstash allows 100 namespaces on the free plan and 10,000 on pay as you go.
 
@@ -406,6 +406,8 @@ Part E reads only data the sidebar already loads, so it depends on no other part
 
 **Depends on.** PR2.
 
+**Superseded in part.** [`m3-ask-chat.md`](m3-ask-chat.md) rewrote Commits 2 and 3 below. Ask Conduit is a chat in the side card, with saved chats and follow-ups, and the dialog never shipped. Commit 1 stands as written.
+
 ### Commit 1. Chunk file text on sentences, with overlap
 
 This lands before the first successful backfill, because changing chunks after it re-indexes every PDF against the same daily request limit.
@@ -438,9 +440,9 @@ This lands before the first successful backfill, because changing chunks after i
 - [ ] `ask.question({ question })` refuses `AI_DISABLED` when the workspace turned AI off, through `AiAccessService`.
 - [ ] It calls `SearchService` with the question, in hybrid mode with `topK` 30 and `includeData`. It gets back only hydrated, accessible, non-deleted messages and file chunks, so the model can't see anything the member can't. A message's text comes from Postgres. A file chunk's text comes from the hit's `data`, and only after Postgres has passed the file. For each message that is a thread reply, it adds the thread's root for context.
 - [ ] `ask-prompt.ts` wraps each source in a numbered tag, with its room, author, and time, and tells the model to answer only from the sources, and to cite each claim as `[n]`. Message text is treated as data, as the summary prompt does.
-- [ ] The model gets one tool, `cannot_answer`, and calls it when the sources don't answer the question. The service then stores the `Answer` with `found` false, and the dialog shows its empty state. No code reads the streamed text to decide whether an answer was found.
+- [ ] The model returns `{ found, body }` through the same `streamObject` port the summaries use, with `found` first, so it decides before it writes. When the sources don't answer, it sets `found` to false. The service then stores the `Answer` with `found` false, and the dialog shows its empty state. No code reads the streamed text to decide whether an answer was found. This replaced a `cannot_answer` tool, which would have needed a second model port for text with tools.
 - [ ] The answer streams, and the reasoning trace is never sent, per `DESIGN.md`. When it finishes, the service keeps only the citations whose numbers exist, maps them to `sources`, and stores the `Answer`.
-- [ ] Generation outlives the request. Fluid Compute cancels a request whose client leaves, so the model call doesn't take the request's abort signal. The service passes `result.consumeStream()` to `waitUntil` and stores the `Answer` in `onFinish`. Closing the dialog mid-answer still saves the answer, and `ask.get` returns it. One model call over 30 sources sits well under the 300-second limit.
+- [ ] Generation outlives the request. Fluid Compute cancels a request whose client leaves, so the model call doesn't take the request's abort signal. The service runs the model on its own promise, apart from the reader, and the controller passes that promise to `waitUntil`. The service stores the `Answer` when the promise ends. Closing the dialog mid-answer still saves the answer, and `ask.get` returns it. One model call over 30 sources sits well under the 300-second limit.
 - [ ] Only the requester can `ask.get` an answer.
 
 ### Commit 3. The Ask Conduit dialog
@@ -467,8 +469,8 @@ This lands before the first successful backfill, because changing chunks after i
 
 **Verify, unit.**
 
-- [ ] `ask.service.test.ts`, with a fake `ModelPort` and `fake-search-index.ts`, proves that the prompt never contains text from an inaccessible room or a deleted message, that a citation to a number that doesn't exist is dropped, that a `cannot_answer` call stores an `Answer` with `found` false, and that an answer whose reader stopped reading midway is still stored.
-- [ ] `eval-ask.ts` runs ten fixed questions over a fixed corpus, two of them with no answer in the corpus. It fails when an answer cites a source that doesn't support it, misses a source that does, or answers a question it should have refused with `cannot_answer`. Record its score in the PR body.
+- [ ] `ask.service.test.ts`, with a fake `ModelPort` and `fake-search-index.ts`, proves that the prompt never contains text from an inaccessible room or a deleted message, that a citation to a number that doesn't exist is dropped, that `found` false stores an `Answer` with `found` false, and that an answer whose reader stopped reading midway is still stored.
+- [ ] `eval-ask.ts` runs ten fixed questions over a fixed corpus, two of them with no answer in the corpus. It fails when an answer cites a source that doesn't support it, misses a source that does, or answers a question the corpus doesn't answer. Record its score in the PR body.
 
 **Verify, live.**
 
@@ -544,7 +546,7 @@ Defaults the owner applies unless the operator says otherwise.
 - **A PDF fails to extract or is huge.** PR1. `unpdf` can choke on scanned or broken PDFs. The file then indexes by name only, with a warning in the server log, and the row finishes. A huge PDF is read only up to the 200-chunk cap, so it blocks the event loop for at most about 0.4 s. A drain killed mid-row still counts the attempt and backs off.
 - **A presigned URL leaks.** PR1. Anyone with it can read the file for 10 minutes. URLs are only issued after the access check, and they never go into a message body.
 - **Orphaned uploads fill the cap.** PR1. `PENDING` rows count toward the cap until the 24-hour sweep deletes them. `files.cancel` handles the common case, a file removed from the composer, right away.
-- **A message tries to steer Ask Conduit.** PR3. The prompt treats sources as data, and the worst case is a misleading answer in the asker's own dialog, with its sources listed.
+- **A message tries to steer Ask Conduit.** PR3. The prompt treats sources as data, and the worst case is a misleading answer in the asker's own chat, with its sources listed.
 
 ## Appendix E. Reading list
 
