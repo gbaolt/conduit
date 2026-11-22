@@ -17,11 +17,11 @@ import {
 export const DRAIN_LIMIT = 100;
 /** Long enough for a large PDF to be read and upserted before another drain may take its row. */
 export const LEASE_MS = 5 * 60 * 1000;
-const RETRY_MAX_MS = 6 * 60 * 60 * 1000;
+export const RETRY = { baseMs: 60 * 1000, maxMs: 6 * 60 * 60 * 1000 };
 
 /** 2, 4, 8 minutes and so on after each failure, never more than 6 hours. */
 export const retryDelay = (attempts: number) =>
-  Math.min(2 ** attempts * 60 * 1000, RETRY_MAX_MS);
+  Math.min(2 ** attempts * RETRY.baseMs, RETRY.maxMs);
 
 const errorMessage = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
@@ -41,15 +41,33 @@ export class SearchSyncService {
     @Inject(FileText) private readonly fileText: FileText
   ) {}
 
-  /** Syncs up to `limit` due rows, in one workspace or in all of them. A failed row waits and retries. */
-  async drain(organizationId?: string, limit = DRAIN_LIMIT) {
+  /**
+   * Syncs up to `limit` due rows, in one workspace or in all of them. A failed row waits and retries. Rows still
+   * waiting at `until`, in epoch ms, go back to the queue, so a caller can stop before its function's time limit.
+   */
+  async drain({
+    organizationId,
+    limit = DRAIN_LIMIT,
+    until = Infinity,
+  }: {
+    organizationId?: string;
+    limit?: number;
+    until?: number;
+  } = {}) {
     const claimed = await this.rows.claim({
       organizationId,
       limit,
       leaseMs: LEASE_MS,
+      retry: RETRY,
     });
     let synced = 0;
-    for (const row of claimed) {
+    for (const [done, row] of claimed.entries()) {
+      if (Date.now() >= until) {
+        await Promise.all(
+          claimed.slice(done).map((left) => this.rows.release(left))
+        );
+        break;
+      }
       try {
         await this.sync(row);
         await this.rows.finish(row);
@@ -58,7 +76,7 @@ export class SearchSyncService {
         await this.rows.fail(
           row,
           errorMessage(error),
-          retryDelay(row.attempts + 1)
+          retryDelay(row.attempts)
         );
       }
     }
@@ -68,7 +86,7 @@ export class SearchSyncService {
   /** For `waitUntil` after a change: never rejects, so a search outage never fails a send. */
   async drainQuietly(organizationId: string) {
     try {
-      await this.drain(organizationId);
+      await this.drain({ organizationId });
     } catch (error) {
       this.logger.warn(`Search sync failed: ${errorMessage(error)}`);
     }

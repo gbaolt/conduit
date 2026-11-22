@@ -7,7 +7,12 @@ import { markForSearch } from '@/search/infrastructure/mark-for-search';
 import { PrismaSearchSyncRepository } from '@/search/infrastructure/prisma-search-sync.repository';
 import { createFakeSearchIndex } from '@/search/testing/fake-search-index';
 
-import { retryDelay, SearchSyncService } from './search-sync.service';
+import {
+  LEASE_MS,
+  RETRY,
+  retryDelay,
+  SearchSyncService,
+} from './search-sync.service';
 
 vi.hoisted(() => {
   // The prisma singleton reads DATABASE_URL on import; never let tests reach the shared database.
@@ -92,7 +97,7 @@ describe.skipIf(!connectionString)('SearchSyncService', () => {
     const { message } = await send('first', 'Pricing is final');
 
     expect(await syncRows()).toHaveLength(1);
-    expect(await service.drain(organizationId)).toEqual({
+    expect(await service.drain({ organizationId })).toEqual({
       claimed: 1,
       synced: 1,
     });
@@ -100,7 +105,7 @@ describe.skipIf(!connectionString)('SearchSyncService', () => {
       'Pricing is final'
     );
     expect(await syncRows()).toEqual([]);
-    expect(await service.drain(organizationId)).toEqual({
+    expect(await service.drain({ organizationId })).toEqual({
       claimed: 0,
       synced: 0,
     });
@@ -111,21 +116,21 @@ describe.skipIf(!connectionString)('SearchSyncService', () => {
     await send('retried', 'Once');
 
     expect(await syncRows()).toHaveLength(1);
-    await service.drain(organizationId);
+    await service.drain({ organizationId });
   });
 
   it('follows an edit, then removes the document when the message is deleted', async () => {
     const { message } = await send('edited', 'Draft');
-    await service.drain(organizationId);
+    await service.drain({ organizationId });
     await messages.edit(message.id, 'Final', mentions, []);
-    await service.drain(organizationId);
+    await service.drain({ organizationId });
 
     expect(docs(organizationId).get(`message:${message.id}`)!.data).toBe(
       'Final'
     );
 
     await messages.markDeleted(message.id);
-    await service.drain(organizationId);
+    await service.drain({ organizationId });
 
     expect(ids()).not.toContain(`message:${message.id}`);
   });
@@ -133,7 +138,7 @@ describe.skipIf(!connectionString)('SearchSyncService', () => {
   it('never indexes a message deleted before its first drain', async () => {
     const { message } = await send('gone', 'Oops');
     await messages.markDeleted(message.id);
-    await service.drain(organizationId);
+    await service.drain({ organizationId });
 
     expect(ids()).not.toContain(`message:${message.id}`);
     expect(await syncRows()).toEqual([]);
@@ -145,8 +150,8 @@ describe.skipIf(!connectionString)('SearchSyncService', () => {
     );
 
     const results = await Promise.all([
-      service.drain(organizationId, 4),
-      service.drain(organizationId, 4),
+      service.drain({ organizationId, limit: 4 }),
+      service.drain({ organizationId, limit: 4 }),
     ]);
 
     expect(results.reduce((sum, result) => sum + result.claimed, 0)).toBe(6);
@@ -157,7 +162,7 @@ describe.skipIf(!connectionString)('SearchSyncService', () => {
     state.fail = true;
     const { message } = await send('outage', 'During the outage');
 
-    expect(await service.drain(organizationId)).toEqual({
+    expect(await service.drain({ organizationId })).toEqual({
       claimed: 1,
       synced: 0,
     });
@@ -178,17 +183,75 @@ describe.skipIf(!connectionString)('SearchSyncService', () => {
       where: { organizationId },
       data: { dueAt: new Date(0) },
     });
-    await service.drain(organizationId);
+    await service.drain({ organizationId });
 
     expect(ids()).toContain(`message:${message.id}`);
     expect(await syncRows()).toEqual([]);
+  });
+
+  const leaseWait = async (targetId: string) => {
+    const [{ wait }] = await prisma.$queryRaw<[{ wait: number }]>`
+      SELECT EXTRACT(EPOCH FROM ("dueAt" - now())) * 1000 AS wait
+      FROM "SearchSync" WHERE "targetId" = ${targetId}`;
+    return Number(wait);
+  };
+
+  it('counts a drain that died mid-row as an attempt, and leases the row longer each time', async () => {
+    const { message } = await send('crash', 'Before the crash');
+    const crash = async () => {
+      await prisma.searchSync.updateMany({
+        where: { organizationId },
+        data: { dueAt: new Date(0) },
+      });
+      await rows.claim({
+        organizationId,
+        limit: 10,
+        leaseMs: LEASE_MS,
+        retry: RETRY,
+      });
+    };
+
+    await crash();
+    await crash();
+    expect((await syncRows())[0]).toMatchObject({ attempts: 2 });
+    expect(await leaseWait(message.id)).toBeGreaterThan(LEASE_MS - 10_000);
+
+    await crash();
+    expect(await leaseWait(message.id)).toBeGreaterThan(retryDelay(3) - 10_000);
+
+    await prisma.searchSync.updateMany({
+      where: { organizationId },
+      data: { dueAt: new Date(0) },
+    });
+    await service.drain({ organizationId });
+    expect(ids()).toContain(`message:${message.id}`);
+    expect(await syncRows()).toEqual([]);
+  });
+
+  it('hands back the rows it had no time for, due now and uncounted', async () => {
+    await send('late-1', 'Late one');
+    await send('late-2', 'Late two');
+
+    expect(await service.drain({ organizationId, until: Date.now() })).toEqual({
+      claimed: 2,
+      synced: 0,
+    });
+    const left = await syncRows();
+    expect(left).toHaveLength(2);
+    expect(
+      left.every((row) => row.attempts === 0 && row.dueAt <= new Date())
+    ).toBe(true);
+
+    expect(await service.drain({ organizationId })).toMatchObject({
+      synced: 2,
+    });
   });
 
   it('reindexes a file whose text shrinks, and drops it with its message', async () => {
     const pdf = await readyFile('report.pdf');
     texts.set(pdf.key, 'z'.repeat(2000 * 4));
     const { message } = await send('with-file', '', [pdf.id]);
-    await service.drain(organizationId);
+    await service.drain({ organizationId });
 
     const chunks = () => ids().filter((id) => id.startsWith(`file:${pdf.id}`));
     expect(chunks()).toHaveLength(5);
@@ -198,12 +261,12 @@ describe.skipIf(!connectionString)('SearchSyncService', () => {
     await prisma.$transaction((tx) =>
       markForSearch(tx, roomId, [{ kind: 'file', targetId: pdf.id }])
     );
-    await service.drain(organizationId);
+    await service.drain({ organizationId });
 
     expect(chunks()).toEqual([`file:${pdf.id}:0`, `file:${pdf.id}:1`]);
 
     await messages.markDeleted(message.id);
-    await service.drain(organizationId);
+    await service.drain({ organizationId });
 
     expect(chunks()).toEqual([]);
     expect(

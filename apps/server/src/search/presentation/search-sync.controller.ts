@@ -15,8 +15,8 @@ import {
   SearchSyncService,
 } from '@/search/application/search-sync.service';
 
-/** One sweep stops after this many drains, so a backlog spreads across runs instead of timing out one. */
-const SWEEP_DRAINS_MAX = 20;
+/** Under the function's 300 s limit, so a backlog spreads across runs and the file sweep still runs. */
+const SWEEP_BUDGET_MS = 240 * 1000;
 
 /** Called every 15 minutes by the scheduled GitHub workflow. It retries failed rows and removes abandoned files. */
 @Controller('internal')
@@ -34,9 +34,10 @@ export class SearchSyncController {
       throw new UnauthorizedException();
     }
 
+    const until = Date.now() + SWEEP_BUDGET_MS;
     let synced = 0;
-    for (let round = 0; round < SWEEP_DRAINS_MAX; round += 1) {
-      const drained = await this.searchSync.drain();
+    while (Date.now() < until) {
+      const drained = await this.searchSync.drain({ until });
       synced += drained.synced;
       if (drained.claimed < DRAIN_LIMIT) break;
     }

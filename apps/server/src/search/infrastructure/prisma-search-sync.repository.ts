@@ -21,19 +21,20 @@ export class PrismaSearchSyncRepository implements SearchSyncRepository {
     organizationId,
     limit,
     leaseMs,
-  }: {
-    organizationId?: string;
-    limit: number;
-    leaseMs: number;
-  }) {
-    const scope = organizationId
+    retry,
+  }: Parameters<SearchSyncRepository['claim']>[0]) {
+    const workspace = organizationId
       ? Prisma.sql`AND "organizationId" = ${organizationId}`
       : Prisma.empty;
     const rows = await this.db.$queryRaw<ClaimedRow[]>`
-      UPDATE "SearchSync" s SET "dueAt" = now() + ${leaseMs} * interval '1 millisecond'
+      UPDATE "SearchSync" s SET "attempts" = s."attempts" + 1,
+        "dueAt" = now() + GREATEST(
+          ${leaseMs}::float8,
+          LEAST(power(2, s."attempts" + 1) * ${retry.baseMs}::float8, ${retry.maxMs}::float8)
+        ) * interval '1 millisecond'
       FROM (
         SELECT "kind", "targetId" FROM "SearchSync"
-        WHERE "dueAt" <= now() ${scope}
+        WHERE "dueAt" <= now() ${workspace}
         ORDER BY "dueAt"
         LIMIT ${limit}
         FOR UPDATE SKIP LOCKED
@@ -65,8 +66,15 @@ export class PrismaSearchSyncRepository implements SearchSyncRepository {
     const { kind, targetId, dueAt } = this.leased(row);
     await this.db.$executeRaw`
       UPDATE "SearchSync"
-      SET "attempts" = "attempts" + 1, "lastError" = ${error.slice(0, ERROR_MAX)},
+      SET "lastError" = ${error.slice(0, ERROR_MAX)},
         "dueAt" = now() + ${retryMs} * interval '1 millisecond'
+      WHERE "kind" = ${kind}::"SearchSyncKind" AND "targetId" = ${targetId} AND "dueAt" = ${dueAt}`;
+  }
+
+  async release(row: SearchSyncRow) {
+    const { kind, targetId, dueAt } = this.leased(row);
+    await this.db.$executeRaw`
+      UPDATE "SearchSync" SET "attempts" = "attempts" - 1, "dueAt" = now()
       WHERE "kind" = ${kind}::"SearchSyncKind" AND "targetId" = ${targetId} AND "dueAt" = ${dueAt}`;
   }
 

@@ -4,6 +4,8 @@ import { type FileKind, fileKind, plainText } from '@conduit/contract';
 export const FILE_CHUNK_CHARS = 2000;
 /** A file's chunks, its name included, so one huge PDF cannot take over a workspace's index. */
 export const FILE_CHUNKS_MAX = 200;
+/** The most text a file's chunks can hold. Reading past it is wasted work. */
+export const FILE_TEXT_CHARS_MAX = FILE_CHUNK_CHARS * (FILE_CHUNKS_MAX - 1);
 
 /** The only fields a search filter reads. Upstash filters on numbers, so `createdAt` is epoch ms and `hasFile` 0 or 1. */
 export type SearchDocMetadata = {

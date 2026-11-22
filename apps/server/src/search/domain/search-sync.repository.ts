@@ -24,11 +24,15 @@ export type FileForSearch = {
  * the database's clock, so a server whose clock runs ahead never sees a row as due early or late.
  */
 export abstract class SearchSyncRepository {
-  /** Leases up to `limit` due rows for `leaseMs`. Two drains at once never lease the same row. */
+  /**
+   * Leases up to `limit` due rows and counts each claim as an attempt, so a drain that dies mid-row still backs off.
+   * The lease is `leaseMs`, or the row's retry delay when that is longer. Two drains at once never lease the same row.
+   */
   abstract claim(input: {
     organizationId?: string;
     limit: number;
     leaseMs: number;
+    retry: { baseMs: number; maxMs: number };
   }): Promise<SearchSyncRow[]>;
 
   /** Removes the row, unless a change wrote it again after it was claimed. */
@@ -40,6 +44,9 @@ export abstract class SearchSyncRepository {
     error: string,
     retryMs: number
   ): Promise<void>;
+
+  /** Hands back a claimed row the drain had no time for, due now and with its attempt uncounted. */
+  abstract release(row: SearchSyncRow): Promise<void>;
 
   /** A message that is not deleted, or null. */
   abstract message(messageId: string): Promise<MessageSource | null>;

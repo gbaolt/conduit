@@ -172,7 +172,7 @@ describe.skipIf(!connectionString)('SearchService', () => {
     await send('with-deck', room('design'), bao, 'the deck', [deck]);
     const hidden = await readyFile('hidden', room('secret'), bao, 'hidden.pdf');
     await send('with-hidden', room('secret'), bao, 'hidden file', [hidden]);
-    await sync.drain(org, 100);
+    await sync.drain({ organizationId: org });
 
     // The index still holds both after this, as it would before it catches up.
     await prisma.message.update({
