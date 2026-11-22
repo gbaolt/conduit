@@ -2,7 +2,7 @@
 
 M3 lets a team share files in chat and find old answers. Today the composer takes text only, and nothing in the app searches. This plan ships the eleven M3 rows in [`PRD.md`](../../PRD.md#m3-files-and-search) as three PRs against `staging`. Files live in a new `files` module on the existing S3 storage. Search lives in a new `search` module on **Upstash Vector**, a hosted hybrid index (BM25 keyword plus `openai/text-embedding-3-small`). Ask Conduit lives in a new `ask` module that reads the same index.
 
-The rule the milestone enforces is that the index only suggests and Postgres decides. The index returns candidate ids. The server then loads each candidate from Postgres through the one access check that the Files page also uses. That check drops anything the member can't read, and anything deleted. The index never decides who sees what, and no text shown to a member or sent to the model comes from the index. An index that lags, keeps a deleted message, or misses a membership change can only hide a result. It can never show one the member can't read.
+The rule the milestone enforces is that the index only suggests and Postgres decides. The index returns candidate ids. The server then loads each candidate from Postgres through the one access check that the Files page also uses. That check drops anything the member can't read, and anything deleted. The index never decides who sees what, and no message text shown to a member or sent to the model comes from the index. The one exception is a file chunk's text in Ask Conduit, read from the hit because Postgres doesn't keep it. A file's contents never change after upload, and Postgres still decides whether the member can read the file (Appendix B, decision 10). An index that lags, keeps a deleted message, or misses a membership change can only hide a result. It can never show one the member can't read.
 
 | PR  | Ships                                                                      | PRD rows           | Depends on |
 | --- | -------------------------------------------------------------------------- | ------------------ | ---------- |
@@ -37,7 +37,7 @@ These shapes come first. Each PR below adds the ones it needs.
 | `SearchIndex`                            | `apps/server/src/search/domain/search-index.port.ts` | The port: `upsert(org, docs)`, `delete(org, ids)`, `query(org, { text, filter, topK, mode })`. One namespace per workspace. `UpstashSearchIndex` is the only adapter. A fake adapter in `testing/` returns every doc, which is how the access tests prove that Postgres is the guard.                                                                                                                                                                                                           |
 | `SearchQuery`                            | `packages/contract/src/lib/search-query.ts`          | `parseSearchQuery(text) => { terms, in?: string[], from?: string[], hasFile, before?, after? }`. Pure, and shared, so the search field can show the filters as chips while the person types.                                                                                                                                                                                                                                                                                                    |
 | `SearchHit`                              | `packages/contract/src/schemas/search.ts`            | What `search.query` returns. A union of `{ type: 'message', message, room }`, `{ type: 'file', file, room, excerpt? }`, `{ type: 'channel', room }`, and `{ type: 'person', user }`.                                                                                                                                                                                                                                                                                                            |
-| `Answer`                                 | Prisma model, app-owned                              | `{ id, organizationId, requesterId, question, body, sources Json, createdAt }`. `sources` is an array of `{ type: 'message' \| 'file', id }`. Only the requester can read it.                                                                                                                                                                                                                                                                                                                   |
+| `Answer`                                 | Prisma model, app-owned                              | `{ id, organizationId, requesterId, question, found, body, sources Json, createdAt }`. `found` is false when the model called `cannot_answer`, and then `body` is empty and `sources` is `[]`. `sources` is an array of `{ type: 'message' \| 'file', id }`. Only the requester can read it.                                                                                                                                                                                                    |
 
 **Why one namespace per workspace.** Each request names one namespace, so a bug in a filter can't reach another workspace's documents. Upstash allows 100 namespaces on the free plan and 10,000 on pay as you go.
 
@@ -260,15 +260,15 @@ Part D ships no PRD row by itself. PR2 and PR3 read what it writes.
 **Files.**
 
 - [ ] Create `infrastructure/upstash-search-index.ts` and `application/search-sync.service.ts` with its test.
-- [ ] Create `infrastructure/file-text.ts`, which extracts text with `unpdf` for PDFs and reads `text/*` files directly.
+- [ ] Create `infrastructure/storage-file-text.ts`, which extracts text with `unpdf` for PDFs and reads `text/*` files directly. It reads a PDF page by page and stops once the text fills 199 chunks, since parsing blocks the event loop the API's other requests share (Appendix A). A PDF that fails to parse is found by its name only.
 - [ ] Edit `messages.controller.ts` and `files.controller.ts`. After commit, call `waitUntil(searchSync.drain(organizationId))`, as link previews do.
 - [ ] Create `presentation/search-sync.controller.ts` with `POST /internal/search-sync`, behind `CRON_SECRET`, as `digests.controller.ts` does.
 - [ ] Create `.github/workflows/search-sync.yml`, which calls it every 15 minutes, as `email-digest.yml` does.
 
 **Build.**
 
-- [ ] `drain(organizationId?, limit = 100)` claims due rows with `FOR UPDATE SKIP LOCKED`, so two drains never take the same row. For each row it reads the target's current state. A live target is upserted, and the ids of chunks past its new count are deleted. A deleted or missing target has all its ids deleted. On success the row is removed. On failure it bumps `attempts`, sets `lastError`, and pushes `dueAt` back by `2^attempts` minutes, capped at 6 hours.
-- [ ] The sweep endpoint drains every workspace. It also deletes `PENDING` files older than 24 hours, and the objects of deleted files, through `ObjectStorage.delete`.
+- [ ] `drain(organizationId?, limit = 100)` claims due rows with `FOR UPDATE SKIP LOCKED`, so two drains never take the same row. For each row it reads the target's current state. A live target is upserted, and the ids of chunks past its new count are deleted. A deleted or missing target has all its ids deleted. On success the row is removed. Claiming a row counts as an attempt, so a drain killed mid-row by the function's time limit still backs off. The lease is 5 minutes, or the row's retry delay when that is longer. On failure it sets `lastError` and pushes `dueAt` back by `2^attempts` minutes, capped at 6 hours. `drain({ until })` hands rows it had no time for back to the queue, due now and uncounted.
+- [ ] The sweep endpoint drains every workspace until 240 seconds have passed, under Vercel's 300-second limit, so a backlog spreads across runs. It also deletes `PENDING` files older than 24 hours, and the objects of deleted files, through `ObjectStorage.delete`.
 - [ ] Deleting a workspace deletes its namespace.
 - [ ] Upstash being down never fails a send. The row stays and retries.
 
@@ -292,7 +292,8 @@ Part D ships no PRD row by itself. PR2 and PR3 read what it writes.
 **Verify, unit.**
 
 - [ ] `search-doc.test.ts` covers mention replacement, a 4,000-character body, a PDF that shrinks from five chunks to two, and the 200-chunk cap.
-- [ ] `search-sync.service.test.ts`, against `fake-search-index.ts` and `TEST_DATABASE_URL`, covers a row drained twice, a delete landing before its upsert, two concurrent drains, a failure and its backoff, and a retried send writing one row.
+- [ ] `search-sync.service.test.ts`, against `fake-search-index.ts` and `TEST_DATABASE_URL`, covers a row drained twice, a delete landing before its upsert, two concurrent drains, a failure and its backoff, a drain that died mid-row, rows handed back at the deadline, and a retried send writing one row.
+- [ ] `storage-file-text.test.ts` covers a PDF's text, a long PDF stopped at the cap, and a broken PDF.
 
 **Verify, live.**
 
@@ -405,7 +406,24 @@ Part E reads only data the sidebar already loads, so it depends on no other part
 
 **Depends on.** PR2.
 
-### Commit 1. Retrieve, answer, and cite
+### Commit 1. Chunk file text on sentences, with overlap
+
+This lands before the first successful backfill, because changing chunks after it re-indexes every PDF against the same daily request limit.
+
+**Files.**
+
+- [ ] Edit `apps/server/src/search/domain/search-doc.ts` and `search-doc.test.ts`.
+
+**Build.**
+
+- [ ] `fileDocs` packs paragraphs, then sentences, into chunks of at most 2,000 characters. Each chunk after the first repeats the last 300 characters of the one before, cut at a word. A sentence longer than a chunk is split at words. Chunk 0 stays the file name, and the 200-chunk cap stays.
+- [ ] `FILE_TEXT_CHARS_MAX` still bounds how much of a PDF is read.
+
+**Verify, unit.**
+
+- [ ] `search-doc.test.ts` proves that no chunk ends mid-word, that each later chunk starts with the end of the one before, and that a 400-page PDF still makes at most 200 chunks.
+
+### Commit 2. Retrieve, answer, and cite
 
 **Files.**
 
@@ -413,22 +431,25 @@ Part E reads only data the sidebar already loads, so it depends on no other part
 - [ ] Create `packages/contract/src/schemas/ask.ts` and `contracts/ask.ts` with `ask.question`, which streams through an event iterator like `summaries.room`, and `ask.get`.
 - [ ] Create `apps/server/src/ask/` with `domain/ask-prompt.ts` and its test, `application/ask.service.ts` and its test, `infrastructure/prisma-answers.repository.ts`, `presentation/ask.controller.ts`, and `ask.module.ts`.
 - [ ] Create `apps/server/scripts/eval-ask.ts`, beside `eval-summaries.ts`.
+- [ ] Edit `search-index.port.ts` and `upstash-search-index.ts`. A query can ask for `includeData`, and a hit then carries `data`.
 
 **Build.**
 
 - [ ] `ask.question({ question })` refuses `AI_DISABLED` when the workspace turned AI off, through `AiAccessService`.
-- [ ] It calls `SearchService` with the question, in hybrid mode with `topK` 30. It gets back only hydrated, accessible, non-deleted messages and file chunks, so the model can't see anything the member can't. For each message that is a thread reply, it adds the thread's root for context.
-- [ ] `ask-prompt.ts` wraps each source in a numbered tag, with its room, author, and time, and tells the model to answer only from the sources, to cite each claim as `[n]`, and to say "I couldn't find that in what you can access" when the sources don't answer. Message text is treated as data, as the summary prompt does.
+- [ ] It calls `SearchService` with the question, in hybrid mode with `topK` 30 and `includeData`. It gets back only hydrated, accessible, non-deleted messages and file chunks, so the model can't see anything the member can't. A message's text comes from Postgres. A file chunk's text comes from the hit's `data`, and only after Postgres has passed the file. For each message that is a thread reply, it adds the thread's root for context.
+- [ ] `ask-prompt.ts` wraps each source in a numbered tag, with its room, author, and time, and tells the model to answer only from the sources, and to cite each claim as `[n]`. Message text is treated as data, as the summary prompt does.
+- [ ] The model gets one tool, `cannot_answer`, and calls it when the sources don't answer the question. The service then stores the `Answer` with `found` false, and the dialog shows its empty state. No code reads the streamed text to decide whether an answer was found.
 - [ ] The answer streams, and the reasoning trace is never sent, per `DESIGN.md`. When it finishes, the service keeps only the citations whose numbers exist, maps them to `sources`, and stores the `Answer`.
+- [ ] Generation outlives the request. Fluid Compute cancels a request whose client leaves, so the model call doesn't take the request's abort signal. The service passes `result.consumeStream()` to `waitUntil` and stores the `Answer` in `onFinish`. Closing the dialog mid-answer still saves the answer, and `ask.get` returns it. One model call over 30 sources sits well under the 300-second limit.
 - [ ] Only the requester can `ask.get` an answer.
 
-### Commit 2. The Ask Conduit dialog
+### Commit 3. The Ask Conduit dialog
 
 **Files.**
 
 - [ ] Create `apps/client/src/features/ask/components/ask-dialog.tsx` and `ask-sources.tsx`. Add `ask` to `featureDeps`.
 - [ ] Create `apps/client/src/services/ask/hooks.ts`.
-- [ ] Edit `room-switcher.tsx` and `search-results.tsx`. Add the **Ask Conduit** row and button.
+- [ ] Edit `app-shell.tsx`, `command-menu-dialog.tsx`, and `search-results.tsx`. Add the **Ask Conduit** button in the top bar's right column, an **Ask Conduit** row in the command menu, and a button on the search page.
 - [ ] Edit `PRD.md`. Mark M3.11 `Shipped`, and mark M3 `Shipped` once the exit check passes.
 
 **Build.**
@@ -436,7 +457,8 @@ Part E reads only data the sidebar already loads, so it depends on no other part
 - [ ] Ask Conduit opens in a `Dialog`, per `DESIGN.md`. The question sits at the top. The answer streams through `Markdown`, with `AILoader` in the leading slot and shimmer status text, "Searching what you can access…", until the first token arrives.
 - [ ] Each `[n]` renders as a small link pill in `text-link` that opens its source. Below the answer, **Sources** lists each one with its room, author, and time, or the file name.
 - [ ] There is no **Share to thread**, per Appendix B decision 5.
-- [ ] With AI off, the switcher row and the search button are gone.
+- [ ] With AI off, the top bar button, the command menu row, and the search page button are gone.
+- [ ] An `Answer` with `found` false shows `Empty` with "I couldn't find that in what you can access", and no **Sources**.
 
 **You see.**
 
@@ -445,8 +467,8 @@ Part E reads only data the sidebar already loads, so it depends on no other part
 
 **Verify, unit.**
 
-- [ ] `ask.service.test.ts`, with a fake `ModelPort` and `fake-search-index.ts`, proves that the prompt never contains text from an inaccessible room or a deleted message, and that a citation to a number that doesn't exist is dropped.
-- [ ] `eval-ask.ts` runs ten fixed questions over a fixed corpus. It fails when an answer cites a source that doesn't support it, or misses a source that does. Record its score in the PR body.
+- [ ] `ask.service.test.ts`, with a fake `ModelPort` and `fake-search-index.ts`, proves that the prompt never contains text from an inaccessible room or a deleted message, that a citation to a number that doesn't exist is dropped, that a `cannot_answer` call stores an `Answer` with `found` false, and that an answer whose reader stopped reading midway is still stored.
+- [ ] `eval-ask.ts` runs ten fixed questions over a fixed corpus, two of them with no answer in the corpus. It fails when an answer cites a source that doesn't support it, misses a source that does, or answers a question it should have refused with `cannot_answer`. Record its score in the PR body.
 
 **Verify, live.**
 
@@ -472,6 +494,11 @@ No prototype ran for this plan. These facts were observed or read on 2026-11-21,
 - Upstash's getting-started page for Upstash Search says "Creating new Upstash Search databases is no longer supported. For new projects, use Upstash Vector instead." Read on 2026-11-21.
 - From the Upstash Vector docs and pricing page. A hybrid index pairs BM25 with `openai/text-embedding-3-small` (the BGE models are closed to new indexes). Data can be up to 1 MB per vector and metadata up to 48 KB. Filters support `IN`, `AND`, `OR`, and numeric comparisons. Filtering mixes pre- and post-filtering, so a selective filter "may return fewer than topK". Each request names one namespace. Free is 10K queries and updates per day, 1 GB, 100 namespaces, and no SLA. Pay as you go is $0.40 per 100K requests, plus $0.25 per GB, with a 99.9% SLA. Fixed is $60 a month for 1M requests a day. Every upserted vector counts as one request.
 
+Measured on 2026-11-22 on the operator's Windows machine with Node 26 and `unpdf`, on generated text-only PDFs.
+
+- Parsing a whole 19.5 MB, 3,500-page PDF with `extractText` took 9.2 s, blocked the event loop for all of it, and added 667 MB of memory. A 5.5 MB PDF blocked it for 2.4 s.
+- Reading the same PDF page by page and stopping at 400,000 characters took 0.36 s and added 62 MB. That's why the reader stops at the cap. A real PDF with images holds less text per megabyte, so these are worst cases.
+
 These stay unproven until the probe in PR1's Commit 8 runs.
 
 - How long a `roomId IN (...)` filter can be. A member's accessible rooms are every public channel plus their private channels and DMs. That's my estimate of under 300 ids for a 50-person team, not a measurement.
@@ -493,6 +520,8 @@ Defaults the owner applies unless the operator says otherwise.
 7. **PDFs and plain text are indexed by content. Images and videos are indexed by name only.** OCR and transcripts cost model calls on every upload, and the PRD doesn't ask for them.
 8. **A file indexes at most 200 chunks, about 400,000 characters.** That bounds what one upload can cost in requests. Text past the cap is unsearchable, and the file still shows on the Files page.
 9. **No reranking.** Upstash charges extra for it, and the docs disagree on how much. PR3's eval decides whether it earns a place.
+10. **Ask Conduit reads a file chunk's text from the index hit.** Postgres doesn't store extracted text, a file's contents never change after upload, and Postgres decides whether the file can be read before any chunk reaches the model. The operator could add a `FileChunk` table instead, so that no text sent to the model comes from the index. That costs a migration and keeps chunk text in two places.
+11. **Search sync stays in the API, not in a separate functions app.** Counting each claim as an attempt, a time budget on the sweep, and a capped PDF reader cover what a separate app would. Parsing still runs on an instance that serves members, for at most about 0.4 s per PDF (Appendix A).
 
 ## Appendix C. Alternatives rejected
 
@@ -512,7 +541,7 @@ Defaults the owner applies unless the operator says otherwise.
 - **The free plan's 10K requests a day.** PR1. Every upserted vector is a request, so a backfill or a busy day can hit the cap. Sync rows then wait and retry, and search shows stale results but never wrong ones. Moving to pay as you go removes the cap.
 - **Upstash changes or retires the product.** Upstash just closed Search to new databases. Everything sits behind `SearchIndex`, and the backfill rebuilds any adapter from Postgres.
 - **The free plan has no SLA.** When Upstash is down, search and Ask Conduit fail with "Search is unavailable right now", and sends, uploads, and the Files page keep working.
-- **A PDF fails to extract or is huge.** PR1. `unpdf` can choke on scanned or broken PDFs. The file then indexes by name only, and the sync row records `lastError` once. It doesn't retry forever.
+- **A PDF fails to extract or is huge.** PR1. `unpdf` can choke on scanned or broken PDFs. The file then indexes by name only, with a warning in the server log, and the row finishes. A huge PDF is read only up to the 200-chunk cap, so it blocks the event loop for at most about 0.4 s. A drain killed mid-row still counts the attempt and backs off.
 - **A presigned URL leaks.** PR1. Anyone with it can read the file for 10 minutes. URLs are only issued after the access check, and they never go into a message body.
 - **Orphaned uploads fill the cap.** PR1. `PENDING` rows count toward the cap until the 24-hour sweep deletes them. `files.cancel` handles the common case, a file removed from the composer, right away.
 - **A message tries to steer Ask Conduit.** PR3. The prompt treats sources as data, and the worst case is a misleading answer in the asker's own dialog, with its sources listed.
