@@ -158,3 +158,34 @@ export function recipientsOf({
     .sort((a, b) => b.at - a.at || labelOf(a.row).localeCompare(labelOf(b.row)))
     .map(({ row }) => row);
 }
+
+/** The To that `roomId` already is: its channel, or the people of its DM. NOBODY when it isn't listed. */
+export function toOfRoom(
+  roomId: string,
+  recipients: readonly Recipient[],
+  dms: readonly Dm[],
+  viewerId: string
+): To {
+  const byKey = (key: string) => recipients.find((row) => row.key === key);
+  const channel = byKey(`channel:${roomId}`);
+  if (channel?.kind === 'channel') return channel;
+  const group = byKey(`group:${roomId}`);
+  if (group?.kind === 'group') return { kind: 'people', people: group.people };
+  const dm = dms.find((row) => row.id === roomId);
+  if (!dm) return NOBODY;
+  const other = dm.members.find((member) => member.userId !== viewerId);
+  const person = byKey(`person:${other?.userId ?? viewerId}`);
+  return person?.kind === 'person'
+    ? { kind: 'people', people: [person] }
+    : NOBODY;
+}
+
+/** Whether two Tos pick the same chips, in any order. */
+export const sameTo = (a: To, b: To) => {
+  const keys = (to: To) =>
+    chipsOf(to)
+      .map((row) => row.key)
+      .sort()
+      .join();
+  return keys(a) === keys(b);
+};

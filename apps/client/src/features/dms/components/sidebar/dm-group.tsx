@@ -29,18 +29,18 @@ export function DmGroupMenuItems({ roomIds }: { roomIds: string[] }) {
   return (
     <>
       <DropdownMenuItem onClick={() => void setCompose(true)}>
-        <IconEdit />
+        <IconEdit data-slot="icon" />
         New message
       </DropdownMenuItem>
       <DropdownMenuItem render={<Link href="/dms" />}>
-        <IconMessage />
+        <IconMessage data-slot="icon" />
         Open all direct messages
       </DropdownMenuItem>
       <DropdownMenuItem
         disabled={readIds.length === 0}
         onClick={() => close({ roomIds: readIds })}
       >
-        <IconX />
+        <IconX data-slot="icon" />
         Close read conversations
       </DropdownMenuItem>
     </>

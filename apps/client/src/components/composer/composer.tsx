@@ -335,6 +335,7 @@ function ComposerBehavior({
       <CodeHighlightPlugin />
       <CodeBlockPlugin />
       <TabFocusPlugin />
+      {attachments}
       <Mention
         source={suggestions}
         onOpenChange={(open) => {
@@ -369,7 +370,6 @@ function ComposerBehavior({
         setIsLinkEditMode={setIsLinkEditMode}
       />
       <ComposerEditable placeholder={placeholder} />
-      {attachments}
       <ComposerActionBar
         length={markdown.length}
         canSend={canSend}

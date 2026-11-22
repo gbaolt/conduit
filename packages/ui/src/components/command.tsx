@@ -24,7 +24,7 @@ function Command({
     <CommandPrimitive
       data-slot="command"
       className={cn(
-        'bg-popover text-popover-foreground flex size-full flex-col overflow-hidden p-1',
+        'bg-popover text-popover-foreground flex size-full flex-col gap-0.5 overflow-hidden p-1',
         className
       )}
       {...props}
@@ -54,8 +54,7 @@ function CommandDialog({
       </DialogHeader>
       <DialogContent
         className={cn(
-          'bg-popover top-1/2 max-w-[95vw] -translate-y-1/2 overflow-hidden rounded-lg! p-0 max-sm:top-16 max-sm:translate-y-0 sm:max-w-lg',
-          // The caller's `Command` is the child, so it can own its filter and value.
+          'bg-popover top-1/3 max-w-[95vw] -translate-y-1/3 overflow-hidden rounded-lg! p-0 max-sm:top-16 max-sm:translate-y-0 sm:max-w-lg',
           '*:data-[slot=command]:bg-accent/50 dark:*:data-[slot=command]:bg-popover',
           '**:data-[slot=command-input-wrapper]:-mb-1 **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-input-wrapper]_svg]:size-5 **:[[cmdk-input]]:h-10',
           '**:[[cmdk-group]]:px-2',

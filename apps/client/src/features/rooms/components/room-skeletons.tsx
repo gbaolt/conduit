@@ -26,7 +26,7 @@ export function RoomPageSkeleton() {
     >
       <RoomHeaderSkeleton />
       <ConversationLoading />
-      <div className="px-4 pb-5">
+      <div className="px-4 pb-4">
         <ComposerSkeleton />
       </div>
     </div>

@@ -15,10 +15,8 @@ export function InsertImage() {
         ));
       }}
     >
-      <div className="flex items-center gap-1">
-        <ImageIcon className="size-4" />
-        <span>Image</span>
-      </div>
+      <ImageIcon data-slot="icon" />
+      Image
     </DropdownMenuItem>
   );
 }

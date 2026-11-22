@@ -65,7 +65,7 @@ export function SummaryThreadMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuItem onClick={() => void summary.summarize()}>
-          <IconSparkles />
+          <IconSparkles data-slot="icon" />
           Summarize this thread
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -86,7 +86,7 @@ export function SummaryChannelItems({ isDm }: { isDm: boolean }) {
       <DropdownMenuSeparator />
       <DropdownMenuSub>
         <DropdownMenuSubTrigger>
-          <IconSparkles />
+          <IconSparkles data-slot="icon" />
           {isDm ? 'Summarize conversation' : 'Summarize channel'}
         </DropdownMenuSubTrigger>
         <DropdownMenuSubContent className="w-44">

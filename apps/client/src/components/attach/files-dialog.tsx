@@ -52,6 +52,7 @@ import {
   IconFolder,
   IconLock,
   IconSearch,
+  IconUpload,
 } from '@tabler/icons-react';
 import {
   keepPreviousData,
@@ -423,7 +424,8 @@ export function FilesDialog({
           </div>
         </div>
         <DialogFooter className="flex-row items-center sm:justify-between">
-          <Button type="button" variant="ghost" onClick={onUpload}>
+          <Button type="button" variant="outline" onClick={onUpload}>
+            <IconUpload data-icon="start" />
             Upload
           </Button>
           <Button

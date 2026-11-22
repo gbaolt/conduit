@@ -126,6 +126,20 @@ async function measure(
   return null;
 }
 
+/** Uploads one file to `roomId` outside a composer, ready for a message to carry. */
+export async function uploadToRoom(roomId: string, file: File) {
+  const target = roomUploads(roomId);
+  const problem = target.problem(file);
+  if (problem) throw new Error(problem);
+  const { id, uploadUrl } = await target.sign({
+    name: file.name,
+    contentType: contentTypeOf(file),
+    size: file.size,
+  });
+  await put(uploadUrl, file, () => {}, new AbortController().signal);
+  return target.complete(id, await measure(file));
+}
+
 const errorMessage = (error: unknown) =>
   error instanceof Error && error.message
     ? error.message

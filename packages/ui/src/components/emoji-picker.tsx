@@ -2310,7 +2310,7 @@ export function EmojiPickerSearch({
   return (
     <InputGroup
       data-slot="emoji-picker-search"
-      className={cn('flex-1', className)}
+      className={cn('h-8 flex-1', className)}
     >
       <InputGroupAddon>{SEARCH_ICON}</InputGroupAddon>
       <InputGroupInput

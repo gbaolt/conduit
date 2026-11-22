@@ -2,13 +2,12 @@
 
 import { MESSAGE_FILES_MAX } from '@conduit/contract';
 import { Button } from '@conduit/ui/components/button';
-import { IconPaperclip } from '@tabler/icons-react';
+import { IconPlus } from '@tabler/icons-react';
 
 import { AttachMenu } from '@/components/attach/attach-menu';
 import { Composer, type ComposerProps } from '@/components/composer/composer';
 import { ComposerAttachments } from '@/components/composer/composer-attachments';
 import { ComposerSkeleton } from '@/components/composer/composer-skeleton';
-import { ACTION_BUTTON } from '@/components/composer/composer-toolbar';
 import { useComposerActivity, useDraft } from '@/services/activity/hooks';
 import type { FileUploads } from '@/services/files/upload';
 
@@ -61,11 +60,11 @@ export function ConversationComposer({
           trigger={
             <Button
               type="button"
-              variant="ghost"
-              size="icon-xs"
-              className={ACTION_BUTTON}
+              variant="secondary"
+              size="icon-sm"
+              className="group text-muted-foreground hover:text-foreground rounded-full"
             >
-              <IconPaperclip />
+              <IconPlus className="size-5 transition-[rotate] duration-200 ease-out group-aria-expanded:rotate-135" />
             </Button>
           }
         />

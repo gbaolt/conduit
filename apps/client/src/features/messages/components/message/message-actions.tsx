@@ -213,13 +213,17 @@ export function MessageActions({
           <DropdownMenuContent align="end" className="w-40">
             {canPost && (
               <DropdownMenuItem onClick={() => togglePin(message)}>
-                {pinned ? <IconPinnedOff /> : <IconPin />}
+                {pinned ? (
+                  <IconPinnedOff data-slot="icon" />
+                ) : (
+                  <IconPin data-slot="icon" />
+                )}
                 {pinned ? 'Unpin' : 'Pin'}
               </DropdownMenuItem>
             )}
             {canEdit && (
               <DropdownMenuItem onClick={onEdit}>
-                <IconPencil />
+                <IconPencil data-slot="icon" />
                 Edit
               </DropdownMenuItem>
             )}
@@ -228,7 +232,7 @@ export function MessageActions({
                 variant="destructive"
                 onClick={() => setConfirming(true)}
               >
-                <IconTrash />
+                <IconTrash data-slot="icon" />
                 Delete
               </DropdownMenuItem>
             )}

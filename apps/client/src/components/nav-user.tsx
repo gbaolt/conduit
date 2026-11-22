@@ -118,12 +118,12 @@ export function NavUser({ user }: { user: NavUserInfo }) {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem render={<Link href="/settings/notifications" />}>
-            <IconBell />
+            <IconBell data-slot="icon" />
             Notifications
           </DropdownMenuItem>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
-              <IconBellPause />
+              <IconBellPause data-slot="icon" />
               Pause notifications
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="w-44">
@@ -150,25 +150,25 @@ export function NavUser({ user }: { user: NavUserInfo }) {
             </p>
           )}
           <DropdownMenuItem>
-            <IconUser />
+            <IconUser data-slot="icon" />
             Profile
           </DropdownMenuItem>
           <DropdownMenuItem>
-            <IconSettings />
+            <IconSettings data-slot="icon" />
             Preferences
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem>
-            <IconRocket />
+            <IconRocket data-slot="icon" />
             {upgradeLabel}
           </DropdownMenuItem>
           <DropdownMenuItem
             disabled={signOut.isPending}
             onClick={() => signOut.mutate()}
           >
-            <IconLogout />
+            <IconLogout data-slot="icon" />
             Sign out
           </DropdownMenuItem>
         </DropdownMenuGroup>
