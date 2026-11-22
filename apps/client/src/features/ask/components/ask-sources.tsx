@@ -9,19 +9,19 @@ import {
 } from '@conduit/ui/components/collapsible';
 import { Skeleton } from '@conduit/ui/components/skeleton';
 import {
+  IconBook,
   IconChevronRight,
   IconHash,
   IconPencil,
   IconUser,
 } from '@tabler/icons-react';
-import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { FileKindIcon } from '@/components/file-kind-icon';
 import { useAuthors } from '@/features/messages/hooks/use-authors';
 import { useRoomName } from '@/features/messages/hooks/use-room-name';
 
-import { sourceHref } from '../lib/source-href';
+import { AskSourceLink } from './ask-source-link';
 
 const sentFormat = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
@@ -118,6 +118,14 @@ function sourceText({
           </>
         ),
       };
+    case 'guide':
+      return {
+        title: titled(
+          <IconBook aria-hidden className={icon} />,
+          source.article.title
+        ),
+        meta: 'Conduit guide',
+      };
   }
 }
 
@@ -135,10 +143,11 @@ function SourceRow({
   const { title, meta } = sourceText({ source, names });
   return (
     <li>
-      <Link
-        href={sourceHref(source)}
-        onClick={onOpen}
-        className="hover:bg-muted dark:hover:bg-muted/50 focus-visible:bg-muted -mx-2 flex gap-3 rounded-lg px-2 py-2 outline-none"
+      <AskSourceLink
+        source={source}
+        onOpen={onOpen}
+        variant="ghost"
+        className="hover:bg-muted dark:hover:bg-muted/50 focus-visible:bg-muted -mx-2 flex w-[calc(100%+1rem)] items-start gap-3 rounded-lg px-2 py-2 text-left outline-none"
       >
         <span className="text-link w-4 shrink-0 text-sm font-medium tabular-nums">
           {number}
@@ -147,7 +156,7 @@ function SourceRow({
           {title}
           <span className="text-muted-foreground truncate text-xs">{meta}</span>
         </span>
-      </Link>
+      </AskSourceLink>
     </li>
   );
 }
@@ -164,6 +173,8 @@ const sourceKey = (source: AnswerSource) => {
       return `p:${source.person.id}`;
     case 'draft':
       return `d:${source.draft.room.id}/${source.draft.parentId ?? ''}`;
+    case 'guide':
+      return `g:${source.article.slug}`;
   }
 };
 

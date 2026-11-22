@@ -2,7 +2,7 @@ import type { StoredAskAttachment } from '@/ask/domain/ask-attachments.repositor
 
 /** A cited source as stored: what it was, never its text, so a later read checks access again. */
 export type AnswerRef = {
-  type: 'message' | 'file' | 'channel' | 'person' | 'draft';
+  type: 'message' | 'file' | 'channel' | 'person' | 'draft' | 'guide';
   id: string;
 };
 

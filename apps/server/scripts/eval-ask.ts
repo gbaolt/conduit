@@ -1,15 +1,20 @@
 /**
  * Runs ten fixed questions, three follow-ups that lean on an earlier turn, two questions about attached files,
- * and three that need a tool, over a fixed corpus through the real model. It fails when an answer cites a source
- * that does not support it, misses the source that does, misses the fact it must state, or answers a question
- * the corpus can't answer. It prints every answer. Run it once per model or prompt change:
+ * three that need a tool, five about the app that need the Conduit guide, and one where the team uses the word
+ * "Conduit" for a project of its own, over a fixed corpus through the real model. It fails when an answer cites
+ * a source that does not support it, misses the source that does, misses the fact it must state, or answers a
+ * question the corpus can't answer. It prints every answer, the time to its first words, and its tool calls.
+ * Run it once per model or prompt change:
  *
  *   OPENROUTER_API_KEY=... AI_SUMMARY_MODEL=deepseek/deepseek-v4.1-flash-1017 pnpm --filter server eval:ask
  *
  * Each source carries one fact. A question lists the sources that hold its answer, or none when the corpus
  * doesn't answer it. A follow-up also prints the standalone query the rewrite call writes for it, though the
  * corpus here is not searched. The tools answer from a fixed channel and a fixed saved message, as the real
- * ones would, and find nothing else. It spends about thirty model requests.
+ * ones would, and find nothing else. The guide tool reads the real guide. It spends about forty model requests.
+ *
+ * `EVAL_BASELINE=1` leaves out the guide's questions and its tool, to time the workspace questions against a
+ * prompt without the guide.
  */
 import '@/load-env';
 import 'reflect-metadata';
@@ -42,6 +47,7 @@ import {
   standaloneQueryPrompt,
   StandaloneQuerySchema,
 } from '@/ask/domain/ask-prompt';
+import { guideArticle } from '@/ask/domain/guide/guide';
 import type { Passage } from '@/search/domain/search.repository';
 
 const PEOPLE = ['Linh Tran', 'Bao Le', 'Mai Pham'];
@@ -108,7 +114,19 @@ const CORPUS: Passage[] = [
     'Interview guide. Every candidate gets a system design round and a pairing round.'
   ),
   message('m7', 9, '+1'),
+  message(
+    'm8',
+    10,
+    'Status of the Conduit pipeline: the Kafka migration is 80 percent done, and cutover is on the 21st.'
+  ),
+  message(
+    'm9',
+    11,
+    'The Conduit pipeline backfill finished last night, so the dashboards are current again.'
+  ),
 ];
+
+const BASELINE = process.env.EVAL_BASELINE === '1';
 
 /** What the tools find. Nothing else is there, so a question about a DM finds nothing. */
 const LAUNCH: AskPassage = {
@@ -134,8 +152,8 @@ const SAVED: AskPassage = message(
   'The team offsite is in Da Lat on the 12th, and the bus leaves at 7 am.'
 );
 
-/** Read-only tools over the fixed finds, numbering each as the service does. */
-function tools(input: AskInput): ModelTools {
+/** Read-only tools over the fixed finds, numbering each as the service does. `calls` records each call. */
+function tools(input: AskInput, calls: string[]): ModelTools {
   const add = (found: AskPassage[]) => {
     const tags = found.map((passage) => {
       const key = passageKey(passage);
@@ -156,7 +174,7 @@ function tools(input: AskInput): ModelTools {
     input: z.object({ query: z.string().optional() }),
     execute: () => add([]),
   });
-  return {
+  const all: ModelTools = {
     search: none(
       'Search the messages and files in channels the asker can read, with other words than the question.'
     ),
@@ -186,7 +204,35 @@ function tools(input: AskInput): ModelTools {
     drafts: none(
       "The asker's own unsent drafts, newest first, optionally only those holding a word of query."
     ),
+    ...(BASELINE
+      ? {}
+      : {
+          guide: {
+            description:
+              'Read articles of the Conduit guide, which explains the Conduit app itself, by their slugs.',
+            input: z.object({ slugs: z.array(z.string()).min(1).max(3) }),
+            execute: ({ slugs }: { slugs: string[] }) =>
+              add(
+                slugs.flatMap((slug) => {
+                  const article = guideArticle(slug);
+                  return article ? [{ type: 'guide' as const, article }] : [];
+                })
+              ),
+          },
+        }),
   };
+  return Object.fromEntries(
+    Object.entries(all).map(([name, tool]) => [
+      name,
+      {
+        ...tool,
+        execute: (args: unknown) => {
+          calls.push(name);
+          return tool.execute(args);
+        },
+      },
+    ])
+  );
 }
 
 const INVOICE: ModelImage = {
@@ -202,6 +248,10 @@ type Question = {
   images?: ModelImage[];
   /** What the answer must say, for an answer from an attachment, which cites no number. */
   says?: RegExp;
+  /** Sources the answer may cite as well, without failing. */
+  may?: string[];
+  /** A question for the guide, which `EVAL_BASELINE` leaves out. */
+  guide?: boolean;
 };
 
 const earlier = (question: string, body: string): AskHistory => [
@@ -278,6 +328,42 @@ const QUESTIONS: Question[] = [
     text: 'What did Bao tell me in our direct messages about payroll?',
     supported: [],
   },
+  {
+    text: 'What is Conduit?',
+    supported: ['guide:what-is-conduit'],
+    // The corpus also uses the word for the team's pipeline, and the prompt answers both meanings.
+    may: ['message:m8', 'message:m9'],
+    guide: true,
+  },
+  {
+    text: 'How do I filter search by person?',
+    supported: ['guide:search'],
+    says: /from:/,
+    guide: true,
+  },
+  {
+    text: 'Can Ask Conduit read my DMs?',
+    supported: ['guide:ask-conduit'],
+    may: ['guide:direct-messages', 'guide:ai-privacy'],
+    guide: true,
+  },
+  {
+    text: 'How big can a file be?',
+    supported: ['guide:files'],
+    says: /50 MB/,
+    guide: true,
+  },
+  {
+    text: 'What does Catch me up do?',
+    supported: ['guide:smart-activity-and-catch-up'],
+    guide: true,
+  },
+  {
+    text: "What's the status of Conduit?",
+    supported: ['message:m8'],
+    may: ['message:m9', 'guide:what-is-conduit'],
+    guide: true,
+  },
 ];
 
 try {
@@ -291,8 +377,10 @@ try {
 
 const model = new AiSdkModel();
 let failures = 0;
+const timings: { guide: boolean; firstWordsMs: number; calls: number }[] = [];
+const asked = QUESTIONS.filter((question) => !(BASELINE && question.guide));
 
-for (const question of QUESTIONS) {
+for (const question of asked) {
   let query: string | undefined;
   if (question.history) {
     for await (const partial of model.streamObject({
@@ -312,17 +400,25 @@ for (const question of QUESTIONS) {
     question.attachments
   );
   let last;
+  const calls: string[] = [];
+  const started = performance.now();
+  let firstWordsMs: number | undefined;
   for await (const partial of model.streamObject({
     system: ASK_SYSTEM_PROMPT,
     prompt: input.prompt,
     images: question.images,
     schema: ModelAnswerSchema,
     maxOutputTokens: ASK_MAX_OUTPUT_TOKENS,
-    tools: tools(input),
+    tools: tools(input, calls),
     maxToolSteps: ASK_TOOL_STEPS_MAX,
   })) {
+    if (firstWordsMs === undefined && partial.body) {
+      firstWordsMs = performance.now() - started;
+    }
     last = partial;
   }
+  firstWordsMs ??= performance.now() - started;
+  timings.push({ guide: !!question.guide, firstWordsMs, calls: calls.length });
   const answer = ModelAnswerSchema.parse(last);
   const { body, cited } = citeAnswer(
     answer.found ? answer.body : '',
@@ -339,7 +435,7 @@ for (const question of QUESTIONS) {
     }
     if (!answer.found) problems.push('said it could not find the answer');
     for (const key of cited) {
-      if (!question.supported.includes(key))
+      if (!question.supported.includes(key) && !question.may?.includes(key))
         problems.push(`cites ${key}, which does not support it`);
     }
     for (const key of question.supported) {
@@ -352,10 +448,24 @@ for (const question of QUESTIONS) {
   if (query !== undefined) console.log(`  query: ${query}`);
   console.log(`  ${answer.found ? body : '(cannot answer)'}`);
   console.log(`  cites: ${cited.join(', ') || 'nothing'}`);
+  console.log(
+    `  first words: ${Math.round(firstWordsMs)} ms, tool calls: ${calls.join(', ') || 'none'}`
+  );
   for (const problem of problems) console.log(`  - ${problem}`);
 }
 
+const median = (values: number[]) => {
+  const sorted = [...values].sort((a, b) => a - b);
+  return Math.round(sorted[Math.floor(sorted.length / 2)] ?? 0);
+};
+for (const guide of [false, true]) {
+  const group = timings.filter((timing) => timing.guide === guide);
+  if (group.length === 0) continue;
+  console.log(
+    `\n${guide ? 'Guide' : 'Workspace'} questions: median first words ${median(group.map((t) => t.firstWordsMs))} ms, at most ${Math.max(...group.map((t) => t.calls))} tool calls.`
+  );
+}
 console.log(
-  `\n${QUESTIONS.length - failures} of ${QUESTIONS.length} questions passed.`
+  `\n${asked.length - failures} of ${asked.length} questions passed.`
 );
 process.exit(failures > 0 ? 1 : 0);

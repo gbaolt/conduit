@@ -2,11 +2,13 @@ import type { AnswerSource } from '@conduit/contract';
 import type { Route } from 'next';
 
 /**
- * Where a source opens. A message, or the message that carried a file, opens in its conversation with `?thread=`
+ * Where a source opens. A guide article has no page of its own, so `AskSourceLink` opens it beside the chat. A message, or the message that carried a file, opens in its conversation with `?thread=`
  * for a reply. A channel opens itself, a draft opens where it waits to be sent, and a person opens in the People
  * directory.
  */
-export function sourceHref(source: AnswerSource): Route {
+export function sourceHref(
+  source: Exclude<AnswerSource, { type: 'guide' }>
+): Route {
   const params = new URLSearchParams();
   switch (source.type) {
     case 'channel':

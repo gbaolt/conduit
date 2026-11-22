@@ -59,6 +59,7 @@ import {
   askAttachmentUrlContract,
   askQuestionContract,
   completeAskAttachmentContract,
+  getAskGuideContract,
   deleteAskChatContract,
   getAskChatContract,
   listAskChatsContract,
@@ -258,6 +259,7 @@ export const contract = {
     deleteChat: deleteAskChatContract,
     attachmentUrl: askAttachmentUrlContract,
     completeAttachment: completeAskAttachmentContract,
+    guide: getAskGuideContract,
   },
   dms: {
     list: listDmsContract,

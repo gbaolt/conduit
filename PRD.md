@@ -294,6 +294,5 @@ These ideas wait until the must-have AI features ship:
 
 ## Open questions
 
-- The 10 GB storage cap for each workspace is a placeholder.
 - The 4-hour reply window in the success metrics is a placeholder.
 - The 1-hour wait before the email digest is a placeholder.

@@ -12,6 +12,8 @@ import {
   AskChatSchema,
   AskChatSummarySchema,
   AskEventSchema,
+  AskGuideArticleSchema,
+  AskGuideInputSchema,
   AskInputSchema,
   CompleteAskAttachmentInputSchema,
 } from '@/schemas/ask';
@@ -27,10 +29,16 @@ export const askErrors = {
     status: 415,
     message: 'Ask Conduit reads images, PDFs and text files.',
   },
+  ARTICLE_NOT_FOUND: { status: 404, message: 'Article not found.' },
 } as const;
 
-const { NOT_FOUND, CHAT_FULL, ATTACHMENT_NOT_FOUND, ATTACHMENT_REJECTED } =
-  askErrors;
+const {
+  NOT_FOUND,
+  CHAT_FULL,
+  ATTACHMENT_NOT_FOUND,
+  ATTACHMENT_REJECTED,
+  ARTICLE_NOT_FOUND,
+} = askErrors;
 const { UPLOAD_MISSING, STORAGE_UNAVAILABLE } = fileErrors;
 const { AI_DISABLED, AI_UNAVAILABLE } = aiErrors;
 
@@ -59,6 +67,13 @@ export const getAskChatContract = oc
   .errors({ NOT_FOUND, AI_DISABLED })
   .input(AskChatIdInputSchema)
   .output(AskChatSchema);
+
+/** An article of the Conduit guide that an answer cited. */
+export const getAskGuideContract = oc
+  .meta(openapi({ method: 'GET', path: '/ask/guide/{slug}' }))
+  .errors({ ARTICLE_NOT_FOUND, AI_DISABLED })
+  .input(AskGuideInputSchema)
+  .output(AskGuideArticleSchema);
 
 export const deleteAskChatContract = oc
   .meta(openapi({ method: 'DELETE', path: '/ask/chats/{chatId}' }))
