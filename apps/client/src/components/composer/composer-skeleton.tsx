@@ -9,6 +9,7 @@ import {
   IconList,
   IconListNumbers,
   IconMoodSmile,
+  IconPlus,
   IconSend2,
   IconStrikethrough,
 } from '@tabler/icons-react';
@@ -40,6 +41,14 @@ export function ComposerSkeleton() {
       </div>
       <div className="h-11" />
       <div className="flex items-center gap-0.5 px-1.5 pb-1.5">
+        <Button
+          size="icon-sm"
+          variant="secondary"
+          className="rounded-full"
+          disabled
+        >
+          <IconPlus className="size-5" />
+        </Button>
         {[IconMoodSmile, IconAt].map((Icon, index) => (
           <Button key={index} size="icon-sm" variant="ghost" disabled>
             <Icon className="size-5" />

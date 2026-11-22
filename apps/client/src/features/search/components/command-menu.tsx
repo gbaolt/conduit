@@ -13,13 +13,19 @@ export function CommandMenu() {
   return (
     <Button
       data-slot="command-menu-trigger"
+      size="sm"
       variant="outline"
       onClick={() => setOpen(true)}
-      className="group text-muted-foreground hover:bg-background hover:text-muted-foreground dark:hover:bg-input/30 h-8 w-full justify-start gap-2 rounded-lg px-3 font-normal shadow-none select-none"
+      className="group w-full justify-start font-normal active:scale-none!"
     >
       <IconSearch data-icon="inline-start" />
-      <span className="truncate">Search Conduit</span>
-      <KbdGroup className="ml-auto max-sm:hidden">
+      <span className="text-muted-foreground ml-1 truncate">
+        Search Conduit
+      </span>
+      <KbdGroup
+        data-icon="inline-end"
+        className="-mr-0.5 ml-auto max-sm:hidden"
+      >
         <Kbd className="group-active:text-foreground">Ctrl</Kbd>
         <Kbd className="group-active:text-foreground w-5 min-w-5">K</Kbd>
       </KbdGroup>

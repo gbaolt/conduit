@@ -6,12 +6,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@conduit/ui/components/dropdown-menu';
+import { Input } from '@conduit/ui/components/input';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@conduit/ui/components/tooltip';
-import { IconFileCode, IconFiles, IconUpload } from '@tabler/icons-react';
+import {
+  IconDeviceDesktopUp,
+  IconFileCode,
+  IconFiles,
+} from '@tabler/icons-react';
 import {
   type ComponentProps,
   type ReactElement,
@@ -22,17 +27,11 @@ import {
 import { FilesDialog } from './files-dialog';
 import { SnippetDialog } from './snippet-dialog';
 
-/** What the Files dialog offers, and where its picks go. Without it, Files stays disabled. */
 type AttachFiles = Omit<
   ComponentProps<typeof FilesDialog>,
   'open' | 'onOpenChange' | 'onUpload'
 >;
 
-/**
- * The paperclip's menu: pick a file shared in the workspace, write a snippet, or upload from the device. Every
- * route ends in `onFiles`, as a drop or a paste does. `full` disables the routes that add a file, with its reason
- * in the tooltip.
- */
 export function AttachMenu({
   trigger,
   onFiles,
@@ -62,38 +61,37 @@ export function AttachMenu({
               <DropdownMenuTrigger
                 render={trigger}
                 aria-label="Attach"
-                // Keeps the selection in the editor while the menu opens.
                 onMouseDown={(event) => event.preventDefault()}
               />
             }
           />
           <TooltipContent>{full ?? 'Attach'}</TooltipContent>
         </Tooltip>
-        <DropdownMenuContent side="top" align="start" className="w-56">
+        <DropdownMenuContent side="top" align="start" className="w-fit">
           <DropdownMenuItem
             disabled={!files || Boolean(full)}
             onClick={() => setFilesOpen(true)}
           >
-            <IconFiles />
+            <IconFiles data-slot="icon" />
             Files
           </DropdownMenuItem>
           <DropdownMenuItem
             disabled={Boolean(full)}
             onClick={() => setSnippetOpen(true)}
           >
-            <IconFileCode />
+            <IconFileCode data-slot="icon" />
             Snippet
           </DropdownMenuItem>
           <DropdownMenuItem
             disabled={Boolean(full)}
             onClick={() => picker.current?.click()}
           >
-            <IconUpload />
+            <IconDeviceDesktopUp data-slot="icon" />
             Upload from your device
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <input
+      <Input
         ref={picker}
         type="file"
         multiple
@@ -102,7 +100,6 @@ export function AttachMenu({
         accept={accept}
         onChange={(event) => {
           const files = [...(event.currentTarget.files ?? [])];
-          // Cleared so picking the same file again still fires a change.
           event.currentTarget.value = '';
           if (files.length > 0) onFiles(files);
         }}
@@ -122,6 +119,7 @@ export function AttachMenu({
         open={snippetOpen}
         onOpenChange={setSnippetOpen}
         onCreate={(file) => onFiles([file])}
+        roomId={files?.targetRoomId}
       />
     </>
   );

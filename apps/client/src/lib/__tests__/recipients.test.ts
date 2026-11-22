@@ -9,7 +9,9 @@ import {
   NOBODY,
   type Recipient,
   recipientsOf,
+  sameTo,
   type To,
+  toOfRoom,
 } from '../recipients';
 
 const membership: Dm['membership'] = {
@@ -138,6 +140,48 @@ describe('recipientsOf', () => {
       'person:bo',
       'person:me',
     ]);
+  });
+});
+
+describe('toOfRoom', () => {
+  const dm = (id: string, userIds: string[]): Dm => ({
+    id,
+    members: userIds.map((userId) => ({ userId, name: userId, image: null })),
+    lastMessageAt: null,
+    createdAt: new Date(2026, 10, 1),
+    membership,
+  });
+  const dms = [
+    dm('d1', ['me', 'ann']),
+    dm('d2', ['me', 'ann', 'bo']),
+    dm('d3', ['me']),
+  ];
+  const rows = recipientsOf({
+    channels: [{ id: 'c1', name: 'general' } as Room],
+    dms,
+    people: ['me', 'ann', 'bo'].map((userId) => ({
+      userId,
+      name: userId,
+      image: null,
+    })),
+    entries: [],
+    viewerId: 'me',
+  });
+  const here = (roomId: string) => keys(toOfRoom(roomId, rows, dms, 'me'));
+
+  it('finds the channel, the DM partner, the group, or the viewer for the self DM', () => {
+    expect(here('c1')).toEqual(['channel:c1']);
+    expect(here('d1')).toEqual(['person:ann']);
+    expect(here('d2')).toEqual(['person:ann', 'person:bo']);
+    expect(here('d3')).toEqual(['person:me']);
+    expect(here('gone')).toEqual([]);
+  });
+
+  it('compares picks in any order', () => {
+    const ab = pick(pick(NOBODY, person('ann')), person('bo'));
+    const ba = pick(pick(NOBODY, person('bo')), person('ann'));
+    expect(sameTo(ab, ba)).toBe(true);
+    expect(sameTo(ab, pick(NOBODY, person('ann')))).toBe(false);
   });
 });
 

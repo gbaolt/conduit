@@ -38,7 +38,7 @@ export function ConversationTyping({
   return (
     <p
       role="status"
-      className="text-muted-foreground h-5 text-xs leading-5 transition-opacity duration-120 motion-reduce:transition-none"
+      className="text-muted-foreground h-4 text-xs leading-4 transition-opacity duration-120 motion-reduce:transition-none"
       style={{ opacity: text ? 1 : 0 }}
     >
       {shown}

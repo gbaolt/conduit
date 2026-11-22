@@ -17,6 +17,8 @@ import { toast } from 'sonner';
 
 import { client, orpc } from '@/lib/orpc';
 import { sessionQuery } from '@/services/auth/queries';
+import { useOpenDm } from '@/services/dms/hooks';
+import { uploadToRoom } from '@/services/files/upload';
 
 import { awaitLiveTransaction, threadStreamKey } from './live';
 import {
@@ -130,16 +132,43 @@ function enqueue(
 export function useSendToRoom() {
   const queryClient = useQueryClient();
   return useCallback(
-    (roomId: string, body: string) =>
+    (roomId: string, body: string, files: MessageFile[] = []) =>
       enqueue(queryClient, {
         roomId,
         parentId: null,
         alsoSentToChannel: false,
         body,
-        files: [],
+        files,
       }),
     [queryClient]
   );
+}
+
+/**
+ * Posts one file to a channel, or to people in their DM, which opens first. Resolves once the file is
+ * uploaded and the message is queued, with where it went.
+ */
+export function useShareFile() {
+  const sendToRoom = useSendToRoom();
+  const openDm = useOpenDm();
+  return useMutation({
+    mutationFn: async ({
+      to,
+      file,
+      body,
+    }: {
+      to: { roomId: string } | { userIds: string[] };
+      file: File;
+      body: string;
+    }) => {
+      const room =
+        'roomId' in to
+          ? { id: to.roomId, kind: 'channel' as const }
+          : { id: (await openDm.mutateAsync(to)).id, kind: 'dm' as const };
+      sendToRoom(room.id, body, [await uploadToRoom(room.id, file)]);
+      return room;
+    },
+  });
 }
 
 /**

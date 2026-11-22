@@ -116,7 +116,7 @@ function SavedSkeleton() {
     <div
       role="status"
       aria-label="Loading saved messages"
-      className="flex flex-col gap-5"
+      className="flex flex-col gap-5 px-4 pt-4"
     >
       {['w-3/5', 'w-4/5', 'w-1/2'].map((width) => (
         <div key={width} className="flex gap-3">
@@ -162,7 +162,7 @@ function SavedList() {
     );
   }
   return (
-    <ul className="flex flex-col gap-5">
+    <ul className="flex flex-col">
       {items.map((item) => (
         <li key={item.message.id}>
           <SavedItem item={item} />

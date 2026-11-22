@@ -140,7 +140,7 @@ function CommandMenuDialogFooter({
   action?: string;
 }) {
   return (
-    <div className="-mb-1 flex h-10 shrink-0 items-center gap-2 px-3 text-xs font-medium">
+    <div className="flex h-10 shrink-0 items-center gap-2 px-2 text-xs font-medium">
       <span className="text-muted-foreground min-w-0 flex-1 truncate">
         {detail}
       </span>

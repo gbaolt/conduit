@@ -61,7 +61,7 @@ export function AppShellSkeleton() {
       className="bg-sidebar flex h-svh"
     >
       <div aria-hidden className="flex h-svh w-16 shrink-0 flex-col">
-        <div className="flex flex-col items-center p-2 pt-16 pb-2">
+        <div className="flex flex-col items-center p-2 pt-14 pb-2">
           <Skeleton className="size-9 rounded-lg" />
         </div>
         <div className="flex flex-1 flex-col items-center gap-2.5">
@@ -101,7 +101,6 @@ export function AppShell({
       <AskProvider>
         <CommandMenuProvider>
           <WorkspaceActivity />
-          {/* A fixed height, not shadcn's min-h-svh, so a long log scrolls inside the page instead of growing it. */}
           <SidebarProvider
             className="bg-sidebar h-svh"
             style={
@@ -111,7 +110,7 @@ export function AppShell({
             }
           >
             <Sidebar variant="inset" collapsible="none" className="h-svh">
-              <SidebarHeader className="items-center pt-15 pb-2">
+              <SidebarHeader className="items-center pt-14 pb-2">
                 <WorkspaceSwitcher />
               </SidebarHeader>
               <SidebarContent className="items-center gap-2">
@@ -129,8 +128,8 @@ export function AppShell({
               </SidebarFooter>
             </Sidebar>
             <div className="flex min-w-0 flex-1 flex-col">
-              <header className="grid h-12 shrink-0 grid-cols-[1fr_minmax(0,36rem)_1fr] items-center gap-2 pe-2">
-                <div className="col-start-2 flex items-center gap-1.5">
+              <header className="flex h-12 shrink-0 grid-cols-[1fr_minmax(0,36rem)_1fr] items-center gap-2 pe-2 max-sm:w-full sm:grid">
+                <div className="col-start-2 flex items-center gap-1.5 max-sm:w-full">
                   <CommandMenu />
                   <AskButton />
                 </div>
