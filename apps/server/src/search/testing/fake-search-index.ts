@@ -24,11 +24,14 @@ export function createFakeSearchIndex() {
       guard();
       for (const id of ids) docs(namespace).delete(id);
     },
-    query: async (namespace, { topK }) => {
+    query: async (namespace, { topK, includeData }) => {
       guard();
-      return [...docs(namespace).values()]
-        .slice(0, topK)
-        .map((doc) => ({ id: doc.id, score: 1, metadata: doc.metadata }));
+      return [...docs(namespace).values()].slice(0, topK).map((doc) => ({
+        id: doc.id,
+        score: 1,
+        metadata: doc.metadata,
+        ...(includeData && { data: doc.data }),
+      }));
     },
   };
   return { index, docs, state };

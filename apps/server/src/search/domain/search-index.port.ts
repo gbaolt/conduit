@@ -7,12 +7,16 @@ export type SearchIndexQuery = {
   topK: number;
   /** `keyword` is BM25 alone. `hybrid` fuses it with the embedding match. */
   mode: 'hybrid' | 'keyword';
+  /** Returns each hit's `data`, the text the index holds. */
+  includeData?: boolean;
 };
 
 export type SearchIndexHit = {
   id: string;
   score: number;
   metadata: SearchDocMetadata;
+  /** Set when the query asked for `includeData`. */
+  data?: string;
 };
 
 /**

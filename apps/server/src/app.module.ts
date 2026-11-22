@@ -6,6 +6,7 @@ import { AuthModule } from '@thallesp/nestjs-better-auth';
 
 import { ActivityModule } from '@/activity/activity.module';
 import { AiModule } from '@/ai/ai.module';
+import { AskModule } from '@/ask/ask.module';
 import { ChannelsModule } from '@/channels/channels.module';
 import { DmsModule } from '@/dms/dms.module';
 import { FeedModule } from '@/feed/feed.module';
@@ -42,6 +43,7 @@ import { WorkspacesModule } from '@/workspaces/workspaces.module';
     NotificationsModule,
     RealtimeModule,
     SummariesModule,
+    AskModule,
     ArcjetModule.forRoot({
       isGlobal: true,
       key: process.env.ARCJET_KEY!,

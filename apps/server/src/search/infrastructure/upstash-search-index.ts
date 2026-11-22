@@ -46,12 +46,20 @@ export class UpstashSearchIndex implements SearchIndex {
         topK: query.topK,
         filter: query.filter,
         includeMetadata: true,
+        includeData: query.includeData,
         queryMode:
           query.mode === 'keyword' ? QueryMode.SPARSE : QueryMode.HYBRID,
       });
     return hits.flatMap((hit) =>
       hit.metadata
-        ? [{ id: String(hit.id), score: hit.score, metadata: hit.metadata }]
+        ? [
+            {
+              id: String(hit.id),
+              score: hit.score,
+              metadata: hit.metadata,
+              ...(hit.data !== undefined && { data: hit.data }),
+            },
+          ]
         : []
     );
   }

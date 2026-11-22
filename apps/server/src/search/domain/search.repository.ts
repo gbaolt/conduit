@@ -5,6 +5,11 @@ import type {
   PersonHit,
 } from '@conduit/contract';
 
+/** What Ask Conduit reads: a message, or one chunk of a file's text as the index holds it. */
+export type Passage =
+  | { type: 'message'; message: MessageHit }
+  | { type: 'file'; file: ListedFile; text: string };
+
 /** What a search narrows to once its filters are resolved. `roomIds` are already limited to rooms the caller reads. */
 export type SearchScope = {
   organizationId: string;

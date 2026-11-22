@@ -1,5 +1,6 @@
 export { contract } from './contract';
 export * from './contracts/activity';
+export * from './contracts/ask';
 export * from './contracts/ai-settings';
 export * from './contracts/channel-sections';
 export * from './contracts/channels';
@@ -32,6 +33,7 @@ export * from './lib/search-query';
 export * from './lib/summary-sources';
 export * from './lib/workspace-policy';
 export * from './schemas/activity';
+export * from './schemas/ask';
 export * from './schemas/ai';
 export * from './schemas/channels';
 export * from './schemas/dms';

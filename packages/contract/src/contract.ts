@@ -55,6 +55,12 @@ import {
   fileUrlsContract,
   listFilesContract,
 } from './contracts/files';
+import {
+  askQuestionContract,
+  deleteAskChatContract,
+  getAskChatContract,
+  listAskChatsContract,
+} from './contracts/ask';
 import { healthCheckContract } from './contracts/health';
 import { searchContract } from './contracts/search';
 import {
@@ -242,6 +248,12 @@ export const contract = {
   },
   search: {
     query: searchContract,
+  },
+  ask: {
+    question: askQuestionContract,
+    chats: listAskChatsContract,
+    chat: getAskChatContract,
+    deleteChat: deleteAskChatContract,
   },
   dms: {
     list: listDmsContract,

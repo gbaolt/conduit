@@ -38,6 +38,7 @@ model User {
   messages             Message[]
   savedMessages        SavedMessage[]
   summaries            Summary[]
+  askChats             AskChat[]
   notificationSettings NotificationSettings[]
   activityItems        ActivityItem[]         @relation("ActivityRecipient")
   activityActed        ActivityItem[]         @relation("ActivityActor")
@@ -76,6 +77,7 @@ model Organization {
   allowedDomains       AllowedDomain[]
   settings             WorkspaceSettings?
   summaries            Summary[]
+  askChats             AskChat[]
   presences            Presence[]
   notificationSettings NotificationSettings[]
   digestStates         DigestState[]
@@ -382,27 +384,27 @@ enum ActivityUrgency {
 
 /// App-owned. One row per thing that needs a member, written in the transaction of the change that caused it.
 model ActivityItem {
-  id             String       @id @default(cuid())
+  id             String           @id @default(cuid())
   organizationId String
   /// The recipient.
   userId         String
-  user           User         @relation("ActivityRecipient", fields: [userId], references: [id], onDelete: Cascade)
-  roomId         String       @map("channelId")
-  room           Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user           User             @relation("ActivityRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  roomId         String           @map("channelId")
+  room           Room             @relation(fields: [roomId], references: [id], onDelete: Cascade)
   kind           ActivityKind
   /// Built by the server, so a retried write is one row: `message:<id>`, `reaction:<id>:<actorId>:<emoji>`, or `room-add:<roomId>:<joinedAt ms>`.
   key            String
   actorId        String
-  actor          User         @relation("ActivityActor", fields: [actorId], references: [id], onDelete: Cascade)
+  actor          User             @relation("ActivityActor", fields: [actorId], references: [id], onDelete: Cascade)
   messageId      String?
-  message        Message?     @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  message        Message?         @relation(fields: [messageId], references: [id], onDelete: Cascade)
   emoji          String?
   /// What the model judged for the recipient. Null until `feed.rank` reaches the item, and always null for reactions and adds.
   urgency        ActivityUrgency?
   urgencyReason  String?
   readAt         DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   @@unique([userId, key])
   @@index([userId, organizationId, createdAt, id])
@@ -447,6 +449,41 @@ model Summary {
   createdAt        DateTime     @default(now())
 
   @@index([requesterId, createdAt])
+}
+
+/// An Ask Conduit answer. Only its requester reads it.
+/// One member's chat with Ask Conduit. Only its owner can read it.
+model AskChat {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  ownerId        String
+  owner          User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  /// The first question, cut at a word.
+  title          String
+  answers        Answer[]
+  createdAt      DateTime     @default(now())
+  /// Moves with each new answer, so the history lists the latest chat first.
+  updatedAt      DateTime     @default(now())
+
+  @@index([organizationId, ownerId, updatedAt])
+}
+
+/// One turn of an Ask chat: a question and its answer, stored together once the answer settles.
+model Answer {
+  id        String   @id @default(cuid())
+  chatId    String
+  chat      AskChat  @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  question  String
+  /// False when the sources the asker could read didn't answer the question.
+  found     Boolean
+  /// Markdown, with each `[n]` citing `sources[n - 1]`.
+  body      String
+  /// `{ type: 'message' | 'file', id }[]`, the cited sources in order of first citation.
+  sources   Json
+  createdAt DateTime @default(now())
+
+  @@index([chatId, createdAt])
 }
 
 /// App-owned. How far a member has read a conversation. The sidebar compares it with `Channel.lastMessageAt`.

@@ -11,6 +11,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { NotificationSettingsService } from '@/notifications/application/notification-settings.service';
 import { RoomsRepository } from '@/rooms/domain/rooms.repository';
 import {
+  type Passage,
   SearchRepository,
   type SearchScope,
 } from '@/search/domain/search.repository';
@@ -132,6 +133,83 @@ export class SearchService {
       result.indexed = false;
     }
     return result;
+  }
+
+  /**
+   * The messages and file chunks that best match, best first, each read back through the caller's access. A
+   * chunk's text comes from the index, and only once Postgres has passed its file. Each thread a reply is in adds
+   * its root, last. Throws when the index can't be reached.
+   */
+  async passages(
+    viewer: SearchViewer,
+    text: string,
+    topK: number
+  ): Promise<Passage[]> {
+    const scope = await this.readScope(viewer);
+    if (!scope) return [];
+    const hits = await this.index.query(viewer.organizationId, {
+      text,
+      filter: `roomId IN (${quoted(scope.roomIds)})`,
+      topK,
+      mode: 'hybrid',
+      includeData: true,
+    });
+    const ofKind = (kind: 'message' | 'file') =>
+      hits.filter((hit) => hit.metadata.kind === kind);
+    const [messages, files] = await Promise.all([
+      this.search.messages(scope, targetIds(ofKind('message'))),
+      this.search.files(scope, targetIds(ofKind('file'))),
+    ]);
+    const messagesById = new Map(
+      messages.map((message) => [message.id, message])
+    );
+    const filesById = new Map(files.map((file) => [file.id, file]));
+
+    const passages = hits.flatMap((hit): Passage[] => {
+      const id = hit.id.split(':')[1]!;
+      if (hit.metadata.kind === 'message') {
+        const message = messagesById.get(id);
+        return message ? [{ type: 'message', message }] : [];
+      }
+      const file = filesById.get(id);
+      return file && hit.data ? [{ type: 'file', file, text: hit.data }] : [];
+    });
+
+    const shown = new Set(messages.map((message) => message.id));
+    const rootIds = [
+      ...new Set(messages.flatMap((message) => message.parentId ?? [])),
+    ].filter((rootId) => !shown.has(rootId));
+    const roots = await this.search.messages(scope, rootIds);
+    return [
+      ...passages,
+      ...roots.map((message) => ({ type: 'message' as const, message })),
+    ];
+  }
+
+  /** The messages and files with these ids that the caller can still read, in the order of `ids`. */
+  async readable(
+    viewer: SearchViewer,
+    ids: { messageIds: string[]; fileIds: string[] }
+  ) {
+    const scope = await this.readScope(viewer);
+    if (!scope) return { messages: [], files: [] };
+    const [messages, files] = await Promise.all([
+      this.search.messages(scope, ids.messageIds),
+      this.search.files(scope, ids.fileIds),
+    ]);
+    return { messages, files };
+  }
+
+  /** Every room the caller can read, or null when there is none. */
+  private async readScope(viewer: SearchViewer): Promise<SearchScope | null> {
+    const roomIds = await this.rooms.accessibleRoomIds(viewer);
+    if (roomIds.length === 0) return null;
+    return {
+      organizationId: viewer.organizationId,
+      roomIds,
+      authorIds: [],
+      hasFile: false,
+    };
   }
 
   /** The filters as ids and times, or null when a filter names nothing the caller can read. */
