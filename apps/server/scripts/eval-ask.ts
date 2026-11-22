@@ -1,33 +1,44 @@
 /**
- * Runs ten fixed questions, and three follow-ups that lean on an earlier turn, over a fixed corpus of messages and file chunks through the real model, and fails when
- * an answer cites a source that does not support it, misses the source that does, or answers a question the
- * corpus can't answer. It prints every answer. Run it once per model or prompt change:
+ * Runs ten fixed questions, three follow-ups that lean on an earlier turn, two questions about attached files,
+ * and three that need a tool, over a fixed corpus through the real model. It fails when an answer cites a source
+ * that does not support it, misses the source that does, misses the fact it must state, or answers a question
+ * the corpus can't answer. It prints every answer. Run it once per model or prompt change:
  *
  *   OPENROUTER_API_KEY=... AI_SUMMARY_MODEL=deepseek/deepseek-v4.1-flash-1017 pnpm --filter server eval:ask
  *
  * Each source carries one fact. A question lists the sources that hold its answer, or none when the corpus
  * doesn't answer it. A follow-up also prints the standalone query the rewrite call writes for it, though the
- * corpus here is not searched. It spends sixteen model requests.
+ * corpus here is not searched. The tools answer from a fixed channel and a fixed saved message, as the real
+ * ones would, and find nothing else. It spends about thirty model requests.
  */
 import '@/load-env';
 import 'reflect-metadata';
+
+import { readFileSync } from 'node:fs';
 
 import {
   type ListedFile,
   type MessageHit,
   ModelAnswerSchema,
 } from '@conduit/contract';
+import { z } from 'zod';
 
+import type { ModelImage, ModelTools } from '@/ai/domain/model.port';
 import { AiSdkModel, selectModel } from '@/ai/infrastructure/ai-sdk-model';
 import {
   ASK_MAX_OUTPUT_TOKENS,
   ASK_REWRITE_MAX_OUTPUT_TOKENS,
   ASK_REWRITE_PROMPT,
   ASK_SYSTEM_PROMPT,
+  ASK_TOOL_STEPS_MAX,
+  type AskAttachmentInput,
   type AskHistory,
+  type AskInput,
+  type AskPassage,
   buildAskInput,
   citeAnswer,
   passageKey,
+  sourceTag,
   standaloneQueryPrompt,
   StandaloneQuerySchema,
 } from '@/ask/domain/ask-prompt';
@@ -99,7 +110,99 @@ const CORPUS: Passage[] = [
   message('m7', 9, '+1'),
 ];
 
-type Question = { text: string; supported: string[]; history?: AskHistory };
+/** What the tools find. Nothing else is there, so a question about a DM finds nothing. */
+const LAUNCH: AskPassage = {
+  type: 'channel',
+  channel: {
+    id: 'c1',
+    name: 'launch',
+    topic: 'Shipping the November release',
+    description: null,
+    visibility: 'public',
+    archived: false,
+    memberCount: 3,
+    members: [
+      { name: 'Mai Pham', manager: true },
+      { name: 'Linh Tran', manager: false },
+      { name: 'Bao Le', manager: false },
+    ],
+  },
+};
+const SAVED: AskPassage = message(
+  's1',
+  1,
+  'The team offsite is in Da Lat on the 12th, and the bus leaves at 7 am.'
+);
+
+/** Read-only tools over the fixed finds, numbering each as the service does. */
+function tools(input: AskInput): ModelTools {
+  const add = (found: AskPassage[]) => {
+    const tags = found.map((passage) => {
+      const key = passageKey(passage);
+      const known = input.sources.findIndex((s) => passageKey(s) === key);
+      if (known === -1) input.sources.push(passage);
+      return sourceTag(
+        known === -1 ? input.sources.length : known + 1,
+        passage,
+        new Map()
+      )!;
+    });
+    return Promise.resolve(
+      tags.length > 0 ? tags.join('\n') : 'Nothing found.'
+    );
+  };
+  const none = (description: string): ModelTools[string] => ({
+    description,
+    input: z.object({ query: z.string().optional() }),
+    execute: () => add([]),
+  });
+  return {
+    search: none(
+      'Search the messages and files in channels the asker can read, with other words than the question.'
+    ),
+    thread: none(
+      'Read the whole thread that a message source is in: its first message and the replies.'
+    ),
+    channel: {
+      description:
+        'Look up channels by name: topic, description, and who is in each, managers marked.',
+      input: z.object({ name: z.string() }),
+      execute: ({ name }: { name: string }) =>
+        add(
+          'launch'.includes(name.replace(/^#/, '').toLowerCase())
+            ? [LAUNCH]
+            : []
+        ),
+    },
+    people: none(
+      'Find workspace members by name, with their role in the workspace.'
+    ),
+    saved: {
+      description:
+        "The asker's own saved messages, newest saved first, optionally only those holding a word of query.",
+      input: z.object({ query: z.string().optional() }),
+      execute: () => add([SAVED]),
+    },
+    drafts: none(
+      "The asker's own unsent drafts, newest first, optionally only those holding a word of query."
+    ),
+  };
+}
+
+const INVOICE: ModelImage = {
+  mediaType: 'image/png',
+  data: readFileSync(new URL('./fixtures/ask-invoice.png', import.meta.url)),
+};
+
+type Question = {
+  text: string;
+  supported: string[];
+  history?: AskHistory;
+  attachments?: AskAttachmentInput[];
+  images?: ModelImage[];
+  /** What the answer must say, for an answer from an attachment, which cites no number. */
+  says?: RegExp;
+};
 
 const earlier = (question: string, body: string): AskHistory => [
   { question, found: true, body },
@@ -146,6 +249,35 @@ const QUESTIONS: Question[] = [
       'The Team plan costs 40 dollars per seat.'
     ),
   },
+  {
+    text: 'What is the total on this invoice?',
+    supported: [],
+    attachments: [{ type: 'image', name: 'invoice.png' }],
+    images: [INVOICE],
+    says: /4,?812/,
+  },
+  {
+    text: 'Which day does the launch move to, by my notes?',
+    supported: [],
+    attachments: [
+      {
+        type: 'document',
+        name: 'notes.md',
+        text: 'Planning notes. The launch moves from Monday to Thursday the 20th.',
+      },
+    ],
+    says: /Thursday/,
+  },
+  { text: 'Who manages #launch?', supported: ['channel:c1'], says: /Mai Pham/ },
+  {
+    text: 'What did I save about the offsite?',
+    supported: ['message:s1'],
+    says: /Da Lat/,
+  },
+  {
+    text: 'What did Bao tell me in our direct messages about payroll?',
+    supported: [],
+  },
 ];
 
 try {
@@ -176,14 +308,18 @@ for (const question of QUESTIONS) {
     question.text,
     CORPUS,
     new Map(),
-    question.history
+    question.history,
+    question.attachments
   );
   let last;
   for await (const partial of model.streamObject({
     system: ASK_SYSTEM_PROMPT,
     prompt: input.prompt,
+    images: question.images,
     schema: ModelAnswerSchema,
     maxOutputTokens: ASK_MAX_OUTPUT_TOKENS,
+    tools: tools(input),
+    maxToolSteps: ASK_TOOL_STEPS_MAX,
   })) {
     last = partial;
   }
@@ -194,10 +330,13 @@ for (const question of QUESTIONS) {
   );
 
   const problems: string[] = [];
-  if (question.supported.length === 0) {
+  if (question.supported.length === 0 && !question.says) {
     if (answer.found)
       problems.push('answered a question the corpus does not answer');
   } else {
+    if (question.says && !question.says.test(body)) {
+      problems.push(`does not say ${question.says}`);
+    }
     if (!answer.found) problems.push('said it could not find the answer');
     for (const key of cited) {
       if (!question.supported.includes(key))
