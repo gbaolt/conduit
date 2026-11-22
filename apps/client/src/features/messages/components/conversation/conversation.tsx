@@ -25,7 +25,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { useRoomName } from '@/features/messages/hooks/use-room-name';
 import { sessionQuery } from '@/services/auth/queries';
 import { useJoinChannel } from '@/services/channels/hooks';
-import { useFileUploads } from '@/services/files/upload';
+import { roomUploads, useFileUploads } from '@/services/files/upload';
 import { useSendMessage } from '@/services/messages/hooks';
 import { type LiveStatus, useLiveStream } from '@/services/messages/live';
 import {
@@ -161,7 +161,7 @@ export function Conversation({
   const { send, retry, discard } = useSendMessage(roomId, parentId);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [alsoSend, setAlsoSend] = useState(false);
-  const uploads = useFileUploads(roomId);
+  const uploads = useFileUploads(useMemo(() => roomUploads(roomId), [roomId]));
   const composerRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
 

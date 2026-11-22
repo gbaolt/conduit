@@ -27,6 +27,43 @@ export type Upload = UploadState & {
 
 const contentTypeOf = (file: File) => file.type || 'application/octet-stream';
 
+/** Where a composer's files go: a room's message, or an Ask question. */
+export type UploadTarget = {
+  /** How many files one send may carry. Files past it fail with a note instead of uploading. */
+  max?: number;
+  /** Runs before the upload, as when Ask shrinks a large image. */
+  prepare?: (file: File) => Promise<File>;
+  /** Why the file can't go, or null. Checked after `prepare`. */
+  problem: (file: File) => string | null;
+  sign: (file: {
+    name: string;
+    contentType: string;
+    size: number;
+  }) => Promise<{ id: string; uploadUrl: string }>;
+  complete: (
+    id: string,
+    dimensions: { width: number; height: number } | null
+  ) => Promise<MessageFile>;
+  /** Drops an upload the composer removed. Without it, the server's sweep removes it later. */
+  cancel?: (id: string) => Promise<void>;
+};
+
+/** A message in `roomId`. Its files count toward the workspace's storage. */
+export const roomUploads = (roomId: string): UploadTarget => ({
+  problem: (file) =>
+    file.size > FILE_SIZE_MAX ? fileTooLargeMessage(file.size) : null,
+  sign: async (file) => {
+    const { fileId, uploadUrl } = await client.files.uploadUrl({
+      roomId,
+      ...file,
+    });
+    return { id: fileId, uploadUrl };
+  },
+  complete: (fileId, dimensions) =>
+    client.files.complete({ fileId, ...dimensions }),
+  cancel: (fileId) => client.files.cancel({ fileId }),
+});
+
 /** Sends the bytes with XMLHttpRequest, since fetch reports no upload progress. */
 function put(
   url: string,
@@ -92,10 +129,16 @@ const errorMessage = (error: unknown) =>
 
 /**
  * The files a composer is about to send. Each one uploads straight to storage as soon as it is added, and
- * `ready` lists what a send may carry. Removing a file stops its upload and drops it on the server.
+ * `ready` lists what a send may carry. Removing a file stops its upload and drops it on the server. `target`
+ * must keep its identity between renders.
  */
-export function useFileUploads(roomId: string) {
+export function useFileUploads(target: UploadTarget) {
   const [uploads, setUploads] = useState<Upload[]>([]);
+  // What `add` counts against `target.max`, current even between two adds in one event.
+  const uploadsRef = useRef(uploads);
+  useEffect(() => {
+    uploadsRef.current = uploads;
+  }, [uploads]);
   const controllers = useRef(new Map<string, AbortController>());
   const serverIds = useRef(new Map<string, string>());
 
@@ -110,37 +153,33 @@ export function useFileUploads(roomId: string) {
   );
 
   const start = useCallback(
-    async (localId: string, file: File) => {
-      if (file.size > FILE_SIZE_MAX) {
-        patch(localId, {
-          status: 'failed',
-          error: fileTooLargeMessage(file.size),
-        });
-        return;
-      }
+    async (localId: string, picked: File) => {
       const controller = new AbortController();
       controllers.current.set(localId, controller);
       try {
-        const [{ fileId, uploadUrl }, dimensions] = await Promise.all([
-          client.files.uploadUrl({
-            roomId,
-            name: file.name || 'Pasted file',
+        const file = target.prepare ? await target.prepare(picked) : picked;
+        const problem = target.problem(file);
+        if (problem) {
+          patch(localId, { status: 'failed', error: problem });
+          return;
+        }
+        const [{ id, uploadUrl }, dimensions] = await Promise.all([
+          target.sign({
+            name: picked.name || 'Pasted file',
             contentType: contentTypeOf(file),
             size: file.size,
           }),
           measure(file),
         ]);
-        serverIds.current.set(localId, fileId);
+        if (controller.signal.aborted) return;
+        serverIds.current.set(localId, id);
         await put(
           uploadUrl,
           file,
           (progress) => patch(localId, { status: 'uploading', progress }),
           controller.signal
         );
-        const stored = await client.files.complete({
-          fileId,
-          ...dimensions,
-        });
+        const stored = await target.complete(id, dimensions);
         patch(localId, { status: 'ready', file: stored });
       } catch (error) {
         if (controller.signal.aborted) return;
@@ -149,13 +188,19 @@ export function useFileUploads(roomId: string) {
         controllers.current.delete(localId);
       }
     },
-    [roomId, patch]
+    [target, patch]
   );
 
   const add = useCallback(
     (files: File[]) => {
+      const room =
+        target.max === undefined
+          ? files.length
+          : target.max -
+            uploadsRef.current.filter((upload) => upload.status !== 'failed')
+              .length;
       const added = files.map(
-        (file): Upload => ({
+        (file, index): Upload => ({
           localId: crypto.randomUUID(),
           name: file.name || 'Pasted file',
           size: file.size,
@@ -164,29 +209,39 @@ export function useFileUploads(roomId: string) {
             fileKind(contentTypeOf(file)) === 'image'
               ? URL.createObjectURL(file)
               : null,
-          status: 'uploading',
-          progress: 0,
+          ...(index < room
+            ? { status: 'uploading', progress: 0 }
+            : {
+                status: 'failed',
+                error: `A question can carry up to ${target.max} files.`,
+              }),
         })
       );
+      uploadsRef.current = [...uploadsRef.current, ...added];
       setUploads((current) => [...current, ...added]);
-      added.forEach(
-        (upload, index) => void start(upload.localId, files[index]!)
-      );
+      added.forEach((upload, index) => {
+        if (upload.status === 'uploading') {
+          void start(upload.localId, files[index]!);
+        }
+      });
     },
-    [start]
+    [start, target.max]
   );
 
-  const remove = useCallback((localId: string) => {
-    controllers.current.get(localId)?.abort();
-    const fileId = serverIds.current.get(localId);
-    if (fileId) void client.files.cancel({ fileId }).catch(() => undefined);
-    serverIds.current.delete(localId);
-    setUploads((current) => {
-      const upload = current.find((item) => item.localId === localId);
-      if (upload?.thumbnailUrl) URL.revokeObjectURL(upload.thumbnailUrl);
-      return current.filter((item) => item.localId !== localId);
-    });
-  }, []);
+  const remove = useCallback(
+    (localId: string) => {
+      controllers.current.get(localId)?.abort();
+      const id = serverIds.current.get(localId);
+      if (id) void target.cancel?.(id).catch(() => undefined);
+      serverIds.current.delete(localId);
+      setUploads((current) => {
+        const upload = current.find((item) => item.localId === localId);
+        if (upload?.thumbnailUrl) URL.revokeObjectURL(upload.thumbnailUrl);
+        return current.filter((item) => item.localId !== localId);
+      });
+    },
+    [target]
+  );
 
   /** After a send: the files now belong to the message, so nothing is cancelled. */
   const clear = useCallback(() => {

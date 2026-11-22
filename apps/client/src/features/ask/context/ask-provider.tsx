@@ -1,6 +1,6 @@
 'use client';
 
-import type { Answer } from '@conduit/contract';
+import type { Answer, MessageFile } from '@conduit/contract';
 import dynamic from 'next/dynamic';
 import {
   createContext,
@@ -37,7 +37,7 @@ type AskValue = {
   close: () => void;
   /** Shows the chat `chatId`, or a new one with null, and stops reading the question in flight. */
   startChat: (chatId: string | null) => void;
-  send: (question: string) => void;
+  send: (question: string, attachments?: MessageFile[]) => void;
   stop: () => void;
 };
 
@@ -72,7 +72,8 @@ export function AskProvider({ children }: { children: ReactNode }) {
     [clear]
   );
   const send = useCallback(
-    (question: string) => void sendTurn(chatId, question),
+    (question: string, attachments?: MessageFile[]) =>
+      void sendTurn(chatId, question, attachments),
     [chatId, sendTurn]
   );
   const openAsk = useCallback(

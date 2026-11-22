@@ -83,7 +83,8 @@ export function AskTranscript({ onOpenSource }: { onOpenSource: () => void }) {
   if (turns.length === 0) {
     return (
       <AskEmpty icon={IconSparkles} title="Ask Conduit">
-        Answers from the messages and files you can access. Only you see them.
+        Answers from the channels, messages and files you can open. Direct
+        messages stay out, and only you see the chat.
       </AskEmpty>
     );
   }
@@ -92,7 +93,7 @@ export function AskTranscript({ onOpenSource }: { onOpenSource: () => void }) {
     <MessageScrollerProvider autoScroll defaultScrollPosition="end">
       <MessageScroller className="min-h-0 flex-1">
         <MessageScrollerViewport aria-label="Ask Conduit chat">
-          <MessageScrollerContent className="gap-6 px-4 py-4">
+          <MessageScrollerContent className="gap-6 px-5 py-4">
             {turns.map((item, index) => (
               <MessageScrollerItem
                 key={item.status === 'done' ? item.id : 'in-flight'}
@@ -103,7 +104,7 @@ export function AskTranscript({ onOpenSource }: { onOpenSource: () => void }) {
                   turn={item}
                   latest={index === turns.length - 1}
                   onOpenSource={onOpenSource}
-                  onRetry={() => send(item.question)}
+                  onRetry={() => send(item.question, item.attachments)}
                   onNewChat={() => startChat(null)}
                 />
               </MessageScrollerItem>

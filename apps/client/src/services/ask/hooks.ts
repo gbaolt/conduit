@@ -1,6 +1,6 @@
 'use client';
 
-import type { Answer, AnswerSource } from '@conduit/contract';
+import type { Answer, AnswerSource, MessageFile } from '@conduit/contract';
 import { ORPCError } from '@orpc/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -15,6 +15,8 @@ export type AskTurn = {
   found: boolean;
   body: string;
   sources: AnswerSource[];
+  /** What the question carries, so a retry sends it again. */
+  attachments: MessageFile[];
 } & (
   | { status: 'streaming' | 'stopped' }
   | { status: 'failed'; code: string | null; message: string }
@@ -51,22 +53,36 @@ export function useAskTurn(onAnswer: (answer: Answer) => void) {
   }, [abort]);
 
   const send = useCallback(
-    async (chatId: string | null, question: string) => {
+    async (
+      chatId: string | null,
+      question: string,
+      attachments: MessageFile[] = []
+    ) => {
       abort();
       const controller = new AbortController();
       running.current = controller;
-      const asked = { question, found: true, body: '', sources: [] };
+      const asked = {
+        question,
+        attachments,
+        found: true,
+        body: '',
+        sources: [],
+      };
       setTurn({ ...asked, status: 'streaming' });
 
       try {
         const events = await client.ask.question(
-          { chatId: chatId ?? undefined, question },
+          {
+            chatId: chatId ?? undefined,
+            question,
+            attachmentIds: attachments.map((attachment) => attachment.id),
+          },
           { signal: controller.signal }
         );
         for await (const event of events) {
           if (event.type === 'partial') {
             const { found, body, sources } = event;
-            setTurn({ question, found, body, sources, status: 'streaming' });
+            setTurn({ ...asked, found, body, sources, status: 'streaming' });
             continue;
           }
           const { answer } = event;

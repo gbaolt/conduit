@@ -20,6 +20,7 @@ import { CopyButton } from '@/components/copy-button';
 import type { AskTurn } from '@/services/ask/hooks';
 
 import { AskAnswer } from './ask-answer';
+import { AskQuestionAttachments } from './ask-question-attachments';
 import { AskSources } from './ask-sources';
 
 /** A stored answer, or the question still in flight. */
@@ -145,6 +146,7 @@ export function AskTurnItem(props: {
     <div className="flex flex-col gap-3">
       <Message align="end">
         <MessageContent>
+          <AskQuestionAttachments attachments={props.turn.attachments} />
           <Bubble align="end" variant="muted">
             <BubbleContent className="whitespace-pre-wrap">
               {props.turn.question}
