@@ -10,7 +10,13 @@ describe('fileKind', () => {
     ['application/pdf', 'pdf'],
     ['application/pdf; charset=binary', 'pdf'],
     ['image/svg+xml', 'other'],
-    ['text/plain', 'other'],
+    ['text/plain', 'text'],
+    ['text/markdown; charset=utf-8', 'text'],
+    ['text/csv', 'text'],
+    ['application/json', 'text'],
+    ['application/xml', 'text'],
+    ['application/zip', 'other'],
+    ['application/octet-stream', 'other'],
     ['', 'other'],
   ])('reads %s as %s', (contentType, kind) => {
     expect(fileKind(contentType)).toBe(kind);
@@ -20,5 +26,6 @@ describe('fileKind', () => {
     expect(contentTypesOf('pdf')).toEqual(['application/pdf']);
     expect(contentTypesOf('image')).toContain('image/webp');
     expect(contentTypesOf('image')).not.toContain('video/mp4');
+    expect(contentTypesOf('text')).toContain('application/json');
   });
 });

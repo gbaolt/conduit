@@ -157,6 +157,10 @@ describe.skipIf(!connectionString)('PrismaFilesRepository', () => {
     it('narrows by kind and by part of the name, ignoring case', async () => {
       const image = await sent('Mockup.PNG', { contentType: 'image/png' });
       const zip = await sent('assets.zip', { contentType: 'application/zip' });
+      const code = await sent('snippet.ts', { contentType: 'text/plain' });
+      const data = await sent('rows.json', {
+        contentType: 'application/json',
+      });
 
       expect(
         (await repository.list({ ...query, kind: 'image' })).files.map(
@@ -168,6 +172,11 @@ describe.skipIf(!connectionString)('PrismaFilesRepository', () => {
           (f) => f.id
         )
       ).toEqual([zip]);
+      expect(
+        (await repository.list({ ...query, kind: 'text' })).files
+          .map((f) => f.id)
+          .sort()
+      ).toEqual([data, code].sort());
       expect(
         (await repository.list({ ...query, name: 'mockup' })).files.map(
           (f) => f.id

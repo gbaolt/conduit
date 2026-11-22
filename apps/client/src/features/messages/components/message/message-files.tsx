@@ -12,6 +12,8 @@ import { FileKindIcon } from '@/components/file-kind-icon';
 import { FileViewer } from '@/components/file-viewer';
 import { fileUrlsQuery } from '@/services/files/queries';
 
+import { MessageSnippet } from './message-snippet';
+
 const MEDIA_MAX_HEIGHT = 360;
 const MEDIA_MAX_WIDTH = 480;
 const GRID_MAX = 4;
@@ -188,7 +190,8 @@ function MessageVideo({
 }
 
 /**
- * The files a sent message carries: images in a grid, videos in place, and a card for every other file.
+ * The files a sent message carries: images in a grid, videos in place, the first lines of a text file, and a
+ * card for every other file.
  * Signs their links once and reuses them until they near expiry. A link that fails to load is signed again, once.
  */
 export function MessageFiles({ files }: { files: MessageFile[] }) {
@@ -211,8 +214,10 @@ export function MessageFiles({ files }: { files: MessageFile[] }) {
     files.filter((file) => fileKind(file.contentType) === kind);
   const images = byKind('image');
   const videos = byKind('video');
+  const texts = byKind('text');
   const cards = files.filter(
-    (file) => !images.includes(file) && !videos.includes(file)
+    (file) =>
+      !images.includes(file) && !videos.includes(file) && !texts.includes(file)
   );
   const grid = images.slice(0, GRID_MAX);
   const [single] = images;
@@ -249,6 +254,19 @@ export function MessageFiles({ files }: { files: MessageFile[] }) {
           file={file}
           url={viewUrl(file)}
           onError={onError}
+        />
+      ))}
+      {texts.map((file) => (
+        <MessageSnippet
+          key={file.id}
+          file={file}
+          onOpen={() => setViewing(file)}
+          fallback={
+            <MessageFileCard
+              file={file}
+              downloadUrl={urls?.get(file.id)?.downloadUrl}
+            />
+          }
         />
       ))}
       {cards.length > 0 && (

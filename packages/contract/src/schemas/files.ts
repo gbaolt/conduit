@@ -43,6 +43,16 @@ export const CompleteFileInputSchema = z.object({
 
 export const FileIdInputSchema = z.object({ fileId: z.string() });
 
+/** How much of a text file `files.text` returns, from its start. */
+export const FILE_TEXT_PREVIEW_MAX = 64 * 1024;
+
+/** The start of a text file, decoded as UTF-8. `truncated` when the file holds more than `FILE_TEXT_PREVIEW_MAX`. */
+export const FileTextSchema = z.object({
+  text: z.string(),
+  truncated: z.boolean(),
+});
+export type FileText = z.infer<typeof FileTextSchema>;
+
 export const FileUrlsInputSchema = z.object({
   fileIds: z.array(z.string()).min(1).max(MESSAGE_FILES_MAX),
 });

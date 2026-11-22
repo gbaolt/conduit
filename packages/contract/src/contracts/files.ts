@@ -5,6 +5,7 @@ import { z } from 'zod';
 import {
   CompleteFileInputSchema,
   FileIdInputSchema,
+  FileTextSchema,
   FileUploadInputSchema,
   FileUploadSchema,
   FileUrlSchema,
@@ -34,6 +35,7 @@ export const fileErrors = {
     status: 503,
     message: 'File uploads are not set up for this deployment.',
   },
+  NOT_TEXT: { status: 415, message: 'This file is not text.' },
 } as const;
 
 const {
@@ -44,6 +46,7 @@ const {
   STORAGE_FULL,
   UPLOAD_MISSING,
   STORAGE_UNAVAILABLE,
+  NOT_TEXT,
 } = fileErrors;
 
 export const fileUploadUrlContract = oc
@@ -80,6 +83,13 @@ export const fileUrlsContract = oc
   .output(z.array(FileUrlSchema));
 
 /** Sent files in rooms the caller can read, newest first. */
+/** The start of a text file the caller can read, for its preview in a message. */
+export const fileTextContract = oc
+  .meta(openapi({ method: 'GET', path: '/files/{fileId}/text' }))
+  .errors({ NOT_FOUND, NOT_TEXT, STORAGE_UNAVAILABLE })
+  .input(FileIdInputSchema)
+  .output(FileTextSchema);
+
 export const listFilesContract = oc
   .meta(openapi({ method: 'GET', path: '/files' }))
   .input(ListFilesInputSchema)

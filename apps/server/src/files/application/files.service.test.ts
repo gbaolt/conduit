@@ -1,5 +1,6 @@
 import {
   FILE_SIZE_MAX,
+  FILE_TEXT_PREVIEW_MAX,
   type Room,
   WORKSPACE_STORAGE_MAX,
 } from '@conduit/contract';
@@ -111,14 +112,34 @@ function setup(room: Room | null = roomFor(true), readable = ['c1']) {
     find: async () => room,
     accessibleRoomIds: async () => readable,
   } as Partial<RoomsRepository> as RoomsRepository;
-  const { storage, objects } = createFakeStorage();
+  const { storage, objects, bytes, ranges } = createFakeStorage();
   return {
     service: new FilesService(files, rooms, storage),
     rows,
     objects,
+    bytes,
+    ranges,
     listed,
   };
 }
+
+const stored = (overrides: Partial<StoredFile>): StoredFile => ({
+  id: 'f1',
+  organizationId,
+  uploaderId: 'author',
+  roomId: 'c1',
+  messageId: 'm1',
+  name: 'q3.pdf',
+  contentType: 'application/pdf',
+  size: 10,
+  width: null,
+  height: null,
+  key: 'files/org/f1/q3.pdf',
+  status: 'ready',
+  createdAt: new Date(0),
+  deletedAt: null,
+  ...overrides,
+});
 
 const upload = {
   roomId: 'c1',
@@ -279,24 +300,6 @@ describe('FilesService', () => {
   });
 
   describe('urls', () => {
-    const stored = (overrides: Partial<StoredFile>): StoredFile => ({
-      id: 'f1',
-      organizationId,
-      uploaderId: 'author',
-      roomId: 'c1',
-      messageId: 'm1',
-      name: 'q3.pdf',
-      contentType: 'application/pdf',
-      size: 10,
-      width: null,
-      height: null,
-      key: 'files/org/f1/q3.pdf',
-      status: 'ready',
-      createdAt: new Date(0),
-      deletedAt: null,
-      ...overrides,
-    });
-
     it('signs a view and a download link for a file in a room the viewer can read', async () => {
       const { service, rows } = setup();
       rows.set('f1', stored({}));
@@ -333,6 +336,79 @@ describe('FilesService', () => {
           'missing',
         ])
       ).toEqual([]);
+    });
+  });
+
+  describe('text', () => {
+    const encode = (text: string) => new TextEncoder().encode(text);
+    const textFile = (overrides: Partial<StoredFile> = {}) =>
+      stored({
+        name: 'notes.ts',
+        contentType: 'text/plain',
+        key: 'files/org/f1/notes.ts',
+        size: 12,
+        ...overrides,
+      });
+
+    it('reads a text file in a room the viewer can read', async () => {
+      const { service, rows, bytes } = setup();
+      rows.set('f1', textFile());
+      bytes.set('files/org/f1/notes.ts', encode('const a = 1;'));
+
+      expect(await service.text(other, 'f1')).toEqual({
+        text: 'const a = 1;',
+        truncated: false,
+      });
+    });
+
+    it('hides a file in a room the viewer cannot read', async () => {
+      const { service, rows } = setup(roomFor(true), []);
+      rows.set('f1', textFile());
+
+      await expect(service.text(other, 'f1')).rejects.toMatchObject({
+        code: 'NOT_FOUND',
+      });
+    });
+
+    it('reads only the first 64 KB of a large file, and says it was cut', async () => {
+      const { service, rows, bytes, ranges } = setup();
+      const size = 100 * 1024;
+      rows.set('f1', textFile({ size }));
+      bytes.set('files/org/f1/notes.ts', encode('a'.repeat(size)));
+
+      const result = await service.text(other, 'f1');
+
+      expect(ranges).toEqual([
+        ['files/org/f1/notes.ts', FILE_TEXT_PREVIEW_MAX],
+      ]);
+      expect(result.text).toHaveLength(FILE_TEXT_PREVIEW_MAX);
+      expect(result.truncated).toBe(true);
+    });
+
+    it('drops a character the 64 KB cut splits', async () => {
+      const { service, rows, bytes } = setup();
+      const text = 'a'.repeat(FILE_TEXT_PREVIEW_MAX - 1) + 'é';
+      rows.set('f1', textFile({ size: encode(text).length }));
+      bytes.set('files/org/f1/notes.ts', encode(text));
+
+      const result = await service.text(other, 'f1');
+
+      expect(result.text).toBe('a'.repeat(FILE_TEXT_PREVIEW_MAX - 1));
+      expect(result.text).not.toContain('�');
+    });
+
+    it('refuses a file that is not text, by its type or by its bytes', async () => {
+      const { service, rows, bytes } = setup();
+      rows.set('pdf', stored({ id: 'pdf' }));
+      rows.set('f1', textFile());
+      bytes.set('files/org/f1/notes.ts', new Uint8Array([104, 0, 105]));
+
+      await expect(service.text(other, 'pdf')).rejects.toMatchObject({
+        code: 'NOT_TEXT',
+      });
+      await expect(service.text(other, 'f1')).rejects.toMatchObject({
+        code: 'NOT_TEXT',
+      });
     });
   });
 

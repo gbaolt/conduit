@@ -107,7 +107,9 @@ export function CodeBlockHeader({
   language: string;
   children?: ReactNode;
 }) {
-  const Icon = LANGUAGE_ICONS[language.toLowerCase()] ?? IconFileCode;
+  // A file name labels a sent snippet, so its extension picks the icon.
+  const Icon =
+    LANGUAGE_ICONS[language.toLowerCase().split('.').pop()!] ?? IconFileCode;
 
   return (
     <figcaption data-slot="code-block-header">
