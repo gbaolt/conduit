@@ -15,11 +15,13 @@ const featureDeps = {
   threads: ['rooms', 'messages'],
   directoris: ['workspace', 'channels'],
   files: ['rooms', 'messages'],
-  search: ['rooms', 'messages', 'files'],
+  search: ['rooms', 'messages', 'files', 'ask'],
+  ask: ['rooms', 'messages'],
 };
 
 const services = [
   'activity',
+  'ask',
   'auth',
   'channels',
   'dms',

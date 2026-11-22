@@ -15,14 +15,16 @@ UI taste for Conduit, written from corrections the owner made. Every rule here i
   <!-- 2026-11-13: "I don't like the top border of the view tabs, remove it" -->
 - **Every empty, no-results and error state uses the `Empty` parts from `@conduit/ui/components/empty`, centred in the area the content would fill.** Give it an icon, a title, one sentence and at most one action. Let the scroll area stretch so it centres vertically.
   Why: a centred empty state reads as deliberate, not as a broken list.
+  In a chat, a turn the AI couldn't answer, or one that failed, shows inside the transcript under its question, so the earlier turns stay in view. A chat with no turns is still a centred `Empty`.
   <!-- 2026-11-13: "render the empty states at the center of the page using empty.tsx" -->
 - **Grouped controls (button groups, toggle groups) and popups (select, dropdown, combobox content) use `rounded-md`. Items inside a menu use `rounded-sm`.** Never `rounded-lg` on these.
   Why: a radius nested inside another must be smaller than its container.
   <!-- 2026-11-13: owner changed rounded-lg → rounded-md in button-group, toggle-group, select; rounded-md → rounded-sm on menu items -->
 
-- **Every AI feature a person starts (thread, channel and DM summaries, Catch me up, and any new one) opens in a `Dialog`. Never render its output inline in the page.** Passive AI labels, such as the urgency note on an Activity row, stay inline.
+- **Every AI feature a person starts (thread, channel and DM summaries, Catch me up, and any new one) opens in a `Dialog`. Never render its output inline in the page.** Passive AI labels, such as the urgency note on an Activity row, stay inline. Ask Conduit is the one exception: it is a chat, so it opens in the side card from xl and in a right `Sheet` below it, where it stays open beside the message it cites.
   Why: the output is temporary and must not push the conversation or the feed around.
   <!-- 2026-11-14: "I prefer a dialog for each AI feature, instead of rendering them inline." -->
+  <!-- 2026-11-22: "implement Ask Conduit as a chatbot and use it via the side-panel.tsx" -->
 
 ## Color
 

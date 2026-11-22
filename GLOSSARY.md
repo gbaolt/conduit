@@ -198,5 +198,12 @@ A short AI account of a thread, a channel over a time range, or everything a Mem
 **Suggested task**:
 A task the AI drafts from a promise in a message. It is not on a board until a Member accepts it.
 
+**Ask Conduit**:
+The AI a Member asks questions of. It answers only from the messages and files that Member can read now, and cites each one.
+
+**Ask chat**:
+One Member's run of questions and answers with Ask Conduit. A follow-up reads the earlier turns. Only that Member sees it, and they can delete it.
+_Avoid_: Conversation, thread (those are places Members post)
+
 **Decision**:
 A message the AI marks as a decision. Decisions appear in their channel's decision log.

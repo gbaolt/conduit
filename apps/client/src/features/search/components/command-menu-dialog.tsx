@@ -19,12 +19,14 @@ import {
   IconMessage,
   IconSearch,
   IconSearchOff,
+  IconSparkles,
 } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
 import { useMemo, useRef, useState } from 'react';
 
+import { useAsk } from '@/features/ask/context/ask-provider';
 import { sidebarStateQuery } from '@/services/activity/queries';
 import { sessionQuery } from '@/services/auth/queries';
 import { channelsQuery } from '@/services/channels/queries';
@@ -48,6 +50,9 @@ const SEARCH_ROW = 'search';
 // Below any room that matches, so the search row always comes last.
 const SEARCH_ROW_SCORE = 1e-6;
 const SEARCH_DETAIL = 'Search messages, files, channels, and people';
+const ASK_ROW = 'ask';
+const ASK_ROW_SCORE = SEARCH_ROW_SCORE / 2;
+const ASK_DETAIL = 'Answer from the messages and files you can access';
 
 /** What Enter does on the highlighted row, as the footer names it. */
 const ENTER_LABELS = {
@@ -55,7 +60,11 @@ const ENTER_LABELS = {
   private: 'Open channel',
   dm: 'Open DM',
   search: 'Search',
-} satisfies Record<CommandMenuRoom['kind'] | typeof SEARCH_ROW, string>;
+  ask: 'Ask',
+} satisfies Record<
+  CommandMenuRoom['kind'] | typeof SEARCH_ROW | typeof ASK_ROW,
+  string
+>;
 
 const FOCUS_WAIT_MS = 3000;
 
@@ -163,6 +172,7 @@ export function CommandMenuDialog() {
   // Set on Enter, so the close hands focus to the opened conversation instead of back where it was.
   const opening = useRef<string | null>(null);
   const router = useRouter();
+  const { available: canAsk, openAsk } = useAsk();
   const { data: channels = [] } = useQuery(channelsQuery);
   const { data: dms = [] } = useQuery(dmsQuery);
   const { data: entries = [] } = useQuery(sidebarStateQuery);
@@ -187,6 +197,7 @@ export function CommandMenuDialog() {
   const { recent, unread, rest } = emptyQueryRooms(rooms);
   const active = byId.get(highlighted);
   const searching = highlighted === SEARCH_ROW;
+  const asking = highlighted === ASK_ROW;
 
   return (
     <CommandDialog
@@ -206,6 +217,7 @@ export function CommandMenuDialog() {
         onValueChange={setHighlighted}
         filter={(value, search) => {
           if (value === SEARCH_ROW) return SEARCH_ROW_SCORE;
+          if (value === ASK_ROW) return ASK_ROW_SCORE;
           const room = byId.get(value);
           return room ? commandMenuScore(room, search) : 0;
         }}
@@ -246,6 +258,20 @@ export function CommandMenuDialog() {
                   <IconSearch className="text-muted-foreground" />
                   <span className="truncate">Search for “{query.trim()}”</span>
                 </CommandItem>
+                {canAsk && (
+                  <CommandItem
+                    value={ASK_ROW}
+                    onSelect={() => {
+                      setOpen(false);
+                      openAsk(query, { submit: true });
+                    }}
+                  >
+                    <IconSparkles className="text-muted-foreground" />
+                    <span className="truncate">
+                      Ask Conduit “{query.trim()}”
+                    </span>
+                  </CommandItem>
+                )}
               </CommandGroup>
             ) : (
               <>
@@ -269,12 +295,15 @@ export function CommandMenuDialog() {
           </CommandList>
         </div>
         <CommandMenuDialogFooter
-          detail={searching ? SEARCH_DETAIL : active?.detail}
-          action={
-            searching
-              ? ENTER_LABELS.search
-              : active && ENTER_LABELS[active.kind]
-          }
+          {...(searching || asking
+            ? {
+                detail: searching ? SEARCH_DETAIL : ASK_DETAIL,
+                action: ENTER_LABELS[highlighted as 'search' | 'ask'],
+              }
+            : {
+                detail: active?.detail,
+                action: active && ENTER_LABELS[active.kind],
+              })}
         />
       </Command>
     </CommandDialog>

@@ -20,6 +20,8 @@ import { NavUser, type NavUserInfo } from '@/components/nav-user';
 import { RailLink } from '@/components/rail-link';
 import { SidePanelLayout } from '@/components/side-panel';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { AskButton } from '@/features/ask/components/ask-button';
+import { AskPanelSlot, AskProvider } from '@/features/ask/context/ask-provider';
 import { DmUnreadBadge } from '@/features/dms/components/dm-unread-badge';
 import { FeedUnreadBadge } from '@/features/feed/components/feed-unread-badge';
 import { CommandMenu } from '@/features/search/components/command-menu';
@@ -96,45 +98,53 @@ export function AppShell({
 }) {
   return (
     <WorkspaceProvider>
-      <CommandMenuProvider>
-        <WorkspaceActivity />
-        {/* A fixed height, not shadcn's min-h-svh, so a long log scrolls inside the page instead of growing it. */}
-        <SidebarProvider
-          className="bg-sidebar h-svh"
-          style={
-            {
-              '--sidebar-width': 'calc(var(--spacing) * 16)',
-            } as React.CSSProperties
-          }
-        >
-          <Sidebar variant="inset" collapsible="none" className="h-svh">
-            <SidebarHeader className="items-center pt-4 pb-2">
-              <WorkspaceSwitcher />
-            </SidebarHeader>
-            <SidebarContent className="items-center gap-2">
-              {railItems.map(({ icon: Icon, ...item }) => (
-                <RailLink
-                  key={item.label}
-                  {...item}
-                  icon={<Icon className="size-4" />}
-                />
-              ))}
-            </SidebarContent>
-            <SidebarFooter className="mt-auto items-center gap-3 pt-2 pb-4">
-              <ThemeToggle />
-              <NavUser user={user} />
-            </SidebarFooter>
-          </Sidebar>
-          <div className="flex min-w-0 flex-1 flex-col">
-            <header className="grid h-12 shrink-0 grid-cols-[1fr_minmax(0,36rem)_1fr] items-center gap-2 pe-2">
-              <div className="col-start-2">
-                <CommandMenu />
-              </div>
-            </header>
-            <SidePanelLayout>{children}</SidePanelLayout>
-          </div>
-        </SidebarProvider>
-      </CommandMenuProvider>
+      <AskProvider>
+        <CommandMenuProvider>
+          <WorkspaceActivity />
+          {/* A fixed height, not shadcn's min-h-svh, so a long log scrolls inside the page instead of growing it. */}
+          <SidebarProvider
+            className="bg-sidebar h-svh"
+            style={
+              {
+                '--sidebar-width': 'calc(var(--spacing) * 16)',
+              } as React.CSSProperties
+            }
+          >
+            <Sidebar variant="inset" collapsible="none" className="h-svh">
+              <SidebarHeader className="items-center pt-4 pb-2">
+                <WorkspaceSwitcher />
+              </SidebarHeader>
+              <SidebarContent className="items-center gap-2">
+                {railItems.map(({ icon: Icon, ...item }) => (
+                  <RailLink
+                    key={item.label}
+                    {...item}
+                    icon={<Icon className="size-4" />}
+                  />
+                ))}
+              </SidebarContent>
+              <SidebarFooter className="mt-auto items-center gap-3 pt-2 pb-4">
+                <ThemeToggle />
+                <NavUser user={user} />
+              </SidebarFooter>
+            </Sidebar>
+            <div className="flex min-w-0 flex-1 flex-col">
+              <header className="grid h-12 shrink-0 grid-cols-[1fr_minmax(0,36rem)_1fr] items-center gap-2 pe-2">
+                <div className="col-start-2">
+                  <CommandMenu />
+                </div>
+                <div className="col-start-3 justify-self-end">
+                  <AskButton />
+                </div>
+              </header>
+              <SidePanelLayout>
+                {children}
+                <AskPanelSlot />
+              </SidePanelLayout>
+            </div>
+          </SidebarProvider>
+        </CommandMenuProvider>
+      </AskProvider>
     </WorkspaceProvider>
   );
 }

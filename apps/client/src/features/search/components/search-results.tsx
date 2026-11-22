@@ -32,11 +32,13 @@ import {
   IconAlertTriangle,
   IconSearch,
   IconSearchOff,
+  IconSparkles,
 } from '@tabler/icons-react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useQueryStates } from 'nuqs';
 import type { KeyboardEvent, ReactNode } from 'react';
 
+import { useAsk } from '@/features/ask/context/ask-provider';
 import { FilesTable } from '@/features/files/components/files-list';
 import { MentionNames } from '@/features/messages/context/mention-names';
 import { useAuthors } from '@/features/messages/hooks/use-authors';
@@ -176,6 +178,7 @@ export function SearchResults() {
     placeholderData: keepPreviousData,
   });
   const { names } = useAuthors();
+  const { available: canAsk, openAsk } = useAsk();
   const { terms, filters } = parseSearchQuery(q);
   const narrowest = NARROWEST.map((key) =>
     filters.find((filter) => filter.key === key)
@@ -254,7 +257,7 @@ export function SearchResults() {
       }
       className="min-h-0 flex-1 gap-0"
     >
-      <div className="shrink-0 border-b px-4">
+      <div className="flex shrink-0 items-center gap-2 border-b px-4">
         <TabsList
           variant="line"
           aria-label="Result kinds"
@@ -275,6 +278,17 @@ export function SearchResults() {
             </TabsTrigger>
           ))}
         </TabsList>
+        {canAsk && terms.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-auto shrink-0"
+            onClick={() => openAsk(terms.join(' '), { submit: true })}
+          >
+            <IconSparkles data-icon="inline-start" />
+            Ask Conduit
+          </Button>
+        )}
       </div>
       {q.trim() && data?.indexed === false && (
         <Alert className="mx-4 mt-4 w-auto">
