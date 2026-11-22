@@ -61,7 +61,7 @@ export function AppShellSkeleton() {
       className="bg-sidebar flex h-svh"
     >
       <div aria-hidden className="flex h-svh w-16 shrink-0 flex-col">
-        <div className="flex flex-col items-center p-2 pt-4 pb-2">
+        <div className="flex flex-col items-center p-2 pt-16 pb-2">
           <Skeleton className="size-9 rounded-lg" />
         </div>
         <div className="flex flex-1 flex-col items-center gap-2.5">
@@ -111,7 +111,7 @@ export function AppShell({
             }
           >
             <Sidebar variant="inset" collapsible="none" className="h-svh">
-              <SidebarHeader className="items-center pt-4 pb-2">
+              <SidebarHeader className="items-center pt-15 pb-2">
                 <WorkspaceSwitcher />
               </SidebarHeader>
               <SidebarContent className="items-center gap-2">
@@ -130,10 +130,8 @@ export function AppShell({
             </Sidebar>
             <div className="flex min-w-0 flex-1 flex-col">
               <header className="grid h-12 shrink-0 grid-cols-[1fr_minmax(0,36rem)_1fr] items-center gap-2 pe-2">
-                <div className="col-start-2">
+                <div className="col-start-2 flex items-center gap-1.5">
                   <CommandMenu />
-                </div>
-                <div className="col-start-3 justify-self-end">
                   <AskButton />
                 </div>
               </header>
