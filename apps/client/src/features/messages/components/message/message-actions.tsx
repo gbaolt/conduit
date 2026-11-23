@@ -175,7 +175,7 @@ export function MessageActions({
                 className="aria-pressed:bg-primary/15 aria-pressed:hover:bg-primary/25"
                 onClick={() => toggleReaction(message, emoji)}
               >
-                <Twemoji className="btn-magnify m-0 size-4 align-middle">
+                <Twemoji className="button-magnify m-0 size-4 align-middle">
                   {emoji}
                 </Twemoji>
               </MessageActionButton>
@@ -188,7 +188,7 @@ export function MessageActions({
             className="group/button pointer-coarse:size-9"
             onPick={(emoji) => toggleReaction(message, emoji)}
           >
-            <IconMoodPlus className="btn-magnify" />
+            <IconMoodPlus className="button-magnify" />
           </ReactionPickerButton>
         </>
       )}
@@ -197,7 +197,7 @@ export function MessageActions({
           label="Reply in thread"
           onClick={() => openThread(message.id)}
         >
-          <IconMessageDots className="btn-magnify" />
+          <IconMessageDots className="button-magnify" />
         </MessageActionButton>
       )}
       <MessageActionButton
@@ -206,9 +206,9 @@ export function MessageActions({
         onClick={toggleSaved}
       >
         {saved ? (
-          <IconBookmarkFilled className="btn-magnify" />
+          <IconBookmarkFilled className="button-magnify" />
         ) : (
-          <IconBookmark className="btn-magnify" />
+          <IconBookmark className="button-magnify" />
         )}
       </MessageActionButton>
       <DropdownMenu>
@@ -254,6 +254,7 @@ export function MessageActions({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent>
           <AlertDialogHeader>

@@ -3,10 +3,22 @@
 @import '../styles/typeset.css';
 @import '../styles/code.css';
 
+@utility input-otp-slot {
+  @apply size-14! text-xl! sm:size-12! sm:text-2xl!;
+}
+
+@utility input-otp-group {
+  @apply w-full gap-2 *:data-[slot=input-otp-slot]:rounded-md *:data-[slot=input-otp-slot]:border;
+}
+
 @utility button-action {
   @apply text-muted-foreground pointer-coarse:size-11! [&_svg:not([class*='size-'])]:size-5!;
 }
 
 @utility button-format {
   @apply text-muted-foreground pointer-coarse:size-10! [&_svg:not([class*='size-'])]:size-4!;
+}
+
+@utility button-magnify {
+  @apply duration-150 group-hover/button:scale-150 group-active/button:scale-100 group-aria-expanded/button:scale-150;
 }
