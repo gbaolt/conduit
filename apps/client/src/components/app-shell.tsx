@@ -80,7 +80,7 @@ export function AppShellSkeleton() {
         </div>
       </div>
       <div className="flex min-w-0 flex-1 flex-col pe-2 pb-2">
-        <div className="grid h-12 shrink-0 grid-cols-[1fr_minmax(0,36rem)_1fr] items-center">
+        <div className="grid h-12 shrink-0 grid-cols-[1fr_minmax(0,36rem)_1fr] items-center max-sm:pe-4">
           <div className="col-start-2 flex items-center gap-1.5">
             <Skeleton className="h-8 w-full rounded-lg" />
             <Skeleton className="size-8 rounded-md" />
@@ -131,7 +131,7 @@ export function AppShell({
               </SidebarFooter>
             </Sidebar>
             <div className="flex min-w-0 flex-1 flex-col">
-              <header className="grid h-12 shrink-0 grid-cols-[1fr_minmax(0,36rem)_1fr] items-center">
+              <header className="grid h-12 shrink-0 grid-cols-[1fr_minmax(0,36rem)_1fr] items-center max-sm:pe-4">
                 <div
                   data-slot="command-menu-anchor"
                   className="col-start-2 flex items-center gap-1.5"

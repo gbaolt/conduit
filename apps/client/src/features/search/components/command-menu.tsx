@@ -19,7 +19,7 @@ export function CommandMenu() {
       className="group w-full min-w-0 shrink justify-start font-normal active:scale-none!"
     >
       <IconSearch data-icon="inline-start" />
-      <span className="text-muted-foreground ml-1 truncate">
+      <span className="text-muted-foreground ml-0.5 truncate">
         Search Conduit
       </span>
       <KbdGroup

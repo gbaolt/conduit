@@ -144,7 +144,7 @@ function CommandMenuDialogFooter({
   action?: string;
 }) {
   return (
-    <div className="flex h-10 shrink-0 items-center gap-2 px-2 text-xs font-medium">
+    <div className="flex shrink-0 items-center gap-2 px-1 pt-1 pb-0.5 text-xs font-medium">
       <span className="text-muted-foreground min-w-0 flex-1 truncate">
         {detail}
       </span>
@@ -232,7 +232,7 @@ export function CommandMenuDialog() {
           onValueChange={setQuery}
           placeholder="Search or jump to…"
         />
-        <div className="bg-background ring-border rounded-md ring-1">
+        <div className="bg-background ring-border mt-1 rounded-md ring-1">
           <CommandList className="dark:bg-background/50 min-h-80 rounded-lg">
             <CommandEmpty>
               <Empty className="h-full gap-2">
