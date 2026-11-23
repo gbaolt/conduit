@@ -8,6 +8,8 @@ import { createContext, type ReactNode, use } from 'react';
 
 import { UserAvatar } from '@/components/user-avatar';
 
+import { useHold } from '../../hooks/use-hold';
+
 export type Author = Pick<WorkspaceMember, 'name' | 'image'>;
 
 export const timeFormat = new Intl.DateTimeFormat(undefined, {
@@ -35,7 +37,7 @@ const MessageContext = createContext<{
   createdAt: Date | null;
 }>({ grouped: false, createdAt: null });
 
-/** A message in the conversation log: the hover treatment, the mention highlight and the focus tint. */
+/** A message in the conversation log: the hover treatment, the mention highlight, the focus tint, and press-and-hold on touch. */
 export function Message({
   label,
   createdAt,
@@ -54,9 +56,11 @@ export function Message({
   fresh?: boolean;
   children: ReactNode;
 }) {
+  const hold = useHold<HTMLDivElement>();
   return (
     <MessageContext value={{ grouped, createdAt }}>
       <UI.Message
+        {...hold}
         variant="log"
         role="article"
         aria-label={label}
@@ -64,7 +68,7 @@ export function Message({
         data-highlighted={highlight || undefined}
         data-focused={focused || undefined}
         className={cn(
-          'px-5',
+          'data-held:bg-muted dark:data-held:bg-muted/50 px-5 pointer-coarse:select-none pointer-coarse:[-webkit-touch-callout:none]',
           grouped ? 'pt-0.5' : 'pt-2',
           fresh &&
             'animate-in fade-in-0 slide-in-from-bottom-1 motion-reduce:slide-in-from-bottom-0 duration-150 ease-out'
@@ -95,7 +99,7 @@ export function MessageAvatar({ author }: { author: Author | null }) {
         <MessageTime
           date={createdAt}
           format={gutterFormat}
-          className="invisible absolute top-0 right-0 text-[11px] leading-[calc(0.875rem*1.65)] whitespace-nowrap group-focus-within/message:visible group-hover/message:visible"
+          className="invisible absolute top-0 right-0 text-[11px] leading-[calc(0.875rem*1.65)] whitespace-nowrap group-focus-within/message:visible group-hover/message:visible group-data-held/message:visible"
         />
       ) : (
         avatar

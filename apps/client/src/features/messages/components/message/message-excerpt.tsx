@@ -1,7 +1,11 @@
+'use client';
+
 import type { Message as MessageData } from '@conduit/contract';
 import { Message } from '@conduit/ui/components/message';
+import { cn } from '@conduit/ui/lib/utils';
 import type { ReactNode } from 'react';
 
+import { useHold } from '../../hooks/use-hold';
 import {
   type Author,
   MessageAuthor,
@@ -32,12 +36,22 @@ export function MessageExcerpt({
   context?: ReactNode;
   /** Search terms to mark in the body. */
   highlight?: readonly string[];
-  /** Controls at the end of the excerpt. */
+  /** Controls at the end of the excerpt. With them, a press and hold on a touch screen shows them. */
   children?: ReactNode;
   className?: string;
 }) {
+  const hold = useHold<HTMLDivElement>();
   return (
-    <Message variant="log" role="article" className={className}>
+    <Message
+      {...(children && hold)}
+      variant="log"
+      role="article"
+      className={cn(
+        children &&
+          'data-held:bg-muted dark:data-held:bg-muted/50 pointer-coarse:select-none pointer-coarse:[-webkit-touch-callout:none]',
+        className
+      )}
+    >
       <MessageAvatar author={author} />
       <MessageContent>
         {context}

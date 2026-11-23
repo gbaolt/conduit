@@ -90,12 +90,12 @@ export function MessageActionButton({
 }
 
 /**
- * The floating bar at a row's top right. It shows while the row is hovered, focused (a tap, on touch), or has a menu open, and ignores taps while hidden.
+ * The floating bar at a row's top right. It shows while the row is hovered with a mouse, holds keyboard focus, is held on a touch screen, or has a menu open. It ignores taps while hidden.
  * It straddles the row's top edge, except under a divider, where it drops inside the row so the day or New label stays readable.
  */
 export function MessageActionsBar({ children }: { children: ReactNode }) {
   return (
-    <div className="bg-background border-border pointer-events-none absolute top-0 right-2 flex -translate-y-1/2 rounded-md border p-px opacity-0 shadow-sm transition-opacity group-focus-within/message:pointer-events-auto group-focus-within/message:opacity-100 group-hover/message:pointer-events-auto group-hover/message:opacity-100 in-[[role=separator]+[role=article]]:translate-y-0.5 has-aria-expanded:pointer-events-auto has-aria-expanded:opacity-100 motion-reduce:transition-none">
+    <div className="bg-background border-border pointer-events-none absolute top-0 right-2 flex -translate-y-1/2 rounded-md border p-px opacity-0 shadow-sm transition-opacity group-focus-visible/message:pointer-events-auto group-focus-visible/message:opacity-100 group-has-focus-visible/message:pointer-events-auto group-has-focus-visible/message:opacity-100 group-data-held/message:pointer-events-auto group-data-held/message:opacity-100 in-[[role=separator]+[role=article]]:translate-y-0.5 has-aria-expanded:pointer-events-auto has-aria-expanded:opacity-100 motion-reduce:transition-none pointer-fine:group-hover/message:pointer-events-auto pointer-fine:group-hover/message:opacity-100">
       {children}
     </div>
   );
