@@ -75,7 +75,7 @@ export function MessageActionButton({
             aria-label={label}
             aria-pressed={pressed}
             disabled={disabled}
-            className={cn('group/button pointer-coarse:size-11', className)}
+            className={cn('group/button pointer-coarse:size-9', className)}
             onClick={onClick}
           />
         }
@@ -90,12 +90,12 @@ export function MessageActionButton({
 }
 
 /**
- * The floating bar at a row's top right. It shows while the row is hovered, focused, or has a menu open.
+ * The floating bar at a row's top right. It shows while the row is hovered, focused (a tap, on touch), or has a menu open, and ignores taps while hidden.
  * It straddles the row's top edge, except under a divider, where it drops inside the row so the day or New label stays readable.
  */
 export function MessageActionsBar({ children }: { children: ReactNode }) {
   return (
-    <div className="bg-background border-border absolute top-0 right-2 flex -translate-y-1/2 rounded-md border p-px opacity-0 shadow-sm transition-opacity group-focus-within/message:opacity-100 group-hover/message:opacity-100 in-[[role=separator]+[role=article]]:translate-y-0.5 has-aria-expanded:opacity-100 motion-reduce:transition-none pointer-coarse:opacity-100">
+    <div className="bg-background border-border pointer-events-none absolute top-0 right-2 flex -translate-y-1/2 rounded-md border p-px opacity-0 shadow-sm transition-opacity group-focus-within/message:pointer-events-auto group-focus-within/message:opacity-100 group-hover/message:pointer-events-auto group-hover/message:opacity-100 in-[[role=separator]+[role=article]]:translate-y-0.5 has-aria-expanded:pointer-events-auto has-aria-expanded:opacity-100 motion-reduce:transition-none">
       {children}
     </div>
   );
@@ -113,7 +113,7 @@ export function MessageActionsMoreTrigger() {
                 variant="ghost"
                 size="icon-xs"
                 aria-label="More actions"
-                className="pointer-coarse:size-11"
+                className="pointer-coarse:size-9"
               />
             }
           />
@@ -181,7 +181,7 @@ export function MessageActions({
             label="Add reaction"
             variant="ghost"
             size="icon-xs"
-            className="group/button pointer-coarse:size-11"
+            className="group/button pointer-coarse:size-9"
             onPick={(emoji) => toggleReaction(message, emoji)}
           >
             <IconMoodPlus className="btn-magnify" />
