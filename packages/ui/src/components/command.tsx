@@ -1,5 +1,6 @@
 'use client';
 
+import type { Popover as PopoverPrimitive } from '@base-ui/react/popover';
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,13 @@ import {
   InputGroup,
   InputGroupAddon,
 } from '@conduit/ui/components/input-group';
+import {
+  Popover,
+  PopoverClose,
+  PopoverContent,
+  PopoverDescription,
+  PopoverTitle,
+} from '@conduit/ui/components/popover';
 import { cn } from '@conduit/ui/lib/utils';
 import { IconCheck, IconSearch } from '@tabler/icons-react';
 import { Command as CommandPrimitive } from 'cmdk';
@@ -24,7 +32,7 @@ function Command({
     <CommandPrimitive
       data-slot="command"
       className={cn(
-        'bg-popover text-popover-foreground flex size-full flex-col overflow-hidden rounded-xl! p-1',
+        'bg-popover text-popover-foreground flex size-full flex-col overflow-hidden p-1.5',
         className
       )}
       {...props}
@@ -54,14 +62,69 @@ function CommandDialog({
       </DialogHeader>
       <DialogContent
         className={cn(
-          'top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0',
+          'bg-popover top-1/3 max-w-[95vw] -translate-y-1/3 overflow-hidden rounded-lg! p-0 max-sm:top-16 max-sm:translate-y-0 sm:max-w-lg',
+          '*:data-[slot=command]:bg-accent/50 dark:*:data-[slot=command]:bg-popover',
+          '**:data-[slot=command-input-wrapper]:-mb-1 **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-input-wrapper]_svg]:size-5 **:[[cmdk-input]]:h-10',
+          '**:[[cmdk-group]]:px-2',
+          '**:[[cmdk-group-heading]]:text-muted-foreground **:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:font-medium',
+          '[&_[cmdk-item]_svg]:size-5 **:[[cmdk-item]]:px-2 **:[[cmdk-item]]:py-2',
           className
         )}
+        showOverlay={false}
         showCloseButton={showCloseButton}
       >
         {children}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** The palette laid over `anchor`, its input exactly where the anchor sits, so a search bar seems to open into it. */
+function CommandPopover({
+  title,
+  description,
+  anchor,
+  children,
+  className,
+  ...props
+}: Omit<React.ComponentProps<typeof Popover>, 'children' | 'modal'> & {
+  title: string;
+  description: string;
+  anchor: PopoverPrimitive.Positioner.Props['anchor'];
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Popover modal {...props}>
+      <PopoverContent
+        anchor={anchor}
+        align="start"
+        // The popup's 4px padding hangs outside the anchor on every side.
+        sideOffset={({ anchor }) => -anchor.height - 4}
+        alignOffset={-4}
+        collisionAvoidance={{ side: 'none', align: 'shift' }}
+        collisionPadding={4}
+        className={cn(
+          // Fade only, so the input appears in place over the search bar instead of growing out of it.
+          'data-open:zoom-in-100! data-closed:zoom-out-100! data-[side=bottom]:slide-in-from-top-0! w-[calc(var(--anchor-width)+0.5rem)] max-w-[calc(100vw-0.5rem)] gap-0 overflow-hidden p-0',
+          '*:data-[slot=command]:bg-accent/50 dark:*:data-[slot=command]:bg-popover',
+          // One 4px gutter: the input wrapper adds none, so the input lands on the anchor.
+          '*:data-[slot=command]:gap-1 **:data-[slot=command-input-wrapper]:p-0',
+          '**:[[cmdk-group]]:px-2',
+          '**:[[cmdk-group-heading]]:text-muted-foreground **:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:font-medium',
+          '[&_[cmdk-item]_svg]:size-5 **:[[cmdk-item]]:px-2 **:[[cmdk-item]]:py-2',
+          className
+        )}
+      >
+        <PopoverTitle className="sr-only">{title}</PopoverTitle>
+        <PopoverDescription className="sr-only">
+          {description}
+        </PopoverDescription>
+        {children}
+        {/* Base UI traps focus in a modal popover only while it holds a Close. Last, so the input takes first focus. */}
+        <PopoverClose className="sr-only">Close</PopoverClose>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -71,7 +134,7 @@ function CommandInput({
 }: React.ComponentProps<typeof CommandPrimitive.Input>) {
   return (
     <div data-slot="command-input-wrapper" className="p-1 pb-0">
-      <InputGroup className="border-input/30 bg-input/30 h-8! rounded-lg! shadow-none! *:data-[slot=input-group-addon]:pl-2!">
+      <InputGroup className="border-input/30 bg-input/30 h-8! shadow-none! *:data-[slot=input-group-addon]:pl-2!">
         <CommandPrimitive.Input
           data-slot="command-input"
           className={cn(
@@ -155,7 +218,7 @@ function CommandItem({
     <CommandPrimitive.Item
       data-slot="command-item"
       className={cn(
-        "group/command-item data-selected:bg-muted data-selected:text-foreground data-selected:*:[svg]:text-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none in-data-[slot=dialog-content]:rounded-lg! data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "group/command-item data-selected:bg-muted data-selected:text-foreground data-selected:*:[svg]:text-foreground relative flex cursor-default items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-hidden select-none in-data-[slot=dialog-content]:rounded-md! data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}
@@ -190,6 +253,7 @@ export {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandPopover,
   CommandSeparator,
   CommandShortcut,
 };

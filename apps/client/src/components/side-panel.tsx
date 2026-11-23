@@ -20,6 +20,7 @@ import { createPortal } from 'react-dom';
 import { ResizeHandle } from '@/components/resize-handle';
 
 type Dock = {
+  /** The panel the card shows: the newest one still mounted. */
   owner: string | null;
   target: HTMLElement | null;
   claim: (id: string) => void;
@@ -28,16 +29,24 @@ type Dock = {
 
 const DockContext = createContext<Dock | null>(null);
 
-/** The main card, and beside it a second card that a page fills through `SidePanel`. */
+/**
+ * The main card, and beside it a second card that a page fills through `SidePanel`. Panels stack, so closing the
+ * newest shows the one it covered.
+ */
 export function SidePanelLayout({ children }: { children: ReactNode }) {
-  const [owner, setOwner] = useState<string | null>(null);
+  const [owners, setOwners] = useState<readonly string[]>([]);
   const [target, setTarget] = useState<HTMLElement | null>(null);
-  const claim = useCallback((id: string) => setOwner(id), []);
-  // A page that lost the dock to another page leaves it alone.
-  const release = useCallback(
-    (id: string) => setOwner((current) => (current === id ? null : current)),
+  const claim = useCallback(
+    (id: string) =>
+      setOwners((current) => [...current.filter((each) => each !== id), id]),
     []
   );
+  const release = useCallback(
+    (id: string) =>
+      setOwners((current) => current.filter((each) => each !== id)),
+    []
+  );
+  const owner = owners.at(-1) ?? null;
   const dock = useMemo(
     () => ({ owner, target, claim, release }),
     [owner, target, claim, release]
@@ -45,7 +54,7 @@ export function SidePanelLayout({ children }: { children: ReactNode }) {
 
   return (
     <DockContext value={dock}>
-      <ResizablePanelGroup className="min-h-0 min-w-0 flex-1 overflow-hidden py-2 pe-2">
+      <ResizablePanelGroup className="min-h-0 min-w-0 flex-1 overflow-hidden pe-2 pb-2">
         <ResizablePanel
           id="main"
           minSize="60%"
@@ -76,7 +85,7 @@ export function SidePanelLayout({ children }: { children: ReactNode }) {
   );
 }
 
-/** Shows its children in the side card while it is mounted. The newest mount wins. */
+/** Shows its children in the side card while it is mounted and no newer `SidePanel` covers it. */
 export function SidePanel({ children }: { children: ReactNode }) {
   const dock = use(DockContext);
   if (!dock) throw new Error('SidePanel must be used within SidePanelLayout.');

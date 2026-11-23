@@ -46,7 +46,7 @@ export function MessageReactions({
                   aria-pressed={reacted}
                   aria-label={`${emoji} ${userIds.length}`}
                   className={cn(
-                    'focus-visible:ring-ring/50 inline-flex h-6 items-center gap-1 rounded-full border px-2 text-xs tabular-nums outline-none focus-visible:ring-3 pointer-coarse:h-11',
+                    'focus-visible:ring-ring/50 inline-flex h-6 items-center gap-1 rounded-full border px-2 text-xs tabular-nums outline-none focus-visible:ring-3 pointer-coarse:h-8 pointer-coarse:px-2.5',
                     reacted
                       ? 'border-primary bg-primary/10 text-foreground'
                       : 'border-border hover:bg-muted'
@@ -68,7 +68,7 @@ export function MessageReactions({
         <ReactionPickerButton
           label="Add reaction"
           variant="outline"
-          className="h-6 rounded-full px-2 pointer-coarse:h-11"
+          className="h-6 rounded-full px-2 pointer-coarse:h-8 pointer-coarse:px-2.5"
           onPick={(emoji) => toggle(message, emoji)}
         >
           <IconMoodPlus className="size-4" />

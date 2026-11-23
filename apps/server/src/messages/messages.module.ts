@@ -4,6 +4,7 @@ import { DmsModule } from '@/dms/dms.module';
 import { FeedModule } from '@/feed/feed.module';
 import { NotificationsModule } from '@/notifications/notifications.module';
 import { RoomsModule } from '@/rooms/rooms.module';
+import { SearchModule } from '@/search/search.module';
 
 import { LinkPreviewsService } from './application/link-previews.service';
 import { MessagesService } from './application/messages.service';
@@ -18,7 +19,13 @@ import { PrismaThreadsRepository } from './infrastructure/prisma-threads.reposit
 import { MessagesController } from './presentation/messages.controller';
 
 @Module({
-  imports: [RoomsModule, DmsModule, FeedModule, NotificationsModule],
+  imports: [
+    RoomsModule,
+    DmsModule,
+    FeedModule,
+    NotificationsModule,
+    SearchModule,
+  ],
   controllers: [MessagesController],
   providers: [
     MessagesService,

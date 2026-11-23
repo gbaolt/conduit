@@ -45,12 +45,12 @@ function ChannelGroupCreateItems() {
     <>
       {canCreate && (
         <DropdownMenuItem onClick={() => open({ kind: 'create' })}>
-          <IconPlus />
+          <IconPlus data-slot="icon" />
           Create a new channel
         </DropdownMenuItem>
       )}
       <DropdownMenuItem render={<Link href="/directories/channels" />}>
-        <IconListSearch />
+        <IconListSearch data-slot="icon" />
         Browse channels
       </DropdownMenuItem>
     </>
@@ -65,7 +65,7 @@ export function ChannelGroupMenuItems() {
     <>
       <ChannelGroupCreateItems />
       <DropdownMenuItem onClick={() => open({ kind: 'section-name' })}>
-        <IconFolderPlus />
+        <IconFolderPlus data-slot="icon" />
         New section
       </DropdownMenuItem>
     </>
@@ -103,15 +103,15 @@ export function ChannelGroupSectionMenuItems({
   return (
     <>
       <DropdownMenuItem onClick={() => open({ kind: 'section-name', section })}>
-        <IconPencil />
+        <IconPencil data-slot="icon" />
         Rename
       </DropdownMenuItem>
       <DropdownMenuItem disabled={!up} onClick={up}>
-        <IconArrowUp />
+        <IconArrowUp data-slot="icon" />
         Move up
       </DropdownMenuItem>
       <DropdownMenuItem disabled={!down} onClick={down}>
-        <IconArrowDown />
+        <IconArrowDown data-slot="icon" />
         Move down
       </DropdownMenuItem>
       <DropdownMenuSeparator />
@@ -124,7 +124,7 @@ export function ChannelGroupSectionMenuItems({
           )
         }
       >
-        <IconTrash />
+        <IconTrash data-slot="icon" />
         Delete section
       </DropdownMenuItem>
     </>

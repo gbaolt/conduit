@@ -1,6 +1,6 @@
 'use client';
 
-import type { Message } from '@conduit/contract';
+import { type Message, plainText } from '@conduit/contract';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -27,6 +27,7 @@ import { cn } from '@conduit/ui/lib/utils';
 import {
   IconBookmark,
   IconBookmarkFilled,
+  IconCopy,
   IconDots,
   IconMessageDots,
   IconMoodPlus,
@@ -36,6 +37,7 @@ import {
   IconTrash,
 } from '@tabler/icons-react';
 import { type ReactNode, use, useState } from 'react';
+import { toast } from 'sonner';
 
 import { StatusButton } from '@/components/async/status-button';
 import {
@@ -45,6 +47,7 @@ import {
   useToggleReaction,
 } from '@/services/messages/hooks';
 
+import { MentionNames } from '../../context/mention-names';
 import { OpenThread } from '../../context/thread';
 import { useQuickReactions } from '../../hooks/use-quick-reactions';
 import { ReactionPickerButton } from './reaction-picker';
@@ -75,7 +78,7 @@ export function MessageActionButton({
             aria-label={label}
             aria-pressed={pressed}
             disabled={disabled}
-            className={cn('group/button pointer-coarse:size-11', className)}
+            className={cn('group/button pointer-coarse:size-9', className)}
             onClick={onClick}
           />
         }
@@ -90,12 +93,12 @@ export function MessageActionButton({
 }
 
 /**
- * The floating bar at a row's top right. It shows while the row is hovered, focused, or has a menu open.
+ * The floating bar at a row's top right. It shows while the row is hovered with a mouse, holds keyboard focus, is held on a touch screen, or has a menu open. It ignores taps while hidden.
  * It straddles the row's top edge, except under a divider, where it drops inside the row so the day or New label stays readable.
  */
 export function MessageActionsBar({ children }: { children: ReactNode }) {
   return (
-    <div className="bg-background border-border absolute top-0 right-2 flex -translate-y-1/2 rounded-md border p-px opacity-0 shadow-sm transition-opacity group-focus-within/message:opacity-100 group-hover/message:opacity-100 in-[[role=separator]+[role=article]]:translate-y-0.5 has-aria-expanded:opacity-100 motion-reduce:transition-none pointer-coarse:opacity-100">
+    <div className="bg-background border-border pointer-events-none absolute top-0 right-2 flex -translate-y-1/2 rounded-md border p-px opacity-0 shadow-sm transition-opacity group-focus-visible/message:pointer-events-auto group-focus-visible/message:opacity-100 group-has-focus-visible/message:pointer-events-auto group-has-focus-visible/message:opacity-100 group-data-held/message:pointer-events-auto group-data-held/message:opacity-100 in-[[role=separator]+[role=article]]:translate-y-0.5 has-aria-expanded:pointer-events-auto has-aria-expanded:opacity-100 motion-reduce:transition-none pointer-fine:group-hover/message:pointer-events-auto pointer-fine:group-hover/message:opacity-100">
       {children}
     </div>
   );
@@ -113,7 +116,7 @@ export function MessageActionsMoreTrigger() {
                 variant="ghost"
                 size="icon-xs"
                 aria-label="More actions"
-                className="pointer-coarse:size-11"
+                className="pointer-coarse:size-9"
               />
             }
           />
@@ -126,7 +129,7 @@ export function MessageActionsMoreTrigger() {
   );
 }
 
-/** The floating toolbar at a row's top right: the quick reactions, React, Reply in thread, Save for later, and the more menu. */
+/** The floating toolbar at a row's top right: the quick reactions, React, Reply in thread, Save for later, and the more menu with Copy text. */
 export function MessageActions({
   message,
   viewerId,
@@ -136,7 +139,7 @@ export function MessageActions({
   canReplyInThread,
   onEdit,
 }: {
-  message: Pick<Message, 'id' | 'roomId' | 'reactions' | 'pinnedAt'>;
+  message: Pick<Message, 'id' | 'roomId' | 'body' | 'reactions' | 'pinnedAt'>;
   viewerId: string | null;
   /** Reacting and pinning need the right to post in the channel. */
   canPost: boolean;
@@ -147,6 +150,7 @@ export function MessageActions({
   onEdit: () => void;
 }) {
   const openThread = use(OpenThread);
+  const names = use(MentionNames);
   const [confirming, setConfirming] = useState(false);
   const deleteMessage = useDeleteMessage(message.roomId);
   const toggleReaction = useToggleReaction(message.roomId);
@@ -181,7 +185,7 @@ export function MessageActions({
             label="Add reaction"
             variant="ghost"
             size="icon-xs"
-            className="group/button pointer-coarse:size-11"
+            className="group/button pointer-coarse:size-9"
             onPick={(emoji) => toggleReaction(message, emoji)}
           >
             <IconMoodPlus className="btn-magnify" />
@@ -207,34 +211,49 @@ export function MessageActions({
           <IconBookmark className="btn-magnify" />
         )}
       </MessageActionButton>
-      {(canPost || canEdit || canDelete) && (
-        <DropdownMenu>
-          <MessageActionsMoreTrigger />
-          <DropdownMenuContent align="end" className="w-40">
-            {canPost && (
-              <DropdownMenuItem onClick={() => togglePin(message)}>
-                {pinned ? <IconPinnedOff /> : <IconPin />}
-                {pinned ? 'Unpin' : 'Pin'}
-              </DropdownMenuItem>
-            )}
-            {canEdit && (
-              <DropdownMenuItem onClick={onEdit}>
-                <IconPencil />
-                Edit
-              </DropdownMenuItem>
-            )}
-            {canDelete && (
-              <DropdownMenuItem
-                variant="destructive"
-                onClick={() => setConfirming(true)}
-              >
-                <IconTrash />
-                Delete
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
+      <DropdownMenu>
+        <MessageActionsMoreTrigger />
+        <DropdownMenuContent align="end" className="w-40">
+          <DropdownMenuItem
+            onClick={() =>
+              navigator.clipboard
+                .writeText(plainText(message.body, Object.fromEntries(names)))
+                .then(
+                  () => toast.success('Message copied'),
+                  () => toast.error('Could not copy the message')
+                )
+            }
+          >
+            <IconCopy data-slot="icon" />
+            Copy text
+          </DropdownMenuItem>
+          {canPost && (
+            <DropdownMenuItem onClick={() => togglePin(message)}>
+              {pinned ? (
+                <IconPinnedOff data-slot="icon" />
+              ) : (
+                <IconPin data-slot="icon" />
+              )}
+              {pinned ? 'Unpin' : 'Pin'}
+            </DropdownMenuItem>
+          )}
+          {canEdit && (
+            <DropdownMenuItem onClick={onEdit}>
+              <IconPencil data-slot="icon" />
+              Edit
+            </DropdownMenuItem>
+          )}
+          {canDelete && (
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => setConfirming(true)}
+            >
+              <IconTrash data-slot="icon" />
+              Delete
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent>
           <AlertDialogHeader>

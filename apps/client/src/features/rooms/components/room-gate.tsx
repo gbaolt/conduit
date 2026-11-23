@@ -11,11 +11,13 @@ import {
   EmptyTitle,
 } from '@conduit/ui/components/empty';
 import { IconCloudOff, IconLockQuestion } from '@tabler/icons-react';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { ListBackLink } from '@/components/list-view';
+import { draftQuery } from '@/services/activity/queries';
+import { messagesQuery } from '@/services/messages/queries';
 import { roomQuery } from '@/services/rooms/queries';
 
 import { roomGateState } from '../lib/room-gate';
@@ -44,6 +46,11 @@ export function RoomGate({
     query.data,
     query.error ?? query.failureReason
   );
+  const canLoadRoomData =
+    state.status === 'loading' || state.status === 'ready';
+  // Start messages and draft in parallel with roomQuery so unseeded rooms (such as DMs) do not waterfall.
+  useInfiniteQuery({ ...messagesQuery(roomId), enabled: canLoadRoomData });
+  useQuery({ ...draftQuery(roomId), enabled: canLoadRoomData });
 
   switch (state.status) {
     case 'ready':

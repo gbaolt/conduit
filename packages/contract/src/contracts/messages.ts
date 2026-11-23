@@ -34,6 +34,11 @@ export const messageErrors = {
     status: 409,
     message: 'Reply to the message that started the thread.',
   },
+  FILE_UNAVAILABLE: {
+    status: 409,
+    message:
+      'One of these files is no longer available. Remove it and try again.',
+  },
 } as const;
 
 const {
@@ -42,6 +47,7 @@ const {
   CHANNEL_ARCHIVED,
   REACTION_LIMIT,
   REPLY_TO_REPLY,
+  FILE_UNAVAILABLE,
 } = messageErrors;
 
 export const listMessagesContract = oc
@@ -52,7 +58,13 @@ export const listMessagesContract = oc
 
 export const sendMessageContract = oc
   .meta(openapi({ method: 'POST', path: '/rooms/{roomId}/messages' }))
-  .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED, REPLY_TO_REPLY })
+  .errors({
+    NOT_FOUND,
+    FORBIDDEN,
+    CHANNEL_ARCHIVED,
+    REPLY_TO_REPLY,
+    FILE_UNAVAILABLE,
+  })
   .input(SendMessageInputSchema)
   .output(SendMessageOutputSchema);
 

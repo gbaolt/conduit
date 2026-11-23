@@ -185,7 +185,7 @@ function RoomGroupMenuItems({
         disabled={unreadIds.length === 0}
         onClick={() => markRead({ roomIds: unreadIds })}
       >
-        <IconChecks />
+        <IconChecks data-slot="icon" />
         Mark all as read
       </DropdownMenuItem>
       <DropdownMenuCheckboxItem
@@ -260,7 +260,7 @@ function RoomGroupJumpItems({ items }: { items: RoomGroupJumpItem[] }) {
       </div>
       <DropdownMenuSeparator />
       <DropdownMenuItem onClick={toggle}>
-        <IconChevronDown />
+        <IconChevronDown data-slot="icon" />
         Expand section
       </DropdownMenuItem>
     </>

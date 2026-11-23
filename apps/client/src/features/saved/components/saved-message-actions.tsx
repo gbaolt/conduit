@@ -55,7 +55,7 @@ export function SavedMessageActions({ item }: { item: SavedMessage }) {
                 })
               }
             >
-              <IconMessageDots />
+              <IconMessageDots data-slot="icon" />
               Open in thread
             </DropdownMenuItem>
           ) : (
@@ -67,7 +67,11 @@ export function SavedMessageActions({ item }: { item: SavedMessage }) {
                   />
                 }
               >
-                {isDm ? <IconMessage /> : <IconHome />}
+                {isDm ? (
+                  <IconMessage data-slot="icon" />
+                ) : (
+                  <IconHome data-slot="icon" />
+                )}
                 {isDm ? 'Open in DMs' : 'Open in Home'}
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -79,7 +83,7 @@ export function SavedMessageActions({ item }: { item: SavedMessage }) {
                   })
                 }
               >
-                <IconLayoutSidebarRight />
+                <IconLayoutSidebarRight data-slot="icon" />
                 Open in split view
               </DropdownMenuItem>
             </>
@@ -90,7 +94,7 @@ export function SavedMessageActions({ item }: { item: SavedMessage }) {
             disabled={!saved}
             onClick={toggle}
           >
-            <IconBookmarkOff />
+            <IconBookmarkOff data-slot="icon" />
             Remove from saved
           </DropdownMenuItem>
         </DropdownMenuContent>

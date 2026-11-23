@@ -38,11 +38,14 @@ model User {
   messages             Message[]
   savedMessages        SavedMessage[]
   summaries            Summary[]
+  askChats             AskChat[]
+  askAttachments       AskAttachment[]
   notificationSettings NotificationSettings[]
   activityItems        ActivityItem[]         @relation("ActivityRecipient")
   activityActed        ActivityItem[]         @relation("ActivityActor")
   pushSubscriptions    PushSubscription[]
   digestStates         DigestState[]
+  files                File[]
 }
 
 model Session {
@@ -75,9 +78,13 @@ model Organization {
   allowedDomains       AllowedDomain[]
   settings             WorkspaceSettings?
   summaries            Summary[]
+  askChats             AskChat[]
+  askAttachments       AskAttachment[]
   presences            Presence[]
   notificationSettings NotificationSettings[]
   digestStates         DigestState[]
+  files                File[]
+  searchSyncs          SearchSync[]
 }
 
 model Member {
@@ -244,6 +251,7 @@ model Room {
   messages                 Message[]
   summaries                Summary[]
   activityItems            ActivityItem[]
+  files                    File[]
 
   @@unique([organizationId, name])
   @@map("Channel")
@@ -309,6 +317,9 @@ model Message {
   replyCount        Int            @default(0)
   lastReplyAt       DateTime?
   linkPreview       Json?
+  /// `MessageFile[]`, copied from the attached `File` rows when the message is sent, so the live stream carries them.
+  files             Json           @default("[]")
+  attachedFiles     File[]
   pinnedAt          DateTime?
   pinnedById        String?
   editedAt          DateTime?
@@ -319,6 +330,49 @@ model Message {
   @@unique([authorId, clientId])
   @@index([roomId, parentId, createdAt, id])
   @@index([roomId, updatedAt])
+}
+
+enum FileStatus {
+  /// The upload URL was handed out and the bytes may not have arrived.
+  PENDING
+  /// Storage holds the object at the promised size.
+  READY
+}
+
+/// App-owned. An uploaded file. Every row that is not deleted counts toward the workspace's storage cap, pending ones included.
+model File {
+  id             String       @id
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  uploaderId     String
+  uploader       User         @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  /// The room it was uploaded to. A message may attach it only in this room.
+  roomId         String       @map("channelId")
+  room           Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  /// Set once a message carries it.
+  messageId      String?
+  message        Message?     @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  name           String
+  contentType    String
+  size           Int
+  /// `files/<organizationId>/<id>/<safe name>`, under a prefix the bucket never serves publicly.
+  key            String       @unique
+  width          Int?
+  height         Int?
+  status         FileStatus   @default(PENDING)
+  createdAt      DateTime     @default(now())
+  /// Set when its message is deleted or the upload is cancelled. The sweep removes the object, then the row.
+  deletedAt      DateTime?
+  /// How many chunks the search index holds for it, so a shorter re-extraction deletes the rest.
+  indexedChunks  Int          @default(0)
+  /// The original a copy was attached from, or null for an upload. A copy of a copy points at the original.
+  /// No foreign key, so the link outlives the original's row and an admin can still find every copy.
+  sourceFileId   String?
+
+  @@index([sourceFileId])
+  @@index([organizationId, createdAt, id])
+  @@index([messageId])
+  @@index([status, createdAt])
 }
 
 enum ActivityKind {
@@ -336,27 +390,27 @@ enum ActivityUrgency {
 
 /// App-owned. One row per thing that needs a member, written in the transaction of the change that caused it.
 model ActivityItem {
-  id             String       @id @default(cuid())
+  id             String           @id @default(cuid())
   organizationId String
   /// The recipient.
   userId         String
-  user           User         @relation("ActivityRecipient", fields: [userId], references: [id], onDelete: Cascade)
-  roomId         String       @map("channelId")
-  room           Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user           User             @relation("ActivityRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  roomId         String           @map("channelId")
+  room           Room             @relation(fields: [roomId], references: [id], onDelete: Cascade)
   kind           ActivityKind
   /// Built by the server, so a retried write is one row: `message:<id>`, `reaction:<id>:<actorId>:<emoji>`, or `room-add:<roomId>:<joinedAt ms>`.
   key            String
   actorId        String
-  actor          User         @relation("ActivityActor", fields: [actorId], references: [id], onDelete: Cascade)
+  actor          User             @relation("ActivityActor", fields: [actorId], references: [id], onDelete: Cascade)
   messageId      String?
-  message        Message?     @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  message        Message?         @relation(fields: [messageId], references: [id], onDelete: Cascade)
   emoji          String?
   /// What the model judged for the recipient. Null until `feed.rank` reaches the item, and always null for reactions and adds.
   urgency        ActivityUrgency?
   urgencyReason  String?
   readAt         DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   @@unique([userId, key])
   @@index([userId, organizationId, createdAt, id])
@@ -401,6 +455,71 @@ model Summary {
   createdAt        DateTime     @default(now())
 
   @@index([requesterId, createdAt])
+}
+
+/// An Ask Conduit answer. Only its requester reads it.
+/// One member's chat with Ask Conduit. Only its owner can read it.
+model AskChat {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  ownerId        String
+  owner          User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  /// The first question, cut at a word.
+  title          String
+  answers        Answer[]
+  createdAt      DateTime     @default(now())
+  /// Moves with each new answer, so the history lists the latest chat first.
+  updatedAt      DateTime     @default(now())
+
+  @@index([organizationId, ownerId, updatedAt])
+}
+
+/// One turn of an Ask chat: a question and its answer, stored together once the answer settles.
+model Answer {
+  id          String          @id @default(cuid())
+  chatId      String
+  chat        AskChat         @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  question    String
+  /// False when the sources the asker could read didn't answer the question.
+  found       Boolean
+  /// Markdown, with each `[n]` citing `sources[n - 1]`.
+  body        String
+  /// `{ type: 'message' | 'file', id }[]`, the cited sources in order of first citation.
+  sources     Json
+  attachments AskAttachment[]
+  createdAt   DateTime        @default(now())
+
+  @@index([chatId, createdAt])
+}
+
+/// A file the asker attached to an Ask question. It belongs to the asker, not to a room, and nobody else reads it.
+model AskAttachment {
+  id             String       @id
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  ownerId        String
+  owner          User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  /// Set once a question carries it. Deleting the chat sets it back to null, and the sweep removes the object.
+  answerId       String?
+  answer         Answer?      @relation(fields: [answerId], references: [id], onDelete: SetNull)
+  /// `ask/<organizationId>/<ownerId>/<id>/<safe name>`, under a prefix the bucket never serves publicly.
+  /// Null when `fileId` is set.
+  key            String?      @unique
+  /// Set when the asker picked a sent file from Files. Each read checks the asker can still open it, so no
+  /// foreign key: a purged file reads as no longer available.
+  fileId         String?
+  name           String
+  contentType    String
+  size           Int
+  width          Int?
+  height         Int?
+  /// Set once storage holds the promised bytes.
+  ready          Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  @@index([answerId])
+  @@index([createdAt])
 }
 
 /// App-owned. How far a member has read a conversation. The sidebar compares it with `Channel.lastMessageAt`.
@@ -497,4 +616,26 @@ model PushSubscription {
   lastSuccessAt DateTime?
 
   @@index([userId])
+}
+
+enum SearchSyncKind {
+  MESSAGE
+  FILE
+}
+
+/// A message or file the search index must be made to match. Written in the transaction of the change, so none is lost.
+/// The drain reads the target's current state, so running a row twice or out of order ends the same.
+model SearchSync {
+  kind           SearchSyncKind
+  targetId       String
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// When it may run next. A drain claims a row by pushing this forward, so two drains never take the same row.
+  dueAt          DateTime       @default(now())
+  attempts       Int            @default(0)
+  lastError      String?
+
+  @@id([kind, targetId])
+  @@index([organizationId, dueAt])
+  @@index([dueAt])
 }

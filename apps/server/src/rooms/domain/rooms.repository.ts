@@ -21,6 +21,12 @@ export abstract class RoomsRepository {
   /** Public channels plus the private ones the scope's user belongs to. */
   abstract list(scope: RoomScope, archived: boolean): Promise<Room[]>;
 
+  /**
+   * Every room the scope's user may read: the workspace's public channels, archived ones included, and every
+   * channel or DM they are in. The one access check that files, search, and Ask Conduit share.
+   */
+  abstract accessibleRoomIds(scope: RoomScope): Promise<string[]>;
+
   /** Any channel in the scope's workspace, private or not. Callers check visibility. */
   abstract find(scope: RoomScope, roomId: string): Promise<Room | null>;
 

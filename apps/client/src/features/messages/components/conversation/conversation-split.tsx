@@ -2,7 +2,11 @@
 
 import { Button } from '@conduit/ui/components/button';
 import { IconArrowLeft, IconMessage, IconX } from '@tabler/icons-react';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { Suspense } from 'react';
+
+import { draftQuery } from '@/services/activity/queries';
+import { messagesQuery } from '@/services/messages/queries';
 
 import { useRoomName } from '../../hooks/use-room-name';
 import { Conversation } from './conversation';
@@ -17,6 +21,9 @@ export function ConversationSplit({
   onClose: () => void;
 }) {
   const { title, isDm } = useRoomName(roomId);
+  // Start messages and draft before Conversation suspends on roomQuery for unseeded rooms.
+  useInfiniteQuery(messagesQuery(roomId));
+  useQuery(draftQuery(roomId));
 
   return (
     <section

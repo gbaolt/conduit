@@ -2,3 +2,11 @@
 @import '../features/auth/styles/transition.css';
 @import '../styles/typeset.css';
 @import '../styles/code.css';
+
+@utility button-action {
+  @apply text-muted-foreground pointer-coarse:size-11! [&_svg:not([class*='size-'])]:size-5!;
+}
+
+@utility button-format {
+  @apply text-muted-foreground pointer-coarse:size-10! [&_svg:not([class*='size-'])]:size-4!;
+}

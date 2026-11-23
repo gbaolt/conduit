@@ -32,6 +32,7 @@ import {
 import { getQueryClient, HydrateClient } from '@/lib/query/hydration';
 import { channelsQuery } from '@/services/channels/queries';
 import { dmsQuery } from '@/services/dms/queries';
+import { roomQuery } from '@/services/rooms/queries';
 import { membersQuery } from '@/services/workspaces/queries';
 
 /**
@@ -86,6 +87,11 @@ async function WorkspacePanel({ children }: { children: ReactNode }) {
     client.prefetchQuery(membersQuery),
     cookies(),
   ]);
+
+  // channels.list returns full Room records, so seed roomQuery to avoid a second room fetch on load.
+  for (const channel of client.getQueryData(channelsQuery.queryKey) ?? []) {
+    client.setQueryData(roomQuery(channel.id).queryKey, channel);
+  }
 
   return (
     <HydrateClient client={client}>

@@ -19,8 +19,11 @@
     "db:migrate": "npx prisma migrate dev",
     "db:migrate-deploy": "npx prisma migrate deploy",
     "db:backfill-default-channels": "tsx scripts/backfill-default-channels.ts",
+    "db:backfill-search": "tsx scripts/backfill-search.ts",
+    "probe:search": "tsx scripts/probe-search.ts",
     "measure:delivery": "tsx scripts/measure-delivery.ts",
     "eval:smart-activity": "tsx scripts/eval-smart-activity.ts",
+    "eval:ask": "tsx scripts/eval-ask.ts",
     "eval:summaries": "tsx scripts/eval-summaries.ts",
     "measure:write-rate": "tsx scripts/measure-write-rate.ts",
     "upgrade:nest": "npx npm-check-updates \"/^@nestjs/\" -u"
@@ -43,6 +46,7 @@
     "@prisma/adapter-neon": "^7.0.0",
     "@prisma/client": "^7.0.0",
     "@thallesp/nestjs-better-auth": "^2.7.0",
+    "@upstash/vector": "^1.2.4",
     "@vercel/functions": "^3.11.0",
     "ai": "^7.0.164",
     "better-auth": "catalog:",
@@ -50,6 +54,7 @@
     "reflect-metadata": "^0.2.2",
     "resend": "^6.0.2",
     "rxjs": "^7.8.2",
+    "unpdf": "^2.2.1",
     "web-push": "^4.0.0",
     "ws": "^8.18.3",
     "zod": "catalog:"

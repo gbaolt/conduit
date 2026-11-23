@@ -139,22 +139,19 @@ function useActiveFormats(editor: LexicalEditor) {
   return active;
 }
 
-const FORMAT_BUTTON =
-  "text-muted-foreground size-7 pointer-coarse:size-10 [&_svg:not([class*='size-'])]:size-4";
-const ACTION_BUTTON =
-  "text-muted-foreground size-8 pointer-coarse:size-11 [&_svg:not([class*='size-'])]:size-5";
-
 function ToolbarButton({
   label,
   shortcut,
   pressed,
-  className = FORMAT_BUTTON,
+  size = 'icon-xs',
+  className = 'button-format',
   onClick,
   children,
 }: {
   label: string;
   shortcut?: string;
   pressed?: boolean;
+  size?: 'icon-sm' | 'icon-xs';
   className?: string;
   onClick: () => void;
   children: ReactNode;
@@ -166,7 +163,7 @@ function ToolbarButton({
           <Button
             type="button"
             variant="ghost"
-            size="icon-xs"
+            size={size}
             aria-label={label}
             aria-pressed={pressed}
             className={cn(
@@ -268,7 +265,7 @@ export function ComposerFormattingBar({
       <Divider />
       <ToolbarButton
         label="Link"
-        shortcut="Ctrl+K"
+        shortcut="Ctrl+Shift+U"
         pressed={active.link}
         onClick={toggleLink}
       >
@@ -328,6 +325,8 @@ export function ComposerActionBar({
   onToggleFormatting,
   onSubmit,
   onCancel,
+  attach,
+  sendBlocked,
   children,
 }: {
   length: number;
@@ -337,6 +336,10 @@ export function ComposerActionBar({
   onToggleFormatting: () => void;
   onSubmit: () => void;
   onCancel?: () => void;
+  /** The attach control, after Mention. */
+  attach?: ReactNode;
+  /** Why Send waits, such as "Uploading 2 files…". */
+  sendBlocked?: string;
   /** Extra controls placed before the length and Send. */
   children?: ReactNode;
 }) {
@@ -345,10 +348,12 @@ export function ComposerActionBar({
 
   return (
     <div className="flex items-center gap-0.5 px-1.5 pb-1.5">
+      {attach}
       <ToolbarButton
         label="Formatting"
+        size="icon-sm"
         pressed={formattingOpen}
-        className={cn(ACTION_BUTTON, 'sm:hidden')}
+        className="button-action aria-pressed:bg-muted"
         onClick={onToggleFormatting}
       >
         <IconTextSize />
@@ -356,21 +361,30 @@ export function ComposerActionBar({
       <EmojiPickerButton
         label="Emoji"
         variant="ghost"
-        size="icon-xs"
-        className={ACTION_BUTTON}
+        size="icon-sm"
+        className="button-action"
         onPick={(emoji) => insertAtCaret(editor, emoji)}
       >
         <IconMoodSmile />
       </EmojiPickerButton>
       <ToolbarButton
-        label="Mention someone"
-        className={ACTION_BUTTON}
+        label="Mention"
+        size="icon-sm"
+        className="button-action"
         onClick={() => insertAtCaret(editor, '@')}
       >
         <IconAt />
       </ToolbarButton>
       <div className="ml-auto flex min-w-0 items-center gap-2">
         {children}
+        {sendBlocked && (
+          <span
+            className="text-muted-foreground truncate text-xs"
+            aria-live="polite"
+          >
+            {sendBlocked}
+          </span>
+        )}
         {length >= MESSAGE_BODY_MAX - 200 && (
           <span
             className={cn(

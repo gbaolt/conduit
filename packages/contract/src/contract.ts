@@ -48,7 +48,28 @@ import {
   markFeedUnreadContract,
   rankFeedContract,
 } from './contracts/feed';
+import {
+  cancelFileContract,
+  completeFileContract,
+  fileUploadUrlContract,
+  fileTextContract,
+  fileUrlsContract,
+  attachFileContract,
+  fileCountsContract,
+  listFilesContract,
+} from './contracts/files';
+import {
+  askAttachFileContract,
+  askAttachmentUrlContract,
+  askQuestionContract,
+  completeAskAttachmentContract,
+  getAskGuideContract,
+  deleteAskChatContract,
+  getAskChatContract,
+  listAskChatsContract,
+} from './contracts/ask';
 import { healthCheckContract } from './contracts/health';
+import { searchContract } from './contracts/search';
 import {
   getNotificationSettingsContract,
   updateNotificationSettingsContract,
@@ -224,6 +245,29 @@ export const contract = {
     unpin: unpinMessageContract,
     listPinned: listPinnedMessagesContract,
     removeLinkPreview: removeLinkPreviewContract,
+  },
+  files: {
+    uploadUrl: fileUploadUrlContract,
+    complete: completeFileContract,
+    cancel: cancelFileContract,
+    urls: fileUrlsContract,
+    text: fileTextContract,
+    list: listFilesContract,
+    counts: fileCountsContract,
+    attach: attachFileContract,
+  },
+  search: {
+    query: searchContract,
+  },
+  ask: {
+    question: askQuestionContract,
+    chats: listAskChatsContract,
+    chat: getAskChatContract,
+    deleteChat: deleteAskChatContract,
+    attachmentUrl: askAttachmentUrlContract,
+    completeAttachment: completeAskAttachmentContract,
+    guide: getAskGuideContract,
+    attachFile: askAttachFileContract,
   },
   dms: {
     list: listDmsContract,

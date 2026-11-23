@@ -62,6 +62,8 @@ export abstract class MessagesRepository {
    * A reply also adds one to its root's `replyCount` and sets its `lastReplyAt`, so the channel's stream updates the root.
    * A `clientId` the author already sent returns the stored row with a null `txid`.
    * Writes the Activity items `items` returns for the stored message in the same transaction, except for a retried send.
+   * Attaches `fileIds` in the same transaction, and throws `FILE_UNAVAILABLE` unless every one is a ready file the
+   * author uploaded to this room that no message carries.
    */
   abstract send(input: {
     roomId: string;
@@ -69,6 +71,7 @@ export abstract class MessagesRepository {
     clientId: string;
     body: string;
     mentions: MessageMentions;
+    fileIds?: string[];
     /** A top-level message of the channel. The caller checks it. */
     parentId?: string;
     alsoSentToChannel?: boolean;
@@ -88,7 +91,8 @@ export abstract class MessagesRepository {
 
   /**
    * Keeps the row so replies keep their place, and clears everything a reader could see.
-   * Deleting a reply takes one off its root's `replyCount`. Deletes every Activity item of the message.
+   * Deleting a reply takes one off its root's `replyCount`. Deletes every Activity item of the message,
+   * and marks its files deleted.
    */
   abstract markDeleted(messageId: string): Promise<void>;
 

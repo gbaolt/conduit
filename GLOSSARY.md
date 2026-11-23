@@ -108,6 +108,22 @@ _Avoid_: Offline, idle
 The line labelled "New" above the first message a Member has not read, shown when they open a conversation and kept until they leave it. A conversation with messages the Member has not read is also bold in the sidebar.
 _Avoid_: Unread badge (a badge is a count, and plain unread has none), read receipt (nobody else sees where a Member stopped)
 
+**File**:
+Anything a Member attaches to a message: an image, a video, a PDF, or any other upload up to 50 MB. It belongs to the message, so deleting the message deletes its files, and the Files page lists every file in a room the Member can read.
+_Avoid_: Attachment (in UI copy), upload (as a noun), document
+
+**Storage cap**:
+The 10 GB a workspace's files may take up in total, counting uploads still in progress. An upload that would pass it is refused before it starts.
+_Avoid_: Quota, storage limit, plan limit
+
+**Command menu**:
+The dialog that `Ctrl+K` (`⌘K` on a Mac), or the Search Conduit bar at the top of the app, opens from anywhere. Typing part of a name jumps to a channel or a DM, and its last row hands the words to Search.
+_Avoid_: Quick switcher, command palette, jump bar
+
+**Search**:
+The page that finds messages, files, channels, and people by words and by filters such as `in:#design`, `from:@linh`, `has:file`, `before:`, and `after:`. It shows only what the Member can already read.
+_Avoid_: Find, lookup, query (in UI copy)
+
 ### Work
 
 **Canvas**:
@@ -181,6 +197,13 @@ A short AI account of a thread, a channel over a time range, or everything a Mem
 
 **Suggested task**:
 A task the AI drafts from a promise in a message. It is not on a board until a Member accepts it.
+
+**Ask Conduit**:
+The AI a Member asks questions of. It answers only from the messages and files that Member can read now, and cites each one.
+
+**Ask chat**:
+One Member's run of questions and answers with Ask Conduit. A follow-up reads the earlier turns. Only that Member sees it, and they can delete it.
+_Avoid_: Conversation, thread (those are places Members post)
 
 **Decision**:
 A message the AI marks as a decision. Decisions appear in their channel's decision log.

@@ -25,7 +25,6 @@ import { useQueryStates } from 'nuqs';
 import {
   type KeyboardEvent,
   type ReactNode,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -34,6 +33,7 @@ import {
 import { ListBackLink } from '@/components/list-view';
 import { MentionNames } from '@/features/messages/context/mention-names';
 import { useAuthors } from '@/features/messages/hooks/use-authors';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useFeedUnreadCount, useRankFeed } from '@/services/feed/hooks';
 import {
   type FeedListInput,
@@ -118,15 +118,6 @@ function moveFocus(event: KeyboardEvent<HTMLElement>) {
     event.preventDefault();
     next.focus();
   }
-}
-
-function useDebouncedValue<T>(value: T, ms: number) {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), ms);
-    return () => clearTimeout(timer);
-  }, [value, ms]);
-  return debounced;
 }
 
 const NO_IDS: ReadonlySet<string> = new Set();
