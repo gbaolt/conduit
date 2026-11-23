@@ -13,7 +13,7 @@ import { useAsk } from '../context/ask-provider';
 /** Opens and closes Ask Conduit from beside the search bar, on the last chat. Gone while the workspace has AI turned off. */
 export function AskButton() {
   const { available, open, openAsk, close } = useAsk();
-  if (!available) return null;
+
   return (
     <Tooltip>
       <TooltipTrigger
@@ -24,6 +24,7 @@ export function AskButton() {
             aria-label="Ask Conduit"
             aria-expanded={open}
             onClick={() => (open ? close() : openAsk())}
+            disabled={!available}
             className="group/ask text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground aria-expanded:border-primary/50 aria-expanded:bg-primary/10 aria-expanded:text-foreground dark:hover:border-primary/40 dark:hover:bg-primary/10 dark:aria-expanded:bg-primary/15 shadow-none transition-[color,background-color,border-color,scale] duration-150"
           />
         }
