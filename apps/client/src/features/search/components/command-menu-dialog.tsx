@@ -2,12 +2,12 @@
 
 import {
   Command,
-  CommandDialog,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
+  CommandPopover,
 } from '@conduit/ui/components/command';
 import { Empty, EmptyMedia, EmptyTitle } from '@conduit/ui/components/empty';
 import { Kbd } from '@conduit/ui/components/kbd';
@@ -67,6 +67,10 @@ const ENTER_LABELS = {
 >;
 
 const FOCUS_WAIT_MS = 3000;
+
+/** The header's search bar and Ask button, which the menu opens over. */
+const anchor = () =>
+  document.querySelector('[data-slot="command-menu-anchor"]');
 
 /** Focuses the conversation's composer once its route has rendered it, or gives up. */
 function focusComposer(roomId: string) {
@@ -164,7 +168,7 @@ function CommandMenuDialogFooter({
   );
 }
 
-/** Jumps to any conversation the viewer can open, and hands a typed query to the search page. */
+/** Jumps to any conversation the viewer can open, and hands a typed query to the search page. It opens over the header's search bar. */
 export function CommandMenuDialog() {
   const { open, setOpen } = useCommandMenu();
   const [query, setQuery] = useState('');
@@ -200,7 +204,8 @@ export function CommandMenuDialog() {
   const asking = highlighted === ASK_ROW;
 
   return (
-    <CommandDialog
+    <CommandPopover
+      anchor={anchor}
       open={open}
       onOpenChange={setOpen}
       onOpenChangeComplete={(isOpen) => {
@@ -227,7 +232,7 @@ export function CommandMenuDialog() {
           onValueChange={setQuery}
           placeholder="Search or jump to…"
         />
-        <div className="bg-background ring-border mx-1 rounded-md ring-1">
+        <div className="bg-background ring-border rounded-md ring-1">
           <CommandList className="dark:bg-background/50 min-h-80 rounded-lg">
             <CommandEmpty>
               <Empty className="h-full gap-2">
@@ -306,6 +311,6 @@ export function CommandMenuDialog() {
               })}
         />
       </Command>
-    </CommandDialog>
+    </CommandPopover>
   );
 }

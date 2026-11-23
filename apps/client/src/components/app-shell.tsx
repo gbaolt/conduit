@@ -128,8 +128,11 @@ export function AppShell({
               </SidebarFooter>
             </Sidebar>
             <div className="flex min-w-0 flex-1 flex-col">
-              <header className="flex h-12 shrink-0 grid-cols-[1fr_minmax(0,36rem)_1fr] items-center gap-2 pe-2 max-sm:w-full sm:grid">
-                <div className="col-start-2 flex items-center gap-1.5 max-sm:w-full">
+              <header className="grid h-12 shrink-0 grid-cols-[1fr_minmax(0,36rem)_1fr] items-center pe-2">
+                <div
+                  data-slot="command-menu-anchor"
+                  className="col-start-2 flex items-center gap-1.5"
+                >
                   <CommandMenu />
                   <AskButton />
                 </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import type { Popover as PopoverPrimitive } from '@base-ui/react/popover';
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,13 @@ import {
   InputGroup,
   InputGroupAddon,
 } from '@conduit/ui/components/input-group';
+import {
+  Popover,
+  PopoverClose,
+  PopoverContent,
+  PopoverDescription,
+  PopoverTitle,
+} from '@conduit/ui/components/popover';
 import { cn } from '@conduit/ui/lib/utils';
 import { IconCheck, IconSearch } from '@tabler/icons-react';
 import { Command as CommandPrimitive } from 'cmdk';
@@ -68,6 +76,55 @@ function CommandDialog({
         {children}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** The palette laid over `anchor`, its input exactly where the anchor sits, so a search bar seems to open into it. */
+function CommandPopover({
+  title,
+  description,
+  anchor,
+  children,
+  className,
+  ...props
+}: Omit<React.ComponentProps<typeof Popover>, 'children' | 'modal'> & {
+  title: string;
+  description: string;
+  anchor: PopoverPrimitive.Positioner.Props['anchor'];
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Popover modal {...props}>
+      <PopoverContent
+        anchor={anchor}
+        align="start"
+        // The popup's 4px padding hangs outside the anchor on every side.
+        sideOffset={({ anchor }) => -anchor.height - 4}
+        alignOffset={-4}
+        collisionAvoidance={{ side: 'none', align: 'shift' }}
+        collisionPadding={4}
+        className={cn(
+          // Fade only, so the input appears in place over the search bar instead of growing out of it.
+          'data-open:zoom-in-100! data-closed:zoom-out-100! data-[side=bottom]:slide-in-from-top-0! w-[calc(var(--anchor-width)+0.5rem)] max-w-[calc(100vw-0.5rem)] gap-0 overflow-hidden p-0',
+          '*:data-[slot=command]:bg-accent/50 dark:*:data-[slot=command]:bg-popover',
+          // One 4px gutter: the input wrapper adds none, so the input lands on the anchor.
+          '*:data-[slot=command]:gap-1 **:data-[slot=command-input-wrapper]:p-0',
+          '**:[[cmdk-group]]:px-2',
+          '**:[[cmdk-group-heading]]:text-muted-foreground **:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:font-medium',
+          '[&_[cmdk-item]_svg]:size-5 **:[[cmdk-item]]:px-2 **:[[cmdk-item]]:py-2',
+          className
+        )}
+      >
+        <PopoverTitle className="sr-only">{title}</PopoverTitle>
+        <PopoverDescription className="sr-only">
+          {description}
+        </PopoverDescription>
+        {children}
+        {/* Base UI traps focus in a modal popover only while it holds a Close. Last, so the input takes first focus. */}
+        <PopoverClose className="sr-only">Close</PopoverClose>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -196,6 +253,7 @@ export {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandPopover,
   CommandSeparator,
   CommandShortcut,
 };

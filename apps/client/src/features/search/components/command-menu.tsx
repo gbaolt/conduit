@@ -16,7 +16,7 @@ export function CommandMenu() {
       size="sm"
       variant="outline"
       onClick={() => setOpen(true)}
-      className="group w-full justify-start font-normal active:scale-none!"
+      className="group w-full min-w-0 shrink justify-start font-normal active:scale-none!"
     >
       <IconSearch data-icon="inline-start" />
       <span className="text-muted-foreground ml-1 truncate">
