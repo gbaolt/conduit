@@ -24,7 +24,12 @@ export function CanvasCommentPopoverButton() {
   return (
     <>
       <Separator orientation="vertical" />
-      <Button variant="ghost" size="sm" onClick={() => startDraft('toolbar')}>
+      <Button
+        variant="ghost"
+        size="sm"
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => startDraft('toolbar')}
+      >
         <IconMessagePlus data-icon="inline-start" />
         Comment
       </Button>

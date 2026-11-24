@@ -25,6 +25,7 @@ import {
   $createParagraphNode,
   $getNodeByKey,
   $getRoot,
+  $getSelection,
   BLUR_COMMAND,
   COLLABORATION_TAG,
   COMMAND_PRIORITY_HIGH,
@@ -193,6 +194,8 @@ function canvasBlockOptions(pickMessage: () => void) {
 }
 
 function $insertMessageEmbed(messageId: string) {
+  // Closing a dialog leaves the editor blurred with no active selection.
+  if (!$getSelection()) $getRoot().selectEnd();
   $insertNodeToNearestRoot($createMessageEmbedNode(messageId));
 }
 
@@ -780,11 +783,11 @@ function CanvasEditorDocument({
   }, [editor, editable]);
 
   const composer = (
-    <LexicalExtensionEditorComposer
-      key={editor.getKey()}
-      initialEditor={editor}
-    >
-      <MessageEmbedRenderer value={renderEmbed}>
+    <MessageEmbedRenderer value={renderEmbed}>
+      <LexicalExtensionEditorComposer
+        key={editor.getKey()}
+        initialEditor={editor}
+      >
         <Comments
           canvasId={canvas.id}
           canComment={canvas.access.comment && editable}
@@ -838,8 +841,8 @@ function CanvasEditorDocument({
           <CanvasCommentPopover />
           <CanvasCommentsPanel />
         </Comments>
-      </MessageEmbedRenderer>
-    </LexicalExtensionEditorComposer>
+      </LexicalExtensionEditorComposer>
+    </MessageEmbedRenderer>
   );
 
   return collab.live ? (
