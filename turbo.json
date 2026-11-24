@@ -30,7 +30,8 @@
     "PORTLESS_URL",
     "CRON_SECRET",
     "UPSTASH_VECTOR_REST_URL",
-    "UPSTASH_VECTOR_REST_TOKEN"
+    "UPSTASH_VECTOR_REST_TOKEN",
+    "LIVEBLOCKS_SECRET_KEY"
   ],
   "tasks": {
     "build": {

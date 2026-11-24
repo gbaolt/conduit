@@ -39,6 +39,9 @@
     "@lexical/table": "^0.49.0",
     "@lexical/text": "^0.49.0",
     "@lexical/utils": "^0.49.0",
+    "@liveblocks/client": "^3.25.2",
+    "@liveblocks/react": "^3.25.2",
+    "@liveblocks/yjs": "^3.25.2",
     "@neon/realtime": "^0.2.0",
     "@orpc/client": "catalog:",
     "@orpc/contract": "catalog:",
@@ -76,6 +79,7 @@
     "sonner": "catalog:",
     "tailwind-merge": "^3.6.0",
     "unist-util-visit": "^5.2.0",
+    "yjs": "^13.6.33",
     "zod": "catalog:"
   },
   "devDependencies": {
