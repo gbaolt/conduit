@@ -220,9 +220,9 @@ Some talk needs to become a document that people keep editing. A canvas is attac
 | ---- | ----------------------------------------------------------------------------- | ----------- | -------------------------------------------------- |
 | M4.1 | Create a canvas as a channel tab, or on its own and shared with chosen people | Shipped     | [#104](https://github.com/gbaolt/conduit/pull/104) |
 | M4.2 | Several people edit at once, and each person's cursor shows                   | Shipped     | [#105](https://github.com/gbaolt/conduit/pull/105) |
-| M4.3 | Comment on selected text                                                      | Shipped     |                                                    |
+| M4.3 | Comment on selected text                                                      | Shipped     | [#106](https://github.com/gbaolt/conduit/pull/106) |
 | M4.4 | Mentions and checklists                                                       | Shipped     | [#104](https://github.com/gbaolt/conduit/pull/104) |
-| M4.5 | Embed a message in a canvas                                                   | Shipped     |                                                    |
+| M4.5 | Embed a message in a canvas                                                   | Shipped     | [#106](https://github.com/gbaolt/conduit/pull/106) |
 | M4.6 | Version history                                                               | Not started |                                                    |
 | M4.7 | AI: turn a thread into a canvas draft                                         | Not started |                                                    |
 
