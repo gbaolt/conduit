@@ -10,6 +10,8 @@ export const CANVAS_SNAPSHOT_MAX = 1_500_000;
 export const CANVAS_SHARE_MAX = 50;
 export const CANVAS_QUOTE_MAX = 1000;
 export const CANVAS_EMBEDS_MAX = 50;
+export const CANVAS_VERSION_LABEL_MAX = 100;
+export const CANVAS_VERSIONS_PAGE_MAX = 100;
 
 /** What a person a standalone canvas is shared with may do: edit it, or only read it. */
 export const CanvasRoleSchema = z.enum(['editor', 'viewer']);
@@ -131,12 +133,15 @@ export const CanvasBootstrapSchema = z.object({
 });
 export type CanvasBootstrap = z.infer<typeof CanvasBootstrapSchema>;
 
+/** SHA-256 of `JSON.stringify(snapshotJson)` as hex. */
+const CanvasContentHashSchema = z.string().regex(/^[0-9a-f]{64}$/);
+
 export const SaveCanvasSnapshotInputSchema = z.object({
   canvasId: z.string(),
   snapshotJson: CanvasSnapshotSchema,
   markdown: z.string().max(CANVAS_MARKDOWN_MAX),
-  /** SHA-256 of `snapshotJson` as hex. A save that matches the stored hash writes nothing. */
-  contentHash: z.string().regex(/^[0-9a-f]{64}$/),
+  /** A save that matches the stored hash writes nothing. */
+  contentHash: CanvasContentHashSchema,
 });
 export type SaveCanvasSnapshotInput = z.infer<
   typeof SaveCanvasSnapshotInputSchema
@@ -219,3 +224,79 @@ export const EmbeddedMessageSchema = z.discriminatedUnion('status', [
   z.object({ messageId: z.string(), status: z.literal('deleted') }),
 ]);
 export type EmbeddedMessage = z.infer<typeof EmbeddedMessageSchema>;
+
+/** `auto` is the autosave checkpoint, at most one per 5 minutes; `manual` is one a person saved. */
+export const CanvasVersionTriggerSchema = z.enum([
+  'auto',
+  'manual',
+  'restore',
+  'ai_draft',
+]);
+export type CanvasVersionTrigger = z.infer<typeof CanvasVersionTriggerSchema>;
+
+/** A version as the history list shows it, without its content. */
+export const CanvasVersionSummarySchema = z.object({
+  id: z.string(),
+  canvasId: z.string(),
+  label: z.string().nullable(),
+  trigger: CanvasVersionTriggerSchema,
+  /** Null for an autosave whose author left, and for an AI draft. */
+  author: CanvasCommentAuthorSchema.nullable(),
+  createdAt: z.coerce.date(),
+});
+export type CanvasVersionSummary = z.infer<typeof CanvasVersionSummarySchema>;
+
+export const CanvasVersionSchema = CanvasVersionSummarySchema.extend({
+  snapshotJson: z.record(z.string(), z.unknown()),
+  markdown: z.string(),
+});
+export type CanvasVersion = z.infer<typeof CanvasVersionSchema>;
+
+export const ListCanvasVersionsInputSchema = z.object({
+  canvasId: z.string(),
+  /** The `nextCursor` of the page before. */
+  cursor: z.string().optional(),
+  limit: z.number().int().min(1).max(CANVAS_VERSIONS_PAGE_MAX).default(50),
+});
+
+/** Newest first. `nextCursor` is null on the last page. */
+export const CanvasVersionPageSchema = z.object({
+  items: z.array(CanvasVersionSummarySchema),
+  nextCursor: z.string().nullable(),
+});
+export type CanvasVersionPage = z.infer<typeof CanvasVersionPageSchema>;
+
+export const CanvasVersionInputSchema = z.object({
+  canvasId: z.string(),
+  versionId: z.string(),
+});
+
+export const CreateCanvasVersionInputSchema = z.object({
+  canvasId: z.string(),
+  label: z.string().trim().max(CANVAS_VERSION_LABEL_MAX).optional(),
+  snapshotJson: CanvasSnapshotSchema,
+  markdown: z.string().max(CANVAS_MARKDOWN_MAX),
+  /** Worked out from `snapshotJson` when left out. */
+  contentHash: CanvasContentHashSchema.optional(),
+});
+export type CreateCanvasVersionInput = z.infer<
+  typeof CreateCanvasVersionInputSchema
+>;
+
+/** `current*` is the open editor's content, kept as a safety version first when no version holds it yet. */
+export const RestoreCanvasVersionInputSchema = z.object({
+  canvasId: z.string(),
+  versionId: z.string(),
+  currentSnapshotJson: CanvasSnapshotSchema.optional(),
+  currentMarkdown: z.string().max(CANVAS_MARKDOWN_MAX).optional(),
+});
+export type RestoreCanvasVersionInput = z.infer<
+  typeof RestoreCanvasVersionInputSchema
+>;
+
+export const CanvasVersionRestoredSchema = z.object({
+  canvas: CanvasDocumentSchema,
+  restoredVersion: CanvasVersionSummarySchema,
+  safetyVersion: CanvasVersionSummarySchema.nullable(),
+});
+export type CanvasVersionRestored = z.infer<typeof CanvasVersionRestoredSchema>;

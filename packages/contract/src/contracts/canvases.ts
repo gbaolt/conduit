@@ -14,14 +14,22 @@ import {
   CanvasMemberSchema,
   CanvasSchema,
   CanvasSnapshotSavedSchema,
+  CanvasVersionInputSchema,
+  CanvasVersionPageSchema,
+  CanvasVersionRestoredSchema,
+  CanvasVersionSchema,
+  CanvasVersionSummarySchema,
   CreateCanvasCommentThreadInputSchema,
   CreateCanvasInputSchema,
+  CreateCanvasVersionInputSchema,
   EditCanvasCommentInputSchema,
   EmbeddedMessageSchema,
   EmbeddedMessagesInputSchema,
   ListCanvasesInputSchema,
+  ListCanvasVersionsInputSchema,
   ReplyCanvasCommentInputSchema,
   ResolveCanvasCommentThreadInputSchema,
+  RestoreCanvasVersionInputSchema,
   SaveCanvasSnapshotInputSchema,
   ShareCanvasInputSchema,
   UpdateCanvasInputSchema,
@@ -48,6 +56,7 @@ export const canvasErrors = {
     message: 'Share only with people in this workspace.',
   },
   COMMENT_NOT_FOUND: { status: 404, message: 'Comment not found.' },
+  VERSION_NOT_FOUND: { status: 404, message: 'Version not found.' },
 } as const;
 
 const {
@@ -57,6 +66,7 @@ const {
   LAST_EDITOR,
   NOT_A_MEMBER,
   COMMENT_NOT_FOUND,
+  VERSION_NOT_FOUND,
 } = canvasErrors;
 
 /** The channel's canvas, or null before anyone creates it. */
@@ -216,3 +226,40 @@ export const canvasEmbeddedMessagesContract = oc
   .errors({ NOT_FOUND })
   .input(EmbeddedMessagesInputSchema)
   .output(z.array(EmbeddedMessageSchema));
+
+/** The canvas's versions, newest first. Anyone who can view the canvas reads them. */
+export const listCanvasVersionsContract = oc
+  .meta(openapi({ method: 'GET', path: '/canvases/{canvasId}/versions' }))
+  .errors({ NOT_FOUND, VERSION_NOT_FOUND })
+  .input(ListCanvasVersionsInputSchema)
+  .output(CanvasVersionPageSchema);
+
+export const getCanvasVersionContract = oc
+  .meta(
+    openapi({
+      method: 'GET',
+      path: '/canvases/{canvasId}/versions/{versionId}',
+    })
+  )
+  .errors({ NOT_FOUND, VERSION_NOT_FOUND })
+  .input(CanvasVersionInputSchema)
+  .output(CanvasVersionSchema);
+
+/** Saves the content as a named version, whenever the last one was. */
+export const createCanvasVersionContract = oc
+  .meta(openapi({ method: 'POST', path: '/canvases/{canvasId}/versions' }))
+  .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED })
+  .input(CreateCanvasVersionInputSchema)
+  .output(CanvasVersionSummarySchema);
+
+/** Makes the version the canvas's content, keeping what it replaces as a version first. */
+export const restoreCanvasVersionContract = oc
+  .meta(
+    openapi({
+      method: 'POST',
+      path: '/canvases/{canvasId}/versions/{versionId}/restore',
+    })
+  )
+  .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED, VERSION_NOT_FOUND })
+  .input(RestoreCanvasVersionInputSchema)
+  .output(CanvasVersionRestoredSchema);
