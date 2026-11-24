@@ -29,6 +29,7 @@ import {
   IconBookmarkFilled,
   IconCopy,
   IconDots,
+  IconLink,
   IconMessageDots,
   IconMoodPlus,
   IconPencil,
@@ -36,6 +37,7 @@ import {
   IconPinnedOff,
   IconTrash,
 } from '@tabler/icons-react';
+import { useQuery } from '@tanstack/react-query';
 import { type ReactNode, use, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -46,10 +48,12 @@ import {
   useTogglePin,
   useToggleReaction,
 } from '@/services/messages/hooks';
+import { roomQuery } from '@/services/rooms/queries';
 
 import { MentionNames } from '../../context/mention-names';
 import { OpenThread } from '../../context/thread';
 import { useQuickReactions } from '../../hooks/use-quick-reactions';
+import { messagePath } from '../../lib/message-link';
 import { ReactionPickerButton } from './reaction-picker';
 
 /** One icon button in the toolbar, with its label as the tooltip. */
@@ -139,7 +143,10 @@ export function MessageActions({
   canReplyInThread,
   onEdit,
 }: {
-  message: Pick<Message, 'id' | 'roomId' | 'body' | 'reactions' | 'pinnedAt'>;
+  message: Pick<
+    Message,
+    'id' | 'roomId' | 'parentId' | 'body' | 'reactions' | 'pinnedAt'
+  >;
   viewerId: string | null;
   /** Reacting and pinning need the right to post in the channel. */
   canPost: boolean;
@@ -158,6 +165,7 @@ export function MessageActions({
   const { saved, toggle: toggleSaved } = useSavedMessage(message.id);
   const { reactions: quickReactions } = useQuickReactions();
   const pinned = Boolean(message.pinnedAt);
+  const { data: room } = useQuery(roomQuery(message.roomId));
 
   return (
     <MessageActionsBar>
@@ -227,6 +235,23 @@ export function MessageActions({
             <IconCopy data-slot="icon" />
             Copy text
           </DropdownMenuItem>
+          {room && (
+            <DropdownMenuItem
+              onClick={() =>
+                navigator.clipboard
+                  .writeText(
+                    `${window.location.origin}${messagePath({ ...message, kind: room.kind })}`
+                  )
+                  .then(
+                    () => toast.success('Link copied'),
+                    () => toast.error('Could not copy the link')
+                  )
+              }
+            >
+              <IconLink data-slot="icon" />
+              Copy link
+            </DropdownMenuItem>
+          )}
           {canPost && (
             <DropdownMenuItem onClick={() => togglePin(message)}>
               {pinned ? (
