@@ -216,15 +216,15 @@ Teams share files in chat and need to find old answers. Ask Conduit answers from
 
 Some talk needs to become a document that people keep editing. A canvas is attached to a channel by default.
 
-| ID   | Sub-feature                                                                   | Status      | PR  |
-| ---- | ----------------------------------------------------------------------------- | ----------- | --- |
-| M4.1 | Create a canvas as a channel tab, or on its own and shared with chosen people | Shipped     |     |
-| M4.2 | Several people edit at once, and each person's cursor shows                   | Not started |     |
-| M4.3 | Comment on selected text                                                      | Not started |     |
-| M4.4 | Mentions and checklists                                                       | Shipped     |     |
-| M4.5 | Embed a message in a canvas                                                   | Not started |     |
-| M4.6 | Version history                                                               | Not started |     |
-| M4.7 | AI: turn a thread into a canvas draft                                         | Not started |     |
+| ID   | Sub-feature                                                                   | Status      | PR                                                 |
+| ---- | ----------------------------------------------------------------------------- | ----------- | -------------------------------------------------- |
+| M4.1 | Create a canvas as a channel tab, or on its own and shared with chosen people | Shipped     | [#104](https://github.com/gbaolt/conduit/pull/104) |
+| M4.2 | Several people edit at once, and each person's cursor shows                   | Not started |                                                    |
+| M4.3 | Comment on selected text                                                      | Not started |                                                    |
+| M4.4 | Mentions and checklists                                                       | Shipped     | [#104](https://github.com/gbaolt/conduit/pull/104) |
+| M4.5 | Embed a message in a canvas                                                   | Not started |                                                    |
+| M4.6 | Version history                                                               | Not started |                                                    |
+| M4.7 | AI: turn a thread into a canvas draft                                         | Not started |                                                    |
 
 Later: canvas templates, and export to PDF or Markdown.
 
