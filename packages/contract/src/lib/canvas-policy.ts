@@ -36,7 +36,7 @@ export const canvasPolicy = {
     standalone: isShared,
   },
   edit: { inChannel: canPostIn, standalone: isEditor },
-  comment: { inChannel: canPostIn, standalone: isShared },
+  comment: { inChannel: canPostIn, standalone: isEditor },
   // A channel canvas is read by the channel's people, so it has no shares of its own.
   manageSharing: { inChannel: () => false, standalone: isEditor },
   delete: {

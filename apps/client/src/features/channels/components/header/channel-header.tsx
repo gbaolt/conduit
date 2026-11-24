@@ -14,16 +14,24 @@ import { useChannelDialogs } from '../../context/channel-dialogs-provider';
 import { ChannelActionsDropdown } from '../actions/channel-actions';
 import { ArchivedBanner } from './archived-banner';
 
+export function ChannelArchivedBanner({ roomId }: { roomId: string }) {
+  const { data: channel } = useSuspenseQuery(roomQuery(roomId));
+  return <ArchivedBanner channel={channel} />;
+}
+
 export function ChannelHeader({
   roomId,
   children,
   menu,
+  showArchivedBanner = true,
 }: {
   roomId: string;
   /** Buttons that other features add before the member count, such as the pinned list. */
   children?: ReactNode;
   /** Rows that other features add to the actions menu, such as Summarize channel. */
   menu?: ReactNode;
+  /** Render the archived banner below the header. ChannelPage places it under the view tabs instead. */
+  showArchivedBanner?: boolean;
 }) {
   const { data: channel } = useSuspenseQuery(roomQuery(roomId));
   const { open } = useChannelDialogs();
@@ -78,7 +86,7 @@ export function ChannelHeader({
           <IconDots />
         </ChannelActionsDropdown>
       </header>
-      <ArchivedBanner channel={channel} />
+      {showArchivedBanner && <ArchivedBanner channel={channel} />}
     </>
   );
 }

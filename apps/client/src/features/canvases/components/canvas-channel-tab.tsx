@@ -81,9 +81,12 @@ export function CanvasChannelTab({ roomId }: { roomId: string }) {
 /** Messages and Canvas, directly under the channel header. Messages stays mounted, so it keeps its scroll. */
 export function CanvasChannelTabs({
   roomId,
+  banner,
   children,
 }: {
   roomId: string;
+  /** Optional banner rendered below the tabs bar, such as an archived channel notice. */
+  banner?: ReactNode;
   /** The channel's messages. */
   children: ReactNode;
 }) {
@@ -111,6 +114,7 @@ export function CanvasChannelTabs({
           </TabsTrigger>
         </TabsList>
       </div>
+      {banner}
       <TabsContent
         value="messages"
         keepMounted

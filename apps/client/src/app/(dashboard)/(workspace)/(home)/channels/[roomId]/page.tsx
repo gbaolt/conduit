@@ -3,7 +3,10 @@ import { Suspense } from 'react';
 import { CanvasChannelTabs } from '@/features/canvases/components/canvas-channel-tab';
 import { ChannelIntro } from '@/features/channels/components/channel-intro';
 import { ChannelTitle } from '@/features/channels/components/channel-title';
-import { ChannelHeader } from '@/features/channels/components/header/channel-header';
+import {
+  ChannelArchivedBanner,
+  ChannelHeader,
+} from '@/features/channels/components/header/channel-header';
 import { Conversation } from '@/features/messages/components/conversation/conversation';
 import { PinnedButton } from '@/features/messages/components/pinned';
 import { SummaryChannelItems } from '@/features/messages/components/summary/summary-menu';
@@ -37,10 +40,14 @@ async function Room({
           <ChannelHeader
             roomId={roomId}
             menu={<SummaryChannelItems isDm={false} />}
+            showArchivedBanner={false}
           >
             <PinnedButton roomId={roomId} />
           </ChannelHeader>
-          <CanvasChannelTabs roomId={roomId}>
+          <CanvasChannelTabs
+            roomId={roomId}
+            banner={<ChannelArchivedBanner roomId={roomId} />}
+          >
             <Conversation
               key={roomId}
               roomId={roomId}

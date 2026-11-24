@@ -115,11 +115,11 @@ describe('canvasPolicy', () => {
     });
   });
 
-  it('lets a standalone viewer read and comment only', () => {
+  it('lets a standalone viewer read only', () => {
     expect(results(viewer(), standalone('viewer'))).toEqual({
       view: null,
       edit: 'FORBIDDEN',
-      comment: null,
+      comment: 'FORBIDDEN',
       manageSharing: 'FORBIDDEN',
       delete: 'FORBIDDEN',
     });

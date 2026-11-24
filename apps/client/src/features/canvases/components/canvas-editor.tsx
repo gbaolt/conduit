@@ -105,8 +105,13 @@ function CanvasEditorAutosave({
   const [editor] = useLexicalComposerContext();
   const update = useUpdateCanvas();
   const dirty = useRef(false);
+  const lastSavedJson = useRef<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const saving = useRef<Promise<unknown>>(Promise.resolve());
+
+  useEffect(() => {
+    lastSavedJson.current = JSON.stringify(editor.getEditorState().toJSON());
+  }, [editor]);
 
   const save = useEffectEvent(() => {
     clearTimeout(timer.current);
@@ -116,6 +121,11 @@ function CanvasEditorAutosave({
       string,
       unknown
     >;
+    const serialized = JSON.stringify(snapshotJson);
+    if (serialized === lastSavedJson.current) {
+      onStatusChange('saved');
+      return;
+    }
     const markdown = canvasMarkdownOf(editor);
     onStatusChange('saving');
     // One save at a time, so an older snapshot never lands after a newer one.
@@ -123,6 +133,7 @@ function CanvasEditorAutosave({
       update
         .mutateAsync({ canvasId, snapshotJson, markdown })
         .then(() => {
+          lastSavedJson.current = serialized;
           if (!dirty.current) onStatusChange('saved');
         })
         .catch((error: Error) => {
