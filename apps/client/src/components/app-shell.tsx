@@ -11,6 +11,7 @@ import {
   IconDots,
   IconFolder,
   IconHome,
+  IconLayoutBoard,
   IconMessage,
 } from '@tabler/icons-react';
 import type { Route } from 'next';
@@ -50,6 +51,7 @@ const railItems: {
     badge: <FeedUnreadBadge />,
   },
   { href: '/files', label: 'Files', icon: IconFolder },
+  { href: '/canvases', label: 'Canvases', icon: IconLayoutBoard },
   { href: '#', label: 'More', icon: IconDots },
 ];
 

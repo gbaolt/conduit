@@ -33,7 +33,7 @@ export function ChannelHeader({
 
   return (
     <>
-      <header className="flex min-h-12 shrink-0 items-center gap-1.5 border-b p-2">
+      <header className="flex min-h-12 shrink-0 items-center gap-1.5 p-2">
         <ListBackLink />
         <div className="min-w-0 flex-1">
           <h1 className="min-w-0 text-sm font-semibold">

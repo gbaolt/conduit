@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 
+import { CanvasChannelTabs } from '@/features/canvases/components/canvas-channel-tab';
 import { ChannelIntro } from '@/features/channels/components/channel-intro';
 import { ChannelTitle } from '@/features/channels/components/channel-title';
 import { ChannelHeader } from '@/features/channels/components/header/channel-header';
@@ -39,11 +40,13 @@ async function Room({
           >
             <PinnedButton roomId={roomId} />
           </ChannelHeader>
-          <Conversation
-            key={roomId}
-            roomId={roomId}
-            start={<ChannelIntro roomId={roomId} />}
-          />
+          <CanvasChannelTabs roomId={roomId}>
+            <Conversation
+              key={roomId}
+              roomId={roomId}
+              start={<ChannelIntro roomId={roomId} />}
+            />
+          </CanvasChannelTabs>
         </div>
       </ThreadLayout>
     </RoomGate>
