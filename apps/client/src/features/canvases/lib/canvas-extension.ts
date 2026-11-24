@@ -55,6 +55,13 @@ const canvasTheme: EditorThemeClasses = {
   },
   quote:
     'border-border text-muted-foreground border-l-2 pl-4 [&:not(:first-child)]:mt-3',
+  // Other people's carets and selections. Lexical sets each person's color as `--lexical-cursor-color`.
+  collaboration: {
+    cursor: 'canvas-cursor',
+    cursorName: 'canvas-cursor-name',
+    selection: 'canvas-selection',
+    selectionBg: 'canvas-selection-bg',
+  },
 };
 
 // CHECK_LIST comes before UNORDERED_LIST, or `- [ ] ` would read as a bullet holding "[ ]".
@@ -97,16 +104,27 @@ function initialStateOf(
 ) {
   if (snapshotJson) return JSON.stringify(snapshotJson);
   if (!markdown) return undefined;
-  return () => $convertFromMarkdownString(markdown, transformersWith(names));
+  return () => $seedCanvasFromMarkdown(markdown, names);
+}
+
+/** The Markdown parse the live document is seeded with, when it has no saved editor state. */
+export function $seedCanvasFromMarkdown(
+  markdown: string,
+  names: ReadonlyMap<string, string>
+) {
+  $convertFromMarkdownString(markdown, transformersWith(names));
 }
 
 /**
  * Stable per canvas: the editor is built from it once, so create it once per opened canvas.
  * `names` labels the mentions in Markdown that has no saved editor state yet.
+ * A `collaborative` editor starts empty, since the live document fills it, and leaves undo to Yjs,
+ * which undoes only the caller's own edits.
  */
 export function createCanvasExtension(
   { snapshotJson, markdown }: CanvasContent,
-  names: ReadonlyMap<string, string> = new Map()
+  names: ReadonlyMap<string, string> = new Map(),
+  { collaborative = false } = {}
 ) {
   return defineExtension({
     name: '@conduit/canvas',
@@ -126,10 +144,12 @@ export function createCanvasExtension(
     onError: (error) => {
       throw error;
     },
-    $initialEditorState: initialStateOf({ snapshotJson, markdown }, names),
+    $initialEditorState: collaborative
+      ? null
+      : initialStateOf({ snapshotJson, markdown }, names),
     dependencies: [
       RichTextExtension,
-      HistoryExtension,
+      ...(collaborative ? [] : [HistoryExtension]),
       ListExtension,
       CheckListExtension,
       LinkExtension,

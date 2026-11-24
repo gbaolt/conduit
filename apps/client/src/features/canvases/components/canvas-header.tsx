@@ -169,15 +169,20 @@ function CanvasHeaderMenu({
   );
 }
 
-/** The canvas's title row: its name, save status, sharing for a standalone canvas, and its actions. */
+/**
+ * The canvas's title row: its name, save status, who else is on it, sharing for a standalone canvas, and its
+ * actions. The live editor renders the avatars into `presenceRef`, since only it is inside the live room.
+ */
 export function CanvasHeader({
   canvas,
   status,
+  presenceRef,
   onShare,
   onDeleted,
 }: {
   canvas: CanvasDocument;
   status: CanvasSaveStatus;
+  presenceRef: (element: HTMLDivElement | null) => void;
   onShare: () => void;
   onDeleted: () => void;
 }) {
@@ -186,6 +191,7 @@ export function CanvasHeader({
       <CanvasHeaderTitle key={canvas.title} canvas={canvas} />
       <CanvasHeaderStatus canvas={canvas} status={status} />
       <div className="ml-auto flex shrink-0 items-center gap-1">
+        <div ref={presenceRef} className="flex empty:hidden" />
         {!canvas.roomId && (
           <Button variant="outline" size="sm" onClick={onShare}>
             <IconUsers data-icon="inline-start" />

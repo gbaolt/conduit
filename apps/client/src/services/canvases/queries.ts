@@ -15,3 +15,13 @@ export const canvasQuery = (canvasId: string) =>
 
 export const canvasMembersQuery = (canvasId: string) =>
   orpc.canvases.listMembers.queryOptions({ input: { canvasId } });
+
+/** Read once, when a canvas opens, to choose live or single-user editing. */
+export const canvasLiveblocksAuthQuery = (canvasId: string) =>
+  orpc.canvases.liveblocksAuth.queryOptions({
+    input: { canvasId },
+    retry: false,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: false,
+  });

@@ -1,4 +1,8 @@
-import { buildEditorFromExtensions } from '@lexical/extension';
+import {
+  buildEditorFromExtensions,
+  getExtensionDependencyFromEditor,
+} from '@lexical/extension';
+import { HistoryExtension } from '@lexical/history';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import { $getRoot, $nodesOfType } from 'lexical';
 import { describe, expect, it } from 'vitest';
@@ -96,5 +100,25 @@ describe('canvas Markdown', () => {
     );
     expect(canvasMarkdownOf(editor)).toBe('# Saved');
     editor.dispose();
+  });
+});
+
+describe('collaborative canvas', () => {
+  it('starts empty and leaves undo to Yjs', () => {
+    const content = { snapshotJson: null, markdown: '# Saved' };
+    const solo = buildEditorFromExtensions(createCanvasExtension(content));
+    const live = buildEditorFromExtensions(
+      createCanvasExtension(content, new Map(), { collaborative: true })
+    );
+
+    expect(live.read(() => $getRoot().isEmpty())).toBe(true);
+    expect(() =>
+      getExtensionDependencyFromEditor(solo, HistoryExtension)
+    ).not.toThrow();
+    expect(() =>
+      getExtensionDependencyFromEditor(live, HistoryExtension)
+    ).toThrow();
+    solo.dispose();
+    live.dispose();
   });
 });

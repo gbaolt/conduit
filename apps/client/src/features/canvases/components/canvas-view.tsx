@@ -53,12 +53,14 @@ export function CanvasView({
 }) {
   const [status, setStatus] = useState<CanvasSaveStatus>('saved');
   const [sharing, setSharing] = useState(false);
+  const [presenceSlot, setPresenceSlot] = useState<HTMLDivElement | null>(null);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <CanvasHeader
         canvas={canvas}
         status={status}
+        presenceRef={setPresenceSlot}
         onShare={() => setSharing(true)}
         onDeleted={onDeleted}
       />
@@ -67,6 +69,8 @@ export function CanvasView({
           <CanvasEditor
             key={canvas.id}
             canvas={canvas}
+            fallback={<CanvasViewEditorSkeleton />}
+            presenceSlot={presenceSlot}
             onStatusChange={setStatus}
           />
         </div>

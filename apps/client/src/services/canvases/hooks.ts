@@ -1,9 +1,12 @@
 'use client';
 
-import type { CanvasDocument } from '@conduit/contract';
+import type {
+  CanvasDocument,
+  SaveCanvasSnapshotInput,
+} from '@conduit/contract';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { orpc } from '@/lib/orpc';
+import { client, orpc } from '@/lib/orpc';
 
 export function useCreateCanvas() {
   const queryClient = useQueryClient();
@@ -66,6 +69,34 @@ export function useUpdateCanvas() {
       },
     })
   );
+}
+
+/** A fresh Liveblocks token, apart from the query that decided live mode, so a failed refresh leaves the canvas open. */
+export function useCanvasLiveblocksToken() {
+  return useMutation(orpc.canvases.liveblocksAuth.mutationOptions());
+}
+
+export function useClaimCanvasBootstrap() {
+  return useMutation(orpc.canvases.claimBootstrap.mutationOptions());
+}
+
+/**
+ * Mirrors a live canvas into Postgres. The live document is what editors open, so no cached document is patched.
+ * `keepalive` lets a small save finish after the page closes.
+ */
+export function useSaveCanvasSnapshot() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      keepalive,
+      ...input
+    }: SaveCanvasSnapshotInput & { keepalive?: boolean }) =>
+      client.canvases.saveSnapshot(input, { context: { keepalive } }),
+    onSuccess: ({ saved }) =>
+      saved &&
+      queryClient.invalidateQueries({ queryKey: orpc.canvases.list.key() }),
+  });
 }
 
 export function useDeleteCanvas() {
