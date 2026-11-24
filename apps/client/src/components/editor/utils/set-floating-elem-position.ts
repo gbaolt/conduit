@@ -35,6 +35,8 @@ export function setFloatingElemPosition(
   if (left + floatingElemRect.width > editorScrollerRect.right) {
     left = editorScrollerRect.right - floatingElemRect.width - horizontalOffset;
   }
+  // On a narrow screen the toolbar can be wider than the space right of the selection.
+  left = Math.max(left, editorScrollerRect.left);
 
   top -= anchorElementRect.top;
   left -= anchorElementRect.left;

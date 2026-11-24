@@ -17,12 +17,14 @@ const featureDeps = {
   files: ['rooms', 'messages'],
   search: ['rooms', 'messages', 'files', 'ask'],
   ask: ['rooms', 'messages'],
+  canvases: ['rooms', 'workspace', 'messages'],
 };
 
 const services = [
   'activity',
   'ask',
   'auth',
+  'canvases',
   'channels',
   'dms',
   'feed',

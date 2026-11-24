@@ -1,0 +1,130 @@
+'use client';
+
+import type { CanvasDocument } from '@conduit/contract';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+import { orpc } from '@/lib/orpc';
+
+export function useCreateCanvas() {
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    orpc.canvases.create.mutationOptions({
+      onSuccess: (canvas) => {
+        queryClient.setQueryData(
+          orpc.canvases.get.queryKey({ input: { canvasId: canvas.id } }),
+          canvas
+        );
+        if (canvas.roomId) {
+          queryClient.setQueryData(
+            orpc.canvases.getChannelCanvas.queryKey({
+              input: { roomId: canvas.roomId },
+            }),
+            canvas
+          );
+        }
+        return queryClient.invalidateQueries({
+          queryKey: orpc.canvases.list.key(),
+        });
+      },
+    })
+  );
+}
+
+/**
+ * Saves edits. The open editor already shows them, so the cached document is patched in place rather than
+ * refetched, and reopening the canvas starts from what was saved.
+ */
+export function useUpdateCanvas() {
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    orpc.canvases.update.mutationOptions({
+      onSuccess: (canvas, { snapshotJson, markdown }) => {
+        const patch = <T extends CanvasDocument | null | undefined>(old: T) =>
+          (old && {
+            ...old,
+            ...canvas,
+            snapshotJson: snapshotJson ?? old.snapshotJson,
+            markdown: markdown ?? old.markdown,
+          }) as T;
+        queryClient.setQueryData(
+          orpc.canvases.get.queryKey({ input: { canvasId: canvas.id } }),
+          patch
+        );
+        if (canvas.roomId) {
+          queryClient.setQueryData(
+            orpc.canvases.getChannelCanvas.queryKey({
+              input: { roomId: canvas.roomId },
+            }),
+            patch
+          );
+        }
+        return queryClient.invalidateQueries({
+          queryKey: orpc.canvases.list.key(),
+        });
+      },
+    })
+  );
+}
+
+export function useDeleteCanvas() {
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    orpc.canvases.delete.mutationOptions({
+      onSuccess: () =>
+        Promise.all([
+          queryClient.invalidateQueries({ queryKey: orpc.canvases.list.key() }),
+          queryClient.invalidateQueries({
+            queryKey: orpc.canvases.getChannelCanvas.key(),
+          }),
+        ]),
+    })
+  );
+}
+
+function useInvalidateMembers() {
+  const queryClient = useQueryClient();
+
+  return ({ canvasId }: { canvasId: string }) =>
+    Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: orpc.canvases.listMembers.key({ input: { canvasId } }),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: orpc.canvases.get.key({ input: { canvasId } }),
+      }),
+      queryClient.invalidateQueries({ queryKey: orpc.canvases.list.key() }),
+    ]);
+}
+
+export function useShareCanvas() {
+  const invalidate = useInvalidateMembers();
+
+  return useMutation(
+    orpc.canvases.share.mutationOptions({
+      onSuccess: (_, input) => invalidate(input),
+    })
+  );
+}
+
+export function useUpdateCanvasMemberRole() {
+  const invalidate = useInvalidateMembers();
+
+  return useMutation(
+    orpc.canvases.updateMemberRole.mutationOptions({
+      onSuccess: (_, input) => invalidate(input),
+    })
+  );
+}
+
+export function useRemoveCanvasMember() {
+  const invalidate = useInvalidateMembers();
+
+  return useMutation(
+    orpc.canvases.removeMember.mutationOptions({
+      onSuccess: (_, input) => invalidate(input),
+    })
+  );
+}
