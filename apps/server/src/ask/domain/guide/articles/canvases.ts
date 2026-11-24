@@ -3,7 +3,7 @@ import type { GuideArticle } from '../guide';
 export const canvases: GuideArticle = {
   slug: 'canvases',
   title: 'Canvases',
-  covers: ['M4.1', 'M4.2', 'M4.3', 'M4.4', 'M4.5'],
+  covers: ['M4.1', 'M4.2', 'M4.3', 'M4.4', 'M4.5', 'M4.6'],
   body: `A canvas is a document your team edits together.
 
 - **A channel's canvas.** Open a channel and choose the **Canvas** tab, then **Create canvas**. Everyone who can read the channel can read it, and everyone who can post there can edit it. An archived channel's canvas is read-only.
@@ -14,6 +14,7 @@ export const canvases: GuideArticle = {
 - **Comments.** Select text and choose **Comment** in the toolbar, or press **Ctrl+Alt+M**, to start a thread on it. The text stays highlighted, and clicking it opens the thread. **Comments** in the title bar opens every thread, filtered to **Open** or **Resolved**. Reply, edit or delete your own comments, and choose **Resolve** when a thread is done, or **Reopen** to bring it back. A resolved thread keeps the text it was about, even after that text is deleted. People with **Can view** read comments but cannot add them.
 - **Embedded messages.** Choose **Copy link** in a message's menu and paste it into a canvas, or type \`/message\` and search for one, to show the message as a card with **Jump to message**. Each person sees the card only if they can read the message's channel or DM; anyone else sees **Message from a channel you cannot access**, and a deleted message shows **This message was deleted**.
 - **Saving.** A canvas saves as you type, and the title bar shows **Saved** once it has.
+- **Version history.** **History** in the title bar lists the canvas's versions, newest first. A version is kept automatically at most every 5 minutes while the canvas changes, and **Save version** keeps one right away under a name you choose. Click a version, or step through them with the arrow keys, to preview it read-only; **Escape** closes the preview. **Restore this version** makes it the canvas's content for everyone with it open, and first keeps the current content as a version named **Before restoring version**, so nothing is lost. People with **Can view**, and anyone on an archived channel's canvas, can browse history but cannot save or restore versions.
 
 The **Canvases** page lists every canvas you can open, and filters to channel canvases or ones shared with you.`,
 };

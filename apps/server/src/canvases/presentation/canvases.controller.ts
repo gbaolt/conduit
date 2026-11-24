@@ -4,6 +4,7 @@ import { Implement } from '@orpc/nest';
 import { implement } from '@orpc/server';
 
 import { CanvasCommentsService } from '@/canvases/application/canvas-comments.service';
+import { CanvasVersionsService } from '@/canvases/application/canvas-versions.service';
 import {
   CanvasesService,
   type CanvasViewerScope,
@@ -29,7 +30,9 @@ export class CanvasesController {
   constructor(
     @Inject(CanvasesService) private readonly canvasesService: CanvasesService,
     @Inject(CanvasCommentsService)
-    private readonly commentsService: CanvasCommentsService
+    private readonly commentsService: CanvasCommentsService,
+    @Inject(CanvasVersionsService)
+    private readonly versionsService: CanvasVersionsService
   ) {}
 
   @Implement(contract.canvases.getChannelCanvas)
@@ -253,6 +256,50 @@ export class CanvasesController {
       .use(workspaceMember)
       .handler(({ context, input }) =>
         this.canvasesService.embeddedMessages(viewerOf(context), input)
+      );
+  }
+
+  @Implement(contract.canvases.listVersions)
+  listVersions() {
+    return implement(contract.canvases.listVersions)
+      .use(authorized)
+      .use(arcjet.read)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.versionsService.list(viewerOf(context), input)
+      );
+  }
+
+  @Implement(contract.canvases.getVersion)
+  getVersion() {
+    return implement(contract.canvases.getVersion)
+      .use(authorized)
+      .use(arcjet.read)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.versionsService.get(viewerOf(context), input)
+      );
+  }
+
+  @Implement(contract.canvases.createVersion)
+  createVersion() {
+    return implement(contract.canvases.createVersion)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.versionsService.create(viewerOf(context), input)
+      );
+  }
+
+  @Implement(contract.canvases.restoreVersion)
+  restoreVersion() {
+    return implement(contract.canvases.restoreVersion)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.versionsService.restore(viewerOf(context), input)
       );
   }
 }

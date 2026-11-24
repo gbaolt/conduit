@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import {
   canCanvas,
   type CanvasAccess,
@@ -17,6 +19,11 @@ import {
 import { Inject, Injectable, Logger } from '@nestjs/common';
 
 import { canvasError } from '@/canvases/domain/canvas-errors';
+import {
+  autoVersionDue,
+  type CanvasVersionContent,
+  CanvasVersionsRepository,
+} from '@/canvases/domain/canvas-versions.repository';
 import {
   CanvasesRepository,
   type StoredCanvas,
@@ -38,6 +45,13 @@ export type CanvasViewerScope = {
 
 const UNTITLED = 'Untitled';
 
+/** The hash the editor sends with a snapshot: SHA-256 of its JSON, as hex. */
+export function contentHashOf(snapshotJson: Record<string, unknown>) {
+  return createHash('sha256')
+    .update(JSON.stringify(snapshotJson))
+    .digest('hex');
+}
+
 // Liveblocks rejects passing both room:read and room:write; room:write implies read and presence.
 const READ: LiveblocksPermission[] = ['room:read', 'room:presence:write'];
 const WRITE: LiveblocksPermission[] = ['room:write'];
@@ -51,7 +65,9 @@ export class CanvasesService {
     @Inject(RoomsRepository) private readonly rooms: RoomsRepository,
     @Inject(WorkspaceMembersRepository)
     private readonly workspaceMembers: WorkspaceMembersRepository,
-    @Inject(LiveblocksPort) private readonly liveblocks: LiveblocksPort
+    @Inject(LiveblocksPort) private readonly liveblocks: LiveblocksPort,
+    @Inject(CanvasVersionsRepository)
+    private readonly versions: CanvasVersionsRepository
   ) {}
 
   private policyCanvas(canvas: StoredCanvas, room: Room | null): PolicyCanvas {
@@ -171,7 +187,39 @@ export class CanvasesService {
     await this.load(viewer, canvasId, 'edit');
     if (patch.title !== undefined) patch.title = patch.title || UNTITLED;
     await this.canvases.update(viewer, canvasId, patch);
+    if (patch.snapshotJson) {
+      await this.checkpoint(viewer, canvasId, {
+        snapshotJson: patch.snapshotJson,
+        markdown: patch.markdown ?? '',
+        contentHash: contentHashOf(patch.snapshotJson),
+      });
+    }
     return this.get(viewer, canvasId);
+  }
+
+  /** Records an autosave version when the content changed and the last version is 5 minutes old. */
+  private async checkpoint(
+    viewer: CanvasViewerScope,
+    canvasId: string,
+    content: CanvasVersionContent
+  ) {
+    const now = new Date();
+    // The edit is already saved, so a failed checkpoint must not report the save as failed.
+    await this.versions
+      .createIfDue(
+        {
+          ...content,
+          canvasId,
+          organizationId: viewer.organizationId,
+          authorId: viewer.userId,
+          label: null,
+          trigger: 'auto',
+        },
+        (latest) => autoVersionDue(latest, content.contentHash, now)
+      )
+      .catch((error: unknown) => {
+        this.logger.warn(`Could not checkpoint canvas ${canvasId}: ${error}`);
+      });
   }
 
   async delete(viewer: CanvasViewerScope, canvasId: string) {
@@ -225,7 +273,9 @@ export class CanvasesService {
   ) {
     const { canvasId, ...snapshot } = input;
     await this.load(viewer, canvasId, 'edit');
-    return this.canvases.saveSnapshot(viewer, canvasId, snapshot);
+    const saved = await this.canvases.saveSnapshot(viewer, canvasId, snapshot);
+    await this.checkpoint(viewer, canvasId, snapshot);
+    return saved;
   }
 
   async listMembers(viewer: CanvasViewerScope, canvasId: string) {

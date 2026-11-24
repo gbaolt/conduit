@@ -13,6 +13,7 @@ import type {
 } from '@/canvases/domain/canvas-comments.repository';
 import { canvasError } from '@/canvases/domain/canvas-errors';
 import { PrismaCanvasCommentsRepository } from '@/canvases/infrastructure/prisma-canvas-comments.repository';
+import { PrismaCanvasVersionsRepository } from '@/canvases/infrastructure/prisma-canvas-versions.repository';
 import { PrismaCanvasesRepository } from '@/canvases/infrastructure/prisma-canvases.repository';
 import { FakeLiveblocksGateway } from '@/canvases/testing/fake-liveblocks.gateway';
 import { prisma } from '@/infrastructure/database/prisma.service';
@@ -307,7 +308,8 @@ describe.skipIf(!connectionString)(
       new PrismaCanvasesRepository(prisma),
       new PrismaRoomsRepository(prisma),
       new PrismaWorkspaceMembersRepository(prisma),
-      new FakeLiveblocksGateway()
+      new FakeLiveblocksGateway(),
+      new PrismaCanvasVersionsRepository(prisma)
     );
     const service = new CanvasCommentsService(
       canvases,

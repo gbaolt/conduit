@@ -53,6 +53,7 @@ model User {
   canvasThreadsCreated  CanvasCommentThread[]  @relation("CanvasThreadCreatedBy")
   canvasThreadsResolved CanvasCommentThread[]  @relation("CanvasThreadResolvedBy")
   canvasComments        CanvasComment[]
+  canvasVersions        CanvasVersion[]
 }
 
 model Session {
@@ -94,6 +95,7 @@ model Organization {
   searchSyncs          SearchSync[]
   canvases             Canvas[]
   canvasCommentThreads CanvasCommentThread[]
+  canvasVersions       CanvasVersion[]
 }
 
 model Member {
@@ -686,6 +688,7 @@ model Canvas {
   deletedAt        DateTime?
   members          CanvasMember[]
   commentThreads   CanvasCommentThread[]
+  versions         CanvasVersion[]
 
   @@index([organizationId, roomId])
   @@index([organizationId, updatedAt(sort: Desc)])
@@ -741,4 +744,32 @@ model CanvasComment {
   updatedAt        DateTime            @updatedAt
 
   @@index([threadId, createdAt])
+}
+
+/// What recorded a canvas version: the 5-minute autosave, a person saving one, a restore, or an AI draft.
+enum CanvasVersionTrigger {
+  AUTO
+  MANUAL
+  RESTORE
+  AI_DRAFT
+}
+
+/// A saved copy of a canvas's content, kept for as long as the canvas.
+model CanvasVersion {
+  id             String               @id @default(cuid())
+  canvasId       String
+  canvas         Canvas               @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  authorId       String?
+  author         User?                @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  label          String?
+  trigger        CanvasVersionTrigger
+  /// SHA-256 of `snapshotJson`, to skip an autosave that changed nothing.
+  contentHash    String
+  snapshotJson   Json
+  markdown       String
+  createdAt      DateTime             @default(now())
+
+  @@index([canvasId, createdAt(sort: Desc), id(sort: Desc)])
 }

@@ -6,7 +6,9 @@ import type {
   StoredCanvasDocument,
   StoredEmbeddedMessage,
 } from '@/canvases/domain/canvases.repository';
+import { PrismaCanvasVersionsRepository } from '@/canvases/infrastructure/prisma-canvas-versions.repository';
 import { PrismaCanvasesRepository } from '@/canvases/infrastructure/prisma-canvases.repository';
+import { FakeCanvasVersionsRepository } from '@/canvases/testing/fake-canvas-versions.repository';
 import { FakeLiveblocksGateway } from '@/canvases/testing/fake-liveblocks.gateway';
 import { prisma } from '@/infrastructure/database/prisma.service';
 import type { RoomsRepository } from '@/rooms/domain/rooms.repository';
@@ -237,7 +239,8 @@ function setup(
       repository,
       rooms,
       workspaceMembers,
-      liveblocks
+      liveblocks,
+      new FakeCanvasVersionsRepository()
     ),
     canvases,
     liveblocks,
@@ -667,7 +670,8 @@ describe.skipIf(!connectionString)('CanvasesService with Postgres', () => {
     new PrismaCanvasesRepository(prisma),
     new PrismaRoomsRepository(prisma),
     new PrismaWorkspaceMembersRepository(prisma),
-    new FakeLiveblocksGateway()
+    new FakeLiveblocksGateway(),
+    new PrismaCanvasVersionsRepository(prisma)
   );
   const run = crypto.randomUUID();
   const users = { owner: `${run}-owner`, member: `${run}-member` };
