@@ -24,4 +24,5 @@ export const canvasLiveblocksAuthQuery = (canvasId: string) =>
     staleTime: 0,
     gcTime: 0,
     refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });

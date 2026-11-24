@@ -337,6 +337,7 @@ function CanvasEditorSnapshot({
 function CanvasEditorLive({
   canvas,
   color,
+  deniedReason,
   names,
   cursorsRef,
   presenceSlot,
@@ -345,6 +346,7 @@ function CanvasEditorLive({
 }: {
   canvas: CanvasDocument;
   color: string;
+  deniedReason: string | null;
   names: ReadonlyMap<string, string>;
   cursorsRef: RefObject<HTMLDivElement | null>;
   presenceSlot: HTMLElement | null;
@@ -401,7 +403,10 @@ function CanvasEditorLive({
   }, [synced, seeded]);
 
   const loaded = synced && seeded;
-  const offline = status === 'reconnecting' || status === 'disconnected';
+  const offline =
+    deniedReason !== null ||
+    status === 'reconnecting' ||
+    status === 'disconnected';
   let state: CanvasLiveState = 'loading';
   if (loaded) state = offline ? 'offline' : 'ready';
   useEffect(() => onStateChange(state), [state, onStateChange]);
@@ -422,16 +427,24 @@ function CanvasEditorLive({
           onStatusChange={onStatusChange}
         />
       )}
-      {offline && (
-        <Alert role="status" className="animate-canvas-pop-in mb-4">
+      {deniedReason ? (
+        <Alert role="alert" className="animate-canvas-pop-in mb-4">
           <IconPlugConnectedX />
-          <AlertTitle>Reconnecting to live collaboration…</AlertTitle>
-          <AlertDescription>
-            {canEdit
-              ? 'Editing pauses until you’re back, so nothing you type is lost.'
-              : 'New edits will show up once you’re back.'}
-          </AlertDescription>
+          <AlertTitle>Live editing paused</AlertTitle>
+          <AlertDescription>{deniedReason}</AlertDescription>
         </Alert>
+      ) : (
+        offline && (
+          <Alert role="status" className="animate-canvas-pop-in mb-4">
+            <IconPlugConnectedX />
+            <AlertTitle>Reconnecting to live collaboration…</AlertTitle>
+            <AlertDescription>
+              {canEdit
+                ? 'Editing pauses until you’re back, so nothing you type is lost.'
+                : 'New edits will show up once you’re back.'}
+            </AlertDescription>
+          </Alert>
+        )
       )}
       {presenceSlot && createPortal(<CanvasPresenceAvatars />, presenceSlot)}
     </>
@@ -692,6 +705,7 @@ function CanvasEditorDocument({
         <CanvasEditorLive
           canvas={canvas}
           color={collab.color}
+          deniedReason={collab.deniedReason}
           names={namesAtMount}
           cursorsRef={cursorsRef}
           presenceSlot={presenceSlot}

@@ -12,7 +12,7 @@ import { LiveblocksProvider, RoomProvider } from '@liveblocks/react';
 import { ORPCError } from '@orpc/client';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
-import { createContext, type ReactNode, use, useRef } from 'react';
+import { createContext, type ReactNode, use, useRef, useState } from 'react';
 
 import { useCanvasLiveblocksToken } from '@/services/canvases/hooks';
 import { canvasLiveblocksAuthQuery } from '@/services/canvases/queries';
@@ -27,7 +27,9 @@ declare global {
 }
 
 /** Whether the open canvas is edited live, and the viewer's cursor color when it is. */
-export type CanvasCollab = { live: false } | { live: true; color: string };
+export type CanvasCollab =
+  | { live: false }
+  | { live: true; color: string; deniedReason: string | null };
 
 const CanvasCollabContext = createContext<CanvasCollab>({ live: false });
 
@@ -91,6 +93,7 @@ function CanvasCollabRoom({
   children: ReactNode;
 }) {
   const refresh = useCanvasLiveblocksToken();
+  const [deniedReason, setDeniedReason] = useState<string | null>(null);
   // The token that decided live mode opens the first connection, so opening a canvas costs one auth call.
   const firstToken = useRef<string | null>(auth.token);
 
@@ -108,20 +111,25 @@ function CanvasCollabRoom({
         throw error;
       });
     if (!next) {
-      return {
-        error: 'forbidden',
-        reason: 'You can no longer open this canvas.',
-      };
+      const reason = 'You can no longer open this canvas.';
+      setDeniedReason(reason);
+      return { error: 'forbidden', reason };
     }
-    return next.enabled
-      ? { token: next.token }
-      : { error: 'forbidden', reason: 'Live editing is turned off.' };
+    if (!next.enabled) {
+      const reason = 'Live editing is turned off.';
+      setDeniedReason(reason);
+      return { error: 'forbidden', reason };
+    }
+    setDeniedReason(null);
+    return { token: next.token };
   };
 
   return (
     <LiveblocksProvider authEndpoint={authEndpoint}>
       <RoomProvider id={auth.roomId} initialPresence={{}}>
-        <CanvasCollabContext value={{ live: true, color: auth.color }}>
+        <CanvasCollabContext
+          value={{ live: true, color: auth.color, deniedReason }}
+        >
           {children}
         </CanvasCollabContext>
       </RoomProvider>
