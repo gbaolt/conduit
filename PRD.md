@@ -223,7 +223,7 @@ Some talk needs to become a document that people keep editing. A canvas is attac
 | M4.3 | Comment on selected text                                                      | Shipped     | [#106](https://github.com/gbaolt/conduit/pull/106) |
 | M4.4 | Mentions and checklists                                                       | Shipped     | [#104](https://github.com/gbaolt/conduit/pull/104) |
 | M4.5 | Embed a message in a canvas                                                   | Shipped     | [#106](https://github.com/gbaolt/conduit/pull/106) |
-| M4.6 | Version history                                                               | Shipped     |                                                    |
+| M4.6 | Version history                                                               | Shipped     | [#107](https://github.com/gbaolt/conduit/pull/107) |
 | M4.7 | AI: turn a thread into a canvas draft                                         | Not started |                                                    |
 
 Later: canvas templates, and export to PDF or Markdown.
