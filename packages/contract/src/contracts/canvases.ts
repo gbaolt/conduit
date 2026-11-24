@@ -85,7 +85,7 @@ export const listCanvasMembersContract = oc
 
 export const shareCanvasContract = oc
   .meta(openapi({ method: 'POST', path: '/canvases/{canvasId}/members' }))
-  .errors({ NOT_FOUND, FORBIDDEN, LAST_EDITOR, NOT_A_MEMBER })
+  .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED, LAST_EDITOR, NOT_A_MEMBER })
   .input(ShareCanvasInputSchema)
   .output(z.void());
 
@@ -93,7 +93,7 @@ export const updateCanvasMemberRoleContract = oc
   .meta(
     openapi({ method: 'PATCH', path: '/canvases/{canvasId}/members/{userId}' })
   )
-  .errors({ NOT_FOUND, FORBIDDEN, LAST_EDITOR })
+  .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED, LAST_EDITOR })
   .input(UpdateCanvasMemberRoleInputSchema)
   .output(z.void());
 
@@ -102,6 +102,6 @@ export const removeCanvasMemberContract = oc
   .meta(
     openapi({ method: 'DELETE', path: '/canvases/{canvasId}/members/{userId}' })
   )
-  .errors({ NOT_FOUND, FORBIDDEN, LAST_EDITOR })
+  .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED, LAST_EDITOR })
   .input(CanvasMemberInputSchema)
   .output(z.void());
