@@ -257,14 +257,17 @@ function CanvasDraftDialog({
             {markdown ? (
               <Markdown className="typeset">{markdown}</Markdown>
             ) : (
-              <p className="text-muted-foreground flex items-center text-sm">
+              <div
+                role="status"
+                className="text-muted-foreground flex items-center text-sm"
+              >
                 <span aria-hidden className="flex w-5 shrink-0">
                   <AILoader dotSize={2} />
                 </span>
                 <span className="shimmer motion-reduce:shimmer-none">
                   Drafting canvas from thread...
                 </span>
-              </p>
+              </div>
             )}
           </div>
         )}
