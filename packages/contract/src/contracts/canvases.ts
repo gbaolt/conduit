@@ -4,6 +4,9 @@ import { z } from 'zod';
 
 import {
   CanvasBootstrapSchema,
+  CanvasCommentInputSchema,
+  CanvasCommentSchema,
+  CanvasCommentThreadSchema,
   CanvasDocumentSchema,
   CanvasIdInputSchema,
   CanvasLiveblocksAuthSchema,
@@ -11,8 +14,14 @@ import {
   CanvasMemberSchema,
   CanvasSchema,
   CanvasSnapshotSavedSchema,
+  CreateCanvasCommentThreadInputSchema,
   CreateCanvasInputSchema,
+  EditCanvasCommentInputSchema,
+  EmbeddedMessageSchema,
+  EmbeddedMessagesInputSchema,
   ListCanvasesInputSchema,
+  ReplyCanvasCommentInputSchema,
+  ResolveCanvasCommentThreadInputSchema,
   SaveCanvasSnapshotInputSchema,
   ShareCanvasInputSchema,
   UpdateCanvasInputSchema,
@@ -38,10 +47,17 @@ export const canvasErrors = {
     status: 400,
     message: 'Share only with people in this workspace.',
   },
+  COMMENT_NOT_FOUND: { status: 404, message: 'Comment not found.' },
 } as const;
 
-const { NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED, LAST_EDITOR, NOT_A_MEMBER } =
-  canvasErrors;
+const {
+  NOT_FOUND,
+  FORBIDDEN,
+  CHANNEL_ARCHIVED,
+  LAST_EDITOR,
+  NOT_A_MEMBER,
+  COMMENT_NOT_FOUND,
+} = canvasErrors;
 
 /** The channel's canvas, or null before anyone creates it. */
 export const getChannelCanvasContract = oc
@@ -132,3 +148,71 @@ export const saveCanvasSnapshotContract = oc
   .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED })
   .input(SaveCanvasSnapshotInputSchema)
   .output(CanvasSnapshotSavedSchema);
+
+/** Every thread with at least one comment, oldest first. Anyone who can view the canvas reads them. */
+export const listCanvasCommentsContract = oc
+  .meta(openapi({ method: 'GET', path: '/canvases/{canvasId}/threads' }))
+  .errors({ NOT_FOUND })
+  .input(CanvasIdInputSchema)
+  .output(z.array(CanvasCommentThreadSchema));
+
+export const createCanvasCommentThreadContract = oc
+  .meta(openapi({ method: 'POST', path: '/canvases/{canvasId}/threads' }))
+  .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED })
+  .input(CreateCanvasCommentThreadInputSchema)
+  .output(CanvasCommentThreadSchema);
+
+export const replyCanvasCommentContract = oc
+  .meta(
+    openapi({
+      method: 'POST',
+      path: '/canvases/{canvasId}/threads/{threadId}/comments',
+    })
+  )
+  .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED, COMMENT_NOT_FOUND })
+  .input(ReplyCanvasCommentInputSchema)
+  .output(CanvasCommentSchema);
+
+/** Only a comment's author may edit it. */
+export const editCanvasCommentContract = oc
+  .meta(
+    openapi({
+      method: 'PATCH',
+      path: '/canvases/{canvasId}/comments/{commentId}',
+    })
+  )
+  .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED, COMMENT_NOT_FOUND })
+  .input(EditCanvasCommentInputSchema)
+  .output(CanvasCommentSchema);
+
+/** Only a comment's author may delete it. A thread left with no comments leaves the list. */
+export const deleteCanvasCommentContract = oc
+  .meta(
+    openapi({
+      method: 'DELETE',
+      path: '/canvases/{canvasId}/comments/{commentId}',
+    })
+  )
+  .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED, COMMENT_NOT_FOUND })
+  .input(CanvasCommentInputSchema)
+  .output(z.void());
+
+export const resolveCanvasCommentThreadContract = oc
+  .meta(
+    openapi({
+      method: 'PATCH',
+      path: '/canvases/{canvasId}/threads/{threadId}',
+    })
+  )
+  .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED, COMMENT_NOT_FOUND })
+  .input(ResolveCanvasCommentThreadInputSchema)
+  .output(CanvasCommentThreadSchema);
+
+/** The messages a canvas embeds, in the order asked, each checked against the rooms the viewer can read. */
+export const canvasEmbeddedMessagesContract = oc
+  .meta(
+    openapi({ method: 'POST', path: '/canvases/{canvasId}/embedded-messages' })
+  )
+  .errors({ NOT_FOUND })
+  .input(EmbeddedMessagesInputSchema)
+  .output(z.array(EmbeddedMessageSchema));

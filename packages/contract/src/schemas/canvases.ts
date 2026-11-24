@@ -1,10 +1,15 @@
 import { z } from 'zod';
 
+import { MessageBodySchema } from '@/lib/message-body';
+import { MessageHitSchema } from '@/schemas/search';
+
 export const CANVAS_TITLE_MAX = 200;
 export const CANVAS_MARKDOWN_MAX = 200_000;
 /** Characters of the serialized editor state, under the API's 2 MB body limit. */
 export const CANVAS_SNAPSHOT_MAX = 1_500_000;
 export const CANVAS_SHARE_MAX = 50;
+export const CANVAS_QUOTE_MAX = 1000;
+export const CANVAS_EMBEDS_MAX = 50;
 
 /** What a person a standalone canvas is shared with may do: edit it, or only read it. */
 export const CanvasRoleSchema = z.enum(['editor', 'viewer']);
@@ -13,6 +18,7 @@ export type CanvasRole = z.infer<typeof CanvasRoleSchema>;
 /** What the viewer may do with a canvas, decided by `canvasPolicy`. */
 export const CanvasAccessSchema = z.object({
   edit: z.boolean(),
+  comment: z.boolean(),
   manageSharing: z.boolean(),
   delete: z.boolean(),
 });
@@ -140,3 +146,76 @@ export const CanvasSnapshotSavedSchema = z.object({
   saved: z.boolean(),
   updatedAt: z.coerce.date(),
 });
+
+export const CanvasCommentAuthorSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  image: z.string().nullable(),
+});
+
+export const CanvasCommentSchema = z.object({
+  id: z.string(),
+  threadId: z.string(),
+  author: CanvasCommentAuthorSchema,
+  /** Markdown, as in a message. A mention is `<@userId>`. */
+  body: z.string(),
+  editedAt: z.coerce.date().nullable(),
+  createdAt: z.coerce.date(),
+});
+export type CanvasComment = z.infer<typeof CanvasCommentSchema>;
+
+/** Comments on one passage, oldest first. The passage is a mark in the document carrying the thread's id. */
+export const CanvasCommentThreadSchema = z.object({
+  id: z.string(),
+  canvasId: z.string(),
+  /** The passage as it read when the thread started, kept after it is edited or deleted. */
+  quote: z.string(),
+  resolvedAt: z.coerce.date().nullable(),
+  createdAt: z.coerce.date(),
+  comments: z.array(CanvasCommentSchema),
+});
+export type CanvasCommentThread = z.infer<typeof CanvasCommentThreadSchema>;
+
+export const CreateCanvasCommentThreadInputSchema = z.object({
+  canvasId: z.string(),
+  quote: z.string().trim().min(1).max(CANVAS_QUOTE_MAX),
+  body: MessageBodySchema,
+});
+
+export const ReplyCanvasCommentInputSchema = z.object({
+  canvasId: z.string(),
+  threadId: z.string(),
+  body: MessageBodySchema,
+});
+
+export const CanvasCommentInputSchema = z.object({
+  canvasId: z.string(),
+  commentId: z.string(),
+});
+
+export const EditCanvasCommentInputSchema = CanvasCommentInputSchema.extend({
+  body: MessageBodySchema,
+});
+
+export const ResolveCanvasCommentThreadInputSchema = z.object({
+  canvasId: z.string(),
+  threadId: z.string(),
+  resolved: z.boolean(),
+});
+
+export const EmbeddedMessagesInputSchema = z.object({
+  canvasId: z.string(),
+  messageIds: z.array(z.string()).min(1).max(CANVAS_EMBEDS_MAX),
+});
+
+/** A message embedded in a canvas. Only `ok` carries any of it, so a viewer outside its room learns nothing. */
+export const EmbeddedMessageSchema = z.discriminatedUnion('status', [
+  z.object({
+    messageId: z.string(),
+    status: z.literal('ok'),
+    message: MessageHitSchema,
+  }),
+  z.object({ messageId: z.string(), status: z.literal('inaccessible') }),
+  z.object({ messageId: z.string(), status: z.literal('deleted') }),
+]);
+export type EmbeddedMessage = z.infer<typeof EmbeddedMessageSchema>;
