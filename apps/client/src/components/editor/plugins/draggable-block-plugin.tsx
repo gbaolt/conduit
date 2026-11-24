@@ -9,6 +9,7 @@ import {
 } from '@conduit/ui/components/command';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { DraggableBlockPlugin_EXPERIMENTAL } from '@lexical/react/LexicalDraggableBlockPlugin';
+import { IconGripVertical, IconPlus } from '@tabler/icons-react';
 import {
   $createParagraphNode,
   $createTextNode,
@@ -18,7 +19,6 @@ import {
   $isTextNode,
   type NodeKey,
 } from 'lexical';
-import { GripVerticalIcon, PlusIcon } from 'lucide-react';
 import {
   type JSX,
   useCallback,
@@ -31,6 +31,7 @@ import * as ReactDOM from 'react-dom';
 
 import { useEditorModal } from '@/components/editor/editor-hooks/use-modal';
 import type { ComponentPickerOption } from '@/components/editor/plugins/picker/component-picker-option';
+import { matchesPickerQuery } from '@/components/editor/utils/picker-query';
 
 const DRAGGABLE_BLOCK_MENU_CLASSNAME = 'draggable-block-menu';
 
@@ -77,13 +78,10 @@ export function DraggableBlockPlugin({
     if (!queryString) {
       return baseOptions;
     }
-    const regex = new RegExp(queryString, 'i');
     return [
       ...(dynamicOptionsFn?.({ queryString }) ?? []),
-      ...baseOptions.filter(
-        (option) =>
-          regex.test(option.title) ||
-          option.keywords.some((keyword) => regex.test(keyword))
+      ...baseOptions.filter((option) =>
+        matchesPickerQuery(option, queryString)
       ),
     ];
   }, [baseOptions, dynamicOptionsFn, queryString]);
@@ -265,7 +263,7 @@ export function DraggableBlockPlugin({
               className="text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer rounded-sm"
               onClick={openComponentPicker}
             >
-              <PlusIcon />
+              <IconPlus />
             </Button>
             <Button
               variant="ghost"
@@ -273,7 +271,7 @@ export function DraggableBlockPlugin({
               className="text-muted-foreground hover:bg-accent hover:text-foreground cursor-grab rounded-sm active:cursor-grabbing"
               tabIndex={-1}
             >
-              <GripVerticalIcon className="opacity-60" />
+              <IconGripVertical className="opacity-60" />
             </Button>
           </div>
         }

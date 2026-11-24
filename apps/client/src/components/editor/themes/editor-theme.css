@@ -25,3 +25,22 @@
 .Collapsible__container[open] > .Collapsible__title {
   list-style-type: disclosure-open;
 }
+
+/* Positioned by an inline `transform`, so the entrance animates the separate `scale` property. */
+@keyframes editor-floating-in {
+  from {
+    opacity: 0;
+    scale: 0.97;
+  }
+}
+
+.editor-floating-toolbar {
+  transform-origin: bottom left;
+  animation: editor-floating-in 150ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editor-floating-toolbar {
+    animation: none;
+  }
+}

@@ -1,7 +1,7 @@
 import { $createHeadingNode } from '@lexical/rich-text';
 import { $setBlocksType } from '@lexical/selection';
+import { IconH1, IconH2, IconH3 } from '@tabler/icons-react';
 import { $getSelection, $isRangeSelection } from 'lexical';
-import { Heading1Icon, Heading2Icon, Heading3Icon } from 'lucide-react';
 
 import { ComponentPickerOption } from '@/components/editor/plugins/picker/component-picker-option';
 
@@ -22,10 +22,10 @@ export function HeadingPickerPlugin({ n }: { n: 1 | 2 | 3 }) {
 function HeadingIcons({ n }: { n: number }) {
   switch (n) {
     case 1:
-      return <Heading1Icon className="size-4" />;
+      return <IconH1 className="size-4" />;
     case 2:
-      return <Heading2Icon className="size-4" />;
+      return <IconH2 className="size-4" />;
     case 3:
-      return <Heading3Icon className="size-4" />;
+      return <IconH3 className="size-4" />;
   }
 }

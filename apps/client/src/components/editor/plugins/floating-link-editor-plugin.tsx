@@ -8,6 +8,7 @@ import {
 } from '@lexical/link';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $findMatchingParent, mergeRegister } from '@lexical/utils';
+import { IconCheck, IconPencil, IconTrash, IconX } from '@tabler/icons-react';
 import {
   $getSelection,
   $isLineBreakNode,
@@ -22,7 +23,6 @@ import {
   type LexicalEditor,
   SELECTION_CHANGE_COMMAND,
 } from 'lexical';
-import { Check, Pencil, Trash, X } from 'lucide-react';
 import {
   type Dispatch,
   type JSX,
@@ -66,15 +66,11 @@ function FloatingLinkEditor({
       const node = getSelectedNode(selection);
       const linkParent = $findMatchingParent(node, $isLinkNode);
 
-      if (linkParent) {
-        setLinkUrl(linkParent.getURL());
-      } else if ($isLinkNode(node)) {
-        setLinkUrl(node.getURL());
-      } else {
-        setLinkUrl('');
-      }
+      const linkNode = linkParent ?? ($isLinkNode(node) ? node : null);
+      const url = linkNode?.getURL() ?? '';
+      setLinkUrl(url);
       if (isLinkEditMode) {
-        setEditedLinkUrl(linkUrl);
+        setEditedLinkUrl(url);
       }
     }
     const editorElem = editorRef.current;
@@ -101,7 +97,7 @@ function FloatingLinkEditor({
         setFloatingElemPositionForLinkEditor(domRect, editorElem, anchorElem);
       }
       setLastSelection(selection);
-    } else if (!activeElement || activeElement.className !== 'link-input') {
+    } else if (!activeElement || activeElement !== inputRef.current) {
       if (rootElement !== null) {
         setFloatingElemPositionForLinkEditor(null, editorElem, anchorElem);
       }
@@ -111,7 +107,7 @@ function FloatingLinkEditor({
     }
 
     return true;
-  }, [anchorElem, editor, setIsLinkEditMode, isLinkEditMode, linkUrl]);
+  }, [anchorElem, editor, setIsLinkEditMode, isLinkEditMode]);
 
   useEffect(() => {
     const scrollerElem = anchorElem.parentElement;
@@ -239,7 +235,7 @@ function FloatingLinkEditor({
             className="shrink-0"
             aria-label="Cancel"
           >
-            <X />
+            <IconX />
           </Button>
           <Button
             size="icon-sm"
@@ -247,7 +243,7 @@ function FloatingLinkEditor({
             className="shrink-0"
             aria-label="Confirm link"
           >
-            <Check />
+            <IconCheck />
           </Button>
         </div>
       )}
@@ -271,7 +267,7 @@ function FloatingLinkEditor({
               }}
               aria-label="Edit link"
             >
-              <Pencil />
+              <IconPencil />
             </Button>
             <Button
               size="icon-sm"
@@ -282,7 +278,7 @@ function FloatingLinkEditor({
               className="text-destructive hover:text-destructive"
               aria-label="Remove link"
             >
-              <Trash />
+              <IconTrash />
             </Button>
           </div>
         </div>
