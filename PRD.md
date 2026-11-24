@@ -102,7 +102,7 @@ Each milestone ships its core features first, then the AI feature that depends o
 | [M1](#m1-messaging)                        | Messages, threads, DMs, realtime         | Summaries                   | Shipped     |
 | [M2](#m2-activity-and-notifications)       | Activity feed, notifications             | Smart Activity, Catch me up | Shipped     |
 | [M3](#m3-files-and-search)                 | Files, search, command menu              | Ask Conduit                 | In progress |
-| [M4](#m4-canvas)                           | Canvas                                   | Thread to canvas            | Not started |
+| [M4](#m4-canvas)                           | Canvas                                   | Thread to canvas            | In progress |
 | [M5](#m5-kanban)                           | Kanban boards                            | Actions and decisions       | Not started |
 | [M6](#m6-workflows)                        | Workflows                                | Plain-English workflows     | Not started |
 | [M7](#m7-admin-analytics-and-ai-teammates) | Admin analytics                          | AI teammates                | Not started |
@@ -218,10 +218,10 @@ Some talk needs to become a document that people keep editing. A canvas is attac
 
 | ID   | Sub-feature                                                                   | Status      | PR  |
 | ---- | ----------------------------------------------------------------------------- | ----------- | --- |
-| M4.1 | Create a canvas as a channel tab, or on its own and shared with chosen people | Not started |     |
+| M4.1 | Create a canvas as a channel tab, or on its own and shared with chosen people | Shipped     |     |
 | M4.2 | Several people edit at once, and each person's cursor shows                   | Not started |     |
 | M4.3 | Comment on selected text                                                      | Not started |     |
-| M4.4 | Mentions and checklists                                                       | Not started |     |
+| M4.4 | Mentions and checklists                                                       | Shipped     |     |
 | M4.5 | Embed a message in a canvas                                                   | Not started |     |
 | M4.6 | Version history                                                               | Not started |     |
 | M4.7 | AI: turn a thread into a canvas draft                                         | Not started |     |
