@@ -5,6 +5,7 @@ import type {
   CanvasMember,
   CanvasRole,
   CanvasScope,
+  MessageHit,
 } from '@conduit/contract';
 
 /** A canvas row as the app sees it, before the viewer's `access` is worked out. */
@@ -23,6 +24,12 @@ export type CanvasPatch = {
   title?: string;
   snapshotJson?: Record<string, unknown>;
   markdown?: string;
+};
+
+/** A message a canvas embeds, before the viewer's access to its room is checked. */
+export type StoredEmbeddedMessage = {
+  message: MessageHit;
+  deletedAt: Date | null;
 };
 
 export type CanvasSnapshot = {
@@ -118,4 +125,10 @@ export abstract class CanvasesRepository {
     canvasId: string,
     userId: string
   ): Promise<void>;
+
+  /** The workspace's messages with these ids, deleted ones included, whatever room they are in. Callers check access. */
+  abstract findMessages(
+    organizationId: string,
+    messageIds: string[]
+  ): Promise<StoredEmbeddedMessage[]>;
 }

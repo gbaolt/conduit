@@ -16,40 +16,43 @@ datasource db {
 }
 
 model User {
-  id                   String                 @id @default(cuid())
-  name                 String
-  email                String                 @unique
-  emailVerified        Boolean                @default(false)
-  image                String?
-  createdAt            DateTime               @default(now())
-  updatedAt            DateTime               @updatedAt
-  sessions             Session[]
-  accounts             Account[]
-  members              Member[]
-  invitations          Invitation[]
-  channelsCreated      Room[]                 @relation("ChannelCreatedBy")
-  channelsArchived     Room[]                 @relation("ChannelArchivedBy")
-  roomMemberships      RoomMember[]
-  channelSections      ChannelSection[]
-  readStates           ReadState[]
-  drafts               Draft[]
-  typingStates         TypingState[]
-  presences            Presence[]
-  messages             Message[]
-  savedMessages        SavedMessage[]
-  summaries            Summary[]
-  askChats             AskChat[]
-  askAttachments       AskAttachment[]
-  notificationSettings NotificationSettings[]
-  activityItems        ActivityItem[]         @relation("ActivityRecipient")
-  activityActed        ActivityItem[]         @relation("ActivityActor")
-  pushSubscriptions    PushSubscription[]
-  digestStates         DigestState[]
-  files                File[]
-  canvasesCreated      Canvas[]               @relation("CanvasCreatedBy")
-  canvasesUpdated      Canvas[]               @relation("CanvasUpdatedBy")
-  canvasMemberships    CanvasMember[]         @relation("CanvasMemberUser")
-  canvasMembersAdded   CanvasMember[]         @relation("CanvasMemberAddedBy")
+  id                    String                 @id @default(cuid())
+  name                  String
+  email                 String                 @unique
+  emailVerified         Boolean                @default(false)
+  image                 String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  sessions              Session[]
+  accounts              Account[]
+  members               Member[]
+  invitations           Invitation[]
+  channelsCreated       Room[]                 @relation("ChannelCreatedBy")
+  channelsArchived      Room[]                 @relation("ChannelArchivedBy")
+  roomMemberships       RoomMember[]
+  channelSections       ChannelSection[]
+  readStates            ReadState[]
+  drafts                Draft[]
+  typingStates          TypingState[]
+  presences             Presence[]
+  messages              Message[]
+  savedMessages         SavedMessage[]
+  summaries             Summary[]
+  askChats              AskChat[]
+  askAttachments        AskAttachment[]
+  notificationSettings  NotificationSettings[]
+  activityItems         ActivityItem[]         @relation("ActivityRecipient")
+  activityActed         ActivityItem[]         @relation("ActivityActor")
+  pushSubscriptions     PushSubscription[]
+  digestStates          DigestState[]
+  files                 File[]
+  canvasesCreated       Canvas[]               @relation("CanvasCreatedBy")
+  canvasesUpdated       Canvas[]               @relation("CanvasUpdatedBy")
+  canvasMemberships     CanvasMember[]         @relation("CanvasMemberUser")
+  canvasMembersAdded    CanvasMember[]         @relation("CanvasMemberAddedBy")
+  canvasThreadsCreated  CanvasCommentThread[]  @relation("CanvasThreadCreatedBy")
+  canvasThreadsResolved CanvasCommentThread[]  @relation("CanvasThreadResolvedBy")
+  canvasComments        CanvasComment[]
 }
 
 model Session {
@@ -90,6 +93,7 @@ model Organization {
   files                File[]
   searchSyncs          SearchSync[]
   canvases             Canvas[]
+  canvasCommentThreads CanvasCommentThread[]
 }
 
 model Member {
@@ -654,18 +658,18 @@ enum CanvasRole {
 /// A rich-text document. With a `roomId` it lives in that channel and inherits its access; without one it is
 /// standalone and only its `CanvasMember` rows can open it.
 model Canvas {
-  id               String         @id @default(cuid())
+  id               String                @id @default(cuid())
   organizationId   String
-  organization     Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  roomId           String?        @map("channelId")
-  room             Room?          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  organization     Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  roomId           String?               @map("channelId")
+  room             Room?                 @relation(fields: [roomId], references: [id], onDelete: Cascade)
   /// The canvas the channel's Canvas tab opens. A partial unique index in `24_canvases` allows one live one per channel.
-  isChannelPrimary Boolean        @default(false)
+  isChannelPrimary Boolean               @default(false)
   title            String
   /// The Lexical editor state as JSON.
   snapshotJson     Json?
   /// The same content as Markdown, for search and AI.
-  markdown         String         @default("")
+  markdown         String                @default("")
   /// Markdown to seed the live Yjs document from on first open, such as an AI draft.
   initialMarkdown  String?
   contentHash      String?
@@ -674,13 +678,14 @@ model Canvas {
   /// The thread an AI draft was made from.
   sourceThreadId   String?
   createdById      String?
-  createdBy        User?          @relation("CanvasCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy        User?                 @relation("CanvasCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   updatedById      String?
-  updatedBy        User?          @relation("CanvasUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  updatedBy        User?                 @relation("CanvasUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
   deletedAt        DateTime?
   members          CanvasMember[]
+  commentThreads   CanvasCommentThread[]
 
   @@index([organizationId, roomId])
   @@index([organizationId, updatedAt(sort: Desc)])
@@ -699,4 +704,41 @@ model CanvasMember {
 
   @@id([canvasId, userId])
   @@index([userId])
+}
+
+/// A comment thread on a passage of a canvas. The passage is a Lexical mark carrying the thread's id.
+model CanvasCommentThread {
+  id             String          @id @default(cuid())
+  canvasId       String
+  canvas         Canvas          @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// The commented text as it read when the thread started, kept after the text is edited or deleted.
+  quote          String
+  createdById    String
+  createdBy      User            @relation("CanvasThreadCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  resolvedAt     DateTime?
+  resolvedById   String?
+  resolvedBy     User?           @relation("CanvasThreadResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  comments       CanvasComment[]
+
+  @@index([canvasId, resolvedAt, createdAt])
+}
+
+model CanvasComment {
+  id               String              @id @default(cuid())
+  threadId         String
+  thread           CanvasCommentThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  authorId         String
+  author           User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  body             String
+  mentionedUserIds String[]            @default([])
+  editedAt         DateTime?
+  deletedAt        DateTime?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@index([threadId, createdAt])
 }

@@ -337,4 +337,32 @@ export class PrismaCanvasesRepository implements CanvasesRepository {
       tx.canvasMember.deleteMany({ where: { canvasId, userId } })
     );
   }
+
+  async findMessages(organizationId: string, messageIds: string[]) {
+    const rows = await this.db.message.findMany({
+      where: { id: { in: messageIds }, room: { organizationId } },
+      select: {
+        id: true,
+        parentId: true,
+        body: true,
+        createdAt: true,
+        updatedAt: true,
+        deletedAt: true,
+        room: { select: { id: true, name: true, kind: true } },
+        author: { select: { id: true, name: true, image: true } },
+      },
+    });
+    return rows.map(({ deletedAt, room, ...message }) => ({
+      deletedAt,
+      message: {
+        ...message,
+        // A DM stores its key in `name`, and shows no name.
+        room: {
+          id: room.id,
+          name: room.kind === 'DM' ? '' : room.name,
+          kind: room.kind === 'DM' ? ('dm' as const) : ('channel' as const),
+        },
+      },
+    }));
+  }
 }

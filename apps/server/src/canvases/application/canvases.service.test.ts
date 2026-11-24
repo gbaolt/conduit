@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type {
   CanvasesRepository,
   StoredCanvasDocument,
+  StoredEmbeddedMessage,
 } from '@/canvases/domain/canvases.repository';
 import { PrismaCanvasesRepository } from '@/canvases/infrastructure/prisma-canvases.repository';
 import { FakeLiveblocksGateway } from '@/canvases/testing/fake-liveblocks.gateway';
@@ -62,11 +63,36 @@ function roomFor(overrides: Partial<Room> = {}): Room {
   };
 }
 
+/** A message in another room, which only `readers` may read. */
+type EmbeddedFixture = StoredEmbeddedMessage & { readers: string[] };
+
+function embeddedIn(
+  roomId: string,
+  kind: 'channel' | 'dm',
+  readers: string[],
+  deletedAt: Date | null = null
+): EmbeddedFixture {
+  return {
+    readers,
+    deletedAt,
+    message: {
+      id: `message-in-${roomId}`,
+      parentId: null,
+      body: `secret from ${roomId}`,
+      room: { id: roomId, name: kind === 'dm' ? '' : roomId, kind },
+      author: { id: 'alice', name: 'alice', image: null },
+      createdAt: new Date(0),
+      updatedAt: new Date(0),
+    },
+  };
+}
+
 /** An in-memory port. `members` of a room are who `rooms.find` treats as in it. */
 function setup(
   room: Room = roomFor(),
   roomMembers = ['alice', 'bob'],
-  liveblocks = new FakeLiveblocksGateway()
+  liveblocks = new FakeLiveblocksGateway(),
+  embedded: EmbeddedFixture[] = []
 ) {
   const canvases = new Map<
     string,
@@ -175,19 +201,32 @@ function setup(
       }),
     removeMember: async (_scope, id, userId) =>
       guard(id, () => shares.get(id)!.delete(userId)),
+    findMessages: async (_org, ids) =>
+      embedded.filter(({ message }) => ids.includes(message.id)),
   } satisfies CanvasesRepository;
   const asSeenBy = (userId: string): Room => ({
     ...room,
     membership: roomMembers.includes(userId) ? room.membership : null,
   });
+  const visibleTo = (userId: string) => {
+    const seen = asSeenBy(userId);
+    return seen.visibility === 'public' || seen.membership !== null;
+  };
   const rooms = {
     find: async (scope: { userId: string }, id: string) =>
       id === room.id ? asSeenBy(scope.userId) : null,
     list: async (scope: { userId: string }, archived: boolean) => {
       const seen = asSeenBy(scope.userId);
-      const visible = seen.visibility === 'public' || seen.membership !== null;
-      return visible && Boolean(seen.archivedAt) === archived ? [seen] : [];
+      return visibleTo(scope.userId) && Boolean(seen.archivedAt) === archived
+        ? [seen]
+        : [];
     },
+    accessibleRoomIds: async (scope: { userId: string }) => [
+      ...(visibleTo(scope.userId) ? [room.id] : []),
+      ...embedded
+        .filter(({ readers }) => readers.includes(scope.userId))
+        .map(({ message }) => message.room.id),
+    ],
   } as Partial<RoomsRepository> as RoomsRepository;
   const workspaceMembers = {
     count: async (_org: string, userIds: string[]) =>
@@ -242,6 +281,7 @@ describe('CanvasesService', () => {
 
     expect((await service.get(alice, canvas.id)).access).toEqual({
       edit: false,
+      comment: false,
       manageSharing: false,
       delete: false,
     });
@@ -362,6 +402,92 @@ describe('CanvasesService', () => {
     await expect(service.get(alice, canvas.id)).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
+  });
+});
+
+describe('CanvasesService embedded messages', () => {
+  const embeds = [
+    embeddedIn('general-2', 'channel', ['alice', 'bob']),
+    embeddedIn('private-ops', 'channel', ['alice']),
+    embeddedIn('alice-bob-dm', 'dm', ['alice', 'bob']),
+    embeddedIn('gone', 'channel', ['alice', 'bob'], new Date()),
+  ];
+  const [open, ops, dm, gone] = embeds.map(({ message }) => message.id) as [
+    string,
+    string,
+    string,
+    string,
+  ];
+
+  async function sharedCanvas() {
+    const context = setup(roomFor(), ['alice', 'bob'], undefined, embeds);
+    const canvas = await context.service.create(alice, {});
+    await context.service.share(alice, {
+      canvasId: canvas.id,
+      userIds: ['bob', 'carol'],
+      role: 'viewer',
+    });
+    return { ...context, canvas };
+  }
+
+  it('returns a message from a room the viewer reads, in the order asked', async () => {
+    const { service, canvas } = await sharedCanvas();
+    const results = await service.embeddedMessages(bob, {
+      canvasId: canvas.id,
+      messageIds: [dm, open],
+    });
+    expect(results.map((each) => each.status)).toEqual(['ok', 'ok']);
+    expect(results[1]).toMatchObject({
+      messageId: open,
+      message: { body: 'secret from general-2' },
+    });
+  });
+
+  it('returns a private channel message as inaccessible to someone outside it', async () => {
+    const { service, canvas } = await sharedCanvas();
+    expect(
+      await service.embeddedMessages(bob, {
+        canvasId: canvas.id,
+        messageIds: [ops],
+      })
+    ).toEqual([{ messageId: ops, status: 'inaccessible' }]);
+    expect(
+      await service.embeddedMessages(alice, {
+        canvasId: canvas.id,
+        messageIds: [ops],
+      })
+    ).toMatchObject([{ status: 'ok' }]);
+  });
+
+  it('returns a DM message as inaccessible to a third person', async () => {
+    const { service, canvas } = await sharedCanvas();
+    expect(
+      await service.embeddedMessages(carol, {
+        canvasId: canvas.id,
+        messageIds: [dm],
+      })
+    ).toEqual([{ messageId: dm, status: 'inaccessible' }]);
+  });
+
+  it('returns a deleted or unknown message as deleted', async () => {
+    const { service, canvas } = await sharedCanvas();
+    expect(
+      await service.embeddedMessages(bob, {
+        canvasId: canvas.id,
+        messageIds: [gone, 'never-existed'],
+      })
+    ).toEqual([
+      { messageId: gone, status: 'deleted' },
+      { messageId: 'never-existed', status: 'deleted' },
+    ]);
+  });
+
+  it('refuses someone who cannot open the canvas', async () => {
+    const { service } = setup(roomFor(), ['alice', 'bob'], undefined, embeds);
+    const canvas = await service.create(alice, {});
+    await expect(
+      service.embeddedMessages(bob, { canvasId: canvas.id, messageIds: [open] })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 });
 
@@ -682,6 +808,50 @@ describe.skipIf(!connectionString)('CanvasesService with Postgres', () => {
       contentHash: 'c'.repeat(64),
       updatedById: users.owner,
     });
+  });
+
+  it('hides an embedded private channel message from someone outside it', async () => {
+    const privateRoom = await prisma.room.create({
+      data: {
+        organizationId: run,
+        name: 'ops',
+        visibility: 'PRIVATE',
+        members: { create: { userId: users.owner } },
+      },
+    });
+    const message = await prisma.message.create({
+      data: {
+        roomId: privateRoom.id,
+        authorId: users.owner,
+        clientId: crypto.randomUUID(),
+        body: 'launch codes',
+      },
+    });
+    const canvas = await service.create(owner, {});
+    await service.share(owner, {
+      canvasId: canvas.id,
+      userIds: [users.member],
+      role: 'viewer',
+    });
+    const input = { canvasId: canvas.id, messageIds: [message.id] };
+
+    expect(await service.embeddedMessages(member, input)).toEqual([
+      { messageId: message.id, status: 'inaccessible' },
+    ]);
+    expect(await service.embeddedMessages(owner, input)).toMatchObject([
+      {
+        status: 'ok',
+        message: { body: 'launch codes', room: { name: 'ops' } },
+      },
+    ]);
+
+    await prisma.message.update({
+      where: { id: message.id },
+      data: { deletedAt: new Date(), body: '' },
+    });
+    expect(await service.embeddedMessages(owner, input)).toEqual([
+      { messageId: message.id, status: 'deleted' },
+    ]);
   });
 
   it('removes canvases and their shares with their channel', async () => {

@@ -3,6 +3,7 @@ import { Controller, Inject } from '@nestjs/common';
 import { Implement } from '@orpc/nest';
 import { implement } from '@orpc/server';
 
+import { CanvasCommentsService } from '@/canvases/application/canvas-comments.service';
 import {
   CanvasesService,
   type CanvasViewerScope,
@@ -26,7 +27,9 @@ function viewerOf(context: {
 @Controller()
 export class CanvasesController {
   constructor(
-    @Inject(CanvasesService) private readonly canvasesService: CanvasesService
+    @Inject(CanvasesService) private readonly canvasesService: CanvasesService,
+    @Inject(CanvasCommentsService)
+    private readonly commentsService: CanvasCommentsService
   ) {}
 
   @Implement(contract.canvases.getChannelCanvas)
@@ -173,6 +176,83 @@ export class CanvasesController {
       .use(workspaceMember)
       .handler(({ context, input }) =>
         this.canvasesService.saveSnapshot(viewerOf(context), input)
+      );
+  }
+
+  @Implement(contract.canvases.listComments)
+  listComments() {
+    return implement(contract.canvases.listComments)
+      .use(authorized)
+      .use(arcjet.read)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.commentsService.list(viewerOf(context), input.canvasId)
+      );
+  }
+
+  @Implement(contract.canvases.createCommentThread)
+  createCommentThread() {
+    return implement(contract.canvases.createCommentThread)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.commentsService.createThread(viewerOf(context), input)
+      );
+  }
+
+  @Implement(contract.canvases.replyComment)
+  replyComment() {
+    return implement(contract.canvases.replyComment)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.commentsService.reply(viewerOf(context), input)
+      );
+  }
+
+  @Implement(contract.canvases.editComment)
+  editComment() {
+    return implement(contract.canvases.editComment)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.commentsService.edit(viewerOf(context), input)
+      );
+  }
+
+  @Implement(contract.canvases.deleteComment)
+  deleteComment() {
+    return implement(contract.canvases.deleteComment)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.commentsService.delete(viewerOf(context), input)
+      );
+  }
+
+  @Implement(contract.canvases.resolveCommentThread)
+  resolveCommentThread() {
+    return implement(contract.canvases.resolveCommentThread)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.commentsService.resolve(viewerOf(context), input)
+      );
+  }
+
+  @Implement(contract.canvases.embeddedMessages)
+  embeddedMessages() {
+    return implement(contract.canvases.embeddedMessages)
+      .use(authorized)
+      .use(arcjet.read)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.canvasesService.embeddedMessages(viewerOf(context), input)
       );
   }
 }

@@ -6,6 +6,7 @@ import {
   type CanvasScope,
   checkCanvas,
   type CreateCanvasInput,
+  type EmbeddedMessage,
   type PolicyCanvas,
   type Room,
   type SaveCanvasSnapshotInput,
@@ -70,6 +71,7 @@ export class CanvasesService {
     const can = (action: CanvasAction) => canCanvas(action, viewer, policy);
     const access: CanvasAccess = {
       edit: can('edit'),
+      comment: can('comment'),
       manageSharing: can('manageSharing'),
       delete: can('delete'),
     };
@@ -78,7 +80,7 @@ export class CanvasesService {
   }
 
   /** The canvas and its channel, when the viewer may take `action` on it. Refuses with `NOT_FOUND` when they cannot read it. */
-  private async load(
+  async load(
     viewer: CanvasViewerScope,
     canvasId: string,
     action: CanvasAction
@@ -229,6 +231,34 @@ export class CanvasesService {
   async listMembers(viewer: CanvasViewerScope, canvasId: string) {
     const { canvas } = await this.load(viewer, canvasId, 'view');
     return canvas.roomId ? [] : this.canvases.listMembers(viewer, canvasId);
+  }
+
+  /**
+   * The embedded messages, checked against every room the viewer may read. A message outside them is
+   * `inaccessible` even when it was deleted, so a refusal never says what happened to it.
+   */
+  async embeddedMessages(
+    viewer: CanvasViewerScope,
+    input: { canvasId: string; messageIds: string[] }
+  ): Promise<EmbeddedMessage[]> {
+    await this.load(viewer, input.canvasId, 'view');
+    const [roomIds, stored] = await Promise.all([
+      this.rooms.accessibleRoomIds(viewer),
+      this.canvases.findMessages(viewer.organizationId, [
+        ...new Set(input.messageIds),
+      ]),
+    ]);
+    const readable = new Set(roomIds);
+    const byId = new Map(stored.map((each) => [each.message.id, each]));
+    return input.messageIds.map((messageId) => {
+      const found = byId.get(messageId);
+      if (!found) return { messageId, status: 'deleted' };
+      if (!readable.has(found.message.room.id)) {
+        return { messageId, status: 'inaccessible' };
+      }
+      if (found.deletedAt) return { messageId, status: 'deleted' };
+      return { messageId, status: 'ok', message: found.message };
+    });
   }
 
   async share(viewer: CanvasViewerScope, input: ShareCanvasInput) {
