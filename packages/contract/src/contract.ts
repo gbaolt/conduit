@@ -10,6 +10,8 @@ import {
   reorderChannelSectionsContract,
 } from './contracts/channel-sections';
 import {
+  canvasLiveblocksAuthContract,
+  claimCanvasBootstrapContract,
   createCanvasContract,
   deleteCanvasContract,
   getCanvasContract,
@@ -17,6 +19,7 @@ import {
   listCanvasesContract,
   listCanvasMembersContract,
   removeCanvasMemberContract,
+  saveCanvasSnapshotContract,
   shareCanvasContract,
   updateCanvasContract,
   updateCanvasMemberRoleContract,
@@ -339,6 +342,9 @@ export const contract = {
     share: shareCanvasContract,
     updateMemberRole: updateCanvasMemberRoleContract,
     removeMember: removeCanvasMemberContract,
+    liveblocksAuth: canvasLiveblocksAuthContract,
+    claimBootstrap: claimCanvasBootstrapContract,
+    saveSnapshot: saveCanvasSnapshotContract,
   },
   channelSections: {
     list: listChannelSectionsContract,

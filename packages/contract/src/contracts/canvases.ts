@@ -3,13 +3,17 @@ import { openapi } from '@orpc/openapi';
 import { z } from 'zod';
 
 import {
+  CanvasBootstrapSchema,
   CanvasDocumentSchema,
   CanvasIdInputSchema,
+  CanvasLiveblocksAuthSchema,
   CanvasMemberInputSchema,
   CanvasMemberSchema,
   CanvasSchema,
+  CanvasSnapshotSavedSchema,
   CreateCanvasInputSchema,
   ListCanvasesInputSchema,
+  SaveCanvasSnapshotInputSchema,
   ShareCanvasInputSchema,
   UpdateCanvasInputSchema,
   UpdateCanvasMemberRoleInputSchema,
@@ -105,3 +109,26 @@ export const removeCanvasMemberContract = oc
   .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED, LAST_EDITOR })
   .input(CanvasMemberInputSchema)
   .output(z.void());
+
+/** Read access to the canvas's live room for anyone who can view it, and write access for editors. */
+export const canvasLiveblocksAuthContract = oc
+  .meta(
+    openapi({ method: 'POST', path: '/canvases/{canvasId}/liveblocks-auth' })
+  )
+  .errors({ NOT_FOUND })
+  .input(CanvasIdInputSchema)
+  .output(CanvasLiveblocksAuthSchema);
+
+/** Claims the one-time seeding of the canvas's empty live document. Viewers never claim it. */
+export const claimCanvasBootstrapContract = oc
+  .meta(openapi({ method: 'POST', path: '/canvases/{canvasId}/bootstrap' }))
+  .errors({ NOT_FOUND })
+  .input(CanvasIdInputSchema)
+  .output(CanvasBootstrapSchema);
+
+/** Mirrors the live document into Postgres. */
+export const saveCanvasSnapshotContract = oc
+  .meta(openapi({ method: 'PUT', path: '/canvases/{canvasId}/snapshot' }))
+  .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED })
+  .input(SaveCanvasSnapshotInputSchema)
+  .output(CanvasSnapshotSavedSchema);

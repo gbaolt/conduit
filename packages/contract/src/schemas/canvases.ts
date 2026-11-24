@@ -102,3 +102,41 @@ export const CanvasMemberInputSchema = z.object({
 export const UpdateCanvasMemberRoleInputSchema = CanvasMemberInputSchema.extend(
   { role: CanvasRoleSchema }
 );
+
+/** A Liveblocks token for the canvas's room alone, or `enabled: false` when the server has no Liveblocks key. */
+export const CanvasLiveblocksAuthSchema = z.discriminatedUnion('enabled', [
+  z.object({
+    enabled: z.literal(true),
+    token: z.string(),
+    roomId: z.string(),
+    /** The viewer's cursor color, the same on every canvas. */
+    color: z.string(),
+  }),
+  z.object({ enabled: z.literal(false) }),
+]);
+export type CanvasLiveblocksAuth = z.infer<typeof CanvasLiveblocksAuthSchema>;
+
+/** `claimed` is true for the one caller who seeds the empty live document, with what to seed it from. */
+export const CanvasBootstrapSchema = z.object({
+  claimed: z.boolean(),
+  /** The saved editor state, serialized. Wins over `initialMarkdown`. */
+  snapshotJson: z.string().nullable(),
+  initialMarkdown: z.string().nullable(),
+});
+export type CanvasBootstrap = z.infer<typeof CanvasBootstrapSchema>;
+
+export const SaveCanvasSnapshotInputSchema = z.object({
+  canvasId: z.string(),
+  snapshotJson: CanvasSnapshotSchema,
+  markdown: z.string().max(CANVAS_MARKDOWN_MAX),
+  /** SHA-256 of `snapshotJson` as hex. A save that matches the stored hash writes nothing. */
+  contentHash: z.string().regex(/^[0-9a-f]{64}$/),
+});
+export type SaveCanvasSnapshotInput = z.infer<
+  typeof SaveCanvasSnapshotInputSchema
+>;
+
+export const CanvasSnapshotSavedSchema = z.object({
+  saved: z.boolean(),
+  updatedAt: z.coerce.date(),
+});
