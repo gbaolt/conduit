@@ -66,6 +66,7 @@ export function CanvasChannelTab({ roomId }: { roomId: string }) {
           ? {
               label: 'Create canvas',
               primary: true,
+              pending: create.isPending,
               onClick: () =>
                 create.mutate(
                   { roomId },
