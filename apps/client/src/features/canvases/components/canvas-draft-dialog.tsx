@@ -306,9 +306,9 @@ function CanvasDraftDialog({
             <StatusButton
               disabled={state.status !== 'done'}
               status={creating || create.isPending ? 'loading' : 'idle'}
-              onClick={() =>
-                state.status === 'done' && void createCanvas(state.draft)
-              }
+              onClick={() => {
+                if (state.status === 'done') void createCanvas(state.draft);
+              }}
             >
               Create canvas
             </StatusButton>
