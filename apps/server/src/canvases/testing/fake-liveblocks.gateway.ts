@@ -22,6 +22,14 @@ export class FakeLiveblocksGateway implements LiveblocksPort {
     roomId: string,
     permissions: LiveblocksPermission[]
   ) {
+    if (
+      permissions.includes('room:read') &&
+      permissions.includes('room:write')
+    ) {
+      return Promise.reject(
+        new Error('Liveblocks forbids passing both room:read and room:write.')
+      );
+    }
     this.grants.push({ userId, userInfo, roomId, permissions });
     return Promise.resolve(`token-${this.grants.length}`);
   }

@@ -367,7 +367,7 @@ describe('CanvasesService', () => {
 
 describe('CanvasesService live collaboration', () => {
   const user = { name: 'Alice', image: null };
-  const write = ['room:read', 'room:presence:write', 'room:write'];
+  const write = ['room:write'];
   const read = ['room:read', 'room:presence:write'];
   const shareWithBob = async (
     service: CanvasesService,

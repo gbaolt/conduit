@@ -37,8 +37,9 @@ export type CanvasViewerScope = {
 
 const UNTITLED = 'Untitled';
 
+// Liveblocks rejects passing both room:read and room:write; room:write implies read and presence.
 const READ: LiveblocksPermission[] = ['room:read', 'room:presence:write'];
-const WRITE: LiveblocksPermission[] = [...READ, 'room:write'];
+const WRITE: LiveblocksPermission[] = ['room:write'];
 
 @Injectable()
 export class CanvasesService {
