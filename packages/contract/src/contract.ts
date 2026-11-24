@@ -10,6 +10,18 @@ import {
   reorderChannelSectionsContract,
 } from './contracts/channel-sections';
 import {
+  createCanvasContract,
+  deleteCanvasContract,
+  getCanvasContract,
+  getChannelCanvasContract,
+  listCanvasesContract,
+  listCanvasMembersContract,
+  removeCanvasMemberContract,
+  shareCanvasContract,
+  updateCanvasContract,
+  updateCanvasMemberRoleContract,
+} from './contracts/canvases';
+import {
   getDraftContract,
   heartbeatContract,
   markReadContract,
@@ -315,6 +327,18 @@ export const contract = {
   },
   presence: {
     heartbeat: heartbeatContract,
+  },
+  canvases: {
+    getChannelCanvas: getChannelCanvasContract,
+    list: listCanvasesContract,
+    get: getCanvasContract,
+    create: createCanvasContract,
+    update: updateCanvasContract,
+    delete: deleteCanvasContract,
+    listMembers: listCanvasMembersContract,
+    share: shareCanvasContract,
+    updateMemberRole: updateCanvasMemberRoleContract,
+    removeMember: removeCanvasMemberContract,
   },
   channelSections: {
     list: listChannelSectionsContract,
