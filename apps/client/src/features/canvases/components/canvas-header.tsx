@@ -11,6 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@conduit/ui/components/alert-dialog';
+import { Badge } from '@conduit/ui/components/badge';
 import { Button } from '@conduit/ui/components/button';
 import {
   DropdownMenu,
@@ -19,11 +20,18 @@ import {
   DropdownMenuTrigger,
 } from '@conduit/ui/components/dropdown-menu';
 import { Input } from '@conduit/ui/components/input';
-import { IconDots, IconTrash, IconUsers } from '@tabler/icons-react';
+import {
+  IconDots,
+  IconMessage2,
+  IconTrash,
+  IconUsers,
+} from '@tabler/icons-react';
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { useDeleteCanvas, useUpdateCanvas } from '@/services/canvases/hooks';
+import { canvasCommentsQuery } from '@/services/canvases/queries';
 
 import type { CanvasSaveStatus } from './canvas-editor';
 
@@ -97,6 +105,35 @@ function CanvasHeaderStatus({
     >
       {canvas.access.edit ? STATUS_LABELS[status] : 'Read only'}
     </span>
+  );
+}
+
+/** Opens the comments panel. Its badge counts the threads still open. */
+function CanvasHeaderComments({
+  canvasId,
+  open,
+  onOpenChange,
+}: {
+  canvasId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { data: threads } = useQuery(canvasCommentsQuery(canvasId));
+  const count = threads?.filter((thread) => !thread.resolvedAt).length ?? 0;
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      aria-pressed={open}
+      aria-label={count > 0 ? `Comments, ${count} open` : 'Comments'}
+      onClick={() => onOpenChange(!open)}
+      className="aria-pressed:bg-muted"
+    >
+      <IconMessage2 data-icon="inline-start" />
+      Comments
+      {count > 0 && <Badge variant="secondary">{count}</Badge>}
+    </Button>
   );
 }
 
@@ -177,12 +214,16 @@ export function CanvasHeader({
   canvas,
   status,
   presenceRef,
+  commentsOpen,
+  onCommentsOpenChange,
   onShare,
   onDeleted,
 }: {
   canvas: CanvasDocument;
   status: CanvasSaveStatus;
   presenceRef: (element: HTMLDivElement | null) => void;
+  commentsOpen: boolean;
+  onCommentsOpenChange: (open: boolean) => void;
   onShare: () => void;
   onDeleted: () => void;
 }) {
@@ -192,6 +233,11 @@ export function CanvasHeader({
       <CanvasHeaderStatus canvas={canvas} status={status} />
       <div className="ml-auto flex shrink-0 items-center gap-1">
         <div ref={presenceRef} className="flex empty:hidden" />
+        <CanvasHeaderComments
+          canvasId={canvas.id}
+          open={commentsOpen}
+          onOpenChange={onCommentsOpenChange}
+        />
         {!canvas.roomId && (
           <Button variant="outline" size="sm" onClick={onShare}>
             <IconUsers data-icon="inline-start" />

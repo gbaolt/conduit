@@ -16,7 +16,7 @@ import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalExtensionEditorComposer } from '@lexical/react/LexicalExtensionEditorComposer';
 import { ReactExtension } from '@lexical/react/ReactExtension';
 import { ReactProviderExtension } from '@lexical/react/ReactProviderExtension';
-import { mergeRegister } from '@lexical/utils';
+import { $insertNodeToNearestRoot, mergeRegister } from '@lexical/utils';
 import { useRoom, useStatus } from '@liveblocks/react';
 import { getYjsProviderForRoom } from '@liveblocks/yjs';
 import { IconPlugConnectedX, IconUserPlus, IconX } from '@tabler/icons-react';
@@ -27,16 +27,19 @@ import {
   $getRoot,
   BLUR_COMMAND,
   COLLABORATION_TAG,
+  COMMAND_PRIORITY_HIGH,
   COMMAND_PRIORITY_LOW,
   configExtension,
   HISTORY_MERGE_TAG,
   type LexicalEditor,
   type LexicalEditorWithDispose,
+  PASTE_COMMAND,
 } from 'lexical';
 import {
   type ComponentProps,
   type ReactNode,
   type RefObject,
+  useCallback,
   useEffect,
   useEffectEvent,
   useMemo,
@@ -51,6 +54,10 @@ import {
   $isMentionNode,
   MentionNode,
 } from '@/components/editor/nodes/mention-node';
+import {
+  $createMessageEmbedNode,
+  MessageEmbedRenderer,
+} from '@/components/editor/nodes/message-embed-node';
 import { CodeBlockPlugin } from '@/components/editor/plugins/code-block-plugin';
 import { CodeHighlightPlugin } from '@/components/editor/plugins/code-highlight-plugin';
 import { ComponentPickerMenuPlugin } from '@/components/editor/plugins/component-picker-menu-plugin';
@@ -75,6 +82,7 @@ import { CodePickerPlugin } from '@/components/editor/plugins/picker/code-picker
 import { ColumnsLayoutPickerPlugin } from '@/components/editor/plugins/picker/columns-layout-picker-plugin';
 import { DividerPickerPlugin } from '@/components/editor/plugins/picker/divider-picker-plugin';
 import { HeadingPickerPlugin } from '@/components/editor/plugins/picker/heading-picker-plugin';
+import { MessageEmbedPickerPlugin } from '@/components/editor/plugins/picker/message-embed-picker-plugin';
 import { NumberedListPickerPlugin } from '@/components/editor/plugins/picker/numbered-list-picker-plugin';
 import { ParagraphPickerPlugin } from '@/components/editor/plugins/picker/paragraph-picker-plugin';
 import { QuotePickerPlugin } from '@/components/editor/plugins/picker/quote-picker-plugin';
@@ -98,10 +106,22 @@ import {
   createCanvasExtension,
 } from '../lib/canvas-extension';
 import { createLiveblocksYjsAdapter } from '../lib/liveblocks-yjs-adapter';
+import { parseMessageUrl } from '../lib/message-url';
 import {
   CanvasCollabProvider,
   useCanvasCollab,
 } from './canvas-collab-provider';
+import {
+  CanvasCommentPopover,
+  CanvasCommentPopoverButton,
+} from './canvas-comment-popover';
+import { CanvasCommentsPanel } from './canvas-comments-panel';
+import {
+  CanvasCommentsPlugin,
+  CanvasCommentsPluginLive,
+} from './canvas-comments-plugin';
+import { CanvasMessageEmbed } from './canvas-message-embed';
+import { CanvasMessagePickerDialog } from './canvas-message-picker-dialog';
 import { CanvasPresenceAvatars } from './canvas-presence-avatars';
 
 export type CanvasSaveStatus = 'saved' | 'saving' | 'failed';
@@ -154,7 +174,7 @@ function seedCanvas(
 }
 
 /** The `/` menu, in the order a document is usually built. */
-function canvasBlockOptions() {
+function canvasBlockOptions(pickMessage: () => void) {
   return [
     ParagraphPickerPlugin(),
     HeadingPickerPlugin({ n: 1 }),
@@ -168,7 +188,40 @@ function canvasBlockOptions() {
     DividerPickerPlugin(),
     TablePickerPlugin(),
     ColumnsLayoutPickerPlugin(),
+    MessageEmbedPickerPlugin({ onSelect: pickMessage }),
   ];
+}
+
+function $insertMessageEmbed(messageId: string) {
+  $insertNodeToNearestRoot($createMessageEmbedNode(messageId));
+}
+
+/** Pasting a Conduit message link on its own embeds the message instead of the link. */
+function CanvasEditorMessagePaste() {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(
+    () =>
+      editor.registerCommand(
+        PASTE_COMMAND,
+        (event) => {
+          const text =
+            event instanceof ClipboardEvent
+              ? event.clipboardData?.getData('text/plain')
+              : null;
+          const messageId =
+            text && parseMessageUrl(text, window.location.origin);
+          if (!messageId) return false;
+          event.preventDefault();
+          $insertMessageEmbed(messageId);
+          return true;
+        },
+        COMMAND_PRIORITY_HIGH
+      ),
+    [editor]
+  );
+
+  return null;
 }
 
 /** Saves a second after typing stops, when the editor loses focus, and when the canvas closes. */
@@ -538,10 +591,15 @@ function CanvasEditorPlugins({
   canvas: CanvasDocument;
   anchor: HTMLDivElement | null;
 }) {
+  const [editor] = useLexicalComposerContext();
   const [isLinkEditMode, setIsLinkEditMode] = useState(false);
+  const [pickingMessage, setPickingMessage] = useState(false);
   const { data: session } = useQuery(sessionQuery);
   const { data: workspaceMembers } = useWorkspaceMembers();
-  const blockOptions = useMemo(canvasBlockOptions, []);
+  const blockOptions = useMemo(
+    () => canvasBlockOptions(() => setPickingMessage(true)),
+    []
+  );
   const viewerId = session?.user.id;
   // A canvas never notifies a whole channel, so `@channel` and `@here` are not offered.
   const suggestions = useMemo(
@@ -587,6 +645,7 @@ function CanvasEditorPlugins({
           <FloatingTextFormatToolbarPlugin
             anchorElem={anchor}
             setIsLinkEditMode={setIsLinkEditMode}
+            trailing={canvas.access.comment && <CanvasCommentPopoverButton />}
           />
           <FloatingLinkEditorPlugin
             anchorElem={anchor}
@@ -597,6 +656,14 @@ function CanvasEditorPlugins({
             anchorElem={anchor}
             baseOptions={blockOptions}
             dynamicOptionsFn={DynamicTablePickerPlugin}
+          />
+          <CanvasEditorMessagePaste />
+          <CanvasMessagePickerDialog
+            open={pickingMessage}
+            onOpenChange={setPickingMessage}
+            onPick={(messageId) =>
+              editor.update(() => $insertMessageEmbed(messageId))
+            }
           />
         </>
       )}
@@ -628,15 +695,12 @@ export function CanvasEditor({
   canvas,
   fallback,
   presenceSlot,
+  commentsOpen,
+  onCommentsOpenChange,
   onStatusChange,
-}: {
+}: CanvasEditorDocumentProps & {
   /** Read once, when the editor mounts. Remount with a `key` to open another canvas. */
   canvas: CanvasDocument;
-  /** Shown until the live document is ready. */
-  fallback: ReactNode;
-  /** Where the avatars of everyone else on a live canvas render. */
-  presenceSlot: HTMLElement | null;
-  onStatusChange: (status: CanvasSaveStatus) => void;
 }) {
   return (
     <CanvasCollabProvider canvasId={canvas.id} fallback={fallback}>
@@ -644,23 +708,33 @@ export function CanvasEditor({
         canvas={canvas}
         fallback={fallback}
         presenceSlot={presenceSlot}
+        commentsOpen={commentsOpen}
+        onCommentsOpenChange={onCommentsOpenChange}
         onStatusChange={onStatusChange}
       />
     </CanvasCollabProvider>
   );
 }
 
+type CanvasEditorDocumentProps = {
+  canvas: CanvasDocument;
+  /** Shown until the live document is ready. */
+  fallback: ReactNode;
+  /** Where the avatars of everyone else on a live canvas render. */
+  presenceSlot: HTMLElement | null;
+  commentsOpen: boolean;
+  onCommentsOpenChange: (open: boolean) => void;
+  onStatusChange: (status: CanvasSaveStatus) => void;
+};
+
 function CanvasEditorDocument({
   canvas,
   fallback,
   presenceSlot,
+  commentsOpen,
+  onCommentsOpenChange,
   onStatusChange,
-}: {
-  canvas: CanvasDocument;
-  fallback: ReactNode;
-  presenceSlot: HTMLElement | null;
-  onStatusChange: (status: CanvasSaveStatus) => void;
-}) {
+}: CanvasEditorDocumentProps) {
   const collab = useCanvasCollab();
   const { data: workspaceMembers } = useWorkspaceMembers();
   const names = useMemo(
@@ -679,6 +753,15 @@ function CanvasEditorDocument({
   const loading = collab.live && liveState === 'loading';
   const editable =
     canvas.access.edit && (!collab.live || liveState === 'ready');
+  const renderEmbed = useCallback(
+    (messageId: string) => (
+      <CanvasMessageEmbed canvasId={canvas.id} messageId={messageId} />
+    ),
+    [canvas.id]
+  );
+  const Comments = collab.live
+    ? CanvasCommentsPluginLive
+    : CanvasCommentsPlugin;
 
   // Every effect cleanup disposes the editor, and a disposed editor ignores typing, so a remount builds a new one.
   useEffect(() => {
@@ -701,50 +784,61 @@ function CanvasEditorDocument({
       key={editor.getKey()}
       initialEditor={editor}
     >
-      {collab.live ? (
-        <CanvasEditorLive
-          canvas={canvas}
-          color={collab.color}
-          deniedReason={collab.deniedReason}
-          names={namesAtMount}
-          cursorsRef={cursorsRef}
-          presenceSlot={presenceSlot}
-          onStateChange={setLiveState}
-          onStatusChange={onStatusChange}
-        />
-      ) : (
-        editable && (
-          <CanvasEditorAutosave
-            canvasId={canvas.id}
-            onStatusChange={onStatusChange}
-          />
-        )
-      )}
-      {editable && !canvas.roomId && canvas.access.manageSharing && (
-        <CanvasEditorSharePrompt canvasId={canvas.id} />
-      )}
-      <CanvasEditorPlugins canvas={canvas} anchor={anchor} />
-      {loading && fallback}
-      <div
-        ref={(element) => {
-          cursorsRef.current = element;
-          setAnchor(element);
-        }}
-        hidden={loading}
-        className="relative"
-      >
-        <ContentEditable
-          aria-label={canvas.title}
-          aria-placeholder="Type / for blocks"
-          aria-readonly={!editable}
-          placeholder={
-            <div className="text-muted-foreground pointer-events-none absolute top-0 left-8 leading-7 select-none">
-              Type / for blocks, @ to mention someone
-            </div>
-          }
-          className="min-h-[50dvh] pb-24 pl-8 leading-7 outline-none"
-        />
-      </div>
+      <MessageEmbedRenderer value={renderEmbed}>
+        <Comments
+          canvasId={canvas.id}
+          canComment={canvas.access.comment && editable}
+          panelOpen={commentsOpen}
+          onPanelOpenChange={onCommentsOpenChange}
+        >
+          {collab.live ? (
+            <CanvasEditorLive
+              canvas={canvas}
+              color={collab.color}
+              deniedReason={collab.deniedReason}
+              names={namesAtMount}
+              cursorsRef={cursorsRef}
+              presenceSlot={presenceSlot}
+              onStateChange={setLiveState}
+              onStatusChange={onStatusChange}
+            />
+          ) : (
+            editable && (
+              <CanvasEditorAutosave
+                canvasId={canvas.id}
+                onStatusChange={onStatusChange}
+              />
+            )
+          )}
+          {editable && !canvas.roomId && canvas.access.manageSharing && (
+            <CanvasEditorSharePrompt canvasId={canvas.id} />
+          )}
+          <CanvasEditorPlugins canvas={canvas} anchor={anchor} />
+          {loading && fallback}
+          <div
+            ref={(element) => {
+              cursorsRef.current = element;
+              setAnchor(element);
+            }}
+            hidden={loading}
+            className="relative"
+          >
+            <ContentEditable
+              aria-label={canvas.title}
+              aria-placeholder="Type / for blocks"
+              aria-readonly={!editable}
+              placeholder={
+                <div className="text-muted-foreground pointer-events-none absolute top-0 left-8 leading-7 select-none">
+                  Type / for blocks, @ to mention someone
+                </div>
+              }
+              className="min-h-[50dvh] pb-24 pl-8 leading-7 outline-none"
+            />
+          </div>
+          <CanvasCommentPopover />
+          <CanvasCommentsPanel />
+        </Comments>
+      </MessageEmbedRenderer>
     </LexicalExtensionEditorComposer>
   );
 

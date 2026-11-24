@@ -53,6 +53,7 @@ export function CanvasView({
 }) {
   const [status, setStatus] = useState<CanvasSaveStatus>('saved');
   const [sharing, setSharing] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
   const [presenceSlot, setPresenceSlot] = useState<HTMLDivElement | null>(null);
 
   return (
@@ -61,6 +62,8 @@ export function CanvasView({
         canvas={canvas}
         status={status}
         presenceRef={setPresenceSlot}
+        commentsOpen={commentsOpen}
+        onCommentsOpenChange={setCommentsOpen}
         onShare={() => setSharing(true)}
         onDeleted={onDeleted}
       />
@@ -71,6 +74,8 @@ export function CanvasView({
             canvas={canvas}
             fallback={<CanvasViewEditorSkeleton />}
             presenceSlot={presenceSlot}
+            commentsOpen={commentsOpen}
+            onCommentsOpenChange={setCommentsOpen}
             onStatusChange={setStatus}
           />
         </div>

@@ -159,3 +159,58 @@ export function useRemoveCanvasMember() {
     })
   );
 }
+
+/** Refetches the canvas's threads after a change, so the panel and the open-thread count agree with the server. */
+function useInvalidateComments() {
+  const queryClient = useQueryClient();
+
+  return ({ canvasId }: { canvasId: string }) =>
+    queryClient.invalidateQueries({
+      queryKey: orpc.canvases.listComments.key({ input: { canvasId } }),
+    });
+}
+
+export function useCreateCanvasCommentThread() {
+  const invalidate = useInvalidateComments();
+  return useMutation(
+    orpc.canvases.createCommentThread.mutationOptions({
+      onSuccess: (_, input) => invalidate(input),
+    })
+  );
+}
+
+export function useReplyCanvasComment() {
+  const invalidate = useInvalidateComments();
+  return useMutation(
+    orpc.canvases.replyComment.mutationOptions({
+      onSuccess: (_, input) => invalidate(input),
+    })
+  );
+}
+
+export function useEditCanvasComment() {
+  const invalidate = useInvalidateComments();
+  return useMutation(
+    orpc.canvases.editComment.mutationOptions({
+      onSuccess: (_, input) => invalidate(input),
+    })
+  );
+}
+
+export function useDeleteCanvasComment() {
+  const invalidate = useInvalidateComments();
+  return useMutation(
+    orpc.canvases.deleteComment.mutationOptions({
+      onSuccess: (_, input) => invalidate(input),
+    })
+  );
+}
+
+export function useResolveCanvasCommentThread() {
+  const invalidate = useInvalidateComments();
+  return useMutation(
+    orpc.canvases.resolveCommentThread.mutationOptions({
+      onSuccess: (_, input) => invalidate(input),
+    })
+  );
+}

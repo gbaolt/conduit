@@ -1,6 +1,11 @@
-import type { CanvasScope } from '@conduit/contract';
+import {
+  CANVAS_EMBEDS_MAX,
+  type CanvasScope,
+  type EmbeddedMessage,
+} from '@conduit/contract';
+import { queryOptions } from '@tanstack/react-query';
 
-import { orpc } from '@/lib/orpc';
+import { client, orpc } from '@/lib/orpc';
 
 /** The channel's canvas, or null before anyone creates it. */
 export const channelCanvasQuery = (roomId: string) =>
@@ -25,4 +30,49 @@ export const canvasLiveblocksAuthQuery = (canvasId: string) =>
     gcTime: 0,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
+  });
+
+export const canvasCommentsQuery = (canvasId: string) =>
+  orpc.canvases.listComments.queryOptions({ input: { canvasId } });
+
+type EmbedBatch = {
+  canvasId: string;
+  ids: Set<string>;
+  result: Promise<Map<string, EmbeddedMessage>>;
+};
+let embedBatch: EmbedBatch | null = null;
+
+// Every embed asking in the same tick shares one request.
+function loadEmbeddedMessage(canvasId: string, messageId: string) {
+  if (
+    !embedBatch ||
+    embedBatch.canvasId !== canvasId ||
+    embedBatch.ids.size >= CANVAS_EMBEDS_MAX
+  ) {
+    const ids = new Set<string>();
+    const result = Promise.resolve().then(async () => {
+      if (embedBatch?.ids === ids) embedBatch = null;
+      const list = await client.canvases.embeddedMessages({
+        canvasId,
+        messageIds: [...ids],
+      });
+      return new Map(list.map((each) => [each.messageId, each]));
+    });
+    embedBatch = { canvasId, ids, result };
+  }
+  embedBatch.ids.add(messageId);
+  return embedBatch.result.then((found) => found.get(messageId)!);
+}
+
+/** One message a canvas embeds, as the viewer may see it. */
+export const canvasEmbeddedMessageQuery = (
+  canvasId: string,
+  messageId: string
+) =>
+  queryOptions({
+    queryKey: [
+      ...orpc.canvases.embeddedMessages.key({ input: { canvasId } }),
+      messageId,
+    ],
+    queryFn: () => loadEmbeddedMessage(canvasId, messageId),
   });

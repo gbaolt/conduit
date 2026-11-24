@@ -6,6 +6,7 @@ import {
 import { HistoryExtension } from '@lexical/history';
 import { LinkExtension } from '@lexical/link';
 import { CheckListExtension, ListExtension } from '@lexical/list';
+import { MarkExtension } from '@lexical/mark';
 import {
   $convertFromMarkdownString,
   $convertToMarkdownString,
@@ -38,6 +39,7 @@ import { CodeBlockNode } from '@/components/editor/nodes/code-block-node';
 import { LayoutContainerNode } from '@/components/editor/nodes/layout-container-node';
 import { LayoutItemNode } from '@/components/editor/nodes/layout-item-node';
 import { MentionNode } from '@/components/editor/nodes/mention-node';
+import { MessageEmbedNode } from '@/components/editor/nodes/message-embed-node';
 import { editorTheme } from '@/components/editor/themes/editor-theme';
 import { HR } from '@/components/editor/transformers/markdown-hr-transformer';
 import { createTableTransformer } from '@/components/editor/transformers/markdown-table-transformer';
@@ -55,6 +57,10 @@ const canvasTheme: EditorThemeClasses = {
   },
   quote:
     'border-border text-muted-foreground border-l-2 pl-4 [&:not(:first-child)]:mt-3',
+  embedBlock: {
+    base: 'my-3 select-none',
+    focus: 'rounded-lg ring-2 ring-ring ring-offset-2 ring-offset-background',
+  },
   // Other people's carets and selections. Lexical sets each person's color as `--lexical-cursor-color`.
   collaboration: {
     cursor: 'canvas-cursor',
@@ -140,6 +146,7 @@ export function createCanvasExtension(
       },
       LayoutContainerNode,
       LayoutItemNode,
+      MessageEmbedNode,
     ],
     onError: (error) => {
       throw error;
@@ -154,6 +161,7 @@ export function createCanvasExtension(
       CheckListExtension,
       LinkExtension,
       AutoLinkExtension,
+      MarkExtension,
       CodeExtension,
       configExtension(TableExtension, {
         hasCellMerge: false,

@@ -96,6 +96,7 @@ export const editorTheme: EditorThemeClasses = {
   },
   hr: 'p-0.5 border-none my-1 mx-0 cursor-pointer after:content-[""] after:block after:h-0.5 after:bg-muted selected:ring-2 selected:ring-primary selected:ring-offset-2 selected:user-select-none',
   indent: '[--lexical-indent-base-value:40px]',
-  mark: '',
-  markOverlap: '',
+  // A quiet tint until its thread is the active one; `.editor-mark-active` in editor-theme.css raises it.
+  mark: 'editor-mark rounded-xs bg-amber-200/40 underline decoration-amber-500/60 decoration-2 underline-offset-4 dark:bg-amber-300/10 dark:decoration-amber-300/50',
+  markOverlap: 'bg-amber-200/70 dark:bg-amber-300/20',
 };

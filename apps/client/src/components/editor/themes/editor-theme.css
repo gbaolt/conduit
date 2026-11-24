@@ -44,3 +44,22 @@
     animation: none;
   }
 }
+
+/* The commented passage whose thread is open. Instant, so clicking a passage answers at once. */
+.editor-mark.editor-mark-active {
+  background-color: color-mix(
+    in oklab,
+    var(--color-amber-300) 70%,
+    transparent
+  );
+  text-decoration-color: var(--color-amber-600);
+}
+
+.dark .editor-mark.editor-mark-active {
+  background-color: color-mix(
+    in oklab,
+    var(--color-amber-300) 30%,
+    transparent
+  );
+  text-decoration-color: var(--color-amber-300);
+}
