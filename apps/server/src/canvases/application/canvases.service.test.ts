@@ -6,6 +6,7 @@ import type {
   StoredCanvasDocument,
 } from '@/canvases/domain/canvases.repository';
 import { PrismaCanvasesRepository } from '@/canvases/infrastructure/prisma-canvases.repository';
+import { FakeLiveblocksGateway } from '@/canvases/testing/fake-liveblocks.gateway';
 import { prisma } from '@/infrastructure/database/prisma.service';
 import type { RoomsRepository } from '@/rooms/domain/rooms.repository';
 import { PrismaRoomsRepository } from '@/rooms/infrastructure/prisma-rooms.repository';
@@ -62,10 +63,19 @@ function roomFor(overrides: Partial<Room> = {}): Room {
 }
 
 /** An in-memory port. `members` of a room are who `rooms.find` treats as in it. */
-function setup(room: Room = roomFor(), roomMembers = ['alice', 'bob']) {
+function setup(
+  room: Room = roomFor(),
+  roomMembers = ['alice', 'bob'],
+  liveblocks = new FakeLiveblocksGateway()
+) {
   const canvases = new Map<
     string,
-    Omit<StoredCanvasDocument, 'viewerRole'> & { deletedAt: Date | null }
+    Omit<StoredCanvasDocument, 'viewerRole'> & {
+      deletedAt: Date | null;
+      seededAt: Date | null;
+      contentHash: string | null;
+      initialMarkdown: string | null;
+    }
   >();
   const shares = new Map<string, Map<string, CanvasRole>>();
   let next = 0;
@@ -99,6 +109,9 @@ function setup(room: Room = roomFor(), roomMembers = ['alice', 'bob']) {
       snapshotJson: null,
       markdown: '',
       deletedAt: null,
+      seededAt: null,
+      contentHash: null,
+      initialMarkdown: null,
     });
     shares.set(id, new Map(roomId ? [] : [[userId, 'editor']]));
     return id;
@@ -124,6 +137,21 @@ function setup(room: Room = roomFor(), roomMembers = ['alice', 'bob']) {
         ) as StoredCanvasDocument[],
     update: async (_scope, id, patch) => {
       canvases.set(id, { ...canvases.get(id)!, ...patch });
+    },
+    claimBootstrap: async (id) => {
+      const row = canvases.get(id)!;
+      if (row.seededAt) return null;
+      row.seededAt = new Date();
+      return {
+        snapshotJson: row.snapshotJson && JSON.stringify(row.snapshotJson),
+        initialMarkdown: row.initialMarkdown,
+      };
+    },
+    saveSnapshot: async (_scope, id, snapshot) => {
+      const row = canvases.get(id)!;
+      const saved = row.contentHash !== snapshot.contentHash;
+      if (saved) canvases.set(id, { ...row, ...snapshot });
+      return { saved, updatedAt: row.updatedAt };
     },
     softDelete: async (id) => {
       canvases.set(id, { ...canvases.get(id)!, deletedAt: new Date() });
@@ -166,8 +194,14 @@ function setup(room: Room = roomFor(), roomMembers = ['alice', 'bob']) {
       userIds.filter((id) => ['alice', 'bob', 'carol'].includes(id)).length,
   } as Partial<WorkspaceMembersRepository> as WorkspaceMembersRepository;
   return {
-    service: new CanvasesService(repository, rooms, workspaceMembers),
+    service: new CanvasesService(
+      repository,
+      rooms,
+      workspaceMembers,
+      liveblocks
+    ),
     canvases,
+    liveblocks,
   };
 }
 
@@ -311,6 +345,193 @@ describe('CanvasesService', () => {
       first.id
     );
   });
+
+  it('deletes the live room with the canvas', async () => {
+    const { service, liveblocks } = setup();
+    const canvas = await service.create(alice, { roomId: 'general' });
+    await service.delete(alice, canvas.id);
+    expect(liveblocks.deletedRooms).toEqual([`canvas:org:${canvas.id}`]);
+  });
+
+  it('deletes the canvas even when its live room cannot be removed', async () => {
+    const liveblocks = new FakeLiveblocksGateway();
+    liveblocks.deleteRoom = () => Promise.reject(new Error('down'));
+    const { service } = setup(roomFor(), ['alice', 'bob'], liveblocks);
+    const canvas = await service.create(alice, {});
+    await service.delete(alice, canvas.id);
+    await expect(service.get(alice, canvas.id)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
+});
+
+describe('CanvasesService live collaboration', () => {
+  const user = { name: 'Alice', image: null };
+  const write = ['room:read', 'room:presence:write', 'room:write'];
+  const read = ['room:read', 'room:presence:write'];
+  const shareWithBob = async (
+    service: CanvasesService,
+    canvasId: string,
+    role: CanvasRole
+  ) => service.share(alice, { canvasId, userIds: ['bob'], role });
+
+  it('grants an editor write access to the canvas room alone', async () => {
+    const { service, liveblocks } = setup();
+    const canvas = await service.create(alice, { roomId: 'general' });
+
+    const auth = await service.liveblocksAuth(alice, canvas.id, user);
+
+    const roomId = `canvas:org:${canvas.id}`;
+    expect(auth).toEqual({
+      enabled: true,
+      token: 'token-1',
+      roomId,
+      color: expect.stringMatching(/^#[0-9a-f]{6}$/),
+    });
+    expect(liveblocks.grants).toEqual([
+      {
+        userId: 'alice',
+        userInfo: { ...user, color: auth.enabled && auth.color },
+        roomId,
+        permissions: write,
+      },
+    ]);
+  });
+
+  it('gives a person the same cursor color on every canvas', async () => {
+    const { service } = setup();
+    const a = await service.create(alice, {});
+    const b = await service.create(alice, {});
+    const first = await service.liveblocksAuth(alice, a.id, user);
+    const second = await service.liveblocksAuth(alice, b.id, user);
+    expect(first.enabled && first.color).toBe(second.enabled && second.color);
+  });
+
+  it('grants a viewer read access and cursors only', async () => {
+    const { service, liveblocks } = setup();
+    const canvas = await service.create(alice, {});
+    await shareWithBob(service, canvas.id, 'viewer');
+
+    await service.liveblocksAuth(bob, canvas.id, user);
+
+    expect(liveblocks.grants[0]?.permissions).toEqual(read);
+  });
+
+  it('leaves an archived channel canvas read-only in its room', async () => {
+    const room = roomFor();
+    const { service, liveblocks } = setup(room);
+    const canvas = await service.create(alice, { roomId: 'general' });
+    room.archivedAt = new Date();
+
+    await service.liveblocksAuth(alice, canvas.id, user);
+
+    expect(liveblocks.grants[0]?.permissions).toEqual(read);
+  });
+
+  it('refuses a token to anyone who cannot read the canvas', async () => {
+    const { service, liveblocks } = setup(roomFor({ visibility: 'private' }), [
+      'alice',
+    ]);
+    const channel = await service.create(alice, { roomId: 'general' });
+    const standalone = await service.create(alice, {});
+
+    for (const canvasId of [channel.id, standalone.id, 'missing']) {
+      await expect(
+        service.liveblocksAuth(carol, canvasId, user)
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    }
+    expect(liveblocks.grants).toEqual([]);
+  });
+
+  it('refuses a token once someone is removed from the canvas', async () => {
+    const { service, liveblocks } = setup();
+    const canvas = await service.create(alice, {});
+    await shareWithBob(service, canvas.id, 'editor');
+    await service.removeMember(alice, { canvasId: canvas.id, userId: 'bob' });
+
+    await expect(
+      service.liveblocksAuth(bob, canvas.id, user)
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(liveblocks.grants).toEqual([]);
+  });
+
+  it('answers enabled: false without a Liveblocks key, after checking access', async () => {
+    const { service } = setup(
+      roomFor(),
+      ['alice', 'bob'],
+      new FakeLiveblocksGateway(false)
+    );
+    const canvas = await service.create(alice, {});
+
+    expect(await service.liveblocksAuth(alice, canvas.id, user)).toEqual({
+      enabled: false,
+    });
+    await expect(
+      service.liveblocksAuth(carol, canvas.id, user)
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('lets exactly one of several editors claim the first seed', async () => {
+    const { service, canvases } = setup();
+    const canvas = await service.create(alice, { roomId: 'general' });
+    canvases.get(canvas.id)!.initialMarkdown = '# Draft';
+
+    const claims = await Promise.all([
+      service.claimBootstrap(alice, canvas.id),
+      service.claimBootstrap(bob, canvas.id),
+      service.claimBootstrap(alice, canvas.id),
+    ]);
+
+    expect(claims.filter((claim) => claim.claimed)).toEqual([
+      { claimed: true, snapshotJson: null, initialMarkdown: '# Draft' },
+    ]);
+  });
+
+  it('never lets a viewer claim the seed', async () => {
+    const { service, canvases } = setup();
+    const canvas = await service.create(alice, {});
+    await shareWithBob(service, canvas.id, 'viewer');
+
+    expect(await service.claimBootstrap(bob, canvas.id)).toEqual({
+      claimed: false,
+      snapshotJson: null,
+      initialMarkdown: null,
+    });
+    expect(canvases.get(canvas.id)!.seededAt).toBeNull();
+  });
+
+  it('skips a snapshot save whose hash matches the stored one', async () => {
+    const { service } = setup();
+    const canvas = await service.create(alice, {});
+    const snapshot = {
+      canvasId: canvas.id,
+      snapshotJson: { root: {} },
+      markdown: 'Hello',
+      contentHash: 'a'.repeat(64),
+    };
+
+    expect((await service.saveSnapshot(alice, snapshot)).saved).toBe(true);
+    expect((await service.saveSnapshot(alice, snapshot)).saved).toBe(false);
+    const next = { markdown: 'Hello again', contentHash: 'b'.repeat(64) };
+    expect(
+      (await service.saveSnapshot(alice, { ...snapshot, ...next })).saved
+    ).toBe(true);
+    expect((await service.get(alice, canvas.id)).markdown).toBe('Hello again');
+  });
+
+  it('refuses a snapshot from a viewer', async () => {
+    const { service } = setup();
+    const canvas = await service.create(alice, {});
+    await shareWithBob(service, canvas.id, 'viewer');
+    await expect(
+      service.saveSnapshot(bob, {
+        canvasId: canvas.id,
+        snapshotJson: { root: {} },
+        markdown: '',
+        contentHash: 'a'.repeat(64),
+      })
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
 });
 
 const connectionString = process.env.TEST_DATABASE_URL;
@@ -319,7 +540,8 @@ describe.skipIf(!connectionString)('CanvasesService with Postgres', () => {
   const service = new CanvasesService(
     new PrismaCanvasesRepository(prisma),
     new PrismaRoomsRepository(prisma),
-    new PrismaWorkspaceMembersRepository(prisma)
+    new PrismaWorkspaceMembersRepository(prisma),
+    new FakeLiveblocksGateway()
   );
   const run = crypto.randomUUID();
   const users = { owner: `${run}-owner`, member: `${run}-member` };
@@ -414,6 +636,52 @@ describe.skipIf(!connectionString)('CanvasesService with Postgres', () => {
         where: { canvasId: canvas.id, role: 'EDITOR' },
       })
     ).toBe(1);
+  });
+
+  it('lets one of two editors opening a new canvas at once seed it', async () => {
+    const canvas = await service.create(owner, { roomId });
+    await prisma.canvas.update({
+      where: { id: canvas.id },
+      data: { initialMarkdown: '# Draft' },
+    });
+
+    const claims = await Promise.all([
+      service.claimBootstrap(owner, canvas.id),
+      service.claimBootstrap(member, canvas.id),
+    ]);
+
+    expect(claims.filter((claim) => claim.claimed)).toEqual([
+      { claimed: true, snapshotJson: null, initialMarkdown: '# Draft' },
+    ]);
+    expect((await service.claimBootstrap(owner, canvas.id)).claimed).toBe(
+      false
+    );
+  });
+
+  it('writes a snapshot once per content hash', async () => {
+    const canvas = await service.create(owner, {});
+    const snapshot = {
+      canvasId: canvas.id,
+      snapshotJson: { root: { children: [] } },
+      markdown: 'Hello',
+      contentHash: 'c'.repeat(64),
+    };
+
+    const first = await service.saveSnapshot(owner, snapshot);
+    const second = await service.saveSnapshot(owner, snapshot);
+
+    expect([first.saved, second.saved]).toEqual([true, false]);
+    expect(second.updatedAt).toEqual(first.updatedAt);
+    expect(
+      await prisma.canvas.findUnique({
+        where: { id: canvas.id },
+        select: { markdown: true, contentHash: true, updatedById: true },
+      })
+    ).toEqual({
+      markdown: 'Hello',
+      contentHash: 'c'.repeat(64),
+      updatedById: users.owner,
+    });
   });
 
   it('removes canvases and their shares with their channel', async () => {

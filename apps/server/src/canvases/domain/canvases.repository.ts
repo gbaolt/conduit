@@ -1,5 +1,6 @@
 import type {
   Canvas,
+  CanvasBootstrap,
   CanvasDocument,
   CanvasMember,
   CanvasRole,
@@ -22,6 +23,12 @@ export type CanvasPatch = {
   title?: string;
   snapshotJson?: Record<string, unknown>;
   markdown?: string;
+};
+
+export type CanvasSnapshot = {
+  snapshotJson: Record<string, unknown>;
+  markdown: string;
+  contentHash: string;
 };
 
 /** Canvases and their shares. Callers check access first; this port knows only rows. Deleted canvases are never returned. */
@@ -61,6 +68,21 @@ export abstract class CanvasesRepository {
     canvasId: string,
     patch: CanvasPatch
   ): Promise<void>;
+
+  /**
+   * Marks the canvas seeded and returns what to seed it from, or null when someone already claimed it.
+   * Atomic, so of any number of callers at once exactly one gets the content.
+   */
+  abstract claimBootstrap(
+    canvasId: string
+  ): Promise<Omit<CanvasBootstrap, 'claimed'> | null>;
+
+  /** Writes the snapshot unless its `contentHash` matches the stored one. `saved` says which happened. */
+  abstract saveSnapshot(
+    scope: CanvasScopeOf,
+    canvasId: string,
+    snapshot: CanvasSnapshot
+  ): Promise<{ saved: boolean; updatedAt: Date }>;
 
   /** Marks the canvas deleted, which also frees its channel for a new primary canvas. */
   abstract softDelete(canvasId: string): Promise<void>;

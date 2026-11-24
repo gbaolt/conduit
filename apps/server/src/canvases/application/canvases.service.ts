@@ -8,17 +8,24 @@ import {
   type CreateCanvasInput,
   type PolicyCanvas,
   type Room,
+  type SaveCanvasSnapshotInput,
   type ShareCanvasInput,
   type UpdateCanvasInput,
   type WorkspaceRole,
 } from '@conduit/contract';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 
 import { canvasError } from '@/canvases/domain/canvas-errors';
 import {
   CanvasesRepository,
   type StoredCanvas,
 } from '@/canvases/domain/canvases.repository';
+import {
+  cursorColorOf,
+  type LiveblocksPermission,
+  LiveblocksPort,
+  liveblocksRoomId,
+} from '@/canvases/domain/liveblocks.port';
 import { RoomsRepository } from '@/rooms/domain/rooms.repository';
 import { WorkspaceMembersRepository } from '@/workspaces/domain/workspace-members.repository';
 
@@ -30,13 +37,19 @@ export type CanvasViewerScope = {
 
 const UNTITLED = 'Untitled';
 
+const READ: LiveblocksPermission[] = ['room:read', 'room:presence:write'];
+const WRITE: LiveblocksPermission[] = [...READ, 'room:write'];
+
 @Injectable()
 export class CanvasesService {
+  private readonly logger = new Logger(CanvasesService.name);
+
   constructor(
     @Inject(CanvasesRepository) private readonly canvases: CanvasesRepository,
     @Inject(RoomsRepository) private readonly rooms: RoomsRepository,
     @Inject(WorkspaceMembersRepository)
-    private readonly workspaceMembers: WorkspaceMembersRepository
+    private readonly workspaceMembers: WorkspaceMembersRepository,
+    @Inject(LiveblocksPort) private readonly liveblocks: LiveblocksPort
   ) {}
 
   private policyCanvas(canvas: StoredCanvas, room: Room | null): PolicyCanvas {
@@ -161,6 +174,55 @@ export class CanvasesService {
   async delete(viewer: CanvasViewerScope, canvasId: string) {
     await this.load(viewer, canvasId, 'delete');
     await this.canvases.softDelete(canvasId);
+    const roomId = liveblocksRoomId(viewer.organizationId, canvasId);
+    // Postgres already refuses the canvas, so a room left behind holds content nobody can open.
+    await this.liveblocks.deleteRoom(roomId).catch((error: unknown) => {
+      this.logger.warn(`Could not delete Liveblocks room ${roomId}: ${error}`);
+    });
+  }
+
+  /** A token for the canvas's room alone: write access for editors, read and cursors for everyone else. */
+  async liveblocksAuth(
+    viewer: CanvasViewerScope,
+    canvasId: string,
+    user: { name: string; image?: string | null }
+  ) {
+    const { canvas, room } = await this.load(viewer, canvasId, 'view');
+    if (!this.liveblocks.enabled) return { enabled: false as const };
+    const canEdit = canCanvas('edit', viewer, this.policyCanvas(canvas, room));
+    const roomId = liveblocksRoomId(viewer.organizationId, canvasId);
+    const color = cursorColorOf(viewer.userId);
+    const token = await this.liveblocks.authorize(
+      viewer.userId,
+      { name: user.name, image: user.image ?? null, color },
+      roomId,
+      canEdit ? WRITE : READ
+    );
+    return { enabled: true as const, token, roomId, color };
+  }
+
+  /** Lets one editor seed the canvas's empty live document. Anyone else, and every viewer, gets `claimed: false`. */
+  async claimBootstrap(viewer: CanvasViewerScope, canvasId: string) {
+    const { canvas, room } = await this.load(viewer, canvasId, 'view');
+    const unclaimed = {
+      claimed: false,
+      snapshotJson: null,
+      initialMarkdown: null,
+    };
+    if (!canCanvas('edit', viewer, this.policyCanvas(canvas, room))) {
+      return unclaimed;
+    }
+    const seed = await this.canvases.claimBootstrap(canvasId);
+    return seed ? { claimed: true, ...seed } : unclaimed;
+  }
+
+  async saveSnapshot(
+    viewer: CanvasViewerScope,
+    input: SaveCanvasSnapshotInput
+  ) {
+    const { canvasId, ...snapshot } = input;
+    await this.load(viewer, canvasId, 'edit');
+    return this.canvases.saveSnapshot(viewer, canvasId, snapshot);
   }
 
   async listMembers(viewer: CanvasViewerScope, canvasId: string) {

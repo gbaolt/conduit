@@ -10,6 +10,7 @@ import type {
   CanvasesRepository,
   CanvasPatch,
   CanvasScopeOf,
+  CanvasSnapshot,
   StoredCanvas,
   StoredCanvasDocument,
 } from '@/canvases/domain/canvases.repository';
@@ -202,9 +203,55 @@ export class PrismaCanvasesRepository implements CanvasesRepository {
         title: patch.title,
         snapshotJson: patch.snapshotJson as Prisma.InputJsonValue | undefined,
         markdown: patch.markdown,
+        // A save outside `saveSnapshot` makes the stored hash stale.
+        contentHash: patch.snapshotJson ? null : undefined,
         updatedById: scope.userId,
       },
     });
+  }
+
+  async claimBootstrap(canvasId: string) {
+    // One conditional UPDATE, so Postgres lets exactly one of any concurrent callers through.
+    const rows = await this.db.$queryRaw<
+      { snapshotJson: unknown; initialMarkdown: string | null }[]
+    >`
+      UPDATE "Canvas" SET "seededAt" = now()
+      WHERE id = ${canvasId} AND "seededAt" IS NULL AND "deletedAt" IS NULL
+      RETURNING "snapshotJson", "initialMarkdown"`;
+    const row = rows[0];
+    if (!row) return null;
+    return {
+      snapshotJson:
+        row.snapshotJson === null ? null : JSON.stringify(row.snapshotJson),
+      initialMarkdown: row.initialMarkdown,
+    };
+  }
+
+  async saveSnapshot(
+    scope: CanvasScopeOf,
+    canvasId: string,
+    snapshot: CanvasSnapshot
+  ) {
+    const { count } = await this.db.canvas.updateMany({
+      where: {
+        id: canvasId,
+        OR: [
+          { contentHash: null },
+          { contentHash: { not: snapshot.contentHash } },
+        ],
+      },
+      data: {
+        snapshotJson: snapshot.snapshotJson as Prisma.InputJsonValue,
+        markdown: snapshot.markdown,
+        contentHash: snapshot.contentHash,
+        updatedById: scope.userId,
+      },
+    });
+    const { updatedAt } = await this.db.canvas.findUniqueOrThrow({
+      where: { id: canvasId },
+      select: { updatedAt: true },
+    });
+    return { saved: count > 0, updatedAt };
   }
 
   async softDelete(canvasId: string) {

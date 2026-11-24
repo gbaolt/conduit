@@ -138,4 +138,41 @@ export class CanvasesController {
         this.canvasesService.removeMember(viewerOf(context), input)
       );
   }
+
+  @Implement(contract.canvases.liveblocksAuth)
+  liveblocksAuth() {
+    return implement(contract.canvases.liveblocksAuth)
+      .use(authorized)
+      .use(arcjet.read)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.canvasesService.liveblocksAuth(
+          viewerOf(context),
+          input.canvasId,
+          context.user
+        )
+      );
+  }
+
+  @Implement(contract.canvases.claimBootstrap)
+  claimBootstrap() {
+    return implement(contract.canvases.claimBootstrap)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.canvasesService.claimBootstrap(viewerOf(context), input.canvasId)
+      );
+  }
+
+  @Implement(contract.canvases.saveSnapshot)
+  saveSnapshot() {
+    return implement(contract.canvases.saveSnapshot)
+      .use(authorized)
+      .use(arcjet.write)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.canvasesService.saveSnapshot(viewerOf(context), input)
+      );
+  }
 }

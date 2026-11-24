@@ -5,6 +5,8 @@ import { WorkspacesModule } from '@/workspaces/workspaces.module';
 
 import { CanvasesService } from './application/canvases.service';
 import { CanvasesRepository } from './domain/canvases.repository';
+import { LiveblocksPort } from './domain/liveblocks.port';
+import { LiveblocksGateway } from './infrastructure/liveblocks.gateway';
 import { PrismaCanvasesRepository } from './infrastructure/prisma-canvases.repository';
 import { CanvasesController } from './presentation/canvases.controller';
 
@@ -14,6 +16,7 @@ import { CanvasesController } from './presentation/canvases.controller';
   providers: [
     CanvasesService,
     { provide: CanvasesRepository, useClass: PrismaCanvasesRepository },
+    { provide: LiveblocksPort, useClass: LiveblocksGateway },
   ],
 })
 export class CanvasesModule {}
