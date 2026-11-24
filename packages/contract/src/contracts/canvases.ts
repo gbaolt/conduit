@@ -1,9 +1,12 @@
-import { oc } from '@orpc/contract';
+import { asyncIteratorObject, oc } from '@orpc/contract';
 import { openapi } from '@orpc/openapi';
 import { z } from 'zod';
 
+import { aiErrors } from '@/contracts/ai-settings';
 import {
   CanvasBootstrapSchema,
+  CanvasDraftEventSchema,
+  CanvasDraftInputSchema,
   CanvasCommentInputSchema,
   CanvasCommentSchema,
   CanvasCommentThreadSchema,
@@ -57,6 +60,10 @@ export const canvasErrors = {
   },
   COMMENT_NOT_FOUND: { status: 404, message: 'Comment not found.' },
   VERSION_NOT_FOUND: { status: 404, message: 'Version not found.' },
+  NOTHING_TO_DRAFT: {
+    status: 409,
+    message: 'This thread has no messages to draft from.',
+  },
 } as const;
 
 const {
@@ -67,7 +74,9 @@ const {
   NOT_A_MEMBER,
   COMMENT_NOT_FOUND,
   VERSION_NOT_FOUND,
+  NOTHING_TO_DRAFT,
 } = canvasErrors;
+const { AI_DISABLED, AI_UNAVAILABLE } = aiErrors;
 
 /** The channel's canvas, or null before anyone creates it. */
 export const getChannelCanvasContract = oc
@@ -263,3 +272,10 @@ export const restoreCanvasVersionContract = oc
   .errors({ NOT_FOUND, FORBIDDEN, CHANNEL_ARCHIVED, VERSION_NOT_FOUND })
   .input(RestoreCanvasVersionInputSchema)
   .output(CanvasVersionRestoredSchema);
+
+/** Streams a canvas draft of a thread. Only the requester sees it, and nothing is saved until `create`. */
+export const draftCanvasFromThreadContract = oc
+  .meta(openapi({ method: 'POST', path: '/messages/{messageId}/canvas-draft' }))
+  .errors({ NOT_FOUND, NOTHING_TO_DRAFT, AI_DISABLED, AI_UNAVAILABLE })
+  .input(CanvasDraftInputSchema)
+  .output(asyncIteratorObject(CanvasDraftEventSchema));

@@ -25,6 +25,7 @@
     "eval:smart-activity": "tsx scripts/eval-smart-activity.ts",
     "eval:ask": "tsx scripts/eval-ask.ts",
     "eval:summaries": "tsx scripts/eval-summaries.ts",
+    "eval:canvas-draft": "tsx scripts/eval-canvas-draft.ts",
     "measure:write-rate": "tsx scripts/measure-write-rate.ts",
     "upgrade:nest": "npx npm-check-updates \"/^@nestjs/\" -u"
   },

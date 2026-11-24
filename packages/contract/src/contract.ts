@@ -18,6 +18,7 @@ import {
   createCanvasVersionContract,
   deleteCanvasCommentContract,
   deleteCanvasContract,
+  draftCanvasFromThreadContract,
   editCanvasCommentContract,
   getCanvasContract,
   getCanvasVersionContract,
@@ -367,6 +368,7 @@ export const contract = {
     getVersion: getCanvasVersionContract,
     createVersion: createCanvasVersionContract,
     restoreVersion: restoreCanvasVersionContract,
+    draftFromThread: draftCanvasFromThreadContract,
   },
   channelSections: {
     list: listChannelSectionsContract,

@@ -10,6 +10,7 @@ import type {
   CanvasesRepository,
   CanvasPatch,
   CanvasScopeOf,
+  CanvasSeed,
   CanvasSnapshot,
   StoredCanvas,
   StoredCanvasDocument,
@@ -85,6 +86,14 @@ function stillInWorkspace(scope: CanvasScopeOf) {
 
 type Tx = Prisma.TransactionClient;
 
+const seedData = (seed: CanvasSeed) => ({
+  ...seed,
+  snapshotJson: seed.snapshotJson as Prisma.InputJsonValue | undefined,
+});
+
+const hasContent = (seed: CanvasSeed) =>
+  Boolean(seed.snapshotJson || seed.markdown || seed.initialMarkdown);
+
 /** Canvas and canvas-member rows. Returns contract types, so no Prisma row leaves this file. */
 @Injectable()
 export class PrismaCanvasesRepository implements CanvasesRepository {
@@ -118,27 +127,20 @@ export class PrismaCanvasesRepository implements CanvasesRepository {
   async createChannelPrimary(
     scope: CanvasScopeOf,
     roomId: string,
-    title: string
+    title: string,
+    seed: CanvasSeed = {}
   ) {
     try {
-      const row = await this.db.canvas.create({
-        data: {
-          organizationId: scope.organizationId,
-          roomId,
-          isChannelPrimary: true,
-          title,
-          createdById: scope.userId,
-          updatedById: scope.userId,
-        },
-        select: { id: true },
-      });
-      return row.id;
+      return await this.createInChannel(scope, roomId, title, seed, true);
     } catch (error) {
       // The partial unique index lets one live primary canvas per channel, so the loser of a race opens the winner's.
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
+        if (hasContent(seed)) {
+          return this.createInChannel(scope, roomId, title, seed);
+        }
         const winner = await this.findChannelPrimary(scope, roomId);
         if (winner) return winner.id;
       }
@@ -146,9 +148,36 @@ export class PrismaCanvasesRepository implements CanvasesRepository {
     }
   }
 
-  async createStandalone(scope: CanvasScopeOf, title: string) {
+  async createInChannel(
+    scope: CanvasScopeOf,
+    roomId: string,
+    title: string,
+    seed: CanvasSeed = {},
+    isChannelPrimary = false
+  ) {
     const row = await this.db.canvas.create({
       data: {
+        ...seedData(seed),
+        organizationId: scope.organizationId,
+        roomId,
+        isChannelPrimary,
+        title,
+        createdById: scope.userId,
+        updatedById: scope.userId,
+      },
+      select: { id: true },
+    });
+    return row.id;
+  }
+
+  async createStandalone(
+    scope: CanvasScopeOf,
+    title: string,
+    seed: CanvasSeed = {}
+  ) {
+    const row = await this.db.canvas.create({
+      data: {
+        ...seedData(seed),
         organizationId: scope.organizationId,
         title,
         createdById: scope.userId,
@@ -364,5 +393,13 @@ export class PrismaCanvasesRepository implements CanvasesRepository {
         },
       },
     }));
+  }
+
+  async userNames(userIds: string[]) {
+    const users = await this.db.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, name: true },
+    });
+    return new Map(users.map((user) => [user.id, user.name]));
   }
 }

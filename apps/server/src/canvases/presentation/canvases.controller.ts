@@ -4,12 +4,14 @@ import { Implement } from '@orpc/nest';
 import { implement } from '@orpc/server';
 
 import { CanvasCommentsService } from '@/canvases/application/canvas-comments.service';
+import { CanvasDraftService } from '@/canvases/application/canvas-draft.service';
 import { CanvasVersionsService } from '@/canvases/application/canvas-versions.service';
 import {
   CanvasesService,
   type CanvasViewerScope,
 } from '@/canvases/application/canvases.service';
 import { authorized } from '@/infrastructure/orpc/authorized';
+import { translateStreamErrors } from '@/infrastructure/orpc/errors';
 import { workspaceMember } from '@/infrastructure/orpc/workspace-member';
 import { arcjet } from '@/infrastructure/security/procedure.middleware';
 
@@ -32,7 +34,9 @@ export class CanvasesController {
     @Inject(CanvasCommentsService)
     private readonly commentsService: CanvasCommentsService,
     @Inject(CanvasVersionsService)
-    private readonly versionsService: CanvasVersionsService
+    private readonly versionsService: CanvasVersionsService,
+    @Inject(CanvasDraftService)
+    private readonly draftService: CanvasDraftService
   ) {}
 
   @Implement(contract.canvases.getChannelCanvas)
@@ -300,6 +304,23 @@ export class CanvasesController {
       .use(workspaceMember)
       .handler(({ context, input }) =>
         this.versionsService.restore(viewerOf(context), input)
+      );
+  }
+
+  @Implement(contract.canvases.draftFromThread)
+  draftFromThread() {
+    return implement(contract.canvases.draftFromThread)
+      .use(authorized)
+      .use(workspaceMember)
+      .use(arcjet.heavyWriteByWorkspace)
+      .handler(async ({ context, input, signal }) =>
+        translateStreamErrors(
+          await this.draftService.draftFromThread(
+            viewerOf(context),
+            input.messageId,
+            signal
+          )
+        )
       );
   }
 }

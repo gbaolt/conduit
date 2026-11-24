@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type {
   CanvasesRepository,
+  CanvasSeed,
   StoredCanvasDocument,
   StoredEmbeddedMessage,
 } from '@/canvases/domain/canvases.repository';
@@ -103,6 +104,7 @@ function setup(
       seededAt: Date | null;
       contentHash: string | null;
       initialMarkdown: string | null;
+      sourceThreadId: string | null;
     }
   >();
   const shares = new Map<string, Map<string, CanvasRole>>();
@@ -121,25 +123,32 @@ function setup(
       ? { ...row, viewerRole: shares.get(id)?.get(userId) ?? null }
       : null;
   };
-  const insert = (roomId: string | null, title: string, userId: string) => {
+  const insert = (
+    roomId: string | null,
+    title: string,
+    userId: string,
+    seed: CanvasSeed = {},
+    isChannelPrimary = roomId !== null
+  ) => {
     const id = `canvas-${++next}`;
     canvases.set(id, {
       id,
       organizationId,
       roomId,
       roomName: roomId && room.name,
-      isChannelPrimary: roomId !== null,
+      isChannelPrimary,
       title,
       createdById: userId,
       updatedByName: userId,
       createdAt: new Date(),
       updatedAt: new Date(),
-      snapshotJson: null,
-      markdown: '',
+      snapshotJson: seed.snapshotJson ?? null,
+      markdown: seed.markdown ?? '',
       deletedAt: null,
       seededAt: null,
-      contentHash: null,
-      initialMarkdown: null,
+      contentHash: seed.contentHash ?? null,
+      initialMarkdown: seed.initialMarkdown ?? null,
+      sourceThreadId: seed.sourceThreadId ?? null,
     });
     shares.set(id, new Map(roomId ? [] : [[userId, 'editor']]));
     return id;
@@ -152,9 +161,12 @@ function setup(
       );
       return row ? view(scope.userId, row.id) : null;
     },
-    createChannelPrimary: async (scope, roomId, title) =>
-      insert(roomId, title, scope.userId),
-    createStandalone: async (scope, title) => insert(null, title, scope.userId),
+    createChannelPrimary: async (scope, roomId, title, seed) =>
+      insert(roomId, title, scope.userId, seed),
+    createInChannel: async (scope, roomId, title, seed) =>
+      insert(roomId, title, scope.userId, seed, false),
+    createStandalone: async (scope, title, seed) =>
+      insert(null, title, scope.userId, seed),
     list: async (scope, roomIds) =>
       [...canvases.keys()]
         .map((id) => view(scope.userId, id))
@@ -205,6 +217,7 @@ function setup(
       guard(id, () => shares.get(id)!.delete(userId)),
     findMessages: async (_org, ids) =>
       embedded.filter(({ message }) => ids.includes(message.id)),
+    userNames: async (ids) => new Map(ids.map((id) => [id, id])),
   } satisfies CanvasesRepository;
   const asSeenBy = (userId: string): Room => ({
     ...room,
@@ -230,6 +243,7 @@ function setup(
         .map(({ message }) => message.room.id),
     ],
   } as Partial<RoomsRepository> as RoomsRepository;
+  const versions = new FakeCanvasVersionsRepository();
   const workspaceMembers = {
     count: async (_org: string, userIds: string[]) =>
       userIds.filter((id) => ['alice', 'bob', 'carol'].includes(id)).length,
@@ -240,10 +254,11 @@ function setup(
       rooms,
       workspaceMembers,
       liveblocks,
-      new FakeCanvasVersionsRepository()
+      versions
     ),
     canvases,
     liveblocks,
+    versions,
   };
 }
 
@@ -405,6 +420,122 @@ describe('CanvasesService', () => {
     await expect(service.get(alice, canvas.id)).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
+  });
+});
+
+describe('CanvasesService AI drafts', () => {
+  const snapshotJson = { root: { children: [], type: 'root' } };
+  const draft = {
+    title: 'Search filters',
+    initialMarkdown: '## Scope',
+    markdown: '## Scope',
+    snapshotJson,
+    sourceThreadId: 'message-in-product',
+    sourceMessageIds: ['message-in-product'],
+    versionTrigger: 'ai_draft' as const,
+  };
+  const thread = () => [embeddedIn('product', 'channel', ['alice'])];
+
+  it('creates the channel canvas with the draft and records it as version 1', async () => {
+    const { service, canvases, versions } = setup(
+      roomFor(),
+      ['alice', 'bob'],
+      undefined,
+      thread()
+    );
+
+    const canvas = await service.create(alice, { ...draft, roomId: 'general' });
+
+    expect(canvas).toMatchObject({
+      isChannelPrimary: true,
+      markdown: '## Scope',
+    });
+    expect(canvases.get(canvas.id)).toMatchObject({
+      snapshotJson,
+      initialMarkdown: '## Scope',
+      sourceThreadId: 'message-in-product',
+    });
+    expect(versions.rows).toMatchObject([
+      { canvasId: canvas.id, trigger: 'ai_draft', label: null, author: null },
+    ]);
+    expect(await service.claimBootstrap(alice, canvas.id)).toEqual({
+      claimed: true,
+      snapshotJson: JSON.stringify(snapshotJson),
+      initialMarkdown: '## Scope',
+    });
+  });
+
+  it('adds a second channel canvas beside the primary one', async () => {
+    const { service } = setup(roomFor(), ['alice', 'bob'], undefined, thread());
+    const primary = await service.create(alice, { roomId: 'general' });
+
+    const second = await service.create(alice, {
+      ...draft,
+      roomId: 'general',
+      isChannelPrimary: false,
+    });
+
+    expect(second.id).not.toBe(primary.id);
+    expect(second).toMatchObject({
+      isChannelPrimary: false,
+      roomId: 'general',
+    });
+    expect((await service.getChannelCanvas(bob, 'general'))?.id).toBe(
+      primary.id
+    );
+    expect(await service.list(bob, 'channel')).toHaveLength(2);
+  });
+
+  it('keeps a draft meant for a primary canvas that already exists', async () => {
+    const { service } = setup(roomFor(), ['alice', 'bob'], undefined, thread());
+    const primary = await service.create(bob, { roomId: 'general' });
+
+    const created = await service.create(alice, {
+      ...draft,
+      roomId: 'general',
+    });
+
+    expect(created.id).not.toBe(primary.id);
+    expect(created).toMatchObject({
+      isChannelPrimary: false,
+      markdown: '## Scope',
+    });
+  });
+
+  it('refuses a second channel canvas from someone who cannot post', async () => {
+    const { service } = setup(roomFor({ archivedAt: new Date() }));
+    await expect(
+      service.create(alice, { roomId: 'general', isChannelPrimary: false })
+    ).rejects.toMatchObject({ code: 'CHANNEL_ARCHIVED' });
+  });
+
+  it('creates a standalone draft only its creator can open', async () => {
+    const { service } = setup(roomFor(), ['alice', 'bob'], undefined, thread());
+
+    const canvas = await service.create(alice, draft);
+
+    expect(canvas).toMatchObject({ roomId: null, title: 'Search filters' });
+    await expect(service.get(bob, canvas.id)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+    expect(await service.list(bob, 'all')).toEqual([]);
+  });
+
+  it('refuses source messages the creator cannot read', async () => {
+    const { service, canvases } = setup(
+      roomFor(),
+      ['alice', 'bob'],
+      undefined,
+      thread()
+    );
+
+    await expect(service.create(bob, draft)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+    await expect(
+      service.create(alice, { ...draft, sourceMessageIds: ['invented'] })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(canvases.size).toBe(0);
   });
 });
 

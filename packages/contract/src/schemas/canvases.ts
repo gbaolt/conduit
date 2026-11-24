@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { MessageBodySchema } from '@/lib/message-body';
 import { MessageHitSchema } from '@/schemas/search';
+import { SUMMARY_MESSAGES_MAX } from '@/schemas/summaries';
 
 export const CANVAS_TITLE_MAX = 200;
 export const CANVAS_MARKDOWN_MAX = 200_000;
@@ -68,11 +69,30 @@ export const ListCanvasesInputSchema = z.object({
 
 const CanvasTitleSchema = z.string().trim().max(CANVAS_TITLE_MAX);
 
-/** With a `roomId`, opens that channel's canvas, creating it the first time. */
-export const CreateCanvasInputSchema = z.object({
-  title: CanvasTitleSchema.optional(),
-  roomId: z.string().optional(),
-});
+/**
+ * With a `roomId`, opens that channel's canvas, creating it the first time. `isChannelPrimary: false` adds
+ * another canvas to the channel instead. The content fields seed a new canvas, as an AI draft does.
+ */
+export const CreateCanvasInputSchema = z
+  .object({
+    title: CanvasTitleSchema.optional(),
+    roomId: z.string().optional(),
+    isChannelPrimary: z.boolean().optional(),
+    /** What the live document is seeded from when there is no `snapshotJson`. */
+    initialMarkdown: z.string().max(CANVAS_MARKDOWN_MAX).optional(),
+    snapshotJson: CanvasSnapshotSchema.optional(),
+    markdown: z.string().max(CANVAS_MARKDOWN_MAX).optional(),
+    /** The thread root the canvas was drafted from. */
+    sourceThreadId: z.string().optional(),
+    /** The messages the draft cites, which the creator must be able to read. */
+    sourceMessageIds: z.array(z.string()).max(SUMMARY_MESSAGES_MAX).optional(),
+    /** Records `snapshotJson` as the canvas's first version, with this trigger. */
+    versionTrigger: z.literal('ai_draft').optional(),
+  })
+  .refine((input) => !input.versionTrigger || input.snapshotJson, {
+    message: 'A first version needs the editor state.',
+    path: ['snapshotJson'],
+  });
 export type CreateCanvasInput = z.infer<typeof CreateCanvasInputSchema>;
 
 /** `undefined` leaves a field alone. */
@@ -300,3 +320,65 @@ export const CanvasVersionRestoredSchema = z.object({
   safetyVersion: CanvasVersionSummarySchema.nullable(),
 });
 export type CanvasVersionRestored = z.infer<typeof CanvasVersionRestoredSchema>;
+
+export const CanvasDraftInputSchema = z.object({
+  /** The thread's root message. */
+  messageId: z.string(),
+});
+
+/** What the model returns for a canvas draft. A source label is a message's label in the prompt, such as "m3". */
+export const ModelCanvasDraftSchema = z.object({
+  title: z
+    .string()
+    .describe('A short title for the canvas, under 80 characters.'),
+  sections: z.array(
+    z.object({
+      heading: z.string().describe('A short section heading.'),
+      markdown: z
+        .string()
+        .describe(
+          'The section body in Markdown: paragraphs, bullets, or code.'
+        ),
+      sourceLabels: z
+        .array(z.string())
+        .describe(
+          'The labels of the messages this section draws from, such as "m3".'
+        ),
+    })
+  ),
+  actionItems: z.array(
+    z.object({
+      text: z.string().describe('One task someone agreed or was asked to do.'),
+      sourceLabel: z
+        .string()
+        .describe(
+          'The label of the message the task comes from, such as "m3".'
+        ),
+    })
+  ),
+});
+export type ModelCanvasDraft = z.infer<typeof ModelCanvasDraftSchema>;
+
+/** A draft as the requester sees it. Every link in `markdown` points at a message the model read. */
+export const CanvasDraftSchema = z.object({
+  title: z.string(),
+  markdown: z.string(),
+  /** The thread's root message. */
+  sourceThreadId: z.string(),
+  /** The cited messages in order of first citation. */
+  sourceMessageIds: z.array(z.string()),
+});
+export type CanvasDraft = z.infer<typeof CanvasDraftSchema>;
+
+export const CanvasDraftEventSchema = z.discriminatedUnion('type', [
+  /** The draft so far, as Markdown. Only cited messages the model read are linked. */
+  z.object({
+    type: z.literal('partial'),
+    messageCount: z.number().int(),
+    title: z.string(),
+    markdown: z.string(),
+  }),
+  /** The finished draft, last. Nothing is saved until the requester creates the canvas. */
+  z.object({ type: z.literal('done'), draft: CanvasDraftSchema }),
+]);
+export type CanvasDraftEvent = z.infer<typeof CanvasDraftEventSchema>;

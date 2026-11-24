@@ -26,6 +26,7 @@ import {
 } from '@/canvases/domain/canvas-versions.repository';
 import {
   CanvasesRepository,
+  type CanvasSeed,
   type StoredCanvas,
 } from '@/canvases/domain/canvases.repository';
 import {
@@ -158,28 +159,102 @@ export class CanvasesService {
   }
 
   async create(viewer: CanvasViewerScope, input: CreateCanvasInput) {
-    const title = input.title || UNTITLED;
-    if (!input.roomId) {
-      const id = await this.canvases.createStandalone(viewer, title);
-      return this.get(viewer, id);
+    const {
+      title,
+      roomId,
+      isChannelPrimary,
+      sourceMessageIds = [],
+      versionTrigger,
+      ...content
+    } = input;
+    const seed: CanvasSeed = {
+      ...content,
+      contentHash: content.snapshotJson && contentHashOf(content.snapshotJson),
+    };
+    const seeded = Boolean(
+      seed.snapshotJson || seed.markdown || seed.initialMarkdown
+    );
+    await this.assertReadableMessages(viewer, [
+      ...(content.sourceThreadId ? [content.sourceThreadId] : []),
+      ...sourceMessageIds,
+    ]);
+
+    let id: string;
+    if (!roomId) {
+      id = await this.canvases.createStandalone(
+        viewer,
+        title || UNTITLED,
+        seed
+      );
+    } else {
+      const room = await this.readableChannel(viewer, roomId);
+      const primary = isChannelPrimary ?? true;
+      const existing =
+        primary && (await this.canvases.findChannelPrimary(viewer, room.id));
+      // Opening the channel's canvas reopens it; a draft for it is kept as another canvas instead of dropped.
+      if (existing && !seeded) return this.withAccess(viewer, existing, room);
+
+      const denial = checkCanvas('edit', viewer, {
+        createdById: viewer.userId,
+        channel: room,
+        membership: null,
+      });
+      if (denial) throw canvasError(denial);
+      id =
+        primary && !existing
+          ? await this.canvases.createChannelPrimary(
+              viewer,
+              room.id,
+              title || room.name,
+              seed
+            )
+          : await this.canvases.createInChannel(
+              viewer,
+              room.id,
+              title || UNTITLED,
+              seed
+            );
     }
 
-    const room = await this.readableChannel(viewer, input.roomId);
-    const existing = await this.canvases.findChannelPrimary(viewer, room.id);
-    if (existing) return this.withAccess(viewer, existing, room);
-
-    const denial = checkCanvas('edit', viewer, {
-      createdById: viewer.userId,
-      channel: room,
-      membership: null,
-    });
-    if (denial) throw canvasError(denial);
-    const id = await this.canvases.createChannelPrimary(
-      viewer,
-      room.id,
-      input.title || room.name
-    );
+    if (versionTrigger && seed.snapshotJson && seed.contentHash) {
+      await this.versions
+        .create({
+          canvasId: id,
+          organizationId: viewer.organizationId,
+          // An AI draft has no author; the history shows it as "AI draft".
+          authorId: null,
+          label: null,
+          trigger: versionTrigger,
+          snapshotJson: seed.snapshotJson,
+          markdown: seed.markdown ?? '',
+          contentHash: seed.contentHash,
+        })
+        .catch((error: unknown) => {
+          // The canvas is already created, so a missing first version must not make the client create it twice.
+          this.logger.warn(`Could not record version 1 of ${id}: ${error}`);
+        });
+    }
     return this.get(viewer, id);
+  }
+
+  /** Refuses with `NOT_FOUND` unless every message exists in the workspace, in a room the viewer reads. */
+  private async assertReadableMessages(
+    viewer: CanvasViewerScope,
+    messageIds: string[]
+  ) {
+    if (messageIds.length === 0) return;
+    const ids = [...new Set(messageIds)];
+    const [roomIds, found] = await Promise.all([
+      this.rooms.accessibleRoomIds(viewer),
+      this.canvases.findMessages(viewer.organizationId, ids),
+    ]);
+    const readable = new Set(roomIds);
+    if (
+      found.length !== ids.length ||
+      found.some(({ message }) => !readable.has(message.room.id))
+    ) {
+      throw canvasError('NOT_FOUND');
+    }
   }
 
   async update(viewer: CanvasViewerScope, input: UpdateCanvasInput) {

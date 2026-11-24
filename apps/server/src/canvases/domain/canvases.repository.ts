@@ -38,6 +38,12 @@ export type CanvasSnapshot = {
   contentHash: string;
 };
 
+/** What a new canvas starts with, such as an AI draft. Empty for a blank canvas. */
+export type CanvasSeed = Partial<CanvasSnapshot> & {
+  initialMarkdown?: string;
+  sourceThreadId?: string;
+};
+
 /** Canvases and their shares. Callers check access first; this port knows only rows. Deleted canvases are never returned. */
 export abstract class CanvasesRepository {
   abstract find(
@@ -50,17 +56,30 @@ export abstract class CanvasesRepository {
     roomId: string
   ): Promise<StoredCanvasDocument | null>;
 
-  /** Creates the channel's primary canvas, or returns the id of the one someone else created first. */
+  /**
+   * Creates the channel's primary canvas, or returns the id of the one someone else created first. When the
+   * loser of that race brings `seed` content, it gets a new canvas in the channel instead, so the content is kept.
+   */
   abstract createChannelPrimary(
     scope: CanvasScopeOf,
     roomId: string,
-    title: string
+    title: string,
+    seed?: CanvasSeed
+  ): Promise<string>;
+
+  /** Creates another canvas in the channel, beside its primary one. */
+  abstract createInChannel(
+    scope: CanvasScopeOf,
+    roomId: string,
+    title: string,
+    seed?: CanvasSeed
   ): Promise<string>;
 
   /** Creates a standalone canvas shared with its creator as an editor. */
   abstract createStandalone(
     scope: CanvasScopeOf,
-    title: string
+    title: string,
+    seed?: CanvasSeed
   ): Promise<string>;
 
   /** Canvases in `roomIds` and standalone canvases shared with the scope's user, recently updated first. */
@@ -131,4 +150,7 @@ export abstract class CanvasesRepository {
     organizationId: string,
     messageIds: string[]
   ): Promise<StoredEmbeddedMessage[]>;
+
+  /** Display names by user id. A user who no longer exists has no entry. */
+  abstract userNames(userIds: string[]): Promise<Map<string, string>>;
 }
