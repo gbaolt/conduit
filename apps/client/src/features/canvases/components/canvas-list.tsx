@@ -52,6 +52,7 @@ import { parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { StatusButton } from '@/components/async/status-button';
 import { useCreateCanvas } from '@/services/canvases/hooks';
 import { canvasesQuery } from '@/services/canvases/queries';
 
@@ -93,9 +94,9 @@ export function CanvasListNewButton() {
   const create = useCreateCanvas();
 
   return (
-    <Button
+    <StatusButton
       size="sm"
-      disabled={create.isPending}
+      status={create.isPending ? 'loading' : 'idle'}
       onClick={() =>
         create.mutate(
           {},
@@ -109,7 +110,7 @@ export function CanvasListNewButton() {
     >
       <IconPlus data-icon="inline-start" />
       New canvas
-    </Button>
+    </StatusButton>
   );
 }
 
