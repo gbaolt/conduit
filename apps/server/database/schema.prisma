@@ -46,6 +46,10 @@ model User {
   pushSubscriptions    PushSubscription[]
   digestStates         DigestState[]
   files                File[]
+  canvasesCreated      Canvas[]               @relation("CanvasCreatedBy")
+  canvasesUpdated      Canvas[]               @relation("CanvasUpdatedBy")
+  canvasMemberships    CanvasMember[]         @relation("CanvasMemberUser")
+  canvasMembersAdded   CanvasMember[]         @relation("CanvasMemberAddedBy")
 }
 
 model Session {
@@ -85,6 +89,7 @@ model Organization {
   digestStates         DigestState[]
   files                File[]
   searchSyncs          SearchSync[]
+  canvases             Canvas[]
 }
 
 model Member {
@@ -252,6 +257,7 @@ model Room {
   summaries                Summary[]
   activityItems            ActivityItem[]
   files                    File[]
+  canvases                 Canvas[]
 
   @@unique([organizationId, name])
   @@map("Channel")
@@ -638,4 +644,59 @@ model SearchSync {
   @@id([kind, targetId])
   @@index([organizationId, dueAt])
   @@index([dueAt])
+}
+
+enum CanvasRole {
+  EDITOR
+  VIEWER
+}
+
+/// A rich-text document. With a `roomId` it lives in that channel and inherits its access; without one it is
+/// standalone and only its `CanvasMember` rows can open it.
+model Canvas {
+  id               String         @id @default(cuid())
+  organizationId   String
+  organization     Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  roomId           String?        @map("channelId")
+  room             Room?          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  /// The canvas the channel's Canvas tab opens. A partial unique index in `24_canvases` allows one live one per channel.
+  isChannelPrimary Boolean        @default(false)
+  title            String
+  /// The Lexical editor state as JSON.
+  snapshotJson     Json?
+  /// The same content as Markdown, for search and AI.
+  markdown         String         @default("")
+  /// Markdown to seed the live Yjs document from on first open, such as an AI draft.
+  initialMarkdown  String?
+  contentHash      String?
+  /// When a live Yjs document was first seeded from this row.
+  seededAt         DateTime?
+  /// The thread an AI draft was made from.
+  sourceThreadId   String?
+  createdById      String?
+  createdBy        User?          @relation("CanvasCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById      String?
+  updatedBy        User?          @relation("CanvasUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  deletedAt        DateTime?
+  members          CanvasMember[]
+
+  @@index([organizationId, roomId])
+  @@index([organizationId, updatedAt(sort: Desc)])
+}
+
+/// Who may open a standalone canvas, and whether they may edit it.
+model CanvasMember {
+  canvasId  String
+  canvas    Canvas     @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation("CanvasMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+  role      CanvasRole
+  addedById String?
+  addedBy   User?      @relation("CanvasMemberAddedBy", fields: [addedById], references: [id], onDelete: SetNull)
+  createdAt DateTime   @default(now())
+
+  @@id([canvasId, userId])
+  @@index([userId])
 }
