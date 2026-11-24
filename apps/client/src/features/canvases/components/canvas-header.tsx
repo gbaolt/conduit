@@ -21,7 +21,9 @@ import {
 } from '@conduit/ui/components/dropdown-menu';
 import { Input } from '@conduit/ui/components/input';
 import {
+  IconDeviceFloppy,
   IconDots,
+  IconHistory,
   IconMessage2,
   IconTrash,
   IconUsers,
@@ -131,17 +133,41 @@ function CanvasHeaderComments({
       className="aria-pressed:bg-muted"
     >
       <IconMessage2 data-icon="inline-start" />
-      Comments
+      <span className="max-sm:sr-only">Comments</span>
       {count > 0 && <Badge variant="secondary">{count}</Badge>}
+    </Button>
+  );
+}
+
+/** Opens the version list beside the canvas. */
+function CanvasHeaderHistory({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      aria-pressed={open}
+      onClick={() => onOpenChange(!open)}
+      className="aria-pressed:bg-muted"
+    >
+      <IconHistory data-icon="inline-start" />
+      <span className="max-sm:sr-only">History</span>
     </Button>
   );
 }
 
 function CanvasHeaderMenu({
   canvas,
+  onSaveVersion,
   onDeleted,
 }: {
   canvas: CanvasDocument;
+  onSaveVersion: () => void;
   onDeleted: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
@@ -162,13 +188,21 @@ function CanvasHeaderMenu({
           <IconDots />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem
-            variant="destructive"
-            onClick={() => setConfirming(true)}
-          >
-            <IconTrash />
-            Delete canvas
-          </DropdownMenuItem>
+          {canvas.access.edit && (
+            <DropdownMenuItem onClick={onSaveVersion}>
+              <IconDeviceFloppy />
+              Save version
+            </DropdownMenuItem>
+          )}
+          {canvas.access.delete && (
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => setConfirming(true)}
+            >
+              <IconTrash />
+              Delete canvas
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
@@ -216,6 +250,9 @@ export function CanvasHeader({
   presenceRef,
   commentsOpen,
   onCommentsOpenChange,
+  historyOpen,
+  onHistoryOpenChange,
+  onSaveVersion,
   onShare,
   onDeleted,
 }: {
@@ -224,6 +261,9 @@ export function CanvasHeader({
   presenceRef: (element: HTMLDivElement | null) => void;
   commentsOpen: boolean;
   onCommentsOpenChange: (open: boolean) => void;
+  historyOpen: boolean;
+  onHistoryOpenChange: (open: boolean) => void;
+  onSaveVersion: () => void;
   onShare: () => void;
   onDeleted: () => void;
 }) {
@@ -238,14 +278,22 @@ export function CanvasHeader({
           open={commentsOpen}
           onOpenChange={onCommentsOpenChange}
         />
+        <CanvasHeaderHistory
+          open={historyOpen}
+          onOpenChange={onHistoryOpenChange}
+        />
         {!canvas.roomId && (
           <Button variant="outline" size="sm" onClick={onShare}>
             <IconUsers data-icon="inline-start" />
             Share
           </Button>
         )}
-        {canvas.access.delete && (
-          <CanvasHeaderMenu canvas={canvas} onDeleted={onDeleted} />
+        {(canvas.access.edit || canvas.access.delete) && (
+          <CanvasHeaderMenu
+            canvas={canvas}
+            onSaveVersion={onSaveVersion}
+            onDeleted={onDeleted}
+          />
         )}
       </div>
     </div>

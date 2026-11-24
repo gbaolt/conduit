@@ -23,8 +23,8 @@ declare global {
       id: string;
       info: { name: string; image: string | null; color: string };
     };
-    /** Tells everyone else on the canvas to refetch its comments. */
-    RoomEvent: { type: 'COMMENTS_CHANGED' };
+    /** Tells everyone else on the canvas to refetch its comments or its versions. */
+    RoomEvent: { type: 'COMMENTS_CHANGED' } | { type: 'VERSIONS_CHANGED' };
   }
 }
 

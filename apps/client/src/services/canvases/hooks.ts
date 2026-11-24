@@ -214,3 +214,51 @@ export function useResolveCanvasCommentThread() {
     })
   );
 }
+
+/** Refetches the version list, as when someone else on a live canvas saves or restores a version. */
+export function useInvalidateCanvasVersions() {
+  const queryClient = useQueryClient();
+
+  return ({ canvasId }: { canvasId: string }) =>
+    queryClient.invalidateQueries({
+      queryKey: orpc.canvases.listVersions.key({ input: { canvasId } }),
+    });
+}
+
+export function useCreateCanvasVersion() {
+  const invalidate = useInvalidateCanvasVersions();
+  return useMutation(
+    orpc.canvases.createVersion.mutationOptions({
+      onSuccess: (_, input) => invalidate(input),
+    })
+  );
+}
+
+/** The restored content arrives in the open editor, so the cached document is replaced rather than refetched. */
+export function useRestoreCanvasVersion() {
+  const queryClient = useQueryClient();
+  const invalidate = useInvalidateCanvasVersions();
+
+  return useMutation(
+    orpc.canvases.restoreVersion.mutationOptions({
+      onSuccess: ({ canvas }, input) => {
+        queryClient.setQueryData(
+          orpc.canvases.get.queryKey({ input: { canvasId: canvas.id } }),
+          canvas
+        );
+        if (canvas.roomId) {
+          queryClient.setQueryData(
+            orpc.canvases.getChannelCanvas.queryKey({
+              input: { roomId: canvas.roomId },
+            }),
+            canvas
+          );
+        }
+        return Promise.all([
+          invalidate(input),
+          queryClient.invalidateQueries({ queryKey: orpc.canvases.list.key() }),
+        ]);
+      },
+    })
+  );
+}

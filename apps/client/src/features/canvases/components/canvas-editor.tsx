@@ -121,9 +121,15 @@ import {
   CanvasCommentsPlugin,
   CanvasCommentsPluginLive,
 } from './canvas-comments-plugin';
+import {
+  CanvasHistoryPanel,
+  CanvasHistoryPanelSync,
+} from './canvas-history-panel';
+import { CanvasHistoryPreview } from './canvas-history-preview';
 import { CanvasMessageEmbed } from './canvas-message-embed';
 import { CanvasMessagePickerDialog } from './canvas-message-picker-dialog';
 import { CanvasPresenceAvatars } from './canvas-presence-avatars';
+import { CanvasSaveVersionDialog } from './canvas-save-version-dialog';
 
 export type CanvasSaveStatus = 'saved' | 'saving' | 'failed';
 
@@ -698,9 +704,7 @@ export function CanvasEditor({
   canvas,
   fallback,
   presenceSlot,
-  commentsOpen,
-  onCommentsOpenChange,
-  onStatusChange,
+  ...props
 }: CanvasEditorDocumentProps & {
   /** Read once, when the editor mounts. Remount with a `key` to open another canvas. */
   canvas: CanvasDocument;
@@ -711,9 +715,7 @@ export function CanvasEditor({
         canvas={canvas}
         fallback={fallback}
         presenceSlot={presenceSlot}
-        commentsOpen={commentsOpen}
-        onCommentsOpenChange={onCommentsOpenChange}
-        onStatusChange={onStatusChange}
+        {...props}
       />
     </CanvasCollabProvider>
   );
@@ -727,8 +729,14 @@ type CanvasEditorDocumentProps = {
   presenceSlot: HTMLElement | null;
   commentsOpen: boolean;
   onCommentsOpenChange: (open: boolean) => void;
+  historyOpen: boolean;
+  onHistoryOpenChange: (open: boolean) => void;
+  savingVersion: boolean;
+  onSavingVersionChange: (open: boolean) => void;
   onStatusChange: (status: CanvasSaveStatus) => void;
 };
+
+const noop = () => {};
 
 function CanvasEditorDocument({
   canvas,
@@ -736,6 +744,10 @@ function CanvasEditorDocument({
   presenceSlot,
   commentsOpen,
   onCommentsOpenChange,
+  historyOpen,
+  onHistoryOpenChange,
+  savingVersion,
+  onSavingVersionChange,
   onStatusChange,
 }: CanvasEditorDocumentProps) {
   const collab = useCanvasCollab();
@@ -765,6 +777,15 @@ function CanvasEditorDocument({
   const Comments = collab.live
     ? CanvasCommentsPluginLive
     : CanvasCommentsPlugin;
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  if (!historyOpen && previewId) setPreviewId(null);
+  const notifyVersions = useRef<() => void>(noop);
+
+  const preview = (versionId: string | null) => {
+    setPreviewId(versionId);
+    // Leaving a preview hands the keyboard back to the document.
+    if (!versionId) requestAnimationFrame(() => editor.focus());
+  };
 
   // Every effect cleanup disposes the editor, and a disposed editor ignores typing, so a remount builds a new one.
   useEffect(() => {
@@ -818,12 +839,26 @@ function CanvasEditorDocument({
           )}
           <CanvasEditorPlugins canvas={canvas} anchor={anchor} />
           {loading && fallback}
+          {previewId && (
+            <CanvasHistoryPreview
+              canvasId={canvas.id}
+              versionId={previewId}
+              editor={editor}
+              canRestore={editable}
+              fallback={fallback}
+              onExit={() => preview(null)}
+              onRestored={() => {
+                notifyVersions.current();
+                preview(null);
+              }}
+            />
+          )}
           <div
             ref={(element) => {
               cursorsRef.current = element;
               setAnchor(element);
             }}
-            hidden={loading}
+            hidden={loading || previewId !== null}
             className="relative"
           >
             <ContentEditable
@@ -840,6 +875,29 @@ function CanvasEditorDocument({
           </div>
           <CanvasCommentPopover />
           <CanvasCommentsPanel />
+          <CanvasHistoryPanel
+            canvasId={canvas.id}
+            canEdit={canvas.access.edit}
+            open={historyOpen}
+            onOpenChange={onHistoryOpenChange}
+            previewId={previewId}
+            onPreview={preview}
+            onSaveVersion={() => onSavingVersionChange(true)}
+          />
+          {collab.live && (
+            <CanvasHistoryPanelSync
+              canvasId={canvas.id}
+              notifyRef={notifyVersions}
+            />
+          )}
+          {canvas.access.edit && (
+            <CanvasSaveVersionDialog
+              canvasId={canvas.id}
+              open={savingVersion}
+              onOpenChange={onSavingVersionChange}
+              onSaved={() => notifyVersions.current()}
+            />
+          )}
         </Comments>
       </LexicalExtensionEditorComposer>
     </MessageEmbedRenderer>

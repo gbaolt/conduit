@@ -35,6 +35,21 @@ export const canvasLiveblocksAuthQuery = (canvasId: string) =>
 export const canvasCommentsQuery = (canvasId: string) =>
   orpc.canvases.listComments.queryOptions({ input: { canvasId } });
 
+/** The canvas's versions, newest first, a page at a time. */
+export const canvasVersionsQuery = (canvasId: string) =>
+  orpc.canvases.listVersions.infiniteOptions({
+    input: (cursor: string | undefined) => ({ canvasId, cursor }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+  });
+
+/** A saved version never changes, so it is read once. */
+export const canvasVersionQuery = (canvasId: string, versionId: string) =>
+  orpc.canvases.getVersion.queryOptions({
+    input: { canvasId, versionId },
+    staleTime: Infinity,
+  });
+
 type EmbedBatch = {
   canvasId: string;
   ids: Set<string>;

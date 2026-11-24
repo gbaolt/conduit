@@ -10,7 +10,11 @@ import { describe, expect, it } from 'vitest';
 import { MentionNode } from '@/components/editor/nodes/mention-node';
 import { matchesPickerQuery } from '@/components/editor/utils/picker-query';
 
-import { canvasMarkdownOf, createCanvasExtension } from './canvas-extension';
+import {
+  $replaceCanvasContent,
+  canvasMarkdownOf,
+  createCanvasExtension,
+} from './canvas-extension';
 
 function build(markdown: string, names?: ReadonlyMap<string, string>) {
   return buildEditorFromExtensions(
@@ -119,6 +123,33 @@ describe('collaborative canvas', () => {
       getExtensionDependencyFromEditor(live, HistoryExtension)
     ).toThrow();
     solo.dispose();
+    live.dispose();
+  });
+});
+
+describe('restoring a version', () => {
+  it('replaces the whole document with the saved one', () => {
+    const v1 = '# v1\n\n- [ ] ship';
+    const saved = build(v1);
+    // Reading first applies the initial content, which the editor otherwise defers.
+    const snapshotJson = saved.read(() =>
+      saved.getEditorState().toJSON()
+    ) as unknown as Record<string, unknown>;
+    const live = build('# v2\n\nmore text');
+
+    live.update(() => $replaceCanvasContent(snapshotJson), { discrete: true });
+
+    expect(canvasMarkdownOf(live)).toBe(v1);
+    saved.dispose();
+    live.dispose();
+  });
+
+  it('leaves an empty paragraph for an empty version', () => {
+    const live = build('text');
+    live.update(() => $replaceCanvasContent({ root: { children: [] } }), {
+      discrete: true,
+    });
+    expect(live.read(() => $getRoot().getChildrenSize())).toBe(1);
     live.dispose();
   });
 });

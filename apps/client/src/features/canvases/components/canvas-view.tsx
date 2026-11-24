@@ -53,7 +53,14 @@ export function CanvasView({
 }) {
   const [status, setStatus] = useState<CanvasSaveStatus>('saved');
   const [sharing, setSharing] = useState(false);
-  const [commentsOpen, setCommentsOpen] = useState(false);
+  // Comments and History share the side card, so opening one closes the other.
+  const [panel, setPanel] = useState<'comments' | 'history' | null>(null);
+  const [savingVersion, setSavingVersion] = useState(false);
+  const panelSetter = (name: 'comments' | 'history') => (open: boolean) =>
+    setPanel((current) => {
+      if (open) return name;
+      return current === name ? null : current;
+    });
   const [presenceSlot, setPresenceSlot] = useState<HTMLDivElement | null>(null);
 
   return (
@@ -62,8 +69,11 @@ export function CanvasView({
         canvas={canvas}
         status={status}
         presenceRef={setPresenceSlot}
-        commentsOpen={commentsOpen}
-        onCommentsOpenChange={setCommentsOpen}
+        commentsOpen={panel === 'comments'}
+        onCommentsOpenChange={panelSetter('comments')}
+        historyOpen={panel === 'history'}
+        onHistoryOpenChange={panelSetter('history')}
+        onSaveVersion={() => setSavingVersion(true)}
         onShare={() => setSharing(true)}
         onDeleted={onDeleted}
       />
@@ -74,8 +84,12 @@ export function CanvasView({
             canvas={canvas}
             fallback={<CanvasViewEditorSkeleton />}
             presenceSlot={presenceSlot}
-            commentsOpen={commentsOpen}
-            onCommentsOpenChange={setCommentsOpen}
+            commentsOpen={panel === 'comments'}
+            onCommentsOpenChange={panelSetter('comments')}
+            historyOpen={panel === 'history'}
+            onHistoryOpenChange={panelSetter('history')}
+            savingVersion={savingVersion}
+            onSavingVersionChange={setSavingVersion}
             onStatusChange={setStatus}
           />
         </div>

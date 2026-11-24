@@ -26,10 +26,14 @@ import {
 import { RichTextExtension } from '@lexical/rich-text';
 import { TableExtension } from '@lexical/table';
 import {
+  $createParagraphNode,
+  $getRoot,
+  $parseSerializedNode,
   configExtension,
   defineExtension,
   type EditorThemeClasses,
   type LexicalEditor,
+  type SerializedEditorState,
 } from 'lexical';
 
 import { AutoLinkExtension } from '@/components/editor/extensions/auto-link-extension';
@@ -119,6 +123,17 @@ export function $seedCanvasFromMarkdown(
   names: ReadonlyMap<string, string>
 ) {
   $convertFromMarkdownString(markdown, transformersWith(names));
+}
+
+/**
+ * Replaces the document with a saved editor state as one ordinary edit, so a live editor sends it to everyone
+ * on the canvas and each person can still undo it. Call inside `editor.update()`.
+ */
+export function $replaceCanvasContent(snapshotJson: Record<string, unknown>) {
+  const { root } = snapshotJson as unknown as SerializedEditorState;
+  const next = $getRoot().clear();
+  next.append(...root.children.map((child) => $parseSerializedNode(child)));
+  if (next.isEmpty()) next.append($createParagraphNode());
 }
 
 /**
