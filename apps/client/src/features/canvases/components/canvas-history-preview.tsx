@@ -3,7 +3,6 @@
 import type { CanvasVersion } from '@conduit/contract';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -20,6 +19,7 @@ import { defineExtension, type LexicalEditor } from 'lexical';
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
+import { StatusButton } from '@/components/async/status-button';
 import { MessageEmbedRenderer } from '@/components/editor/nodes/message-embed-node';
 import { useRestoreCanvasVersion } from '@/services/canvases/hooks';
 import { canvasVersionQuery } from '@/services/canvases/queries';
@@ -126,9 +126,12 @@ function CanvasHistoryPreviewRestore({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction disabled={restore.isPending} onClick={confirm}>
+            <StatusButton
+              status={restore.isPending ? 'loading' : 'idle'}
+              onClick={confirm}
+            >
               Restore
-            </AlertDialogAction>
+            </StatusButton>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
