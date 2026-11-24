@@ -18,6 +18,7 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { StatusButton } from '@/components/async/status-button';
 import { canvasQuery } from '@/services/canvases/queries';
 
 import type { CanvasSaveStatus } from './canvas-editor';
@@ -108,7 +109,12 @@ export function CanvasViewState({
   title: string;
   description: string;
   failed?: boolean;
-  action?: { label: string; onClick: () => void; primary?: boolean };
+  action?: {
+    label: string;
+    onClick: () => void;
+    primary?: boolean;
+    pending?: boolean;
+  };
 }) {
   const Icon = failed ? IconAlertTriangle : IconLayoutBoard;
 
@@ -123,13 +129,24 @@ export function CanvasViewState({
       </EmptyHeader>
       {action && (
         <EmptyContent>
-          <Button
-            size="sm"
-            variant={action.primary ? 'default' : 'outline'}
-            onClick={action.onClick}
-          >
-            {action.label}
-          </Button>
+          {action.pending !== undefined ? (
+            <StatusButton
+              size="sm"
+              variant={action.primary ? 'default' : 'outline'}
+              status={action.pending ? 'loading' : 'idle'}
+              onClick={action.onClick}
+            >
+              {action.label}
+            </StatusButton>
+          ) : (
+            <Button
+              size="sm"
+              variant={action.primary ? 'default' : 'outline'}
+              onClick={action.onClick}
+            >
+              {action.label}
+            </Button>
+          )}
         </EmptyContent>
       )}
     </Empty>

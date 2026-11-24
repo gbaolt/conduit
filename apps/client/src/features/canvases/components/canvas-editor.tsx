@@ -47,6 +47,7 @@ import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 import { XmlText } from 'yjs';
 
+import { StatusButton } from '@/components/async/status-button';
 import {
   $isMentionNode,
   MentionNode,
@@ -499,10 +500,10 @@ function CanvasEditorSharePrompt({ canvasId }: { canvasId: string }) {
       <AlertTitle>{outsider.name} can&apos;t open this canvas</AlertTitle>
       <AlertDescription>Share it so they can read it.</AlertDescription>
       <AlertAction className="flex items-center gap-1">
-        <Button
+        <StatusButton
           variant="outline"
           size="sm"
-          disabled={share.isPending}
+          status={share.isPending ? 'loading' : 'idle'}
           onClick={() =>
             share.mutate(
               { canvasId, userIds: [outsider.userId], role: 'viewer' },
@@ -517,7 +518,7 @@ function CanvasEditorSharePrompt({ canvasId }: { canvasId: string }) {
           }
         >
           Share
-        </Button>
+        </StatusButton>
         <Button
           variant="ghost"
           size="icon-sm"

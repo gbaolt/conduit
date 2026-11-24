@@ -3,7 +3,6 @@
 import { CANVAS_TITLE_MAX, type CanvasDocument } from '@conduit/contract';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -23,6 +22,7 @@ import { IconDots, IconTrash, IconUsers } from '@tabler/icons-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { StatusButton } from '@/components/async/status-button';
 import { useDeleteCanvas, useUpdateCanvas } from '@/services/canvases/hooks';
 
 import type { CanvasSaveStatus } from './canvas-editor';
@@ -144,9 +144,9 @@ function CanvasHeaderMenu({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
+            <StatusButton
               variant="destructive"
-              disabled={remove.isPending}
+              status={remove.isPending ? 'loading' : 'idle'}
               onClick={() =>
                 remove.mutate(
                   { canvasId: canvas.id },
@@ -161,7 +161,7 @@ function CanvasHeaderMenu({
               }
             >
               Delete
-            </AlertDialogAction>
+            </StatusButton>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
