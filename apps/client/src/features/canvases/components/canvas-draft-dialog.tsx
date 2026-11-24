@@ -27,6 +27,7 @@ import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
 import { createContext, type ReactNode, use, useId, useState } from 'react';
 
+import { StatusButton } from '@/components/async/status-button';
 import { Markdown } from '@/components/markdown';
 import { useSplit } from '@/hooks/use-split';
 import {
@@ -192,6 +193,7 @@ function CanvasDraftDialog({
   const create = useCreateCanvas();
   const { roomId, options, loading } = useDestinations(threadId);
   const [picked, setPicked] = useState<Destination | null>(null);
+  const [creating, setCreating] = useState(false);
   // Until the member picks, or when their pick stops being offered, the first place offered.
   const destination =
     options.find((option) => option.value === picked)?.value ??
@@ -203,34 +205,41 @@ function CanvasDraftDialog({
   if (state.status === 'streaming') markdown = state.markdown;
 
   const close = () => {
+    setCreating(false);
     create.reset();
     onClose();
   };
 
   const createCanvas = async (draft: CanvasDraft) => {
-    // Loaded on click, so the editor stays out of the conversation's bundle.
-    const { canvasSnapshotOf } = await import('../lib/canvas-extension');
-    const content = canvasSnapshotOf(draft.markdown);
-    create.mutate(
-      {
-        title: draft.title,
-        ...(destination !== 'standalone' && {
-          roomId,
-          isChannelPrimary: destination === 'primary',
-        }),
-        initialMarkdown: draft.markdown,
-        ...content,
-        sourceThreadId: draft.sourceThreadId,
-        sourceMessageIds: draft.sourceMessageIds,
-        versionTrigger: 'ai_draft',
-      },
-      {
-        onSuccess: (canvas) => {
-          close();
-          router.push(`/canvases/${canvas.id}` as Route);
+    setCreating(true);
+    try {
+      // Loaded on click, so the editor stays out of the conversation's bundle.
+      const { canvasSnapshotOf } = await import('../lib/canvas-extension');
+      const content = canvasSnapshotOf(draft.markdown);
+      create.mutate(
+        {
+          title: draft.title,
+          ...(destination !== 'standalone' && {
+            roomId,
+            isChannelPrimary: destination === 'primary',
+          }),
+          initialMarkdown: draft.markdown,
+          ...content,
+          sourceThreadId: draft.sourceThreadId,
+          sourceMessageIds: draft.sourceMessageIds,
+          versionTrigger: 'ai_draft',
         },
-      }
-    );
+        {
+          onSuccess: (canvas) => {
+            close();
+            router.push(`/canvases/${canvas.id}` as Route);
+          },
+          onSettled: () => setCreating(false),
+        }
+      );
+    } catch {
+      setCreating(false);
+    }
   };
 
   return (
@@ -294,14 +303,15 @@ function CanvasDraftDialog({
               <Button onClick={onRetry}>Retry</Button>
             )
           ) : (
-            <Button
-              disabled={state.status !== 'done' || create.isPending}
+            <StatusButton
+              disabled={state.status !== 'done'}
+              status={creating || create.isPending ? 'loading' : 'idle'}
               onClick={() =>
                 state.status === 'done' && void createCanvas(state.draft)
               }
             >
-              {create.isPending ? 'Creating...' : 'Create canvas'}
-            </Button>
+              Create canvas
+            </StatusButton>
           )}
         </DialogFooter>
       </DialogContent>
