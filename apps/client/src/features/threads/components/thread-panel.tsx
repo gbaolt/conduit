@@ -1,16 +1,27 @@
 'use client';
 
 import { Button } from '@conduit/ui/components/button';
-import { IconArrowLeft, IconMessageDots, IconX } from '@tabler/icons-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@conduit/ui/components/dropdown-menu';
+import {
+  IconArrowLeft,
+  IconDots,
+  IconMessageDots,
+  IconX,
+} from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
-import { Suspense } from 'react';
+import { type ReactNode, Suspense } from 'react';
 
 import { Conversation } from '@/features/messages/components/conversation/conversation';
 import { ConversationLoading } from '@/features/messages/components/conversation/conversation-loading';
-import { SummaryThreadMenu } from '@/features/messages/components/summary/summary-menu';
+import { SummaryThreadItem } from '@/features/messages/components/summary/summary-menu';
 import { SummaryProvider } from '@/features/messages/context/summary';
 import { useRoomName } from '@/features/messages/hooks/use-room-name';
 import { threadRootQuery } from '@/services/messages/queries';
+import { useAiSettings } from '@/services/workspaces/hooks';
 
 function ThreadRoomName({ roomId }: { roomId: string }) {
   const { title } = useRoomName(roomId);
@@ -22,15 +33,48 @@ function ThreadRoomName({ roomId }: { roomId: string }) {
   );
 }
 
+/**
+ * The header's Thread actions menu. Every action in it is AI, so it shows only once the workspace's setting has
+ * loaded and says AI is on, and the thread never has an empty menu.
+ */
+function ThreadPanelMenu({ children }: { children?: ReactNode }) {
+  const { data } = useAiSettings();
+  if (data?.aiEnabled !== true) return null;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Thread actions"
+            className="pointer-coarse:size-11"
+          />
+        }
+      >
+        <IconDots />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <SummaryThreadItem />
+        {children}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 /** One thread: its root, the replies, and a composer that replies in it. */
 export function ThreadPanel({
   roomId,
   threadId,
+  menu,
   onClose,
 }: {
   /** The room the page shows. Without it the thread opens in the room its root belongs to. */
   roomId?: string;
   threadId: string;
+  /** More AI items for the header menu, after Summarize this thread. */
+  menu?: ReactNode;
   onClose: () => void;
 }) {
   const root = useQuery(threadRootQuery(threadId));
@@ -67,7 +111,7 @@ export function ThreadPanel({
           ) : (
             <span className="flex-1" />
           )}
-          <SummaryThreadMenu />
+          <ThreadPanelMenu>{menu}</ThreadPanelMenu>
           <Button
             variant="ghost"
             size="icon-sm"

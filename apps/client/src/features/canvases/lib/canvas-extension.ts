@@ -1,5 +1,6 @@
 import { CodeExtension, CodeNode } from '@lexical/code';
 import {
+  buildEditorFromExtensions,
   HorizontalRuleExtension,
   TabIndentationExtension,
 } from '@lexical/extension';
@@ -192,4 +193,25 @@ export function createCanvasExtension(
       }),
     ],
   });
+}
+
+/**
+ * Parses Markdown into the editor state a new canvas is saved with, off screen, so its first version holds real
+ * editor content before anyone opens it. `markdown` is the parse read back, as the editor would save it.
+ */
+export function canvasSnapshotOf(markdown: string) {
+  const editor = buildEditorFromExtensions(
+    createCanvasExtension({ snapshotJson: null, markdown })
+  );
+  try {
+    // Reading flushes the pending seed first, so the state is the parsed draft and not the empty start.
+    const markdown = canvasMarkdownOf(editor);
+    const snapshotJson = editor.getEditorState().toJSON();
+    return {
+      snapshotJson: snapshotJson as unknown as Record<string, unknown>,
+      markdown,
+    };
+  } finally {
+    editor.dispose();
+  }
 }

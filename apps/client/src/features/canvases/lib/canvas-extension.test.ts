@@ -13,6 +13,7 @@ import { matchesPickerQuery } from '@/components/editor/utils/picker-query';
 import {
   $replaceCanvasContent,
   canvasMarkdownOf,
+  canvasSnapshotOf,
   createCanvasExtension,
 } from './canvas-extension';
 
@@ -151,5 +152,28 @@ describe('restoring a version', () => {
     });
     expect(live.read(() => $getRoot().getChildrenSize())).toBe(1);
     live.dispose();
+  });
+});
+
+describe('canvasSnapshotOf', () => {
+  it('turns an AI draft into an editor state that reopens as the same draft', () => {
+    const draft = [
+      '## Scope',
+      '',
+      'Author and date. [1](/channels/c1?thread=t&message=m)',
+      '',
+      '## Action items',
+      '',
+      '- [ ] Ship it',
+    ].join('\n');
+
+    const { snapshotJson, markdown } = canvasSnapshotOf(draft);
+
+    expect(markdown).toBe(draft);
+    const reopened = buildEditorFromExtensions(
+      createCanvasExtension({ snapshotJson, markdown: '' })
+    );
+    expect(canvasMarkdownOf(reopened)).toBe(draft);
+    reopened.dispose();
   });
 });

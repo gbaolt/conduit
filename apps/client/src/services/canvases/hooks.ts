@@ -18,7 +18,8 @@ export function useCreateCanvas() {
           orpc.canvases.get.queryKey({ input: { canvasId: canvas.id } }),
           canvas
         );
-        if (canvas.roomId) {
+        // Another canvas in the channel is not the one its Canvas tab opens.
+        if (canvas.roomId && canvas.isChannelPrimary) {
           queryClient.setQueryData(
             orpc.canvases.getChannelCanvas.queryKey({
               input: { roomId: canvas.roomId },
