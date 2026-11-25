@@ -41,12 +41,14 @@ import {
 import { AutoLinkExtension } from '@/components/editor/extensions/auto-link-extension';
 import { EmojisExtension } from '@/components/editor/extensions/emojis-extension';
 import { MarkdownShortcutsExtension } from '@/components/editor/extensions/markdown-shortcuts-extension';
+import { CalloutNode } from '@/components/editor/nodes/callout-node';
 import { CodeBlockNode } from '@/components/editor/nodes/code-block-node';
 import { LayoutContainerNode } from '@/components/editor/nodes/layout-container-node';
 import { LayoutItemNode } from '@/components/editor/nodes/layout-item-node';
 import { MentionNode } from '@/components/editor/nodes/mention-node';
 import { MessageEmbedNode } from '@/components/editor/nodes/message-embed-node';
 import { editorTheme } from '@/components/editor/themes/editor-theme';
+import { CALLOUT } from '@/components/editor/transformers/markdown-callout-transformer';
 import { HR } from '@/components/editor/transformers/markdown-hr-transformer';
 import { createTableTransformer } from '@/components/editor/transformers/markdown-table-transformer';
 import { createMentionTransformer } from '@/features/messages/lib/mention-transformer';
@@ -63,6 +65,11 @@ const canvasTheme: EditorThemeClasses = {
   },
   quote:
     'border-border text-muted-foreground border-l-2 pl-4 [&:not(:first-child)]:mt-3',
+  callout: {
+    base: 'flex gap-2 rounded-lg py-2 pr-4 pl-2 [&:not(:first-child)]:mt-3 data-[tone=blue]:bg-blue-500/10 data-[tone=gray]:bg-muted data-[tone=green]:bg-emerald-500/10 data-[tone=purple]:bg-violet-500/10 data-[tone=red]:bg-red-500/10 data-[tone=yellow]:bg-amber-500/10',
+    icon: 'flex h-7 shrink-0 items-center',
+    body: 'min-w-0 flex-1 py-px leading-7',
+  },
   embedBlock: {
     base: 'my-3 select-none',
     focus: 'rounded-lg ring-2 ring-ring ring-offset-2 ring-offset-background',
@@ -93,7 +100,12 @@ const blockTransformers: Transformer[] = [
 ];
 
 function transformersWith(names: ReadonlyMap<string, string>) {
-  const inline = [...blockTransformers, createMentionTransformer(names)];
+  // CALLOUT comes before QUOTE, or `> 💡 Note` would read as a quote.
+  const inline = [
+    CALLOUT,
+    ...blockTransformers,
+    createMentionTransformer(names),
+  ];
   return [...inline, createTableTransformer(inline)];
 }
 
@@ -189,6 +201,7 @@ export function createCanvasExtension(
       LayoutContainerNode,
       LayoutItemNode,
       MessageEmbedNode,
+      CalloutNode,
     ],
     onError: (error) => {
       throw error;
