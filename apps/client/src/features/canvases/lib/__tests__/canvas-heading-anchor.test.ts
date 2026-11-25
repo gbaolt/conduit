@@ -58,13 +58,36 @@ describe('canvas heading anchors', () => {
     expect(findHeadingByAnchor(updated, 'a1b2c3d4')?.key).toBe('h1');
   });
 
-  it('resolves legacy links when headings have no anchorId', () => {
+  it('resolves legacy links when headings have no anchorId and after Copy link assigns an ID', () => {
     const legacy = assignHeadingAnchors([
       { key: 'h1', text: 'Plan', anchorId: null },
       { key: 'h2', text: 'Plan', anchorId: null },
     ]);
     expect(findHeadingByAnchor(legacy, 'plan')?.key).toBe('h1');
     expect(findHeadingByAnchor(legacy, 'plan-2')?.key).toBe('h2');
+
+    // Assigning an ID to the first heading keeps both legacy slugs resolving to their original targets.
+    const afterCopyLink = assignHeadingAnchors([
+      { key: 'h1', text: 'Plan', anchorId: 'a1b2c3d4' },
+      { key: 'h2', text: 'Plan', anchorId: null },
+    ]);
+    expect(afterCopyLink[0]!.anchor).toBe('plan--a1b2c3d4');
+    expect(afterCopyLink[1]!.anchor).toBe('plan-2');
+    expect(findHeadingByAnchor(afterCopyLink, 'plan')?.key).toBe('h1');
+    expect(findHeadingByAnchor(afterCopyLink, 'plan-2')?.key).toBe('h2');
+    expect(findHeadingByAnchor(afterCopyLink, 'plan--a1b2c3d4')?.key).toBe(
+      'h1'
+    );
+  });
+
+  it('resolves duplicate IDs to the first heading in document order', () => {
+    const duplicated = assignHeadingAnchors([
+      { key: 'h1', text: 'Alpha', anchorId: 'a1b2c3d4' },
+      { key: 'h2', text: 'Beta', anchorId: 'a1b2c3d4' },
+    ]);
+    expect(findHeadingByAnchor(duplicated, 'alpha--a1b2c3d4')?.key).toBe('h1');
+    expect(findHeadingByAnchor(duplicated, 'beta--a1b2c3d4')?.key).toBe('h1');
+    expect(findHeadingByAnchor(duplicated, 'a1b2c3d4')?.key).toBe('h1');
   });
 
   it('generates valid unique 8-character IDs', () => {

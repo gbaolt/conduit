@@ -8,12 +8,13 @@ import {
 } from '@conduit/ui/components/popover';
 import { cn } from '@conduit/ui/lib/utils';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $isHeadingNode, type HeadingNode } from '@lexical/rich-text';
+import { $isHeadingNode, HeadingNode } from '@lexical/rich-text';
 import { IconLink, IconList } from '@tabler/icons-react';
 import {
   $getNodeByKey,
   $getRoot,
   $isElementNode,
+  $nodesOfType,
   type ElementNode,
   HISTORY_MERGE_TAG,
   type LexicalEditor,
@@ -28,9 +29,12 @@ import { useCopy } from '@/hooks/use-copy';
 
 import {
   $getHeadingAnchorId,
+  $setHeadingAnchorId,
   assignHeadingAnchors,
+  createHeadingAnchorId,
   findHeadingByAnchor,
   headingAnchorFromHash,
+  headingAnchorOf,
   headingUrlOf,
 } from '../lib/canvas-heading-anchor';
 
@@ -39,6 +43,7 @@ type CanvasHeading = {
   text: string;
   anchorId: string | null;
   anchor: string;
+  legacyAnchor: string;
   /** 1 for `h1`. Deeper headings than `h3` indent as `h3`. */
   depth: number;
 };
@@ -250,7 +255,7 @@ function CanvasTocList({
   headings: CanvasHeading[];
   activeKey: NodeKey | null;
   onSelect: (key: NodeKey) => void;
-  onCopyLink: (anchor: string) => void;
+  onCopyLink: (heading: CanvasHeading) => void;
 }) {
   return (
     <ul className="flex max-h-[50dvh] flex-col overflow-y-auto overscroll-contain p-2">
@@ -279,7 +284,7 @@ function CanvasTocList({
               size="icon-xs"
               aria-label={`Copy link to ${label}`}
               className="text-muted-foreground hover:text-foreground shrink-0 opacity-0 transition-opacity group-focus-within/toc-item:opacity-100 group-hover/toc-item:opacity-100 [@media(hover:none)]:opacity-100"
-              onClick={() => onCopyLink(heading.anchor)}
+              onClick={() => onCopyLink(heading)}
             >
               <IconLink />
             </Button>
@@ -317,8 +322,37 @@ export function CanvasToc({
 
   if (headings.length === 0) return null;
   const layout = SIDES[side];
-  const copyLink = (anchor: string) =>
+  const copyLink = (heading: CanvasHeading) => {
+    let anchor = heading.anchor;
+    if (!heading.anchorId && editor.isEditable()) {
+      let assignedId: string | null = null;
+      // Normal persisted edit (not HISTORY_MERGE) so autosave and live sync store the new ID.
+      editor.update(
+        () => {
+          const node = $getNodeByKey(heading.key);
+          if (!$isHeadingNode(node)) return;
+          const existing = $getHeadingAnchorId(node);
+          if (existing) {
+            assignedId = existing;
+            return;
+          }
+          const used = new Set<string>();
+          for (const other of $nodesOfType(HeadingNode)) {
+            const otherId = $getHeadingAnchorId(other);
+            if (otherId) used.add(otherId);
+          }
+          const nextId = createHeadingAnchorId(used);
+          $setHeadingAnchorId(node, nextId);
+          assignedId = nextId;
+        },
+        { discrete: true }
+      );
+      if (assignedId) {
+        anchor = headingAnchorOf(heading.text, assignedId);
+      }
+    }
     void copy(() => headingUrlOf(window.location.href, anchor));
+  };
 
   return (
     <>

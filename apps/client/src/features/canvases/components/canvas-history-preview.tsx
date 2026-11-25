@@ -74,7 +74,11 @@ function CanvasHistoryPreviewDocument({
       defineExtension({
         name: '@conduit/canvas-preview',
         editable: false,
-        dependencies: [createCanvasExtension(version)],
+        dependencies: [
+          createCanvasExtension(version, new Map(), {
+            writeHeadingDomIds: false,
+          }),
+        ],
       }),
     [version]
   );

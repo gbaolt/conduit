@@ -184,7 +184,7 @@ function seedCanvas(
         $getRoot().append($createParagraphNode());
       }
     },
-    { tag: HISTORY_MERGE_TAG }
+    { discrete: true, tag: HISTORY_MERGE_TAG }
   );
 }
 

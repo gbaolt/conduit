@@ -61,41 +61,48 @@ export function extractHeadingAnchorId(anchor: string): string | null {
 }
 
 /**
- * Assigns a unique anchor to each heading in document order. Headings with a persisted `anchorId` get a
- * stable `<slug>--<id>` fragment; legacy headings without one fall back to slug deduplication.
+ * Assigns a unique anchor and a deduplicated legacy slug to each heading in document order. Headings with a
+ * persisted `anchorId` get a stable `<slug>--<id>` fragment while keeping their legacy slug alias so old
+ * `#slug` links continue to resolve after an ID is assigned.
  */
 export function assignHeadingAnchors<
   T extends { text: string; anchorId?: string | null },
->(headings: readonly T[]): Array<T & { anchor: string }> {
-  const used = new Set<string>();
+>(headings: readonly T[]): Array<T & { anchor: string; legacyAnchor: string }> {
+  const usedLegacy = new Set<string>();
   return headings.map((heading) => {
-    if (heading.anchorId && isHeadingAnchorId(heading.anchorId)) {
-      const anchor = headingAnchorOf(heading.text, heading.anchorId);
-      used.add(anchor);
-      return { ...heading, anchor };
-    }
     const base = slugifyHeading(heading.text);
-    let anchor = base;
+    let legacyAnchor = base;
     let suffix = 2;
-    while (used.has(anchor)) {
-      anchor = `${base}-${suffix}`;
+    while (usedLegacy.has(legacyAnchor)) {
+      legacyAnchor = `${base}-${suffix}`;
       suffix += 1;
     }
-    used.add(anchor);
-    return { ...heading, anchor };
+    usedLegacy.add(legacyAnchor);
+    const anchor =
+      heading.anchorId && isHeadingAnchorId(heading.anchorId)
+        ? headingAnchorOf(heading.text, heading.anchorId)
+        : legacyAnchor;
+    return { ...heading, anchor, legacyAnchor };
   });
 }
 
 /** Resolves a decoded URL hash against the document's headings, matching by persisted ID before legacy slug. */
 export function findHeadingByAnchor<
-  T extends { anchor: string; anchorId?: string | null },
+  T extends {
+    anchor: string;
+    anchorId?: string | null;
+    legacyAnchor?: string;
+  },
 >(headings: readonly T[], target: string): T | undefined {
   const id = extractHeadingAnchorId(target);
   if (id) {
+    // Duplicate IDs resolve to the first heading in document order.
     const byId = headings.find((heading) => heading.anchorId === id);
     if (byId) return byId;
   }
-  return headings.find((heading) => heading.anchor === target);
+  return headings.find(
+    (heading) => heading.anchor === target || heading.legacyAnchor === target
+  );
 }
 
 /** Builds a link to a heading on the current canvas URL, preserving any query parameters such as `?tab=`. */

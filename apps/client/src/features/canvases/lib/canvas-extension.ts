@@ -26,18 +26,29 @@ import {
   type Transformer,
   UNORDERED_LIST,
 } from '@lexical/markdown';
-import { HeadingNode, RichTextExtension } from '@lexical/rich-text';
+import {
+  $isHeadingNode,
+  HeadingNode,
+  RichTextExtension,
+} from '@lexical/rich-text';
 import { TableExtension } from '@lexical/table';
 import {
   $createParagraphNode,
+  $getNodeByKey,
   $getRoot,
+  $hasUpdateTag,
   $isParagraphNode,
   $nodesOfType,
   $parseSerializedNode,
+  COLLABORATION_TAG,
   configExtension,
   defineExtension,
   type EditorThemeClasses,
+  HISTORIC_TAG,
+  HISTORY_MERGE_TAG,
   type LexicalEditor,
+  type NodeKey,
+  PASTE_TAG,
   type SerializedEditorState,
 } from 'lexical';
 
@@ -296,7 +307,7 @@ export function $replaceCanvasContent(snapshotJson: Record<string, unknown>) {
 export function createCanvasExtension(
   { snapshotJson, markdown }: CanvasContent,
   names: ReadonlyMap<string, string> = new Map(),
-  { collaborative = false } = {}
+  { collaborative = false, writeHeadingDomIds = true } = {}
 ) {
   return defineExtension({
     name: '@conduit/canvas',
@@ -319,63 +330,76 @@ export function createCanvasExtension(
       ToggleContentNode,
     ],
     register: (editor) => {
-      // Tracks which heading key first owned each anchorId so pasting a duplicate regenerates the copy, not the original.
-      const ownerById = new Map<string, string>();
+      // Committed heading keys let the transform distinguish newly created or pasted headings from loaded ones.
+      const knownKeys = new Set<NodeKey>(
+        editor
+          .getEditorState()
+          .read(() => $nodesOfType(HeadingNode).map((node) => node.getKey()))
+      );
       const unregisterTransform = editor.registerNodeTransform(
         HeadingNode,
         (node) => {
-          if (!editor.isEditable()) return;
-          const current = $getHeadingAnchorId(node);
+          if (
+            !editor.isEditable() ||
+            $hasUpdateTag(COLLABORATION_TAG) ||
+            $hasUpdateTag(HISTORY_MERGE_TAG) ||
+            $hasUpdateTag(HISTORIC_TAG)
+          ) {
+            return;
+          }
           const key = node.getKey();
+          if (knownKeys.has(key)) return;
+          knownKeys.add(key);
+
+          const current = $getHeadingAnchorId(node);
           const used = new Set<string>();
           for (const other of $nodesOfType(HeadingNode)) {
+            if (other.getKey() === key) continue;
             const otherId = $getHeadingAnchorId(other);
-            if (!otherId) continue;
-            if (!ownerById.has(otherId)) ownerById.set(otherId, other.getKey());
-            if (other.getKey() !== key) used.add(otherId);
+            if (otherId) used.add(otherId);
           }
-          const isDuplicate =
-            Boolean(current) &&
-            used.has(current!) &&
-            ownerById.get(current!) !== key;
-          if (!current || isDuplicate) {
-            const nextId = createHeadingAnchorId(used);
-            ownerById.set(nextId, key);
-            $setHeadingAnchorId(node, nextId);
-          } else {
-            ownerById.set(current, key);
+
+          const isPaste = $hasUpdateTag(PASTE_TAG);
+          const isDuplicate = Boolean(current) && used.has(current!);
+          if (isPaste || !current || isDuplicate) {
+            if (current) used.add(current);
+            $setHeadingAnchorId(node, createHeadingAnchorId(used));
           }
         }
       );
-      const unregisterMutation = editor.registerMutationListener(
-        HeadingNode,
-        (mutations) => {
-          editor.read(() => {
-            for (const [key, mutation] of mutations) {
-              if (mutation === 'destroyed') {
-                for (const [id, ownerKey] of ownerById) {
-                  if (ownerKey === key) ownerById.delete(id);
-                }
-                continue;
-              }
-              const element = editor.getElementByKey(key);
-              if (!element) continue;
-              const node = $nodesOfType(HeadingNode).find(
-                (heading) => heading.getKey() === key
-              );
-              const id = node ? $getHeadingAnchorId(node) : null;
-              if (id) {
-                if (!ownerById.has(id)) ownerById.set(id, key);
-                element.id = id;
-              } else {
-                element.removeAttribute('id');
-              }
+      const unregisterUpdate = editor.registerUpdateListener(
+        ({ editorState }) => {
+          editorState.read(() => {
+            knownKeys.clear();
+            for (const node of $nodesOfType(HeadingNode)) {
+              knownKeys.add(node.getKey());
             }
           });
         }
       );
+      const unregisterMutation = writeHeadingDomIds
+        ? editor.registerMutationListener(HeadingNode, (mutations) => {
+            editor.read(() => {
+              for (const [key, mutation] of mutations) {
+                if (mutation === 'destroyed') continue;
+                const element = editor.getElementByKey(key);
+                if (!element) continue;
+                const node = $getNodeByKey(key);
+                const id = $isHeadingNode(node)
+                  ? $getHeadingAnchorId(node)
+                  : null;
+                if (id) {
+                  element.id = id;
+                } else {
+                  element.removeAttribute('id');
+                }
+              }
+            });
+          })
+        : () => {};
       return () => {
         unregisterTransform();
+        unregisterUpdate();
         unregisterMutation();
       };
     },
