@@ -222,6 +222,25 @@ describe('callouts', () => {
     editor.dispose();
   });
 
+  it('keeps every line of a callout in one callout, even a line led by an emoji', () => {
+    const markdown = '> 💡 Line one\n> 🚀 Line two\n> Line three';
+    expect(roundTrip(markdown)).toBe(markdown);
+    const editor = build(`${markdown}\n\n> ⚠️ Second callout`);
+    editor.read(() => {
+      expect($nodesOfType(CalloutNode).map((c) => c.getTextContent())).toEqual([
+        'Line one\n🚀 Line two\nLine three',
+        'Second callout',
+      ]);
+    });
+    editor.dispose();
+  });
+
+  it('reads an empty callout whose trailing space was trimmed', () => {
+    const editor = build('> 💡');
+    expect(editor.read(() => $nodesOfType(CalloutNode))).toHaveLength(1);
+    editor.dispose();
+  });
+
   it('leaves a quote without a leading emoji as a quote', () => {
     const editor = build('> Just a quote');
     expect(editor.read(() => $nodesOfType(CalloutNode))).toHaveLength(0);

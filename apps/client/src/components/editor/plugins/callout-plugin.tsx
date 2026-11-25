@@ -60,21 +60,18 @@ function CalloutIcon({
 }) {
   const editable = useLexicalEditable();
   const icon = <Twemoji className="size-5">{emoji}</Twemoji>;
-  if (!editable) return <span aria-hidden>{icon}</span>;
+  if (!editable) return icon;
 
   const edit = (change: (node: CalloutNode) => void) =>
     editor.update(() => $editCallout(nodeKey, change));
 
   return (
     <EmojiPicker
-      aria-label="Callout emoji"
+      aria-label="Callout emoji and color"
+      value={emoji}
       onEmojiSelect={({ value }) => edit((node) => node.setEmoji(value))}
     >
-      <EmojiPickerTrigger
-        variant="ghost"
-        size="icon-sm"
-        aria-label="Change callout emoji and color"
-      >
+      <EmojiPickerTrigger variant="ghost" size="icon-sm">
         {icon}
       </EmojiPickerTrigger>
       <EmojiPickerContent>
@@ -127,32 +124,28 @@ export function CalloutPlugin() {
     () =>
       editor.registerMutationListener(
         CalloutNode,
-        (mutations) =>
+        (mutations) => {
+          // Read now, while the state matches these mutations; the updater may run later.
+          const changes = editor.getEditorState().read(() =>
+            [...mutations].map(([key, mutation]): [NodeKey, Callout | null] => {
+              const node = $getNodeByKey(key);
+              const icon = editor
+                .getElementByKey(key)
+                ?.querySelector<HTMLElement>('[data-callout-icon]');
+              return mutation === 'destroyed' || !$isCalloutNode(node) || !icon
+                ? [key, null]
+                : [key, { icon, emoji: node.getEmoji(), tone: node.getTone() }];
+            })
+          );
           setCallouts((previous) => {
             const next = new Map(previous);
-            editor.getEditorState().read(() => {
-              for (const [key, mutation] of mutations) {
-                const node = $getNodeByKey(key);
-                const icon = editor
-                  .getElementByKey(key)
-                  ?.querySelector<HTMLElement>('[data-callout-icon]');
-                if (
-                  mutation === 'destroyed' ||
-                  !$isCalloutNode(node) ||
-                  !icon
-                ) {
-                  next.delete(key);
-                } else {
-                  next.set(key, {
-                    icon,
-                    emoji: node.getEmoji(),
-                    tone: node.getTone(),
-                  });
-                }
-              }
-            });
+            for (const [key, callout] of changes) {
+              if (callout) next.set(key, callout);
+              else next.delete(key);
+            }
             return next;
-          }),
+          });
+        },
         { skipInitialization: false }
       ),
     [editor]
