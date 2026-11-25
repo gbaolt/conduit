@@ -31,6 +31,7 @@ import {
 import { useCanvasFullWidth } from '../hooks/use-canvas-full-width';
 import {
   $selectNewFirstLine,
+  canvasEmbeddedMessageIdsOf,
   canvasExportMarkdownOf,
 } from '../lib/canvas-extension';
 import { downloadMarkdownFile } from '../lib/canvas-markdown-export';
@@ -106,25 +107,43 @@ export function CanvasView({
       return;
     editor.update($selectNewFirstLine, { onUpdate: () => editor.focus() });
   };
-  const resolveMessageUrl = (messageId: string) => {
-    const data = queryClient.getQueryData(
-      canvasEmbeddedMessageQuery(canvas.id, messageId).queryKey
+  const resolveMessageUrls = async (target: LexicalEditor) => {
+    const ids = canvasEmbeddedMessageIdsOf(target);
+    const urls = new Map<string, string>();
+    await Promise.all(
+      ids.map(async (messageId) => {
+        try {
+          const data = await queryClient.ensureQueryData(
+            canvasEmbeddedMessageQuery(canvas.id, messageId)
+          );
+          if (data.status !== 'ok') return;
+          const path = messagePath({
+            ...data.message,
+            roomId: data.message.room.id,
+            kind: data.message.room.kind,
+          });
+          urls.set(messageId, new URL(path, window.location.origin).toString());
+        } catch {
+          // Unavailable or errored embeds fall back to plain text.
+        }
+      })
     );
-    if (data?.status !== 'ok') return null;
-    const path = messagePath({
-      ...data.message,
-      roomId: data.message.room.id,
-      kind: data.message.room.kind,
-    });
-    return new URL(path, window.location.origin).toString();
+    return urls;
   };
-  const currentMarkdown = () =>
-    exportState.editor
-      ? canvasExportMarkdownOf(exportState.editor, { resolveMessageUrl })
-      : canvas.markdown;
+  const currentMarkdown = async () => {
+    const target = exportState.editor;
+    if (!target) return canvas.markdown;
+    const urls = await resolveMessageUrls(target);
+    return canvasExportMarkdownOf(target, {
+      resolveMessageUrl: (id) => urls.get(id) ?? null,
+    });
+  };
   const copyMarkdown = () => void copyMarkdownToClipboard(currentMarkdown);
-  const downloadMarkdown = () =>
-    downloadMarkdownFile(canvas.title, currentMarkdown());
+  const downloadMarkdown = () => {
+    void currentMarkdown().then((markdown) =>
+      downloadMarkdownFile(canvas.title, markdown)
+    );
+  };
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">

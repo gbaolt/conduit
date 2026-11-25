@@ -1,7 +1,7 @@
 import { CANVAS_UNTITLED } from '@conduit/contract';
 
 const ILLEGAL_FILENAME_CHARS = /[<>:"/\\|?*\p{Cc}]+/gu;
-const WINDOWS_RESERVED_NAME = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
+const WINDOWS_RESERVED_NAME = /^(?:con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³])$/i;
 
 /** Turns a canvas title into a safe `.md` filename, avoiding Windows-reserved device names. */
 export function markdownFilenameOf(title: string): string {
@@ -11,9 +11,13 @@ export function markdownFilenameOf(title: string): string {
     .replace(/^[\s.-]+|[\s.-]+$/g, '');
   const base = cleaned || CANVAS_UNTITLED;
   const stem = base.toLowerCase().endsWith('.md') ? base.slice(0, -3) : base;
-  const firstSegment = stem.split('.')[0] ?? '';
+  const dotIndex = stem.indexOf('.');
+  const firstSegment = (
+    dotIndex === -1 ? stem : stem.slice(0, dotIndex)
+  ).replace(/[\s.]+$/, '');
+  const rest = dotIndex === -1 ? '' : stem.slice(dotIndex);
   const safeStem = WINDOWS_RESERVED_NAME.test(firstSegment)
-    ? `${stem}-canvas`
+    ? `${firstSegment}-canvas${rest}`
     : stem;
   return `${safeStem}.md`;
 }

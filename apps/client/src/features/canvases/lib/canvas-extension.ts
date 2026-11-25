@@ -182,11 +182,8 @@ function createMessageEmbedTransformer(
     type: 'element',
     export: (node) => {
       if (!$isMessageEmbedNode(node)) return null;
-      const messageId = node.getMessageId();
-      const url =
-        resolveMessageUrl?.(messageId) ??
-        `?message=${encodeURIComponent(messageId)}`;
-      return `[Embedded message](${url})`;
+      const url = resolveMessageUrl?.(node.getMessageId()) ?? null;
+      return url ? `[Embedded message](${url})` : 'Embedded message';
     },
     regExp: /(?!)/,
     replace: () => false,
@@ -228,6 +225,15 @@ const exportTransformers = transformersWith(new Map());
 /** The canvas as Markdown, which search and AI read. A mention is `<@userId>`, as in a message. */
 export function canvasMarkdownOf(editor: LexicalEditor) {
   return editor.read(() => $convertToMarkdownString(exportTransformers));
+}
+
+/** Distinct message IDs embedded in the editor, for resolving export permalinks. */
+export function canvasEmbeddedMessageIdsOf(editor: LexicalEditor): string[] {
+  return editor.read(() => [
+    ...new Set(
+      $nodesOfType(MessageEmbedNode).map((node) => node.getMessageId())
+    ),
+  ]);
 }
 
 /** User-facing Markdown export: mentions render as `@Name`, columns separate with blank lines, and embeds become links. */

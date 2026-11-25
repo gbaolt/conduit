@@ -29,17 +29,23 @@ describe('canvas Markdown export filename', () => {
   it.each([
     ['CON', 'CON-canvas.md'],
     ['con', 'con-canvas.md'],
+    ['CON .md', 'CON-canvas.md'],
     ['PRN.md', 'PRN-canvas.md'],
     ['aux', 'aux-canvas.md'],
-    ['NUL.txt', 'NUL.txt-canvas.md'],
+    ['NUL.txt', 'NUL-canvas.txt.md'],
+    ['NUL.tar.gz', 'NUL-canvas.tar.gz.md'],
+    ['COM0', 'COM0-canvas.md'],
     ['COM1', 'COM1-canvas.md'],
+    ['COM¹', 'COM¹-canvas.md'],
+    ['lpt0', 'lpt0-canvas.md'],
     ['lpt9', 'lpt9-canvas.md'],
+    ['LPT³.txt', 'LPT³-canvas.txt.md'],
   ])('avoids Windows-reserved filename %s -> %s', (input, expected) => {
     expect(markdownFilenameOf(input)).toBe(expected);
   });
 
   it('leaves non-reserved names untouched', () => {
-    expect(markdownFilenameOf('COM0')).toBe('COM0.md');
+    expect(markdownFilenameOf('COM10')).toBe('COM10.md');
     expect(markdownFilenameOf('Content')).toBe('Content.md');
   });
 });
@@ -103,9 +109,10 @@ describe('canvasExportMarkdownOf', () => {
     ).toBe(
       'Context\n\n[Embedded message](http://localhost:3000/channels/c1?message=msg_123)'
     );
-    expect(canvasExportMarkdownOf(editor)).toBe(
-      'Context\n\n[Embedded message](?message=msg_123)'
-    );
+    expect(canvasExportMarkdownOf(editor)).toBe('Context\n\nEmbedded message');
+    expect(
+      canvasExportMarkdownOf(editor, { resolveMessageUrl: () => null })
+    ).toBe('Context\n\nEmbedded message');
     editor.dispose();
   });
 });
