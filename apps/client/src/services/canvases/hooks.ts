@@ -3,6 +3,7 @@
 import type {
   CanvasDocument,
   SaveCanvasSnapshotInput,
+  UpdateCanvasInput,
 } from '@conduit/contract';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -159,6 +160,19 @@ export function useShareCanvas() {
       onSuccess: (_, input) => invalidate(input),
     })
   );
+}
+
+/** The canvas edits still saving, read when called, so a click sees the save its own blur just started. */
+export function usePendingCanvasUpdates() {
+  const queryClient = useQueryClient();
+  return () =>
+    queryClient
+      .getMutationCache()
+      .findAll({
+        mutationKey: orpc.canvases.update.mutationKey(),
+        status: 'pending',
+      })
+      .map((mutation) => mutation.state.variables as UpdateCanvasInput);
 }
 
 export function useUpdateCanvasMemberRole() {

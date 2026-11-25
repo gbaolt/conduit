@@ -7,7 +7,10 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-import { useUpdateCanvas } from '@/services/canvases/hooks';
+import {
+  usePendingCanvasUpdates,
+  useUpdateCanvas,
+} from '@/services/canvases/hooks';
 
 import {
   $isEmptyCanvas,
@@ -23,6 +26,7 @@ export function CanvasTemplatePicker({ canvas }: { canvas: CanvasDocument }) {
   const [editor] = useLexicalComposerContext();
   const [empty, setEmpty] = useState(() => editor.read($isEmptyCanvas));
   const update = useUpdateCanvas();
+  const pendingUpdates = usePendingCanvasUpdates();
 
   useEffect(
     () =>
@@ -35,10 +39,28 @@ export function CanvasTemplatePicker({ canvas }: { canvas: CanvasDocument }) {
   if (!empty) return null;
 
   const apply = (template: CanvasTemplate) => {
-    editor.update(() => $seedCanvasFromMarkdown(template.markdown, new Map()));
+    let applied = false;
+    editor.update(
+      () => {
+        // Someone else may have typed since the picker rendered, and seeding clears the document.
+        if (!$isEmptyCanvas()) return;
+        $seedCanvasFromMarkdown(template.markdown, new Map());
+        applied = true;
+      },
+      { onUpdate: () => editor.focus() }
+    );
+    if (!applied) return;
+    // A rename still saving, such as the title's blur on this very click, is not in `canvas` yet.
+    const saving = pendingUpdates();
     const patch = {
-      ...(canvas.title === CANVAS_UNTITLED && { title: template.label }),
-      ...(!canvas.icon && { icon: template.icon }),
+      ...(canvas.title === CANVAS_UNTITLED &&
+        !saving.some((input) => input.title !== undefined) && {
+          title: template.label,
+        }),
+      ...(!canvas.icon &&
+        !saving.some((input) => input.icon !== undefined) && {
+          icon: template.icon,
+        }),
     };
     if (Object.keys(patch).length === 0) return;
     update.mutate(
@@ -51,10 +73,10 @@ export function CanvasTemplatePicker({ canvas }: { canvas: CanvasDocument }) {
     <div
       role="group"
       aria-label="Templates"
-      className="absolute top-12 right-0 left-8 flex flex-col gap-2"
+      className="pointer-events-none absolute top-16 right-0 left-8 flex flex-col gap-2"
     >
       <p className="text-muted-foreground text-sm">Or start from a template</p>
-      <div className="flex flex-wrap gap-2">
+      <div className="pointer-events-auto flex w-fit flex-wrap gap-2">
         {CANVAS_TEMPLATES.map((template) => (
           <Button
             key={template.id}
@@ -62,7 +84,9 @@ export function CanvasTemplatePicker({ canvas }: { canvas: CanvasDocument }) {
             size="sm"
             onClick={() => apply(template)}
           >
-            <Twemoji className="size-4">{template.icon}</Twemoji>
+            <span data-icon="inline-start" aria-hidden className="flex">
+              <Twemoji className="size-4">{template.icon}</Twemoji>
+            </span>
             {template.label}
           </Button>
         ))}
