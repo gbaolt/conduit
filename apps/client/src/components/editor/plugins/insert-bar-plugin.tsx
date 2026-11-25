@@ -28,13 +28,14 @@ import { $isHeadingNode, $isQuoteNode } from '@lexical/rich-text';
 import { $findMatchingParent, $getNearestNodeOfType } from '@lexical/utils';
 import { IconChevronDown, IconMoodSmile, IconPlus } from '@tabler/icons-react';
 import {
+  $createParagraphNode,
   $getRoot,
   $getSelection,
   $isRangeSelection,
   $isRootOrShadowRoot,
   type LexicalEditor,
 } from 'lexical';
-import { type ReactElement, useEffect, useState } from 'react';
+import { type ReactElement, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useEditorModal } from '@/components/editor/editor-hooks/use-modal';
@@ -77,9 +78,21 @@ function $blockType(): BlockType {
   return 'paragraph';
 }
 
-/** A toolbar click blurs the document, which keeps its selection; a document never clicked has none yet. */
+/**
+ * A toolbar click blurs the document, which keeps its selection. With none yet the caret goes to the end; with
+ * a block such as a divider selected, to the line after it.
+ */
 function $ensureSelection() {
-  if (!$getSelection()) $getRoot().selectEnd();
+  const selection = $getSelection();
+  if ($isRangeSelection(selection)) return;
+  const block = selection?.getNodes()[0]?.getTopLevelElement();
+  if (!block) {
+    $getRoot().selectEnd();
+    return;
+  }
+  const next =
+    block.getNextSibling() ?? block.insertAfter($createParagraphNode());
+  next.selectStart();
 }
 
 function InsertBarButton({
@@ -111,7 +124,16 @@ function InsertBar({
   quick: readonly string[];
 }) {
   const [modal, showModal] = useEditorModal();
-  const [blockType, setBlockType] = useState<BlockType>('paragraph');
+  const [blockType, setBlockType] = useState<BlockType>(() =>
+    editor.getEditorState().read($blockType)
+  );
+  // A pick leaves focus in the document; Escape hands it back to the trigger.
+  const picked = useRef(false);
+  const finalFocus = () => {
+    const back = !picked.current;
+    picked.current = false;
+    return back;
+  };
 
   useEffect(
     () =>
@@ -121,11 +143,13 @@ function InsertBar({
     [editor]
   );
 
+  // Focus first, so an option that opens a dialog leaves the dialog holding focus.
   const run = (option: ComponentPickerOption | undefined) => {
     if (!option) return;
+    picked.current = true;
     editor.update($ensureSelection, { discrete: true });
-    option.onSelect('', editor, showModal);
     editor.focus();
+    option.onSelect('', editor, showModal);
   };
   const byTitle = (title: string) =>
     options.find((option) => option.title === title);
@@ -136,7 +160,7 @@ function InsertBar({
     <div
       role="toolbar"
       aria-label="Insert"
-      className="bg-popover text-popover-foreground pointer-events-auto flex items-center gap-1 rounded-md border p-1 shadow-md"
+      className="bg-popover text-popover-foreground pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-md border p-1 shadow-md"
     >
       {modal}
       <DropdownMenu>
@@ -150,7 +174,11 @@ function InsertBar({
         >
           <IconPlus />
         </InsertBarButton>
-        <DropdownMenuContent side="top" className="w-56" finalFocus={false}>
+        <DropdownMenuContent
+          side="top"
+          className="w-56"
+          finalFocus={finalFocus}
+        >
           {options.map((option) => (
             <DropdownMenuItem key={option.key} onClick={() => run(option)}>
               {option.icon}
@@ -161,12 +189,23 @@ function InsertBar({
       </DropdownMenu>
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={<Button variant="ghost" size="sm" aria-label="Text style" />}
+          render={
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label={`Text style: ${current.label}`}
+              className="shrink-0"
+            />
+          }
         >
           {current.label}
           <IconChevronDown data-icon="inline-end" />
         </DropdownMenuTrigger>
-        <DropdownMenuContent side="top" className="w-44" finalFocus={false}>
+        <DropdownMenuContent
+          side="top"
+          className="w-44"
+          finalFocus={finalFocus}
+        >
           <DropdownMenuRadioGroup value={blockType}>
             {styles.map(({ type, option, label }) => (
               <DropdownMenuRadioItem
@@ -185,6 +224,7 @@ function InsertBar({
         <EmojiPicker
           aria-label="Insert emoji"
           onEmojiSelect={({ value }) => {
+            picked.current = true;
             editor.update(() => {
               $ensureSelection();
               const selection = $getSelection();
@@ -199,7 +239,7 @@ function InsertBar({
           >
             <IconMoodSmile />
           </InsertBarButton>
-          <EmojiPickerContent side="top" finalFocus={false} />
+          <EmojiPickerContent side="top" finalFocus={finalFocus} />
         </EmojiPicker>
         {quick.map((title) => {
           const option = byTitle(title);
