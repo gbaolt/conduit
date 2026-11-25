@@ -17,7 +17,7 @@ import { Textarea } from '@conduit/ui/components/textarea';
 import { Twemoji } from '@conduit/ui/components/twemoji';
 import { cn } from '@conduit/ui/lib/utils';
 import { IconMoodSmile, IconPhoto, IconX } from '@tabler/icons-react';
-import { type ReactElement, useState } from 'react';
+import { type ReactElement, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { EmojiPickerButton } from '@/features/messages/components/emoji-picker';
@@ -125,6 +125,8 @@ export function CanvasCover({ canvas }: { canvas: CanvasDocument }) {
 function CanvasTitle({ canvas }: { canvas: CanvasDocument }) {
   const patch = useCanvasPatch(canvas.id);
   const [title, setTitle] = useState(canvas.title);
+  // Escape blurs before React applies the reset, so the blur's commit would still see the edited title.
+  const cancelled = useRef(false);
 
   if (!canvas.access.edit) {
     return (
@@ -135,6 +137,10 @@ function CanvasTitle({ canvas }: { canvas: CanvasDocument }) {
   }
 
   const commit = () => {
+    if (cancelled.current) {
+      cancelled.current = false;
+      return;
+    }
     const next = title.trim();
     if (!next || next === canvas.title) {
       setTitle(canvas.title);
@@ -158,6 +164,7 @@ function CanvasTitle({ canvas }: { canvas: CanvasDocument }) {
           event.currentTarget.blur();
         }
         if (event.key === 'Escape') {
+          cancelled.current = true;
           setTitle(canvas.title);
           event.currentTarget.blur();
         }

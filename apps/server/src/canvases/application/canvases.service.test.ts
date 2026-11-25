@@ -482,10 +482,10 @@ describe('CanvasesService AI drafts', () => {
   });
 
   it('refuses a channel canvas from someone who cannot post', async () => {
-    const { service } = setup(roomFor({ archivedAt: new Date() }));
+    const { service } = setup(roomFor(), ['alice']);
     await expect(
-      service.create(alice, { roomId: 'general' })
-    ).rejects.toMatchObject({ code: 'CHANNEL_ARCHIVED' });
+      service.create(carol, { roomId: 'general' })
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 
   it('creates a standalone draft only its creator can open', async () => {

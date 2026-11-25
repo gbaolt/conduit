@@ -18,15 +18,26 @@ export function useCreateCanvas() {
           orpc.canvases.get.queryKey({ input: { canvasId: canvas.id } }),
           canvas
         );
-        return Promise.all([
-          queryClient.invalidateQueries({ queryKey: orpc.canvases.list.key() }),
-          canvas.roomId &&
-            queryClient.invalidateQueries({
-              queryKey: orpc.canvases.listChannelCanvases.key({
-                input: { roomId: canvas.roomId },
-              }),
+        if (canvas.roomId) {
+          // Added at once, so the new tab can open even if the refetch below fails.
+          queryClient.setQueryData(
+            orpc.canvases.listChannelCanvases.queryKey({
+              input: { roomId: canvas.roomId },
             }),
-        ]);
+            (tabs) =>
+              tabs && !tabs.some((tab) => tab.id === canvas.id)
+                ? [...tabs, canvas]
+                : tabs
+          );
+          void queryClient.invalidateQueries({
+            queryKey: orpc.canvases.listChannelCanvases.key({
+              input: { roomId: canvas.roomId },
+            }),
+          });
+        }
+        return queryClient.invalidateQueries({
+          queryKey: orpc.canvases.list.key(),
+        });
       },
     })
   );

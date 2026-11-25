@@ -45,7 +45,7 @@ const TRIGGER_CLASS = 'h-full flex-none translate-y-1 px-2 after:bottom-0!';
 
 function CanvasTabIcon({ canvas }: { canvas: Canvas }) {
   return canvas.icon ? (
-    <Twemoji className="size-4">{canvas.icon}</Twemoji>
+    <Twemoji className="size-4 shrink-0">{canvas.icon}</Twemoji>
   ) : (
     <IconLayoutBoard />
   );
