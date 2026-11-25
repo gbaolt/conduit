@@ -25,6 +25,7 @@ import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 
 import { $isToggleNode } from '@/components/editor/nodes/toggle-node';
+import { OPEN_TOGGLE_ANCESTORS_COMMAND } from '@/components/editor/plugins/toggle-plugin';
 import { useCopy } from '@/hooks/use-copy';
 
 import {
@@ -151,6 +152,10 @@ const SIDES = {
 } as const;
 
 function openCollapsedTogglesFor(editor: LexicalEditor, key: NodeKey) {
+  if (!editor.isEditable()) {
+    editor.dispatchCommand(OPEN_TOGGLE_ANCESTORS_COMMAND, key);
+    return;
+  }
   editor.update(
     () => {
       let current = $getNodeByKey(key)?.getParent() ?? null;

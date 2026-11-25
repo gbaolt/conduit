@@ -17,9 +17,11 @@ import {
   $isRootNode,
   COLLABORATION_TAG,
   COMMAND_PRIORITY_LOW,
+  createCommand,
   DELETE_CHARACTER_COMMAND,
   KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
+  type LexicalCommand,
   type LexicalEditor,
   type LexicalNode,
   type NodeKey,
@@ -39,6 +41,10 @@ import {
 } from '@/components/editor/nodes/toggle-node';
 import { cn } from '@/lib/utils';
 
+/** Expands any viewer-locally folded ancestor toggles of a target node without mutating the document. */
+export const OPEN_TOGGLE_ANCESTORS_COMMAND: LexicalCommand<NodeKey> =
+  createCommand('OPEN_TOGGLE_ANCESTORS_COMMAND');
+
 type Toggle = { slot: HTMLElement; open: boolean };
 
 function ToggleButton({
@@ -46,21 +52,19 @@ function ToggleButton({
   nodeKey,
   slot,
   open,
+  localOpen,
+  onLocalOpenChange,
 }: {
   editor: LexicalEditor;
   nodeKey: NodeKey;
   slot: HTMLElement;
   open: boolean;
+  localOpen: boolean | undefined;
+  onLocalOpenChange: (open: boolean) => void;
 }) {
   const editable = useLexicalEditable();
   // A viewer cannot write the document, so their folds stay on their own screen until the document changes.
-  const [localOpen, setLocalOpen] = useState(open);
-  const [seenOpen, setSeenOpen] = useState(open);
-  if (seenOpen !== open) {
-    setSeenOpen(open);
-    setLocalOpen(open);
-  }
-  const shown = editable ? open : localOpen;
+  const shown = editable ? open : (localOpen ?? open);
 
   useEffect(() => {
     const container = slot.parentElement;
@@ -69,7 +73,7 @@ function ToggleButton({
 
   const toggle = () => {
     if (!editable) {
-      setLocalOpen(!localOpen);
+      onLocalOpenChange(!shown);
       return;
     }
     editor.update(() => {
@@ -118,6 +122,9 @@ function $closedToggleAround(node: LexicalNode): ToggleNode | null {
 export function TogglePlugin() {
   const [editor] = useLexicalComposerContext();
   const [toggles, setToggles] = useState<ReadonlyMap<NodeKey, Toggle>>(
+    () => new Map()
+  );
+  const [localOpen, setLocalOpen] = useState<ReadonlyMap<NodeKey, boolean>>(
     () => new Map()
   );
 
@@ -253,6 +260,32 @@ export function TogglePlugin() {
         },
         COMMAND_PRIORITY_LOW
       ),
+      editor.registerCommand(
+        OPEN_TOGGLE_ANCESTORS_COMMAND,
+        (targetKey) => {
+          const ancestorKeys: NodeKey[] = [];
+          editor.getEditorState().read(() => {
+            let current = $getNodeByKey(targetKey)?.getParent() ?? null;
+            while (current) {
+              if ($isToggleNode(current)) ancestorKeys.push(current.getKey());
+              current = current.getParent();
+            }
+          });
+          if (ancestorKeys.length === 0) return false;
+          // Update the DOM immediately so a following scrollIntoView sees the revealed target.
+          for (const key of ancestorKeys) {
+            const element = editor.getElementByKey(key);
+            if (element) element.dataset.open = 'true';
+          }
+          setLocalOpen((previous) => {
+            const next = new Map(previous);
+            for (const key of ancestorKeys) next.set(key, true);
+            return next;
+          });
+          return true;
+        },
+        COMMAND_PRIORITY_LOW
+      ),
       editor.registerMutationListener(
         ToggleNode,
         (mutations) => {
@@ -268,14 +301,33 @@ export function TogglePlugin() {
                 : [key, { slot, open: node.getOpen() }];
             })
           );
+          const resetLocalKeys: NodeKey[] = [];
           setToggles((previous) => {
             const next = new Map(previous);
             for (const [key, toggle] of changes) {
-              if (toggle) next.set(key, toggle);
-              else next.delete(key);
+              const prior = previous.get(key);
+              if (!toggle) {
+                next.delete(key);
+                resetLocalKeys.push(key);
+              } else {
+                if (prior && prior.open !== toggle.open) {
+                  resetLocalKeys.push(key);
+                }
+                next.set(key, toggle);
+              }
             }
             return next;
           });
+          if (resetLocalKeys.length > 0) {
+            setLocalOpen((previous) => {
+              const next = new Map(previous);
+              let changed = false;
+              for (const key of resetLocalKeys) {
+                if (next.delete(key)) changed = true;
+              }
+              return changed ? next : previous;
+            });
+          }
         },
         { skipInitialization: false }
       )
@@ -284,7 +336,20 @@ export function TogglePlugin() {
 
   return [...toggles].map(([key, { slot, open }]) =>
     createPortal(
-      <ToggleButton editor={editor} nodeKey={key} slot={slot} open={open} />,
+      <ToggleButton
+        editor={editor}
+        nodeKey={key}
+        slot={slot}
+        open={open}
+        localOpen={localOpen.get(key)}
+        onLocalOpenChange={(nextOpen) =>
+          setLocalOpen((previous) => {
+            const next = new Map(previous);
+            next.set(key, nextOpen);
+            return next;
+          })
+        }
+      />,
       slot,
       key
     )
