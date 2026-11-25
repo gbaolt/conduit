@@ -1,7 +1,6 @@
 'use client';
 
 import { Button } from '@conduit/ui/components/button';
-import { ButtonGroup } from '@conduit/ui/components/button-group';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -280,7 +279,7 @@ function InsertBar({
       onBlur={() => setBarFocused(false)}
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
-      className="bg-popover text-popover-foreground data-hidden:slide-out-to-bottom-2 fade-in-0 zoom-in-95 animate-in pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-md border p-1 shadow-md duration-200 ease-out [animation-timing-function:cubic-bezier(0.16,1,0.3,1)] data-hidden:pointer-events-none data-hidden:opacity-0 data-hidden:delay-500 motion-reduce:transition-none"
+      className="bg-popover text-popover-foreground pointer-events-auto flex max-w-full items-center rounded-md border p-1 shadow-md transition-[opacity,translate,scale] duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] data-hidden:pointer-events-none data-hidden:translate-y-2 data-hidden:scale-95 data-hidden:opacity-0 data-hidden:delay-500 motion-reduce:transition-none"
     >
       {modal}
       <DropdownMenu onOpenChange={menu('insert')}>
@@ -340,49 +339,47 @@ function InsertBar({
           </DropdownMenuRadioGroup>
         </DropdownMenuContent>
       </DropdownMenu>
-      <ButtonGroup>
-        <EmojiPicker
-          aria-label="Insert emoji"
-          onOpenChange={menu('emoji')}
-          onEmojiSelect={({ value }) => {
-            picked.current = true;
-            editor.update(() => {
-              $ensureSelection();
-              const selection = $getSelection();
-              if ($isRangeSelection(selection)) selection.insertText(value);
-            });
-            editor.focus();
-          }}
+      <EmojiPicker
+        aria-label="Insert emoji"
+        onOpenChange={menu('emoji')}
+        onEmojiSelect={({ value }) => {
+          picked.current = true;
+          editor.update(() => {
+            $ensureSelection();
+            const selection = $getSelection();
+            if ($isRangeSelection(selection)) selection.insertText(value);
+          });
+          editor.focus();
+        }}
+      >
+        <InsertBarButton
+          label="Emoji"
+          render={<EmojiPickerTrigger variant="ghost" size="icon-sm" />}
         >
-          <InsertBarButton
-            label="Emoji"
-            render={<EmojiPickerTrigger variant="ghost" size="icon-sm" />}
-          >
-            <IconMoodSmile />
-          </InsertBarButton>
-          <EmojiPickerContent side="top" finalFocus={finalFocus} />
-        </EmojiPicker>
-        {quick.map((title) => {
-          const option = byTitle(title);
-          return (
-            option && (
-              <InsertBarButton
-                key={title}
-                label={title}
-                render={
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => run(option)}
-                  />
-                }
-              >
-                {option.icon ?? <IconPlus />}
-              </InsertBarButton>
-            )
-          );
-        })}
-      </ButtonGroup>
+          <IconMoodSmile />
+        </InsertBarButton>
+        <EmojiPickerContent side="top" finalFocus={finalFocus} />
+      </EmojiPicker>
+      {quick.map((title) => {
+        const option = byTitle(title);
+        return (
+          option && (
+            <InsertBarButton
+              key={title}
+              label={title}
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => run(option)}
+                />
+              }
+            >
+              {option.icon ?? <IconPlus />}
+            </InsertBarButton>
+          )
+        );
+      })}
     </div>
   );
 }

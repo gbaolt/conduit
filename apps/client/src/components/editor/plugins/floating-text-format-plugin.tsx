@@ -203,8 +203,6 @@ function TextFormatFloatingToolbar({
           isItalic && 'italic',
           isUnderline && 'underline',
           isStrikethrough && 'strikethrough',
-          isCode && 'code',
-          isLink && 'link',
         ].filter((value) => value !== false)}
       >
         <ToggleGroupItem
@@ -213,7 +211,7 @@ function TextFormatFloatingToolbar({
           onClick={() => {
             editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold');
           }}
-          size="sm"
+          size="icon-sm"
         >
           <IconBold />
         </ToggleGroupItem>
@@ -223,7 +221,7 @@ function TextFormatFloatingToolbar({
           onClick={() => {
             editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic');
           }}
-          size="sm"
+          size="icon-sm"
         >
           <IconItalic />
         </ToggleGroupItem>
@@ -233,7 +231,7 @@ function TextFormatFloatingToolbar({
           onClick={() => {
             editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline');
           }}
-          size="sm"
+          size="icon-sm"
         >
           <IconUnderline />
         </ToggleGroupItem>
@@ -243,18 +241,25 @@ function TextFormatFloatingToolbar({
           onClick={() => {
             editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
           }}
-          size="sm"
+          size="icon-sm"
         >
           <IconStrikethrough />
         </ToggleGroupItem>
-        <Separator orientation="vertical" />
+      </ToggleGroup>
+      <Separator orientation="vertical" />
+      <ToggleGroup
+        multiple
+        value={[isCode && 'code', isLink && 'link'].filter(
+          (value) => value !== false
+        )}
+      >
         <ToggleGroupItem
           value="code"
           aria-label="Toggle code"
           onClick={() => {
             editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'code');
           }}
-          size="sm"
+          size="icon-sm"
         >
           <IconCode />
         </ToggleGroupItem>
@@ -262,12 +267,12 @@ function TextFormatFloatingToolbar({
           value="link"
           aria-label="Toggle link"
           onClick={insertLink}
-          size="sm"
+          size="icon-sm"
         >
           <IconLink />
         </ToggleGroupItem>
-        <Separator orientation="vertical" />
       </ToggleGroup>
+      <Separator orientation="vertical" />
       <ToggleGroup
         value={[
           isSubscript && 'subscript',
@@ -280,7 +285,7 @@ function TextFormatFloatingToolbar({
           onClick={() => {
             editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'subscript');
           }}
-          size="sm"
+          size="icon-sm"
         >
           <IconSubscript />
         </ToggleGroupItem>
@@ -290,7 +295,7 @@ function TextFormatFloatingToolbar({
           onClick={() => {
             editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'superscript');
           }}
-          size="sm"
+          size="icon-sm"
         >
           <IconSuperscript />
         </ToggleGroupItem>

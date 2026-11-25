@@ -98,7 +98,7 @@ export function CanvasCover({ canvas }: { canvas: CanvasDocument }) {
     <div
       data-slot="canvas-cover"
       className={cn(
-        'group/cover relative col-span-full h-36 sm:h-44',
+        'relative h-36 sm:h-44',
         CANVAS_COVERS[canvas.coverPreset].className
       )}
     >
@@ -136,7 +136,7 @@ function CanvasTitle({
 
   if (!canvas.access.edit) {
     return (
-      <h1 className="text-3xl font-bold tracking-tight break-words">
+      <h1 className="text-4xl font-bold tracking-tight break-words">
         {canvas.title}
       </h1>
     );
@@ -176,7 +176,7 @@ function CanvasTitle({
           event.currentTarget.blur();
         }
       }}
-      className="placeholder:text-muted-foreground/60 min-h-0 resize-none rounded-none border-0 bg-transparent px-0 py-0 text-3xl font-bold tracking-tight shadow-none focus-visible:ring-0 md:text-3xl dark:bg-transparent"
+      className="placeholder:text-muted-foreground/60 min-h-0 resize-none rounded-none border-0 bg-transparent px-0 py-0 text-4xl font-semibold tracking-tight shadow-none focus-visible:ring-0 md:text-4xl dark:bg-transparent"
     />
   );
 }

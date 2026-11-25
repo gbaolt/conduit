@@ -795,19 +795,21 @@ function CanvasEditorDocument({
   const [anchor, setAnchor] = useState<HTMLDivElement | null>(null);
   const cursorsRef = useRef<HTMLDivElement | null>(null);
   const [liveState, setLiveState] = useState<CanvasLiveState>('loading');
+  const [previewId, setPreviewId] = useState<string | null>(null);
   const loading = collab.live && liveState === 'loading';
   const editable =
     canvas.access.edit && (!collab.live || liveState === 'ready');
+  const Comments = collab.live
+    ? CanvasCommentsPluginLive
+    : CanvasCommentsPlugin;
+
   const renderEmbed = useCallback(
     (messageId: string) => (
       <CanvasMessageEmbed canvasId={canvas.id} messageId={messageId} />
     ),
     [canvas.id]
   );
-  const Comments = collab.live
-    ? CanvasCommentsPluginLive
-    : CanvasCommentsPlugin;
-  const [previewId, setPreviewId] = useState<string | null>(null);
+
   if (!historyOpen && previewId) setPreviewId(null);
   const notifyVersions = useRef<() => void>(noop);
 
