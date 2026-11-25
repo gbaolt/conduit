@@ -73,6 +73,7 @@ function ComponentPickerMenu({
                   itemRefs.current[index] = el;
                 }}
                 value={option.title}
+                onMouseEnter={() => setHighlightedIndex(index)}
                 onSelect={() => {
                   selectOptionAndCleanUp(option);
                 }}
