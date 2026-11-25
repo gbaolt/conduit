@@ -48,6 +48,7 @@ function ComponentPickerMenu({
   return (
     <div className="bg-popover text-popover-foreground absolute h-min min-w-48 rounded-md border shadow-md">
       <Command
+        className="rounded-md p-0.5"
         onKeyDown={(e) => {
           if (e.key === 'ArrowUp') {
             e.preventDefault();
@@ -78,7 +79,7 @@ function ComponentPickerMenu({
                   selectOptionAndCleanUp(option);
                 }}
                 className={cn(
-                  'flex items-center gap-2',
+                  '[&_svg]:text-muted-foreground flex items-center gap-2',
                   selectedIndex === index
                     ? 'bg-accent text-accent-foreground'
                     : 'bg-transparent!'

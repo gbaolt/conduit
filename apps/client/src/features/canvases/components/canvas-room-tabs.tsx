@@ -41,8 +41,6 @@ import { CanvasViewById, CanvasViewSkeleton } from './canvas-view';
 /** `?tab=` holds `messages` or a canvas id. Messages is the default, so it leaves the URL clean. */
 export const canvasRoomTabParam = parseAsString.withDefault('messages');
 
-const TRIGGER_CLASS = 'h-full flex-none translate-y-1 px-2 after:bottom-0!';
-
 function CanvasTabIcon({ canvas }: { canvas: Canvas }) {
   return canvas.icon ? (
     <Twemoji className="size-4 shrink-0">{canvas.icon}</Twemoji>
@@ -77,17 +75,17 @@ function CanvasRoomAddMenu({
             <DropdownMenuTrigger
               render={
                 <Button
-                  variant="secondary"
-                  size="icon-sm"
+                  variant="ghost"
+                  size="icon-xs"
                   aria-label={label}
                   disabled={create.isPending}
-                  className="group text-muted-foreground hover:text-foreground shrink-0 translate-y-0.5 rounded-full"
+                  className="group text-muted-foreground hover:text-foreground mb-1 shrink-0 translate-y-0.5 rounded-full"
                 />
               }
             />
           }
         >
-          <IconPlus className="size-5 transition-[rotate] duration-200 ease-out group-aria-expanded:rotate-135" />
+          <IconPlus className="size-4 transition-[rotate] duration-200 ease-out group-aria-expanded:rotate-135" />
         </TooltipTrigger>
         <TooltipContent>{label}</TooltipContent>
       </Tooltip>
@@ -140,31 +138,31 @@ export function CanvasRoomTabs({
       onValueChange={(next) => void setTab(next === 'messages' ? null : next)}
       className="min-h-0 flex-1 gap-0"
     >
-      <div className="flex shrink-0 items-center gap-1 border-b px-2">
-        <div className="min-w-0 overflow-x-auto">
-          <TabsList variant="line" aria-label="Conversation views">
-            <TabsTrigger value="messages" className={TRIGGER_CLASS}>
-              <IconMessageCircle />
-              Messages
+      <div className="flex shrink-0 items-center gap-1 border-b px-4">
+        <TabsList variant="line" aria-label="Conversation views">
+          <TabsTrigger value="messages" className="h-10 px-2 after:bottom-1!">
+            <IconMessageCircle />
+            Messages
+          </TabsTrigger>
+          {canvases.data?.map((canvas) => (
+            <TabsTrigger
+              key={canvas.id}
+              value={canvas.id}
+              className="h-10 max-w-48 px-2 after:bottom-1!"
+            >
+              <CanvasTabIcon canvas={canvas} />
+              <span className="truncate">{canvas.title}</span>
             </TabsTrigger>
-            {canvases.data?.map((canvas) => (
-              <TabsTrigger
-                key={canvas.id}
-                value={canvas.id}
-                className={`${TRIGGER_CLASS} max-w-48`}
-              >
-                <CanvasTabIcon canvas={canvas} />
-                <span className="truncate">{canvas.title}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
+          ))}
+        </TabsList>
         <CanvasRoomAddMenu
           roomId={roomId}
           onCreated={(canvasId) => void setTab(canvasId)}
         />
       </div>
+
       {banner}
+
       <TabsContent
         value="messages"
         keepMounted
@@ -172,6 +170,7 @@ export function CanvasRoomTabs({
       >
         {children}
       </TabsContent>
+
       {active !== 'messages' && (
         <TabsContent value={active ?? tab} className="flex min-h-0 flex-col">
           {active ? (

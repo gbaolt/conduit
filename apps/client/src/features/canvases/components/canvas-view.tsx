@@ -72,6 +72,9 @@ export function CanvasView({
     });
   const [presenceSlot, setPresenceSlot] = useState<HTMLDivElement | null>(null);
   const [tocSlot, setTocSlot] = useState<HTMLDivElement | null>(null);
+  const [insertBarSlot, setInsertBarSlot] = useState<HTMLDivElement | null>(
+    null
+  );
   const [editor, setEditor] = useState<LexicalEditor | null>(null);
   const writeFirstLine = () => {
     // A History preview hides the document, so there is nowhere to write.
@@ -82,24 +85,29 @@ export function CanvasView({
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <div className="absolute top-2 left-2 z-10">
-        <CanvasActionMenu
-          canvas={canvas}
-          status={status}
-          presenceRef={setPresenceSlot}
-          commentsOpen={panel === 'comments'}
-          onCommentsOpenChange={panelSetter('comments')}
-          historyOpen={panel === 'history'}
-          onHistoryOpenChange={panelSetter('history')}
-          onSaveVersion={() => setSavingVersion(true)}
-          onShare={() => setSharing(true)}
-          onDeleted={onDeleted}
-        />
-      </div>
-      <CanvasLayout>
-        <CanvasCover canvas={canvas} />
+      <CanvasLayout className="scroll-fade">
+        <div
+          data-slot="canvas-cover"
+          className="group/cover relative col-span-full w-full"
+        >
+          <div className="absolute top-2 right-2 z-10">
+            <CanvasActionMenu
+              canvas={canvas}
+              status={status}
+              presenceRef={setPresenceSlot}
+              commentsOpen={panel === 'comments'}
+              onCommentsOpenChange={panelSetter('comments')}
+              historyOpen={panel === 'history'}
+              onHistoryOpenChange={panelSetter('history')}
+              onSaveVersion={() => setSavingVersion(true)}
+              onShare={() => setSharing(true)}
+              onDeleted={onDeleted}
+            />
+          </div>
+          <CanvasCover canvas={canvas} />
+        </div>
         <CanvasLayoutAside>
-          <div ref={setTocSlot} className="sticky top-6 pl-4" />
+          <div ref={setTocSlot} className="sticky top-0 pt-6" />
         </CanvasLayoutAside>
         <CanvasLayoutContent>
           <CanvasHeading canvas={canvas} onEnter={writeFirstLine} />
@@ -109,6 +117,7 @@ export function CanvasView({
             fallback={<CanvasViewEditorSkeleton />}
             presenceSlot={presenceSlot}
             tocSlot={tocSlot}
+            insertBarSlot={insertBarSlot}
             commentsOpen={panel === 'comments'}
             onCommentsOpenChange={panelSetter('comments')}
             historyOpen={panel === 'history'}
@@ -120,6 +129,10 @@ export function CanvasView({
           />
         </CanvasLayoutContent>
       </CanvasLayout>
+      <div
+        ref={setInsertBarSlot}
+        className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-center px-4"
+      />
       {!canvas.roomId && (
         <CanvasShareDialog
           canvas={canvas}

@@ -168,7 +168,7 @@ export function CanvasActionMenu({
               onCheckedChange={onCommentsOpenChange}
               closeOnClick
             >
-              <IconMessage2 />
+              <IconMessage2 data-slot="icon" />
               Comments
               {openThreads > 0 && (
                 <Badge variant="secondary" className="ml-auto">
@@ -181,18 +181,18 @@ export function CanvasActionMenu({
               onCheckedChange={onHistoryOpenChange}
               closeOnClick
             >
-              <IconHistory />
+              <IconHistory data-slot="icon" />
               History
             </DropdownMenuCheckboxItem>
             {!canvas.roomId && (
               <DropdownMenuItem onClick={onShare}>
-                <IconUsers />
+                <IconUsers data-slot="icon" />
                 Share
               </DropdownMenuItem>
             )}
             {canvas.access.edit && (
               <DropdownMenuItem onClick={onSaveVersion}>
-                <IconDeviceFloppy />
+                <IconDeviceFloppy data-slot="icon" />
                 Save version
               </DropdownMenuItem>
             )}
@@ -204,7 +204,7 @@ export function CanvasActionMenu({
                 variant="destructive"
                 onClick={() => setConfirmingDelete(true)}
               >
-                <IconTrash />
+                <IconTrash data-slot="icon" />
                 Delete canvas
               </DropdownMenuItem>
             </>
