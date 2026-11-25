@@ -24,8 +24,10 @@ import {
 } from '@conduit/ui/components/dropdown-menu';
 import {
   IconArrowsHorizontal,
+  IconCopy,
   IconDeviceFloppy,
   IconDotsVertical,
+  IconDownload,
   IconHistory,
   IconMessage2,
   IconTrash,
@@ -113,6 +115,8 @@ export function CanvasActionMenu({
   onHistoryOpenChange,
   onSaveVersion,
   onShare,
+  onCopyMarkdown,
+  onDownloadMarkdown,
   onDeleted,
 }: {
   canvas: CanvasDocument;
@@ -126,6 +130,8 @@ export function CanvasActionMenu({
   onHistoryOpenChange: (open: boolean) => void;
   onSaveVersion: () => void;
   onShare: () => void;
+  onCopyMarkdown: () => void;
+  onDownloadMarkdown: () => void;
   onDeleted: () => void;
 }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -209,6 +215,17 @@ export function CanvasActionMenu({
                 Save version
               </DropdownMenuItem>
             )}
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <DropdownMenuItem onClick={onCopyMarkdown}>
+              <IconCopy data-slot="icon" />
+              Copy as Markdown
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onDownloadMarkdown}>
+              <IconDownload data-slot="icon" />
+              Download Markdown
+            </DropdownMenuItem>
           </DropdownMenuGroup>
           {canvas.access.delete && (
             <>

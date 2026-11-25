@@ -836,9 +836,9 @@ function CanvasEditorDocument({
   }, [editor, editable]);
 
   useEffect(() => {
-    onEditorChange?.(editor);
+    onEditorChange?.(loading ? null : editor);
     return () => onEditorChange?.(null);
-  }, [editor, onEditorChange]);
+  }, [editor, loading, onEditorChange]);
 
   const composer = (
     <MessageEmbedRenderer value={renderEmbed}>

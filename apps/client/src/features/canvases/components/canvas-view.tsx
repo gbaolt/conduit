@@ -18,12 +18,14 @@ import type { LexicalEditor } from 'lexical';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 import { StatusButton } from '@/components/async/status-button';
 import { canvasQuery } from '@/services/canvases/queries';
 
-import { $selectNewFirstLine } from '../lib/canvas-extension';
+import { $selectNewFirstLine, canvasMarkdownOf } from '../lib/canvas-extension';
 import { useCanvasFullWidth } from '../lib/canvas-full-width';
+import { downloadMarkdownFile } from '../lib/canvas-markdown-export';
 import { CanvasActionMenu } from './canvas-action-menu';
 import type { CanvasSaveStatus } from './canvas-editor';
 import { CanvasCover, CanvasHeading } from './canvas-heading';
@@ -84,6 +86,16 @@ export function CanvasView({
       return;
     editor.update($selectNewFirstLine, { onUpdate: () => editor.focus() });
   };
+  const currentMarkdown = () =>
+    editor ? canvasMarkdownOf(editor) : canvas.markdown;
+  const copyMarkdown = () => {
+    navigator.clipboard
+      .writeText(currentMarkdown())
+      .then(() => toast.success('Copied as Markdown.'))
+      .catch(() => toast.error('Couldn’t copy Markdown.'));
+  };
+  const downloadMarkdown = () =>
+    downloadMarkdownFile(canvas.title, currentMarkdown());
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
@@ -105,6 +117,8 @@ export function CanvasView({
               onHistoryOpenChange={panelSetter('history')}
               onSaveVersion={() => setSavingVersion(true)}
               onShare={() => setSharing(true)}
+              onCopyMarkdown={copyMarkdown}
+              onDownloadMarkdown={downloadMarkdown}
               onDeleted={onDeleted}
             />
           </div>
