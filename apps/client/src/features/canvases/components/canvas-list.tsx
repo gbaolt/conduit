@@ -32,6 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from '@conduit/ui/components/table';
+import { Twemoji } from '@conduit/ui/components/twemoji';
 import { cn } from '@conduit/ui/lib/utils';
 import {
   IconAlertTriangle,
@@ -57,6 +58,7 @@ import { StatusButton } from '@/components/async/status-button';
 import { useCreateCanvas } from '@/services/canvases/hooks';
 import { canvasesQuery } from '@/services/canvases/queries';
 
+import { CANVAS_COVERS } from '../lib/canvas-covers';
 import { canvasHref } from '../lib/canvas-href';
 
 const SCOPES = [
@@ -265,7 +267,22 @@ function CanvasListRow({ canvas }: { canvas: Canvas }) {
               '-mx-1.5 h-auto max-w-full justify-start px-1.5 py-1 font-medium',
           })}
         >
-          <IconLayoutBoard data-icon="inline-start" />
+          {canvas.coverPreset && (
+            <span
+              aria-hidden
+              data-slot="canvas-cover-thumbnail"
+              data-cover={canvas.coverPreset}
+              className={cn(
+                'ring-foreground/10 h-4 w-7 shrink-0 rounded-xs ring-1 ring-inset',
+                CANVAS_COVERS[canvas.coverPreset].className
+              )}
+            />
+          )}
+          {canvas.icon ? (
+            <Twemoji className="size-4 shrink-0">{canvas.icon}</Twemoji>
+          ) : (
+            <IconLayoutBoard data-icon="inline-start" />
+          )}
           <span className="truncate">{canvas.title}</span>
         </Link>
         <p className="text-muted-foreground flex items-center gap-1 truncate text-xs sm:hidden">
