@@ -1,6 +1,7 @@
 import type {
   Canvas,
   CanvasBootstrap,
+  CanvasCoverPreset,
   CanvasDocument,
   CanvasMember,
   CanvasRole,
@@ -22,6 +23,8 @@ export type CanvasScopeOf = { userId: string; organizationId: string };
 
 export type CanvasPatch = {
   title?: string;
+  icon?: string | null;
+  coverPreset?: CanvasCoverPreset | null;
   snapshotJson?: Record<string, unknown>;
   markdown?: string;
 };
@@ -51,23 +54,13 @@ export abstract class CanvasesRepository {
     canvasId: string
   ): Promise<StoredCanvasDocument | null>;
 
-  abstract findChannelPrimary(
+  /** The channel's canvases, oldest first. */
+  abstract listInChannel(
     scope: CanvasScopeOf,
     roomId: string
-  ): Promise<StoredCanvasDocument | null>;
+  ): Promise<StoredCanvas[]>;
 
-  /**
-   * Creates the channel's primary canvas, or returns the id of the one someone else created first. When the
-   * loser of that race brings `seed` content, it gets a new canvas in the channel instead, so the content is kept.
-   */
-  abstract createChannelPrimary(
-    scope: CanvasScopeOf,
-    roomId: string,
-    title: string,
-    seed?: CanvasSeed
-  ): Promise<string>;
-
-  /** Creates another canvas in the channel, beside its primary one. */
+  /** Adds a canvas to the channel. */
   abstract createInChannel(
     scope: CanvasScopeOf,
     roomId: string,
@@ -110,7 +103,7 @@ export abstract class CanvasesRepository {
     snapshot: CanvasSnapshot
   ): Promise<{ saved: boolean; updatedAt: Date }>;
 
-  /** Marks the canvas deleted, which also frees its channel for a new primary canvas. */
+  /** Marks the canvas deleted. */
   abstract softDelete(canvasId: string): Promise<void>;
 
   /** Current workspace members the canvas is shared with, editors first. */

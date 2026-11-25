@@ -1,7 +1,12 @@
-import type { CanvasRole, CanvasScope } from '@conduit/contract';
 import {
-  type CanvasRole as CanvasRoleRow,
-  Prisma,
+  CanvasCoverPresetSchema,
+  type CanvasRole,
+  type CanvasScope,
+} from '@conduit/contract';
+import type {
+  Prisma} from '@generated/prisma/client';
+import type {
+  CanvasRole as CanvasRoleRow
 } from '@generated/prisma/client';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -27,8 +32,9 @@ function select(scope: CanvasScopeOf) {
     id: true,
     organizationId: true,
     roomId: true,
-    isChannelPrimary: true,
     title: true,
+    icon: true,
+    coverPreset: true,
     createdById: true,
     createdAt: true,
     updatedAt: true,
@@ -60,8 +66,11 @@ function toCanvas(row: CanvasRow): StoredCanvas {
     organizationId: row.organizationId,
     roomId: row.roomId,
     roomName: row.room?.name ?? null,
-    isChannelPrimary: row.isChannelPrimary,
     title: row.title,
+    icon: row.icon,
+    // A preset dropped from the contract reads as no cover rather than failing the response.
+    coverPreset:
+      CanvasCoverPresetSchema.safeParse(row.coverPreset).data ?? null,
     createdById: row.createdById,
     updatedByName: row.updatedBy?.name ?? null,
     createdAt: row.createdAt,
@@ -91,9 +100,6 @@ const seedData = (seed: CanvasSeed) => ({
   snapshotJson: seed.snapshotJson as Prisma.InputJsonValue | undefined,
 });
 
-const hasContent = (seed: CanvasSeed) =>
-  Boolean(seed.snapshotJson || seed.markdown || seed.initialMarkdown);
-
 /** Canvas and canvas-member rows. Returns contract types, so no Prisma row leaves this file. */
 @Injectable()
 export class PrismaCanvasesRepository implements CanvasesRepository {
@@ -111,56 +117,26 @@ export class PrismaCanvasesRepository implements CanvasesRepository {
     return row && toDocument(row);
   }
 
-  async findChannelPrimary(scope: CanvasScopeOf, roomId: string) {
-    const row = await this.db.canvas.findFirst({
-      where: {
-        roomId,
-        organizationId: scope.organizationId,
-        isChannelPrimary: true,
-        deletedAt: null,
-      },
-      select: documentSelect(scope),
+  async listInChannel(scope: CanvasScopeOf, roomId: string) {
+    const rows = await this.db.canvas.findMany({
+      where: { roomId, organizationId: scope.organizationId, deletedAt: null },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      select: select(scope),
     });
-    return row && toDocument(row);
-  }
-
-  async createChannelPrimary(
-    scope: CanvasScopeOf,
-    roomId: string,
-    title: string,
-    seed: CanvasSeed = {}
-  ) {
-    try {
-      return await this.createInChannel(scope, roomId, title, seed, true);
-    } catch (error) {
-      // The partial unique index lets one live primary canvas per channel, so the loser of a race opens the winner's.
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
-        if (hasContent(seed)) {
-          return this.createInChannel(scope, roomId, title, seed);
-        }
-        const winner = await this.findChannelPrimary(scope, roomId);
-        if (winner) return winner.id;
-      }
-      throw error;
-    }
+    return rows.map(toCanvas);
   }
 
   async createInChannel(
     scope: CanvasScopeOf,
     roomId: string,
     title: string,
-    seed: CanvasSeed = {},
-    isChannelPrimary = false
+    seed: CanvasSeed = {}
   ) {
     const row = await this.db.canvas.create({
       data: {
         ...seedData(seed),
         organizationId: scope.organizationId,
         roomId,
-        isChannelPrimary,
         title,
         createdById: scope.userId,
         updatedById: scope.userId,
@@ -230,6 +206,8 @@ export class PrismaCanvasesRepository implements CanvasesRepository {
       where: { id: canvasId },
       data: {
         title: patch.title,
+        icon: patch.icon,
+        coverPreset: patch.coverPreset,
         snapshotJson: patch.snapshotJson as Prisma.InputJsonValue | undefined,
         markdown: patch.markdown,
         // A save outside `saveSnapshot` makes the stored hash stale.

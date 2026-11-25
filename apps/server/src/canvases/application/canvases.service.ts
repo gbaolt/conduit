@@ -129,10 +129,10 @@ export class CanvasesService {
     return room;
   }
 
-  async getChannelCanvas(viewer: CanvasViewerScope, roomId: string) {
+  async listChannelCanvases(viewer: CanvasViewerScope, roomId: string) {
     const room = await this.readableChannel(viewer, roomId);
-    const canvas = await this.canvases.findChannelPrimary(viewer, roomId);
-    return canvas && this.withAccess(viewer, canvas, room);
+    const canvases = await this.canvases.listInChannel(viewer, roomId);
+    return canvases.map((canvas) => this.withAccess(viewer, canvas, room));
   }
 
   async get(viewer: CanvasViewerScope, canvasId: string) {
@@ -162,7 +162,6 @@ export class CanvasesService {
     const {
       title,
       roomId,
-      isChannelPrimary,
       sourceMessageIds = [],
       versionTrigger,
       ...content
@@ -171,9 +170,6 @@ export class CanvasesService {
       ...content,
       contentHash: content.snapshotJson && contentHashOf(content.snapshotJson),
     };
-    const seeded = Boolean(
-      seed.snapshotJson || seed.markdown || seed.initialMarkdown
-    );
     await this.assertReadableMessages(viewer, [
       ...(content.sourceThreadId ? [content.sourceThreadId] : []),
       ...sourceMessageIds,
@@ -188,32 +184,18 @@ export class CanvasesService {
       );
     } else {
       const room = await this.readableChannel(viewer, roomId);
-      const primary = isChannelPrimary ?? true;
-      const existing =
-        primary && (await this.canvases.findChannelPrimary(viewer, room.id));
-      // Opening the channel's canvas reopens it; a draft for it is kept as another canvas instead of dropped.
-      if (existing && !seeded) return this.withAccess(viewer, existing, room);
-
       const denial = checkCanvas('edit', viewer, {
         createdById: viewer.userId,
         channel: room,
         membership: null,
       });
       if (denial) throw canvasError(denial);
-      id =
-        primary && !existing
-          ? await this.canvases.createChannelPrimary(
-              viewer,
-              room.id,
-              title || room.name,
-              seed
-            )
-          : await this.canvases.createInChannel(
-              viewer,
-              room.id,
-              title || UNTITLED,
-              seed
-            );
+      id = await this.canvases.createInChannel(
+        viewer,
+        room.id,
+        title || UNTITLED,
+        seed
+      );
     }
 
     if (versionTrigger && seed.snapshotJson && seed.contentHash) {
