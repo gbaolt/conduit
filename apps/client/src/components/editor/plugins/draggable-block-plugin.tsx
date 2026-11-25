@@ -252,9 +252,11 @@ export function DraggableBlockPlugin({
         menuRef={menuRef as React.RefObject<HTMLDivElement>}
         targetLineRef={targetLineRef as React.RefObject<HTMLDivElement>}
         menuComponent={
+          // Lexical places the menu 4px inside the editable. Pulled left by the editable's pl-8, its two buttons
+          // end just before the text instead of covering the first letters.
           <div
             ref={menuRef}
-            className="draggable-block-menu absolute top-0 left-0 flex items-center opacity-0 will-change-transform"
+            className="draggable-block-menu absolute top-0 -left-8 flex items-center opacity-0 will-change-transform"
           >
             <Button
               variant="ghost"
