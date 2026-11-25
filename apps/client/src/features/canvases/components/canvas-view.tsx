@@ -14,6 +14,7 @@ import { Skeleton } from '@conduit/ui/components/skeleton';
 import { ORPCError } from '@orpc/client';
 import { IconAlertTriangle, IconLayoutBoard } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
+import type { LexicalEditor } from 'lexical';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -21,8 +22,9 @@ import { useState } from 'react';
 import { StatusButton } from '@/components/async/status-button';
 import { canvasQuery } from '@/services/canvases/queries';
 
+import { $selectNewFirstLine } from '../lib/canvas-extension';
+import { CanvasActionMenu } from './canvas-action-menu';
 import type { CanvasSaveStatus } from './canvas-editor';
-import { CanvasHeader } from './canvas-header';
 import { CanvasCover, CanvasHeading } from './canvas-heading';
 import {
   CanvasLayout,
@@ -50,7 +52,7 @@ const CanvasEditor = dynamic(
   { ssr: false, loading: () => <CanvasViewEditorSkeleton /> }
 );
 
-/** A canvas with its toolbar, its cover and heading, its document, and its share dialog. */
+/** A canvas with its action menu, its cover and heading, its document, and its share dialog. */
 export function CanvasView({
   canvas,
   onDeleted,
@@ -70,28 +72,35 @@ export function CanvasView({
     });
   const [presenceSlot, setPresenceSlot] = useState<HTMLDivElement | null>(null);
   const [tocSlot, setTocSlot] = useState<HTMLDivElement | null>(null);
+  const [editor, setEditor] = useState<LexicalEditor | null>(null);
+  const writeFirstLine = () => {
+    if (!editor?.isEditable()) return;
+    editor.update($selectNewFirstLine, { onUpdate: () => editor.focus() });
+  };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <CanvasHeader
-        canvas={canvas}
-        status={status}
-        presenceRef={setPresenceSlot}
-        commentsOpen={panel === 'comments'}
-        onCommentsOpenChange={panelSetter('comments')}
-        historyOpen={panel === 'history'}
-        onHistoryOpenChange={panelSetter('history')}
-        onSaveVersion={() => setSavingVersion(true)}
-        onShare={() => setSharing(true)}
-        onDeleted={onDeleted}
-      />
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      <div className="absolute top-2 left-2 z-10">
+        <CanvasActionMenu
+          canvas={canvas}
+          status={status}
+          presenceRef={setPresenceSlot}
+          commentsOpen={panel === 'comments'}
+          onCommentsOpenChange={panelSetter('comments')}
+          historyOpen={panel === 'history'}
+          onHistoryOpenChange={panelSetter('history')}
+          onSaveVersion={() => setSavingVersion(true)}
+          onShare={() => setSharing(true)}
+          onDeleted={onDeleted}
+        />
+      </div>
       <CanvasLayout>
         <CanvasCover canvas={canvas} />
         <CanvasLayoutAside>
           <div ref={setTocSlot} className="sticky top-6 pl-4" />
         </CanvasLayoutAside>
         <CanvasLayoutContent>
-          <CanvasHeading canvas={canvas} />
+          <CanvasHeading canvas={canvas} onEnter={writeFirstLine} />
           <CanvasEditor
             key={canvas.id}
             canvas={canvas}
@@ -105,6 +114,7 @@ export function CanvasView({
             savingVersion={savingVersion}
             onSavingVersionChange={setSavingVersion}
             onStatusChange={setStatus}
+            onEditorChange={setEditor}
           />
         </CanvasLayoutContent>
       </CanvasLayout>
@@ -122,9 +132,6 @@ export function CanvasView({
 export function CanvasViewSkeleton() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-h-12 items-center px-4">
-        <Skeleton className="h-5 w-48" />
-      </div>
       <CanvasLayout>
         <CanvasLayoutContent>
           <CanvasViewEditorSkeleton />

@@ -136,6 +136,23 @@ export function $isEmptyCanvas() {
 }
 
 /**
+ * Puts the caret on a new first line, as Enter in the title does. A document that already opens with an empty
+ * line reuses it, so pressing Enter twice does not stack blank lines.
+ */
+export function $selectNewFirstLine() {
+  const root = $getRoot();
+  const first = root.getFirstChild();
+  if ($isParagraphNode(first) && first.isEmpty()) {
+    first.select();
+    return;
+  }
+  const line = $createParagraphNode();
+  if (first) first.insertBefore(line);
+  else root.append(line);
+  line.select();
+}
+
+/**
  * Replaces the document with a saved editor state as one ordinary edit, so a live editor sends it to everyone
  * on the canvas and each person can still undo it. Call inside `editor.update()`.
  */
