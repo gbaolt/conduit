@@ -94,6 +94,8 @@ import {
   DynamicTablePickerPlugin,
   TablePickerPlugin,
 } from '@/components/editor/plugins/picker/table-picker-plugin';
+import { TogglePickerPlugin } from '@/components/editor/plugins/picker/toggle-picker-plugin';
+import { TogglePlugin } from '@/components/editor/plugins/toggle-plugin';
 import { sessionQuery } from '@/services/auth/queries';
 import {
   useClaimCanvasBootstrap,
@@ -197,6 +199,7 @@ function canvasBlockOptions(pickMessage: () => void) {
     CheckListPickerPlugin(),
     QuotePickerPlugin(),
     CalloutPickerPlugin(),
+    TogglePickerPlugin(),
     CodePickerPlugin(),
     DividerPickerPlugin(),
     TablePickerPlugin(),
@@ -637,6 +640,7 @@ function CanvasEditorPlugins({
       <CodeBlockPlugin />
       <LayoutPlugin />
       <CalloutPlugin />
+      <TogglePlugin />
       <Mention source={suggestions}>
         <MentionPortal>
           <MentionContent>
