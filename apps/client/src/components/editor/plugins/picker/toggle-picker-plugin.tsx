@@ -1,6 +1,11 @@
-import { $insertNodeToNearestRoot } from '@lexical/utils';
+import { $findMatchingParent, $insertNodeToNearestRoot } from '@lexical/utils';
 import { IconChevronRight } from '@tabler/icons-react';
-import { $getSelection, $isParagraphNode, $isRangeSelection } from 'lexical';
+import {
+  $getSelection,
+  $isElementNode,
+  $isParagraphNode,
+  $isRangeSelection,
+} from 'lexical';
 
 import {
   $createToggleNode,
@@ -17,13 +22,19 @@ export function TogglePickerPlugin() {
       editor.update(() => {
         const selection = $getSelection();
         if (!$isRangeSelection(selection)) return;
-        const block = selection.anchor.getNode().getTopLevelElement();
+        const block = $findMatchingParent(
+          selection.anchor.getNode(),
+          (node) => $isElementNode(node) && !node.isInline()
+        );
         const toggle = $createToggleNode();
         const title = toggle.getFirstChild();
         if (!$isToggleTitleNode(title)) return;
         if ($isParagraphNode(block)) {
           title.append(...block.getChildren());
           block.replace(toggle);
+        } else if ($isToggleTitleNode(block)) {
+          // Splitting the toggle around the caret would break it, so the new one goes after it.
+          block.getParentOrThrow().insertAfter(toggle);
         } else {
           $insertNodeToNearestRoot(toggle);
         }

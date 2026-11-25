@@ -12,6 +12,7 @@ import {
   $nodesOfType,
   type ParagraphNode,
   type RangeSelection,
+  type TextNode,
 } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
@@ -307,6 +308,19 @@ describe('toggles', () => {
     expect(canvasMarkdownOf(editor)).toBe(
       '<details>\n<summary>Plan</summary>\n\nStep one\n\n</details>'
     );
+    editor.dispose();
+  });
+
+  it('keeps the title formatting in the summary', () => {
+    const editor = withToggle(true);
+    editor.update(
+      () => {
+        const [title] = $nodesOfType(ToggleTitleNode);
+        title?.getFirstChildOrThrow<TextNode>().toggleFormat('bold');
+      },
+      { discrete: true }
+    );
+    expect(canvasMarkdownOf(editor)).toContain('<summary>**Plan**</summary>');
     editor.dispose();
   });
 
