@@ -1,85 +1,116 @@
 'use client';
 
-import { canChannel } from '@conduit/contract';
+import { canChannel, type Canvas } from '@conduit/contract';
+import { Button } from '@conduit/ui/components/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@conduit/ui/components/dropdown-menu';
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from '@conduit/ui/components/tabs';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@conduit/ui/components/tooltip';
+import { Twemoji } from '@conduit/ui/components/twemoji';
+import {
+  IconLayoutBoard,
+  IconMessageCircle,
+  IconPlus,
+} from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
-import { parseAsStringLiteral, useQueryState } from 'nuqs';
+import { parseAsString, useQueryState } from 'nuqs';
 import type { ReactNode } from 'react';
 import { toast } from 'sonner';
 
 import { useCreateCanvas } from '@/services/canvases/hooks';
-import { channelCanvasQuery } from '@/services/canvases/queries';
+import { channelCanvasesQuery } from '@/services/canvases/queries';
 import { roomQuery } from '@/services/rooms/queries';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
-import { CanvasView, CanvasViewSkeleton, CanvasViewState } from './canvas-view';
+import { type ChannelCanvasIds, resolveChannelTab } from '../lib/channel-tab';
+import { CanvasViewById, CanvasViewSkeleton } from './canvas-view';
 
-const TABS = ['messages', 'canvas'] as const;
+/** `?tab=` holds `messages` or a canvas id. Messages is the default, so it leaves the URL clean. */
+export const canvasChannelTabParam = parseAsString.withDefault('messages');
 
-/** `?tab=canvas` opens the channel's canvas. Messages is the default, so it leaves the URL clean. */
-export const canvasChannelTabParam =
-  parseAsStringLiteral(TABS).withDefault('messages');
+const TRIGGER_CLASS = 'h-full flex-none translate-y-1 px-2 after:bottom-0!';
 
-/** The channel's canvas, or a centred prompt to start it. */
-export function CanvasChannelTab({ roomId }: { roomId: string }) {
-  const canvas = useQuery(channelCanvasQuery(roomId));
+function CanvasTabIcon({ canvas }: { canvas: Canvas }) {
+  return canvas.icon ? (
+    <Twemoji className="size-4">{canvas.icon}</Twemoji>
+  ) : (
+    <IconLayoutBoard />
+  );
+}
+
+/** The `+` after the tabs. It adds a canvas to the channel and opens it. Only people who can post see it. */
+function CanvasChannelAddMenu({
+  roomId,
+  onCreated,
+}: {
+  roomId: string;
+  onCreated: (canvasId: string) => void;
+}) {
   const { data: channel } = useQuery(roomQuery(roomId));
   const workspaceRole = useWorkspaceRole();
   const create = useCreateCanvas();
 
-  if (canvas.isPending) return <CanvasViewSkeleton />;
-  if (canvas.isError) {
-    return (
-      <CanvasViewState
-        failed
-        title="Couldn't load the canvas"
-        description="Check your connection, then try again."
-        action={{ label: 'Retry', onClick: () => void canvas.refetch() }}
-      />
-    );
-  }
-  if (canvas.data) {
-    return (
-      <CanvasView
-        canvas={canvas.data}
-        onDeleted={() => void canvas.refetch()}
-      />
-    );
-  }
+  if (!channel || !canChannel('post', workspaceRole, channel)) return null;
 
-  const canCreate = channel && canChannel('post', workspaceRole, channel);
   return (
-    <CanvasViewState
-      title="No canvas yet"
-      description={
-        canCreate
-          ? 'Keep notes, plans, and checklists beside this channel’s messages.'
-          : 'Nobody has started this channel’s canvas.'
-      }
-      action={
-        canCreate
-          ? {
-              label: 'Create canvas',
-              primary: true,
-              pending: create.isPending,
-              onClick: () =>
-                create.mutate(
-                  { roomId },
-                  { onError: (error) => toast.error(error.message) }
-                ),
-            }
-          : undefined
-      }
-    />
+    <DropdownMenu>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Add to channel"
+                  disabled={create.isPending}
+                  className="shrink-0 translate-y-0.5"
+                />
+              }
+            />
+          }
+        >
+          <IconPlus />
+        </TooltipTrigger>
+        <TooltipContent>Add to channel</TooltipContent>
+      </Tooltip>
+      <DropdownMenuContent align="start" className="w-48">
+        <DropdownMenuItem
+          onClick={() =>
+            create.mutate(
+              { roomId },
+              {
+                onSuccess: (canvas) => onCreated(canvas.id),
+                onError: (error) => toast.error(error.message),
+              }
+            )
+          }
+        >
+          <IconLayoutBoard data-slot="icon" />
+          Canvas
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
-/** Messages and Canvas, directly under the channel header. Messages stays mounted, so it keeps its scroll. */
+/**
+ * Messages, then one tab per canvas, then `+`, directly under the channel header. Messages stays mounted, so it
+ * keeps its scroll.
+ */
 export function CanvasChannelTabs({
   roomId,
   banner,
@@ -92,28 +123,42 @@ export function CanvasChannelTabs({
   children: ReactNode;
 }) {
   const [tab, setTab] = useQueryState('tab', canvasChannelTabParam);
+  const canvases = useQuery(channelCanvasesQuery(roomId));
+  // A failed refresh keeps the tabs it already had.
+  let ids: ChannelCanvasIds = canvases.isError ? 'failed' : 'pending';
+  if (canvases.data) ids = canvases.data.map((canvas) => canvas.id);
+  const active = resolveChannelTab(tab, ids);
+  const showMessages = () => void setTab(null);
 
   return (
     <Tabs
-      value={tab}
-      onValueChange={(next) => void setTab(next)}
+      value={active ?? tab}
+      onValueChange={(next) => void setTab(next === 'messages' ? null : next)}
       className="min-h-0 flex-1 gap-0"
     >
-      <div className="shrink-0 border-b px-2">
-        <TabsList variant="line" aria-label="Channel views">
-          <TabsTrigger
-            value="messages"
-            className="h-full flex-none translate-y-1 px-2 after:bottom-0!"
-          >
-            Messages
-          </TabsTrigger>
-          <TabsTrigger
-            value="canvas"
-            className="h-full flex-none translate-y-1 px-2 after:bottom-0!"
-          >
-            Canvas
-          </TabsTrigger>
-        </TabsList>
+      <div className="flex shrink-0 items-center gap-1 border-b px-2">
+        <div className="min-w-0 overflow-x-auto">
+          <TabsList variant="line" aria-label="Channel views">
+            <TabsTrigger value="messages" className={TRIGGER_CLASS}>
+              <IconMessageCircle />
+              Messages
+            </TabsTrigger>
+            {canvases.data?.map((canvas) => (
+              <TabsTrigger
+                key={canvas.id}
+                value={canvas.id}
+                className={`${TRIGGER_CLASS} max-w-48`}
+              >
+                <CanvasTabIcon canvas={canvas} />
+                <span className="truncate">{canvas.title}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
+        <CanvasChannelAddMenu
+          roomId={roomId}
+          onCreated={(canvasId) => void setTab(canvasId)}
+        />
       </div>
       {banner}
       <TabsContent
@@ -123,9 +168,19 @@ export function CanvasChannelTabs({
       >
         {children}
       </TabsContent>
-      <TabsContent value="canvas" className="flex min-h-0 flex-col">
-        {tab === 'canvas' && <CanvasChannelTab roomId={roomId} />}
-      </TabsContent>
+      {active !== 'messages' && (
+        <TabsContent value={active ?? tab} className="flex min-h-0 flex-col">
+          {active ? (
+            <CanvasViewById
+              key={active}
+              canvasId={active}
+              onDeleted={showMessages}
+            />
+          ) : (
+            <CanvasViewSkeleton />
+          )}
+        </TabsContent>
+      )}
     </Tabs>
   );
 }

@@ -18,18 +18,15 @@ export function useCreateCanvas() {
           orpc.canvases.get.queryKey({ input: { canvasId: canvas.id } }),
           canvas
         );
-        // Another canvas in the channel is not the one its Canvas tab opens.
-        if (canvas.roomId && canvas.isChannelPrimary) {
-          queryClient.setQueryData(
-            orpc.canvases.getChannelCanvas.queryKey({
-              input: { roomId: canvas.roomId },
+        return Promise.all([
+          queryClient.invalidateQueries({ queryKey: orpc.canvases.list.key() }),
+          canvas.roomId &&
+            queryClient.invalidateQueries({
+              queryKey: orpc.canvases.listChannelCanvases.key({
+                input: { roomId: canvas.roomId },
+              }),
             }),
-            canvas
-          );
-        }
-        return queryClient.invalidateQueries({
-          queryKey: orpc.canvases.list.key(),
-        });
+        ]);
       },
     })
   );
@@ -56,12 +53,24 @@ export function useUpdateCanvas() {
           orpc.canvases.get.queryKey({ input: { canvasId: canvas.id } }),
           patch
         );
+        // Autosaves run every second while typing, so the tabs are patched rather than refetched.
         if (canvas.roomId) {
           queryClient.setQueryData(
-            orpc.canvases.getChannelCanvas.queryKey({
+            orpc.canvases.listChannelCanvases.queryKey({
               input: { roomId: canvas.roomId },
             }),
-            patch
+            (tabs) =>
+              tabs?.map((tab) =>
+                tab.id === canvas.id
+                  ? {
+                      ...tab,
+                      title: canvas.title,
+                      icon: canvas.icon,
+                      coverPreset: canvas.coverPreset,
+                      updatedAt: canvas.updatedAt,
+                    }
+                  : tab
+              )
           );
         }
         return queryClient.invalidateQueries({
@@ -109,7 +118,7 @@ export function useDeleteCanvas() {
         Promise.all([
           queryClient.invalidateQueries({ queryKey: orpc.canvases.list.key() }),
           queryClient.invalidateQueries({
-            queryKey: orpc.canvases.getChannelCanvas.key(),
+            queryKey: orpc.canvases.listChannelCanvases.key(),
           }),
         ]),
     })
@@ -247,14 +256,6 @@ export function useRestoreCanvasVersion() {
           orpc.canvases.get.queryKey({ input: { canvasId: canvas.id } }),
           canvas
         );
-        if (canvas.roomId) {
-          queryClient.setQueryData(
-            orpc.canvases.getChannelCanvas.queryKey({
-              input: { roomId: canvas.roomId },
-            }),
-            canvas
-          );
-        }
         return Promise.all([
           invalidate(input),
           queryClient.invalidateQueries({ queryKey: orpc.canvases.list.key() }),

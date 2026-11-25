@@ -79,11 +79,11 @@ const fullFormat = new Intl.DateTimeFormat(undefined, {
   timeStyle: 'short',
 });
 
-/** A channel canvas opens in its channel's Canvas tab, and a standalone one on its own page. */
+/** A channel canvas opens in its tab in the channel, and a standalone one on its own page. */
 function hrefOf(canvas: Canvas): Route {
   return (
     canvas.roomId
-      ? `/channels/${canvas.roomId}?tab=canvas`
+      ? `/channels/${canvas.roomId}?tab=${canvas.id}`
       : `/canvases/${canvas.id}`
   ) as Route;
 }

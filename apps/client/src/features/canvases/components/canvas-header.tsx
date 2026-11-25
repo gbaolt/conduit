@@ -1,6 +1,6 @@
 'use client';
 
-import { CANVAS_TITLE_MAX, type CanvasDocument } from '@conduit/contract';
+import type { CanvasDocument } from '@conduit/contract';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -18,7 +18,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@conduit/ui/components/dropdown-menu';
-import { Input } from '@conduit/ui/components/input';
 import {
   IconDeviceFloppy,
   IconDots,
@@ -32,7 +31,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { StatusButton } from '@/components/async/status-button';
-import { useDeleteCanvas, useUpdateCanvas } from '@/services/canvases/hooks';
+import { useDeleteCanvas } from '@/services/canvases/hooks';
 import { canvasCommentsQuery } from '@/services/canvases/queries';
 
 import type { CanvasSaveStatus } from './canvas-editor';
@@ -42,55 +41,6 @@ const STATUS_LABELS: Record<CanvasSaveStatus, string> = {
   saving: 'Saving…',
   failed: 'Couldn’t save',
 };
-
-/** The title, renamed in place by anyone who can edit. It saves on Enter or when focus leaves. */
-function CanvasHeaderTitle({ canvas }: { canvas: CanvasDocument }) {
-  const update = useUpdateCanvas();
-  const [title, setTitle] = useState(canvas.title);
-
-  if (!canvas.access.edit) {
-    return (
-      <h1 className="min-w-0 truncate px-2 text-base font-semibold">
-        {canvas.title}
-      </h1>
-    );
-  }
-
-  const commit = () => {
-    const next = title.trim();
-    if (!next || next === canvas.title) {
-      setTitle(canvas.title);
-      return;
-    }
-    update.mutate(
-      { canvasId: canvas.id, title: next },
-      {
-        onError: (error) => {
-          setTitle(canvas.title);
-          toast.error(error.message);
-        },
-      }
-    );
-  };
-
-  return (
-    <Input
-      aria-label="Canvas title"
-      value={title}
-      maxLength={CANVAS_TITLE_MAX}
-      onChange={(event) => setTitle(event.target.value)}
-      onBlur={commit}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') event.currentTarget.blur();
-        if (event.key === 'Escape') {
-          setTitle(canvas.title);
-          event.currentTarget.blur();
-        }
-      }}
-      className="hover:border-input h-8 min-w-0 flex-1 border-transparent bg-transparent text-base font-semibold shadow-none dark:bg-transparent"
-    />
-  );
-}
 
 /** "Saved", "Saving…", or "Read only" for someone who cannot edit. Read out when it changes. */
 function CanvasHeaderStatus({
@@ -241,8 +191,9 @@ function CanvasHeaderMenu({
 }
 
 /**
- * The canvas's title row: its name, save status, who else is on it, sharing for a standalone canvas, and its
- * actions. The live editor renders the avatars into `presenceRef`, since only it is inside the live room.
+ * The canvas's toolbar: save status, who else is on it, sharing for a standalone canvas, and its actions. The
+ * title lives in the document's heading. The live editor renders the avatars into `presenceRef`, since only it is
+ * inside the live room.
  */
 export function CanvasHeader({
   canvas,
@@ -268,10 +219,9 @@ export function CanvasHeader({
   onDeleted: () => void;
 }) {
   return (
-    <div className="flex min-h-12 shrink-0 items-center gap-2 px-2 sm:px-4">
-      <CanvasHeaderTitle key={canvas.title} canvas={canvas} />
+    <div className="flex min-h-10 shrink-0 items-center justify-end gap-2 px-2 sm:px-4">
       <CanvasHeaderStatus canvas={canvas} status={status} />
-      <div className="ml-auto flex shrink-0 items-center gap-1">
+      <div className="flex shrink-0 items-center gap-1">
         <div ref={presenceRef} className="flex empty:hidden" />
         <CanvasHeaderComments
           canvasId={canvas.id}

@@ -35,16 +35,14 @@ import {
   useCanvasDraftRun,
 } from '@/services/canvases/draft';
 import { useCreateCanvas } from '@/services/canvases/hooks';
-import { channelCanvasQuery } from '@/services/canvases/queries';
 import { threadRootQuery } from '@/services/messages/queries';
 import { roomQuery } from '@/services/rooms/queries';
 
-/** Where a created draft goes: the channel's Canvas tab, another canvas in the channel, or a canvas of one's own. */
-type Destination = 'primary' | 'channel' | 'standalone';
+/** Where a created draft goes: a new tab in the channel, or a canvas of one's own. */
+type Destination = 'channel' | 'standalone';
 
 const DESTINATIONS = [
-  { value: 'primary', label: 'Channel canvas' },
-  { value: 'channel', label: 'New channel canvas' },
+  { value: 'channel', label: 'Channel canvas' },
   { value: 'standalone', label: 'Standalone private canvas' },
 ] as const satisfies readonly { value: Destination; label: string }[];
 
@@ -101,22 +99,11 @@ function useDestinations(threadId: string) {
   const roomId = root.data?.roomId;
   const room = useQuery({ ...roomQuery(roomId ?? ''), enabled: !!roomId });
   const inChannel = room.data?.kind === 'channel' && !room.data.archivedAt;
-  const primary = useQuery({
-    ...channelCanvasQuery(roomId ?? ''),
-    enabled: inChannel,
-  });
 
-  const options = DESTINATIONS.filter(({ value }) => {
-    if (value === 'standalone') return true;
-    if (!inChannel) return false;
-    return value === 'channel' || primary.data === null;
-  });
-  return {
-    roomId,
-    options,
-    loading:
-      root.isPending || room.isPending || (inChannel && primary.isPending),
-  };
+  const options = DESTINATIONS.filter(
+    ({ value }) => value === 'standalone' || inChannel
+  );
+  return { roomId, options, loading: root.isPending || room.isPending };
 }
 
 function CanvasDraftDialogDestination({
@@ -221,7 +208,6 @@ function CanvasDraftDialog({
           title: draft.title,
           ...(destination !== 'standalone' && {
             roomId,
-            isChannelPrimary: destination === 'primary',
           }),
           initialMarkdown: draft.markdown,
           ...content,
@@ -232,7 +218,11 @@ function CanvasDraftDialog({
         {
           onSuccess: (canvas) => {
             close();
-            router.push(`/canvases/${canvas.id}` as Route);
+            router.push(
+              (canvas.roomId
+                ? `/channels/${canvas.roomId}?tab=${canvas.id}`
+                : `/canvases/${canvas.id}`) as Route
+            );
           },
           onSettled: () => setCreating(false),
         }
