@@ -47,10 +47,16 @@ import { LayoutContainerNode } from '@/components/editor/nodes/layout-container-
 import { LayoutItemNode } from '@/components/editor/nodes/layout-item-node';
 import { MentionNode } from '@/components/editor/nodes/mention-node';
 import { MessageEmbedNode } from '@/components/editor/nodes/message-embed-node';
+import {
+  ToggleContentNode,
+  ToggleNode,
+  ToggleTitleNode,
+} from '@/components/editor/nodes/toggle-node';
 import { editorTheme } from '@/components/editor/themes/editor-theme';
 import { CALLOUT } from '@/components/editor/transformers/markdown-callout-transformer';
 import { HR } from '@/components/editor/transformers/markdown-hr-transformer';
 import { createTableTransformer } from '@/components/editor/transformers/markdown-table-transformer';
+import { createToggleTransformer } from '@/components/editor/transformers/markdown-toggle-transformer';
 import { createMentionTransformer } from '@/features/messages/lib/mention-transformer';
 
 /** The kit's theme at document scale: calmer headings and tighter paragraphs than a landing page. */
@@ -69,6 +75,14 @@ const canvasTheme: EditorThemeClasses = {
     base: 'flex gap-2 rounded-lg py-2 pr-4 pl-2 [&:not(:first-child)]:mt-3 data-[tone=blue]:bg-blue-500/10 data-[tone=gray]:bg-muted data-[tone=green]:bg-emerald-500/10 data-[tone=purple]:bg-violet-500/10 data-[tone=red]:bg-red-500/10 data-[tone=yellow]:bg-amber-500/10',
     icon: 'flex h-7 shrink-0 items-center',
     body: 'min-w-0 flex-1 py-px leading-7',
+  },
+  // The arbitrary child selector, not a group variant, so a closed toggle inside an open one still hides.
+  toggle: {
+    base: 'flex gap-1 [&:not(:first-child)]:mt-3 data-[open=false]:[&>[data-toggle-body]>:nth-child(2)]:hidden',
+    button: 'flex h-7 shrink-0 items-center',
+    body: 'min-w-0 flex-1',
+    title: 'leading-7',
+    content: '[&>:first-child]:mt-1',
   },
   embedBlock: {
     base: 'my-3 select-none',
@@ -106,7 +120,12 @@ function transformersWith(names: ReadonlyMap<string, string>) {
     ...blockTransformers,
     createMentionTransformer(names),
   ];
-  return [...inline, createTableTransformer(inline)];
+  const all: Transformer[] = [
+    createToggleTransformer(() => all),
+    ...inline,
+    createTableTransformer(inline),
+  ];
+  return all;
 }
 
 const exportTransformers = transformersWith(new Map());
@@ -202,6 +221,9 @@ export function createCanvasExtension(
       LayoutItemNode,
       MessageEmbedNode,
       CalloutNode,
+      ToggleNode,
+      ToggleTitleNode,
+      ToggleContentNode,
     ],
     onError: (error) => {
       throw error;

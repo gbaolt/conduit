@@ -14,7 +14,7 @@ export function CanvasLayout({ className, ...props }: ComponentProps<'div'>) {
     >
       <div
         className={cn(
-          'grid grid-cols-1 [--canvas-content:50rem] @min-[60rem]:grid-cols-[minmax(0,1fr)_var(--canvas-content)_minmax(0,1fr)]',
+          'grid grid-cols-1 [--canvas-content:56rem] @min-[60rem]:grid-cols-[minmax(0,1fr)_var(--canvas-content)_minmax(0,1fr)]',
           className
         )}
         {...props}

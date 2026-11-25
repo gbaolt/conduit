@@ -96,13 +96,13 @@ function useActiveHeading(editor: LexicalEditor, headings: CanvasHeading[]) {
 const SIDES = {
   left: {
     root: 'mr-auto',
-    track: 'items-end pr-6',
+    track: 'items-end pr-4',
     dash: 'data-[depth=2]:mr-2 data-[depth=3]:mr-4',
     popup: 'right',
   },
   right: {
     root: 'ml-auto',
-    track: 'items-start pl-6',
+    track: 'items-start pl-4',
     dash: 'data-[depth=2]:ml-2 data-[depth=3]:ml-4',
     popup: 'left',
   },
@@ -153,8 +153,8 @@ export function CanvasToc({
                   data-active={heading.key === activeKey || undefined}
                   aria-hidden
                   className={cn(
-                    'bg-ring/50 pointer-events-none h-0.5 w-6 shrink-0 rounded-xs transition-[background-color] duration-200 ease-out',
-                    'data-[depth=2]:w-4 data-[depth=3]:w-2',
+                    'bg-ring/50 pointer-events-none h-0.5 w-8 shrink-0 rounded-xs transition-[background-color] duration-200 ease-out',
+                    'data-[depth=2]:w-6 data-[depth=3]:w-4',
                     layout.dash,
                     'data-active:bg-foreground'
                   )}
@@ -169,9 +169,9 @@ export function CanvasToc({
           align="start"
           alignOffset={0}
           side={layout.popup}
-          sideOffset={-60}
+          sideOffset={-50}
         >
-          <ul className="flex max-h-[50dvh] flex-col overflow-y-auto overscroll-contain px-4 py-3">
+          <ul className="flex max-h-[50dvh] flex-col overflow-y-auto overscroll-contain p-2">
             {headings.map((heading) => (
               <li key={heading.key} className="flex">
                 <Button
@@ -181,7 +181,7 @@ export function CanvasToc({
                   data-active={heading.key === activeKey || undefined}
                   className={cn(
                     'text-muted-foreground hover:text-foreground data-active:text-foreground h-auto w-full justify-start px-2 py-1 text-left font-normal whitespace-normal hover:bg-transparent dark:hover:bg-transparent',
-                    'data-[depth=2]:pl-6 data-[depth=3]:pl-10'
+                    'data-[depth=3]:pl-4 data-[depth=4]:pl-8'
                   )}
                   onClick={() => scrollToHeading(editor, heading.key)}
                 >

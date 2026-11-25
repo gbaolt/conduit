@@ -5,15 +5,26 @@ import {
 import { HistoryExtension } from '@lexical/history';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import {
+  $createTextNode,
   $getRoot,
   $getSelection,
   $isRangeSelection,
   $nodesOfType,
+  type ParagraphNode,
+  type RangeSelection,
+  type TextNode,
 } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
 import { CalloutNode } from '@/components/editor/nodes/callout-node';
 import { MentionNode } from '@/components/editor/nodes/mention-node';
+import {
+  $createToggleNode,
+  $isToggleContentNode,
+  type ToggleContentNode,
+  ToggleNode,
+  ToggleTitleNode,
+} from '@/components/editor/nodes/toggle-node';
 import { matchesPickerQuery } from '@/components/editor/utils/picker-query';
 
 import {
@@ -271,5 +282,81 @@ describe('callouts', () => {
     });
     editor.dispose();
     reopened.dispose();
+  });
+});
+
+describe('toggles', () => {
+  function withToggle(open: boolean) {
+    const editor = build('');
+    editor.update(
+      () => {
+        const toggle = $createToggleNode().setOpen(open);
+        const [title, content] = toggle.getChildren();
+        (title as ToggleTitleNode).append($createTextNode('Plan'));
+        (content as ToggleContentNode)
+          .getFirstChildOrThrow<ParagraphNode>()
+          .append($createTextNode('Step one'));
+        $getRoot().clear().append(toggle);
+      },
+      { discrete: true }
+    );
+    return editor;
+  }
+
+  it('writes the title and folded text as a details block', () => {
+    const editor = withToggle(true);
+    expect(canvasMarkdownOf(editor)).toBe(
+      '<details>\n<summary>Plan</summary>\n\nStep one\n\n</details>'
+    );
+    editor.dispose();
+  });
+
+  it('keeps the title formatting in the summary', () => {
+    const editor = withToggle(true);
+    editor.update(
+      () => {
+        const [title] = $nodesOfType(ToggleTitleNode);
+        title?.getFirstChildOrThrow<TextNode>().toggleFormat('bold');
+      },
+      { discrete: true }
+    );
+    expect(canvasMarkdownOf(editor)).toContain('<summary>**Plan**</summary>');
+    editor.dispose();
+  });
+
+  it('keeps a closed toggle closed in the saved state', () => {
+    const editor = withToggle(false);
+    const reopened = build('');
+    reopened.setEditorState(
+      reopened.parseEditorState(
+        JSON.stringify(editor.getEditorState().toJSON())
+      )
+    );
+    expect(
+      reopened.read(() => $nodesOfType(ToggleNode).map((t) => t.getOpen()))
+    ).toEqual([false]);
+    editor.dispose();
+    reopened.dispose();
+  });
+
+  it.each([
+    [true, 'starts the content'],
+    [false, 'starts a line after the toggle'],
+  ])('Enter at the end of the title when open is %s %s', (open) => {
+    const editor = withToggle(open);
+    editor.update(
+      () => {
+        const [title] = $nodesOfType(ToggleTitleNode);
+        title?.selectEnd();
+        const selection = $getSelection();
+        if ($isRangeSelection(selection)) selection.insertParagraph();
+      },
+      { discrete: true }
+    );
+    editor.read(() => {
+      const anchor = ($getSelection() as RangeSelection).anchor.getNode();
+      expect($isToggleContentNode(anchor.getParent())).toBe(open);
+    });
+    editor.dispose();
   });
 });

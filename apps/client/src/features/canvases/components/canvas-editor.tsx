@@ -68,6 +68,7 @@ import { DraggableBlockPlugin } from '@/components/editor/plugins/draggable-bloc
 import { EmojiPickerPlugin } from '@/components/editor/plugins/emoji-picker-plugin';
 import { FloatingLinkEditorPlugin } from '@/components/editor/plugins/floating-link-editor-plugin';
 import { FloatingTextFormatToolbarPlugin } from '@/components/editor/plugins/floating-text-format-plugin';
+import { InsertBarPlugin } from '@/components/editor/plugins/insert-bar-plugin';
 import { LayoutPlugin } from '@/components/editor/plugins/layout-plugin';
 import {
   Mention,
@@ -94,6 +95,8 @@ import {
   DynamicTablePickerPlugin,
   TablePickerPlugin,
 } from '@/components/editor/plugins/picker/table-picker-plugin';
+import { TogglePickerPlugin } from '@/components/editor/plugins/picker/toggle-picker-plugin';
+import { TogglePlugin } from '@/components/editor/plugins/toggle-plugin';
 import { sessionQuery } from '@/services/auth/queries';
 import {
   useClaimCanvasBootstrap,
@@ -197,6 +200,7 @@ function canvasBlockOptions(pickMessage: () => void) {
     CheckListPickerPlugin(),
     QuotePickerPlugin(),
     CalloutPickerPlugin(),
+    TogglePickerPlugin(),
     CodePickerPlugin(),
     DividerPickerPlugin(),
     TablePickerPlugin(),
@@ -599,12 +603,16 @@ function CanvasEditorSharePrompt({ canvasId }: { canvasId: string }) {
   );
 }
 
+const INSERT_BAR_QUICK = ['Check List', 'Table', 'Columns Layout'];
+
 function CanvasEditorPlugins({
   canvas,
   anchor,
+  insertBarSlot,
 }: {
   canvas: CanvasDocument;
   anchor: HTMLDivElement | null;
+  insertBarSlot: HTMLElement | null;
 }) {
   const [editor] = useLexicalComposerContext();
   const [isLinkEditMode, setIsLinkEditMode] = useState(false);
@@ -637,6 +645,7 @@ function CanvasEditorPlugins({
       <CodeBlockPlugin />
       <LayoutPlugin />
       <CalloutPlugin />
+      <TogglePlugin />
       <Mention source={suggestions}>
         <MentionPortal>
           <MentionContent>
@@ -672,6 +681,11 @@ function CanvasEditorPlugins({
             anchorElem={anchor}
             baseOptions={blockOptions}
             dynamicOptionsFn={DynamicTablePickerPlugin}
+          />
+          <InsertBarPlugin
+            slot={insertBarSlot}
+            options={blockOptions}
+            quick={INSERT_BAR_QUICK}
           />
           <CanvasEditorMessagePaste />
           <CanvasMessagePickerDialog
@@ -736,6 +750,8 @@ type CanvasEditorDocumentProps = {
   presenceSlot: HTMLElement | null;
   /** Where the outline of the canvas's headings renders. */
   tocSlot: HTMLElement | null;
+  /** Where the bar of blocks to insert renders, for editors. */
+  insertBarSlot: HTMLElement | null;
   commentsOpen: boolean;
   onCommentsOpenChange: (open: boolean) => void;
   historyOpen: boolean;
@@ -754,6 +770,7 @@ function CanvasEditorDocument({
   fallback,
   presenceSlot,
   tocSlot,
+  insertBarSlot,
   commentsOpen,
   onCommentsOpenChange,
   historyOpen,
@@ -778,19 +795,21 @@ function CanvasEditorDocument({
   const [anchor, setAnchor] = useState<HTMLDivElement | null>(null);
   const cursorsRef = useRef<HTMLDivElement | null>(null);
   const [liveState, setLiveState] = useState<CanvasLiveState>('loading');
+  const [previewId, setPreviewId] = useState<string | null>(null);
   const loading = collab.live && liveState === 'loading';
   const editable =
     canvas.access.edit && (!collab.live || liveState === 'ready');
+  const Comments = collab.live
+    ? CanvasCommentsPluginLive
+    : CanvasCommentsPlugin;
+
   const renderEmbed = useCallback(
     (messageId: string) => (
       <CanvasMessageEmbed canvasId={canvas.id} messageId={messageId} />
     ),
     [canvas.id]
   );
-  const Comments = collab.live
-    ? CanvasCommentsPluginLive
-    : CanvasCommentsPlugin;
-  const [previewId, setPreviewId] = useState<string | null>(null);
+
   if (!historyOpen && previewId) setPreviewId(null);
   const notifyVersions = useRef<() => void>(noop);
 
@@ -855,7 +874,11 @@ function CanvasEditorDocument({
           {editable && !canvas.roomId && canvas.access.manageSharing && (
             <CanvasEditorSharePrompt canvasId={canvas.id} />
           )}
-          <CanvasEditorPlugins canvas={canvas} anchor={anchor} />
+          <CanvasEditorPlugins
+            canvas={canvas}
+            anchor={anchor}
+            insertBarSlot={!loading && !previewId ? insertBarSlot : null}
+          />
           {loading && fallback}
           {!loading && !previewId && <CanvasToc slot={tocSlot} side="left" />}
           {previewId && (
