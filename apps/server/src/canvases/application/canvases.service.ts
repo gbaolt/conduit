@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 
 import {
   canCanvas,
+  CANVAS_UNTITLED,
   type CanvasAccess,
   type CanvasAction,
   type CanvasRole,
@@ -43,8 +44,6 @@ export type CanvasViewerScope = {
   organizationId: string;
   workspaceRole: WorkspaceRole;
 };
-
-const UNTITLED = 'Untitled';
 
 /** The hash the editor sends with a snapshot: SHA-256 of its JSON, as hex. */
 export function contentHashOf(snapshotJson: Record<string, unknown>) {
@@ -194,7 +193,7 @@ export class CanvasesService {
     if (!roomId) {
       id = await this.canvases.createStandalone(
         viewer,
-        title || UNTITLED,
+        title || CANVAS_UNTITLED,
         seed
       );
     } else {
@@ -208,7 +207,7 @@ export class CanvasesService {
       id = await this.canvases.createInChannel(
         viewer,
         room.id,
-        title || UNTITLED,
+        title || CANVAS_UNTITLED,
         seed
       );
     }
@@ -257,7 +256,7 @@ export class CanvasesService {
   async update(viewer: CanvasViewerScope, input: UpdateCanvasInput) {
     const { canvasId, ...patch } = input;
     await this.load(viewer, canvasId, 'edit');
-    if (patch.title !== undefined) patch.title = patch.title || UNTITLED;
+    if (patch.title !== undefined) patch.title = patch.title || CANVAS_UNTITLED;
     await this.canvases.update(viewer, canvasId, patch);
     if (patch.snapshotJson) {
       await this.checkpoint(viewer, canvasId, {

@@ -6,6 +6,8 @@ import { MessageHitSchema } from '@/schemas/search';
 import { SUMMARY_MESSAGES_MAX } from '@/schemas/summaries';
 
 export const CANVAS_TITLE_MAX = 200;
+/** The title a canvas gets when it is created or renamed without one. */
+export const CANVAS_UNTITLED = 'Untitled';
 export const CANVAS_MARKDOWN_MAX = 200_000;
 /** Characters of the serialized editor state, under the API's 2 MB body limit. */
 export const CANVAS_SNAPSHOT_MAX = 1_500_000;

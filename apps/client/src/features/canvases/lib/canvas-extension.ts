@@ -29,6 +29,7 @@ import { TableExtension } from '@lexical/table';
 import {
   $createParagraphNode,
   $getRoot,
+  $isParagraphNode,
   $parseSerializedNode,
   configExtension,
   defineExtension,
@@ -124,6 +125,14 @@ export function $seedCanvasFromMarkdown(
   names: ReadonlyMap<string, string>
 ) {
   $convertFromMarkdownString(markdown, transformersWith(names));
+}
+
+/** True while the document holds nothing but one empty line, as a new canvas does. */
+export function $isEmptyCanvas() {
+  const children = $getRoot().getChildren();
+  if (children.length > 1) return false;
+  const [first] = children;
+  return !first || ($isParagraphNode(first) && first.isEmpty());
 }
 
 /**

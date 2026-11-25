@@ -131,6 +131,7 @@ import { CanvasMessageEmbed } from './canvas-message-embed';
 import { CanvasMessagePickerDialog } from './canvas-message-picker-dialog';
 import { CanvasPresenceAvatars } from './canvas-presence-avatars';
 import { CanvasSaveVersionDialog } from './canvas-save-version-dialog';
+import { CanvasTemplatePicker } from './canvas-templates';
 import { CanvasToc } from './canvas-toc';
 
 export type CanvasSaveStatus = 'saved' | 'saving' | 'failed';
@@ -878,6 +879,7 @@ function CanvasEditorDocument({
               }
               className="min-h-[50dvh] pb-24 pl-8 leading-7 outline-none"
             />
+            {editable && <CanvasTemplatePicker canvas={canvas} />}
           </div>
           <CanvasCommentPopover />
           <CanvasCommentsPanel />
