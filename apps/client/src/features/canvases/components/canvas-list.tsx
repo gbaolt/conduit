@@ -260,12 +260,13 @@ function CanvasListRow({ canvas }: { canvas: Canvas }) {
       <TableCell className="max-w-0 py-2 ps-2 sm:ps-4">
         <Link
           href={canvasHref(canvas)}
-          className={buttonVariants({
-            variant: 'ghost',
-            size: 'sm',
-            className:
-              '-mx-1.5 h-auto max-w-full justify-start px-1.5 py-1 font-medium',
-          })}
+          className={cn(
+            buttonVariants({
+              variant: 'ghost',
+              size: 'sm',
+            }),
+            '-mx-1.5 h-auto max-w-full justify-start px-1.5 py-1 font-medium has-data-[icon=inline-start]:ps-1.5'
+          )}
         >
           {canvas.coverPreset && (
             <span
