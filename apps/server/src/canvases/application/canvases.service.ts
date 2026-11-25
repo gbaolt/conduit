@@ -113,11 +113,10 @@ export class CanvasesService {
   }
 
   /** A channel the viewer can read, or `NOT_FOUND`. A DM has no canvas. */
-  private async readableChannel(viewer: CanvasViewerScope, roomId: string) {
+  private async readableRoom(viewer: CanvasViewerScope, roomId: string) {
     const room = await this.rooms.find(viewer, roomId);
     if (
       !room ||
-      room.kind !== 'channel' ||
       !canCanvas('view', viewer, {
         createdById: null,
         channel: room,
@@ -129,10 +128,10 @@ export class CanvasesService {
     return room;
   }
 
-  async getChannelCanvas(viewer: CanvasViewerScope, roomId: string) {
-    const room = await this.readableChannel(viewer, roomId);
-    const canvas = await this.canvases.findChannelPrimary(viewer, roomId);
-    return canvas && this.withAccess(viewer, canvas, room);
+  async listRoomCanvases(viewer: CanvasViewerScope, roomId: string) {
+    const room = await this.readableRoom(viewer, roomId);
+    const canvases = await this.canvases.listInChannel(viewer, roomId);
+    return canvases.map((canvas) => this.withAccess(viewer, canvas, room));
   }
 
   async get(viewer: CanvasViewerScope, canvasId: string) {
@@ -141,28 +140,43 @@ export class CanvasesService {
   }
 
   async list(viewer: CanvasViewerScope, scope: CanvasScope) {
-    const [active, archived] = await Promise.all([
+    const [active, archived, roomIds] = await Promise.all([
       this.rooms.list(viewer, false),
       this.rooms.list(viewer, true),
+      this.rooms.accessibleRoomIds(viewer),
     ]);
     const rooms = new Map(
       [...active, ...archived].map((room) => [room.id, room])
     );
-    const canvases = await this.canvases.list(viewer, [...rooms.keys()], scope);
-    return canvases.map((canvas) =>
-      this.withAccess(
-        viewer,
-        canvas,
-        canvas.roomId ? (rooms.get(canvas.roomId) ?? null) : null
+    const canvases = await this.canvases.list(viewer, roomIds, scope);
+    // The channel lists leave out DMs, so the few DMs that hold canvases are read one by one.
+    const dmIds = new Set(
+      canvases.flatMap(({ roomId }) =>
+        roomId && !rooms.has(roomId) ? [roomId] : []
       )
     );
+    const dms = await Promise.all(
+      [...dmIds].map((roomId) => this.rooms.find(viewer, roomId))
+    );
+    for (const dm of dms) if (dm) rooms.set(dm.id, dm);
+    // A room canvas never falls back to the standalone rules, so one whose room vanished meanwhile is dropped.
+    return canvases
+      .flatMap((canvas) =>
+        canvas.roomId && !rooms.has(canvas.roomId) ? [] : [canvas]
+      )
+      .map((canvas) =>
+        this.withAccess(
+          viewer,
+          canvas,
+          canvas.roomId ? (rooms.get(canvas.roomId) ?? null) : null
+        )
+      );
   }
 
   async create(viewer: CanvasViewerScope, input: CreateCanvasInput) {
     const {
       title,
       roomId,
-      isChannelPrimary,
       sourceMessageIds = [],
       versionTrigger,
       ...content
@@ -171,9 +185,6 @@ export class CanvasesService {
       ...content,
       contentHash: content.snapshotJson && contentHashOf(content.snapshotJson),
     };
-    const seeded = Boolean(
-      seed.snapshotJson || seed.markdown || seed.initialMarkdown
-    );
     await this.assertReadableMessages(viewer, [
       ...(content.sourceThreadId ? [content.sourceThreadId] : []),
       ...sourceMessageIds,
@@ -187,33 +198,19 @@ export class CanvasesService {
         seed
       );
     } else {
-      const room = await this.readableChannel(viewer, roomId);
-      const primary = isChannelPrimary ?? true;
-      const existing =
-        primary && (await this.canvases.findChannelPrimary(viewer, room.id));
-      // Opening the channel's canvas reopens it; a draft for it is kept as another canvas instead of dropped.
-      if (existing && !seeded) return this.withAccess(viewer, existing, room);
-
+      const room = await this.readableRoom(viewer, roomId);
       const denial = checkCanvas('edit', viewer, {
         createdById: viewer.userId,
         channel: room,
         membership: null,
       });
       if (denial) throw canvasError(denial);
-      id =
-        primary && !existing
-          ? await this.canvases.createChannelPrimary(
-              viewer,
-              room.id,
-              title || room.name,
-              seed
-            )
-          : await this.canvases.createInChannel(
-              viewer,
-              room.id,
-              title || UNTITLED,
-              seed
-            );
+      id = await this.canvases.createInChannel(
+        viewer,
+        room.id,
+        title || UNTITLED,
+        seed
+      );
     }
 
     if (versionTrigger && seed.snapshotJson && seed.contentHash) {

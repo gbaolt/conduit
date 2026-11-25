@@ -22,7 +22,7 @@ import {
   editCanvasCommentContract,
   getCanvasContract,
   getCanvasVersionContract,
-  getChannelCanvasContract,
+  listRoomCanvasesContract,
   listCanvasCommentsContract,
   listCanvasesContract,
   listCanvasVersionsContract,
@@ -344,7 +344,7 @@ export const contract = {
     heartbeat: heartbeatContract,
   },
   canvases: {
-    getChannelCanvas: getChannelCanvasContract,
+    listRoomCanvases: listRoomCanvasesContract,
     list: listCanvasesContract,
     get: getCanvasContract,
     create: createCanvasContract,

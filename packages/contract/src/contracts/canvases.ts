@@ -78,12 +78,12 @@ const {
 } = canvasErrors;
 const { AI_DISABLED, AI_UNAVAILABLE } = aiErrors;
 
-/** The channel's canvas, or null before anyone creates it. */
-export const getChannelCanvasContract = oc
-  .meta(openapi({ method: 'GET', path: '/rooms/{roomId}/canvas' }))
+/** The room's canvases, oldest first. Each is a tab beside Messages. */
+export const listRoomCanvasesContract = oc
+  .meta(openapi({ method: 'GET', path: '/rooms/{roomId}/canvases' }))
   .errors({ NOT_FOUND })
   .input(RoomIdInputSchema)
-  .output(CanvasDocumentSchema.nullable());
+  .output(z.array(CanvasSchema));
 
 /** Every canvas the viewer can read, recently updated first. */
 export const listCanvasesContract = oc

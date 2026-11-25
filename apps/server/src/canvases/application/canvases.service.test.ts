@@ -127,17 +127,18 @@ function setup(
     roomId: string | null,
     title: string,
     userId: string,
-    seed: CanvasSeed = {},
-    isChannelPrimary = roomId !== null
+    seed: CanvasSeed = {}
   ) => {
     const id = `canvas-${++next}`;
     canvases.set(id, {
       id,
       organizationId,
       roomId,
-      roomName: roomId && room.name,
-      isChannelPrimary,
+      roomKind: roomId ? room.kind : null,
+      roomName: roomId && room.kind === 'channel' ? room.name : null,
       title,
+      icon: null,
+      coverPreset: null,
       createdById: userId,
       updatedByName: userId,
       createdAt: new Date(),
@@ -155,16 +156,12 @@ function setup(
   };
   const repository = {
     find: async (scope, id) => view(scope.userId, id),
-    findChannelPrimary: async (scope, roomId) => {
-      const row = [...canvases.values()].find(
-        (c) => c.roomId === roomId && c.isChannelPrimary && !c.deletedAt
-      );
-      return row ? view(scope.userId, row.id) : null;
-    },
-    createChannelPrimary: async (scope, roomId, title, seed) =>
-      insert(roomId, title, scope.userId, seed),
+    listInChannel: async (scope, roomId) =>
+      [...canvases.values()]
+        .filter((c) => c.roomId === roomId && !c.deletedAt)
+        .map((c) => view(scope.userId, c.id)!),
     createInChannel: async (scope, roomId, title, seed) =>
-      insert(roomId, title, scope.userId, seed, false),
+      insert(roomId, title, scope.userId, seed),
     createStandalone: async (scope, title, seed) =>
       insert(null, title, scope.userId, seed),
     list: async (scope, roomIds) =>
@@ -232,7 +229,9 @@ function setup(
       id === room.id ? asSeenBy(scope.userId) : null,
     list: async (scope: { userId: string }, archived: boolean) => {
       const seen = asSeenBy(scope.userId);
-      return visibleTo(scope.userId) && Boolean(seen.archivedAt) === archived
+      return seen.kind === 'channel' &&
+        visibleTo(scope.userId) &&
+        Boolean(seen.archivedAt) === archived
         ? [seen]
         : [];
     },
@@ -263,16 +262,62 @@ function setup(
 }
 
 describe('CanvasesService', () => {
-  it('creates one primary canvas per channel and reopens it on a second create', async () => {
+  it('adds a new canvas to the channel on every create, listed oldest first', async () => {
     const { service } = setup();
-    expect(await service.getChannelCanvas(alice, 'general')).toBeNull();
+    expect(await service.listRoomCanvases(alice, 'general')).toEqual([]);
 
     const first = await service.create(alice, { roomId: 'general' });
     const second = await service.create(bob, { roomId: 'general' });
 
-    expect(second.id).toBe(first.id);
-    expect(first).toMatchObject({ title: 'general', roomName: 'general' });
-    expect((await service.getChannelCanvas(bob, 'general'))?.id).toBe(first.id);
+    expect(second.id).not.toBe(first.id);
+    expect(first).toMatchObject({
+      title: 'Untitled',
+      roomKind: 'channel',
+      roomName: 'general',
+    });
+    expect(
+      (await service.listRoomCanvases(bob, 'general')).map((c) => c.id)
+    ).toEqual([first.id, second.id]);
+  });
+
+  it('sets and clears the icon and cover', async () => {
+    const { service } = setup();
+    const canvas = await service.create(alice, { roomId: 'general' });
+
+    expect(
+      await service.update(bob, {
+        canvasId: canvas.id,
+        icon: '🚀',
+        coverPreset: 'ocean',
+      })
+    ).toMatchObject({ icon: '🚀', coverPreset: 'ocean' });
+    expect(
+      await service.update(bob, {
+        canvasId: canvas.id,
+        icon: null,
+        coverPreset: null,
+      })
+    ).toMatchObject({ icon: null, coverPreset: null });
+  });
+
+  it('keeps a DM canvas to the people in the DM, with no room name', async () => {
+    const { service } = setup(
+      roomFor({ kind: 'dm', visibility: 'private', name: 'dm-key' }),
+      ['alice', 'bob']
+    );
+    const canvas = await service.create(alice, { roomId: 'general' });
+
+    expect(canvas).toMatchObject({ roomKind: 'dm', roomName: null });
+    expect(
+      (await service.listRoomCanvases(bob, 'general')).map((c) => c.id)
+    ).toEqual([canvas.id]);
+    expect((await service.list(bob, 'all')).map((c) => c.id)).toEqual([
+      canvas.id,
+    ]);
+    await expect(
+      service.listRoomCanvases(carol, 'general')
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(await service.list(carol, 'all')).toEqual([]);
   });
 
   it('hides a private channel canvas from people outside the channel', async () => {
@@ -283,7 +328,7 @@ describe('CanvasesService', () => {
       code: 'NOT_FOUND',
     });
     await expect(
-      service.getChannelCanvas(carol, 'general')
+      service.listRoomCanvases(carol, 'general')
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
     await expect(
       service.update(carol, { canvasId: canvas.id, markdown: 'x' })
@@ -386,7 +431,7 @@ describe('CanvasesService', () => {
     ).rejects.toMatchObject({ code: 'LAST_EDITOR' });
   });
 
-  it('frees the channel for a new primary canvas once its canvas is deleted', async () => {
+  it('drops a deleted canvas from the channel tabs', async () => {
     const { service } = setup();
     const first = await service.create(alice, { roomId: 'general' });
     await expect(service.delete(bob, first.id)).rejects.toMatchObject({
@@ -398,10 +443,7 @@ describe('CanvasesService', () => {
     await expect(service.get(alice, first.id)).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
-    expect(await service.getChannelCanvas(alice, 'general')).toBeNull();
-    expect((await service.create(bob, { roomId: 'general' })).id).not.toBe(
-      first.id
-    );
+    expect(await service.listRoomCanvases(alice, 'general')).toEqual([]);
   });
 
   it('deletes the live room with the canvas', async () => {
@@ -447,7 +489,8 @@ describe('CanvasesService AI drafts', () => {
     const canvas = await service.create(alice, { ...draft, roomId: 'general' });
 
     expect(canvas).toMatchObject({
-      isChannelPrimary: true,
+      roomId: 'general',
+      title: 'Search filters',
       markdown: '## Scope',
     });
     expect(canvases.get(canvas.id)).toMatchObject({
@@ -465,48 +508,11 @@ describe('CanvasesService AI drafts', () => {
     });
   });
 
-  it('adds a second channel canvas beside the primary one', async () => {
-    const { service } = setup(roomFor(), ['alice', 'bob'], undefined, thread());
-    const primary = await service.create(alice, { roomId: 'general' });
-
-    const second = await service.create(alice, {
-      ...draft,
-      roomId: 'general',
-      isChannelPrimary: false,
-    });
-
-    expect(second.id).not.toBe(primary.id);
-    expect(second).toMatchObject({
-      isChannelPrimary: false,
-      roomId: 'general',
-    });
-    expect((await service.getChannelCanvas(bob, 'general'))?.id).toBe(
-      primary.id
-    );
-    expect(await service.list(bob, 'channel')).toHaveLength(2);
-  });
-
-  it('keeps a draft meant for a primary canvas that already exists', async () => {
-    const { service } = setup(roomFor(), ['alice', 'bob'], undefined, thread());
-    const primary = await service.create(bob, { roomId: 'general' });
-
-    const created = await service.create(alice, {
-      ...draft,
-      roomId: 'general',
-    });
-
-    expect(created.id).not.toBe(primary.id);
-    expect(created).toMatchObject({
-      isChannelPrimary: false,
-      markdown: '## Scope',
-    });
-  });
-
-  it('refuses a second channel canvas from someone who cannot post', async () => {
-    const { service } = setup(roomFor({ archivedAt: new Date() }));
+  it('refuses a channel canvas from someone who cannot post', async () => {
+    const { service } = setup(roomFor(), ['alice']);
     await expect(
-      service.create(alice, { roomId: 'general', isChannelPrimary: false })
-    ).rejects.toMatchObject({ code: 'CHANNEL_ARCHIVED' });
+      service.create(carol, { roomId: 'general' })
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 
   it('creates a standalone draft only its creator can open', async () => {
@@ -859,15 +865,15 @@ describe.skipIf(!connectionString)('CanvasesService with Postgres', () => {
     await prisma.$disconnect();
   });
 
-  it('lets two people racing to create a channel canvas open the same one', async () => {
+  it('gives two people creating channel canvases at once a canvas each', async () => {
     const [a, b] = await Promise.all([
       service.create(owner, { roomId }),
       service.create(member, { roomId }),
     ]);
-    expect(a.id).toBe(b.id);
+    expect(a.id).not.toBe(b.id);
     expect(
-      await prisma.canvas.count({ where: { roomId, isChannelPrimary: true } })
-    ).toBe(1);
+      (await service.listRoomCanvases(owner, roomId)).map((c) => c.id)
+    ).toEqual(expect.arrayContaining([a.id, b.id]));
   });
 
   it('keeps the last editor when two editors demote each other at once', async () => {

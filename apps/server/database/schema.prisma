@@ -665,9 +665,11 @@ model Canvas {
   organization     Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   roomId           String?               @map("channelId")
   room             Room?                 @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  /// The canvas the channel's Canvas tab opens. A partial unique index in `24_canvases` allows one live one per channel.
-  isChannelPrimary Boolean               @default(false)
   title            String
+  /// One emoji.
+  icon             String?
+  /// A key of `CANVAS_COVER_PRESETS` in the contract.
+  coverPreset      String?
   /// The Lexical editor state as JSON.
   snapshotJson     Json?
   /// The same content as Markdown, for search and AI.

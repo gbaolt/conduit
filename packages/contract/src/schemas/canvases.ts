@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { MessageBodySchema } from '@/lib/message-body';
+import { RoomKindSchema } from '@/schemas/rooms';
 import { MessageHitSchema } from '@/schemas/search';
 import { SUMMARY_MESSAGES_MAX } from '@/schemas/summaries';
 
@@ -13,6 +14,20 @@ export const CANVAS_QUOTE_MAX = 1000;
 export const CANVAS_EMBEDS_MAX = 50;
 export const CANVAS_VERSION_LABEL_MAX = 100;
 export const CANVAS_VERSIONS_PAGE_MAX = 100;
+export const CANVAS_ICON_MAX = 16;
+
+export const CANVAS_COVER_PRESETS = [
+  'sunset',
+  'ocean',
+  'forest',
+  'lavender',
+  'rose',
+  'amber',
+  'slate',
+  'mint',
+] as const;
+export const CanvasCoverPresetSchema = z.enum(CANVAS_COVER_PRESETS);
+export type CanvasCoverPreset = z.infer<typeof CanvasCoverPresetSchema>;
 
 /** What a person a standalone canvas is shared with may do: edit it, or only read it. */
 export const CanvasRoleSchema = z.enum(['editor', 'viewer']);
@@ -30,11 +45,15 @@ export type CanvasAccess = z.infer<typeof CanvasAccessSchema>;
 export const CanvasSchema = z.object({
   id: z.string(),
   organizationId: z.string(),
-  /** The channel it lives in, or null for a standalone canvas. */
+  /** The channel or DM it lives in, or null for a standalone canvas. */
   roomId: z.string().nullable(),
+  roomKind: RoomKindSchema.nullable(),
+  /** The channel's name. Null for a DM, which shows no name. */
   roomName: z.string().nullable(),
-  isChannelPrimary: z.boolean(),
   title: z.string(),
+  /** One emoji, as typed. */
+  icon: z.string().nullable(),
+  coverPreset: CanvasCoverPresetSchema.nullable(),
   createdById: z.string().nullable(),
   updatedByName: z.string().nullable(),
   createdAt: z.coerce.date(),
@@ -69,15 +88,11 @@ export const ListCanvasesInputSchema = z.object({
 
 const CanvasTitleSchema = z.string().trim().max(CANVAS_TITLE_MAX);
 
-/**
- * With a `roomId`, opens that channel's canvas, creating it the first time. `isChannelPrimary: false` adds
- * another canvas to the channel instead. The content fields seed a new canvas, as an AI draft does.
- */
+/** With a `roomId`, adds a canvas to that channel. The content fields seed a new canvas, as an AI draft does. */
 export const CreateCanvasInputSchema = z
   .object({
     title: CanvasTitleSchema.optional(),
     roomId: z.string().optional(),
-    isChannelPrimary: z.boolean().optional(),
     /** What the live document is seeded from when there is no `snapshotJson`. */
     initialMarkdown: z.string().max(CANVAS_MARKDOWN_MAX).optional(),
     snapshotJson: CanvasSnapshotSchema.optional(),
@@ -95,10 +110,12 @@ export const CreateCanvasInputSchema = z
   });
 export type CreateCanvasInput = z.infer<typeof CreateCanvasInputSchema>;
 
-/** `undefined` leaves a field alone. */
+/** `undefined` leaves a field alone, and `null` clears `icon` and `coverPreset`. */
 export const UpdateCanvasInputSchema = z.object({
   canvasId: z.string(),
   title: CanvasTitleSchema.optional(),
+  icon: z.string().trim().min(1).max(CANVAS_ICON_MAX).nullable().optional(),
+  coverPreset: CanvasCoverPresetSchema.nullable().optional(),
   snapshotJson: CanvasSnapshotSchema.optional(),
   markdown: z.string().max(CANVAS_MARKDOWN_MAX).optional(),
 });

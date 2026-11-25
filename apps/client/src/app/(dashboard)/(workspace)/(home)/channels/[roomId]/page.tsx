@@ -1,10 +1,10 @@
 import { Suspense } from 'react';
 
-import { CanvasChannelTabs } from '@/features/canvases/components/canvas-channel-tab';
 import {
   CanvasDraftMenuItem,
   CanvasDraftProvider,
 } from '@/features/canvases/components/canvas-draft-dialog';
+import { CanvasRoomTabs } from '@/features/canvases/components/canvas-room-tabs';
 import { ChannelIntro } from '@/features/channels/components/channel-intro';
 import { ChannelTitle } from '@/features/channels/components/channel-title';
 import {
@@ -49,7 +49,7 @@ async function Room({
             >
               <PinnedButton roomId={roomId} />
             </ChannelHeader>
-            <CanvasChannelTabs
+            <CanvasRoomTabs
               roomId={roomId}
               banner={<ChannelArchivedBanner roomId={roomId} />}
             >
@@ -58,7 +58,7 @@ async function Room({
                 roomId={roomId}
                 start={<ChannelIntro roomId={roomId} />}
               />
-            </CanvasChannelTabs>
+            </CanvasRoomTabs>
           </div>
         </ThreadLayout>
       </CanvasDraftProvider>

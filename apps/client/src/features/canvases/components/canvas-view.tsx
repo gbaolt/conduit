@@ -23,6 +23,7 @@ import { canvasQuery } from '@/services/canvases/queries';
 
 import type { CanvasSaveStatus } from './canvas-editor';
 import { CanvasHeader } from './canvas-header';
+import { CanvasCover, CanvasHeading } from './canvas-heading';
 import {
   CanvasLayout,
   CanvasLayoutAside,
@@ -49,7 +50,7 @@ const CanvasEditor = dynamic(
   { ssr: false, loading: () => <CanvasViewEditorSkeleton /> }
 );
 
-/** A canvas with its title row, its document, and its share dialog. */
+/** A canvas with its toolbar, its cover and heading, its document, and its share dialog. */
 export function CanvasView({
   canvas,
   onDeleted,
@@ -85,10 +86,12 @@ export function CanvasView({
         onDeleted={onDeleted}
       />
       <CanvasLayout>
+        <CanvasCover canvas={canvas} />
         <CanvasLayoutAside>
           <div ref={setTocSlot} className="sticky top-6 pl-4" />
         </CanvasLayoutAside>
         <CanvasLayoutContent>
+          <CanvasHeading canvas={canvas} />
           <CanvasEditor
             key={canvas.id}
             canvas={canvas}
@@ -184,8 +187,15 @@ export function CanvasViewState({
   );
 }
 
-/** A standalone or channel canvas opened by its id, as `/canvases/[canvasId]` does. */
-export function CanvasViewById({ canvasId }: { canvasId: string }) {
+/** A standalone or channel canvas opened by its id, as `/canvases/[canvasId]` and a channel's canvas tab do. */
+export function CanvasViewById({
+  canvasId,
+  onDeleted,
+}: {
+  canvasId: string;
+  /** Where to go once it is deleted. All canvases, unless the caller says otherwise. */
+  onDeleted?: () => void;
+}) {
   const router = useRouter();
   const canvas = useQuery(canvasQuery(canvasId));
 
@@ -214,7 +224,7 @@ export function CanvasViewById({ canvasId }: { canvasId: string }) {
   return (
     <CanvasView
       canvas={canvas.data}
-      onDeleted={() => router.push('/canvases')}
+      onDeleted={onDeleted ?? (() => router.push('/canvases'))}
     />
   );
 }

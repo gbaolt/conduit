@@ -4,6 +4,7 @@ import {
   CanvasDraftMenuItem,
   CanvasDraftProvider,
 } from '@/features/canvases/components/canvas-draft-dialog';
+import { CanvasRoomTabs } from '@/features/canvases/components/canvas-room-tabs';
 import { DmHeader } from '@/features/dms/components/dm-header';
 import { DmIntro } from '@/features/dms/components/dm-intro';
 import { DmName } from '@/features/dms/components/dm-name';
@@ -35,11 +36,13 @@ async function Dm({
             <DmHeader roomId={roomId} menu={<SummaryChannelItems isDm />}>
               <PinnedButton roomId={roomId} />
             </DmHeader>
-            <Conversation
-              key={roomId}
-              roomId={roomId}
-              start={<DmIntro roomId={roomId} />}
-            />
+            <CanvasRoomTabs roomId={roomId}>
+              <Conversation
+                key={roomId}
+                roomId={roomId}
+                start={<DmIntro roomId={roomId} />}
+              />
+            </CanvasRoomTabs>
           </div>
         </ThreadLayout>
       </CanvasDraftProvider>

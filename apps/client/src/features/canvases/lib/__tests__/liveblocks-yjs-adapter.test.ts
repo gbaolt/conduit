@@ -4,7 +4,7 @@ import {
   createLiveblocksYjsAdapter,
   type LiveblocksConnection,
   type LiveblocksYjs,
-} from './liveblocks-yjs-adapter';
+} from '../liveblocks-yjs-adapter';
 
 function setup({ synced = false } = {}) {
   const syncListeners = new Set<(synced: boolean) => void>();

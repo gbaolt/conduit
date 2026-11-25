@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseMessageUrl } from './message-url';
+import { parseMessageUrl } from '../message-url';
 
 const origin = 'https://acme.conduit.localhost';
 
