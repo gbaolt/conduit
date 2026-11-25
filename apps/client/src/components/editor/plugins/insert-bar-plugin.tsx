@@ -25,7 +25,11 @@ import { $isListNode, ListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useLexicalEditable } from '@lexical/react/useLexicalEditable';
 import { $isHeadingNode, $isQuoteNode } from '@lexical/rich-text';
-import { $findMatchingParent, $getNearestNodeOfType } from '@lexical/utils';
+import {
+  $findMatchingParent,
+  $getNearestNodeOfType,
+  mergeRegister,
+} from '@lexical/utils';
 import { IconChevronDown, IconMoodSmile, IconPlus } from '@tabler/icons-react';
 import {
   $createParagraphNode,
@@ -33,6 +37,9 @@ import {
   $getSelection,
   $isRangeSelection,
   $isRootOrShadowRoot,
+  BLUR_COMMAND,
+  COMMAND_PRIORITY_LOW,
+  FOCUS_COMMAND,
   type LexicalEditor,
 } from 'lexical';
 import { type ReactElement, useEffect, useRef, useState } from 'react';
@@ -114,6 +121,69 @@ function InsertBarButton({
   );
 }
 
+const SCROLL_SETTLE_MS = 500;
+// Lexical scrolls the caret into view as it commits, so a scroll this soon after an update came from typing.
+const TYPING_SCROLL_MS = 150;
+
+function scrollParentOf(element: HTMLElement | null): HTMLElement | Window {
+  for (let node = element?.parentElement; node; node = node.parentElement) {
+    if (/auto|scroll/.test(getComputedStyle(node).overflowY)) return node;
+  }
+  return window;
+}
+
+/**
+ * Whether the bar shows: while the caret is in the document or the person is using the bar, and not while the
+ * page scrolls, until it has been still for `SCROLL_SETTLE_MS`.
+ */
+function useInsertBarShown(editor: LexicalEditor) {
+  const [editorFocused, setEditorFocused] = useState(
+    () => !!editor.getRootElement()?.contains(document.activeElement ?? null)
+  );
+  const [scrolling, setScrolling] = useState(false);
+
+  useEffect(() => {
+    let settle: ReturnType<typeof setTimeout> | undefined;
+    let lastUpdate = 0;
+    const scrollParent = scrollParentOf(editor.getRootElement());
+    const onScroll = () => {
+      if (performance.now() - lastUpdate < TYPING_SCROLL_MS) return;
+      setScrolling(true);
+      clearTimeout(settle);
+      settle = setTimeout(() => setScrolling(false), SCROLL_SETTLE_MS);
+    };
+    scrollParent.addEventListener('scroll', onScroll, { passive: true });
+    const unregister = mergeRegister(
+      editor.registerUpdateListener(() => {
+        lastUpdate = performance.now();
+      }),
+      editor.registerCommand(
+        FOCUS_COMMAND,
+        () => {
+          setEditorFocused(true);
+          return false;
+        },
+        COMMAND_PRIORITY_LOW
+      ),
+      editor.registerCommand(
+        BLUR_COMMAND,
+        () => {
+          setEditorFocused(false);
+          return false;
+        },
+        COMMAND_PRIORITY_LOW
+      )
+    );
+    return () => {
+      clearTimeout(settle);
+      scrollParent.removeEventListener('scroll', onScroll);
+      unregister();
+    };
+  }, [editor]);
+
+  return { editorFocused, scrolling };
+}
+
 function InsertBar({
   editor,
   options,
@@ -124,6 +194,19 @@ function InsertBar({
   quick: readonly string[];
 }) {
   const [modal, showModal] = useEditorModal();
+  const { editorFocused, scrolling } = useInsertBarShown(editor);
+  // Focus and hover reach here from the bar's menus too, since React bubbles through portals.
+  const [barFocused, setBarFocused] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const menu = (name: string) => (open: boolean) =>
+    setOpenMenu((current) => {
+      if (open) return name;
+      return current === name ? null : current;
+    });
+  const shown =
+    openMenu !== null ||
+    ((editorFocused || barFocused || hovered) && !scrolling);
   const [blockType, setBlockType] = useState<BlockType>(() =>
     editor.getEditorState().read($blockType)
   );
@@ -160,10 +243,16 @@ function InsertBar({
     <div
       role="toolbar"
       aria-label="Insert"
-      className="bg-popover text-popover-foreground pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-md border p-1 shadow-md"
+      data-hidden={shown ? undefined : ''}
+      inert={!shown}
+      onFocus={() => setBarFocused(true)}
+      onBlur={() => setBarFocused(false)}
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
+      className="bg-popover text-popover-foreground pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-md border p-1 shadow-md transition-[opacity,translate] duration-200 ease-out data-hidden:pointer-events-none data-hidden:translate-y-2 data-hidden:opacity-0 motion-reduce:transition-none"
     >
       {modal}
-      <DropdownMenu>
+      <DropdownMenu onOpenChange={menu('insert')}>
         <InsertBarButton
           label="Insert a block"
           render={
@@ -187,7 +276,7 @@ function InsertBar({
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
-      <DropdownMenu>
+      <DropdownMenu onOpenChange={menu('style')}>
         <DropdownMenuTrigger
           render={
             <Button
@@ -223,6 +312,7 @@ function InsertBar({
       <ButtonGroup>
         <EmojiPicker
           aria-label="Insert emoji"
+          onOpenChange={menu('emoji')}
           onEmojiSelect={({ value }) => {
             picked.current = true;
             editor.update(() => {
