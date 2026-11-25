@@ -1,11 +1,10 @@
-import { useSyncExternalStore } from 'react';
-
 export const CANVAS_FULL_WIDTH_STORAGE_KEY = 'conduit:canvas:full-width';
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem'>;
 
 const listeners = new Set<() => void>();
-let fallbackValue = false;
+const failedWrites = new WeakMap<StorageLike, boolean>();
+let nullStorageValue = false;
 
 function notify() {
   for (const listener of listeners) listener();
@@ -13,12 +12,18 @@ function notify() {
 
 /** Reads the viewer's full-width preference without throwing if storage is blocked or absent. */
 export function readCanvasFullWidth(storage?: StorageLike | null): boolean {
+  let target: StorageLike | null | undefined;
   try {
-    const target = storage === undefined ? globalThis.localStorage : storage;
-    if (!target) return fallbackValue;
+    target = storage === undefined ? globalThis.localStorage : storage;
+  } catch {
+    return nullStorageValue;
+  }
+  if (!target) return nullStorageValue;
+  if (failedWrites.has(target)) return failedWrites.get(target)!;
+  try {
     return target.getItem(CANVAS_FULL_WIDTH_STORAGE_KEY) === 'true';
   } catch {
-    return fallbackValue;
+    return false;
   }
 }
 
@@ -27,36 +32,45 @@ export function writeCanvasFullWidth(
   value: boolean,
   storage?: StorageLike | null
 ): void {
-  fallbackValue = value;
+  let target: StorageLike | null | undefined;
   try {
-    const target = storage === undefined ? globalThis.localStorage : storage;
-    target?.setItem(CANVAS_FULL_WIDTH_STORAGE_KEY, String(value));
+    target = storage === undefined ? globalThis.localStorage : storage;
   } catch {
-    // Keep the in-memory fallback when localStorage is unavailable.
+    nullStorageValue = value;
+    notify();
+    return;
+  }
+  if (!target) {
+    nullStorageValue = value;
+    notify();
+    return;
+  }
+  try {
+    target.setItem(CANVAS_FULL_WIDTH_STORAGE_KEY, String(value));
+    failedWrites.delete(target);
+  } catch {
+    // Keep the in-memory value when writes fail so a working getItem does not snap it back.
+    failedWrites.set(target, value);
   }
   notify();
 }
 
-function subscribe(listener: () => void) {
+/** Subscribes to same-tab writes and cross-tab storage updates or clears (`event.key === null`). */
+export function subscribeCanvasFullWidth(listener: () => void): () => void {
   listeners.add(listener);
   const onStorage = (event: StorageEvent) => {
-    if (event.key === CANVAS_FULL_WIDTH_STORAGE_KEY) listener();
+    if (event.key !== null && event.key !== CANVAS_FULL_WIDTH_STORAGE_KEY)
+      return;
+    try {
+      failedWrites.delete(globalThis.localStorage);
+    } catch {
+      // Ignore if localStorage itself cannot be accessed.
+    }
+    listener();
   };
   window.addEventListener('storage', onStorage);
   return () => {
     listeners.delete(listener);
     window.removeEventListener('storage', onStorage);
   };
-}
-
-const setCanvasFullWidth = (next: boolean) => writeCanvasFullWidth(next);
-
-/** Per-viewer full-width preference, kept in localStorage and safe when storage is unavailable. */
-export function useCanvasFullWidth(): [boolean, (next: boolean) => void] {
-  const fullWidth = useSyncExternalStore(
-    subscribe,
-    () => readCanvasFullWidth(),
-    () => false
-  );
-  return [fullWidth, setCanvasFullWidth];
 }

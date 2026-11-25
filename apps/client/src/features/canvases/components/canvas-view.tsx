@@ -23,8 +23,8 @@ import { toast } from 'sonner';
 import { StatusButton } from '@/components/async/status-button';
 import { canvasQuery } from '@/services/canvases/queries';
 
+import { useCanvasFullWidth } from '../hooks/use-canvas-full-width';
 import { $selectNewFirstLine, canvasMarkdownOf } from '../lib/canvas-extension';
-import { useCanvasFullWidth } from '../lib/canvas-full-width';
 import { downloadMarkdownFile } from '../lib/canvas-markdown-export';
 import { CanvasActionMenu } from './canvas-action-menu';
 import type { CanvasSaveStatus } from './canvas-editor';
