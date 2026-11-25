@@ -9,13 +9,22 @@ import {
 import { cn } from '@conduit/ui/lib/utils';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $isHeadingNode } from '@lexical/rich-text';
+import { IconLink } from '@tabler/icons-react';
 import { $getRoot, type LexicalEditor, type NodeKey } from 'lexical';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { toast } from 'sonner';
+
+import {
+  assignHeadingAnchors,
+  headingAnchorFromHash,
+  headingUrlOf,
+} from '../lib/canvas-heading-anchor';
 
 type CanvasHeading = {
   key: NodeKey;
   text: string;
+  anchor: string;
   /** 1 for `h1`. Deeper headings than `h3` indent as `h3`. */
   depth: number;
 };
@@ -24,14 +33,16 @@ type CanvasHeading = {
 const ACTIVE_OFFSET_PX = 96;
 
 function $readHeadings(): CanvasHeading[] {
-  return $getRoot()
-    .getChildren()
-    .filter($isHeadingNode)
-    .map((node) => ({
-      key: node.getKey(),
-      text: node.getTextContent(),
-      depth: Math.min(Number(node.getTag().slice(1)), 3),
-    }));
+  return assignHeadingAnchors(
+    $getRoot()
+      .getChildren()
+      .filter($isHeadingNode)
+      .map((node) => ({
+        key: node.getKey(),
+        text: node.getTextContent(),
+        depth: Math.min(Number(node.getTag().slice(1)), 3),
+      }))
+  );
 }
 
 function useCanvasHeadings(editor: LexicalEditor) {
@@ -108,11 +119,58 @@ const SIDES = {
   },
 } as const;
 
-function scrollToHeading(editor: LexicalEditor, key: NodeKey) {
-  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  editor
-    .getElementByKey(key)
-    ?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' });
+function scrollToHeading(editor: LexicalEditor, key: NodeKey, instant = false) {
+  const reduceMotion =
+    instant || matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const element = editor.getElementByKey(key);
+  if (!element) return false;
+  element.scrollIntoView({
+    behavior: reduceMotion ? 'auto' : 'smooth',
+    block: 'start',
+  });
+  return true;
+}
+
+/** Scrolls to the heading named in the URL hash once the document renders, and on later hash changes. */
+function useScrollToHashHeading(
+  editor: LexicalEditor,
+  headings: CanvasHeading[]
+) {
+  const [root, setRoot] = useState<HTMLElement | null>(null);
+  const [hash, setHash] = useState(() => window.location.hash);
+  const scrolled = useRef<string | null>(null);
+
+  useEffect(() => editor.registerRootListener(setRoot), [editor]);
+
+  useEffect(() => {
+    const onHashChange = () => {
+      scrolled.current = null;
+      setHash(window.location.hash);
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  useEffect(() => {
+    const anchor = headingAnchorFromHash(hash);
+    if (!anchor || !root || scrolled.current === anchor) return;
+    const match = headings.find((heading) => heading.anchor === anchor);
+    if (!match) return;
+    const frame = requestAnimationFrame(() => {
+      if (scrollToHeading(editor, match.key, true)) {
+        scrolled.current = anchor;
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [editor, root, headings, hash]);
+}
+
+function copyHeadingLink(anchor: string) {
+  const url = headingUrlOf(window.location.href, anchor);
+  navigator.clipboard
+    .writeText(url)
+    .then(() => toast.success('Heading link copied.'))
+    .catch(() => toast.error('Couldn’t copy link.'));
 }
 
 /**
@@ -129,6 +187,7 @@ export function CanvasToc({
   const [editor] = useLexicalComposerContext();
   const headings = useCanvasHeadings(editor);
   const activeKey = useActiveHeading(editor, headings);
+  useScrollToHashHeading(editor, headings);
 
   if (!slot || headings.length === 0) return null;
   const layout = SIDES[side];
@@ -172,25 +231,38 @@ export function CanvasToc({
           sideOffset={-50}
         >
           <ul className="flex max-h-[50dvh] flex-col overflow-y-auto overscroll-contain p-2">
-            {headings.map((heading) => (
-              <li key={heading.key} className="flex">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  data-depth={heading.depth}
-                  data-active={heading.key === activeKey || undefined}
-                  className={cn(
-                    'text-muted-foreground hover:text-foreground data-active:text-foreground h-auto w-full justify-start px-2 py-1 text-left font-normal whitespace-normal hover:bg-transparent dark:hover:bg-transparent',
-                    'data-[depth=3]:pl-4 data-[depth=4]:pl-8'
-                  )}
-                  onClick={() => scrollToHeading(editor, heading.key)}
+            {headings.map((heading) => {
+              const label = heading.text || 'Untitled heading';
+              return (
+                <li
+                  key={heading.key}
+                  className="group/toc-item flex items-center gap-1"
                 >
-                  <span className="line-clamp-2">
-                    {heading.text || 'Untitled heading'}
-                  </span>
-                </Button>
-              </li>
-            ))}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    data-depth={heading.depth}
+                    data-active={heading.key === activeKey || undefined}
+                    className={cn(
+                      'text-muted-foreground hover:text-foreground data-active:text-foreground h-auto min-w-0 flex-1 justify-start px-2 py-1 text-left font-normal whitespace-normal hover:bg-transparent dark:hover:bg-transparent',
+                      'data-[depth=3]:pl-4 data-[depth=4]:pl-8'
+                    )}
+                    onClick={() => scrollToHeading(editor, heading.key)}
+                  >
+                    <span className="line-clamp-2">{label}</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={`Copy link to ${label}`}
+                    className="text-muted-foreground hover:text-foreground shrink-0 opacity-0 transition-opacity group-focus-within/toc-item:opacity-100 group-hover/toc-item:opacity-100 [@media(hover:none)]:opacity-100"
+                    onClick={() => copyHeadingLink(heading.anchor)}
+                  >
+                    <IconLink />
+                  </Button>
+                </li>
+              );
+            })}
           </ul>
         </HoverCardContent>
       </HoverCard>
