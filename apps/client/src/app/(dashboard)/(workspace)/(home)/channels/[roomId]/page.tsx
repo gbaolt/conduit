@@ -1,8 +1,16 @@
 import { Suspense } from 'react';
 
+import { CanvasChannelTabs } from '@/features/canvases/components/canvas-channel-tab';
+import {
+  CanvasDraftMenuItem,
+  CanvasDraftProvider,
+} from '@/features/canvases/components/canvas-draft-dialog';
 import { ChannelIntro } from '@/features/channels/components/channel-intro';
 import { ChannelTitle } from '@/features/channels/components/channel-title';
-import { ChannelHeader } from '@/features/channels/components/header/channel-header';
+import {
+  ChannelArchivedBanner,
+  ChannelHeader,
+} from '@/features/channels/components/header/channel-header';
 import { Conversation } from '@/features/messages/components/conversation/conversation';
 import { PinnedButton } from '@/features/messages/components/pinned';
 import { SummaryChannelItems } from '@/features/messages/components/summary/summary-menu';
@@ -31,21 +39,29 @@ async function Room({
       kind="channel"
       title={<ChannelTitle roomId={roomId} />}
     >
-      <ThreadLayout roomId={roomId}>
-        <div className="flex h-full min-h-0 flex-col">
-          <ChannelHeader
-            roomId={roomId}
-            menu={<SummaryChannelItems isDm={false} />}
-          >
-            <PinnedButton roomId={roomId} />
-          </ChannelHeader>
-          <Conversation
-            key={roomId}
-            roomId={roomId}
-            start={<ChannelIntro roomId={roomId} />}
-          />
-        </div>
-      </ThreadLayout>
+      <CanvasDraftProvider>
+        <ThreadLayout roomId={roomId} threadMenu={<CanvasDraftMenuItem />}>
+          <div className="flex h-full min-h-0 flex-col">
+            <ChannelHeader
+              roomId={roomId}
+              menu={<SummaryChannelItems isDm={false} />}
+              showArchivedBanner={false}
+            >
+              <PinnedButton roomId={roomId} />
+            </ChannelHeader>
+            <CanvasChannelTabs
+              roomId={roomId}
+              banner={<ChannelArchivedBanner roomId={roomId} />}
+            >
+              <Conversation
+                key={roomId}
+                roomId={roomId}
+                start={<ChannelIntro roomId={roomId} />}
+              />
+            </CanvasChannelTabs>
+          </div>
+        </ThreadLayout>
+      </CanvasDraftProvider>
     </RoomGate>
   );
 }

@@ -1,5 +1,6 @@
 @import '@conduit/ui/globals.css';
 @import '../features/auth/styles/transition.css';
+@import '../features/canvases/styles/collaboration.css';
 @import '../styles/typeset.css';
 @import '../styles/code.css';
 

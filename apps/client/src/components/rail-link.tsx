@@ -7,12 +7,17 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 
+const OTHER_RAIL_ROOTS = ['/activity', '/dms', '/files', '/canvases'];
+
+const isUnder = (href: string, pathname: string) =>
+  pathname === href || pathname.startsWith(`${href}/`);
+
 /** Home owns every route that no other rail link claims. */
 function isRailActive(href: Route, pathname: string) {
   if (href === '/') {
-    return !pathname.startsWith('/activity') && !pathname.startsWith('/dms');
+    return !OTHER_RAIL_ROOTS.some((root) => isUnder(root, pathname));
   }
-  return pathname === href || pathname.startsWith(`${href}/`);
+  return isUnder(href, pathname);
 }
 
 export function RailLink({

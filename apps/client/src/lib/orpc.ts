@@ -6,7 +6,7 @@ import {
   type RouterUtils,
 } from '@orpc/tanstack-query';
 
-import { createOrpcLink } from './orpc-link';
+import { createOrpcLink, type OrpcClientContext } from './orpc-link';
 
 // No top-level await here: it makes every importer an async module, and Fast Refresh full-reloads those.
 async function forwardIncomingCookie(): Promise<Record<string, string>> {
@@ -18,11 +18,12 @@ async function forwardIncomingCookie(): Promise<Record<string, string>> {
 }
 
 // Next replaces this check at build time, so the server branch never reaches the browser bundle.
-export const client: RouterContractClient<typeof contract> = createORPCClient(
-  createOrpcLink(
-    typeof window === 'undefined' ? forwardIncomingCookie : undefined
-  )
-);
+export const client: RouterContractClient<typeof contract, OrpcClientContext> =
+  createORPCClient(
+    createOrpcLink(
+      typeof window === 'undefined' ? forwardIncomingCookie : undefined
+    )
+  );
 
 export const orpc: RouterUtils<typeof client> =
   createTanstackQueryUtils(client);

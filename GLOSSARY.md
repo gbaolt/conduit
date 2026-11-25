@@ -127,7 +127,7 @@ _Avoid_: Find, lookup, query (in UI copy)
 ### Work
 
 **Canvas**:
-A document several people edit together, in a channel's tab or shared with chosen people.
+A document several people edit together, in a channel's tab or shared with chosen people. A channel's canvas follows the channel: whoever can read the channel reads it, whoever can post edits it, and archiving the channel makes it read-only. A canvas outside a channel opens only for the people it is shared with, each as **Can edit** or **Can view**, and it always keeps at least one person who can edit.
 _Avoid_: Doc, note, page
 
 **Board**:

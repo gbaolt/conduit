@@ -11,14 +11,11 @@ import {
   DialogTitle,
 } from '@conduit/ui/components/dialog';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
 } from '@conduit/ui/components/dropdown-menu';
 import { Field, FieldLabel } from '@conduit/ui/components/field';
 import {
@@ -26,7 +23,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@conduit/ui/components/popover';
-import { IconCalendar, IconDots, IconSparkles } from '@tabler/icons-react';
+import { IconCalendar, IconSparkles } from '@tabler/icons-react';
 import { addDays, format, isToday, startOfDay, subDays } from 'date-fns';
 import { useState } from 'react';
 import type { Matcher } from 'react-day-picker';
@@ -44,32 +41,16 @@ function useCanSummarize() {
   return summary !== null && data?.aiEnabled === true ? summary : null;
 }
 
-/** The thread header's menu. It renders nothing while AI is off, so the thread has no empty menu. */
-export function SummaryThreadMenu() {
+/** The thread header menu's "Summarize this thread". Nothing while AI is off. */
+export function SummaryThreadItem() {
   const summary = useCanSummarize();
   if (!summary) return null;
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Thread actions"
-            className="pointer-coarse:size-11"
-          />
-        }
-      >
-        <IconDots />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuItem onClick={() => void summary.summarize()}>
-          <IconSparkles data-slot="icon" />
-          Summarize this thread
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <DropdownMenuItem onClick={() => void summary.summarize()}>
+      <IconSparkles data-slot="icon" />
+      Summarize this thread
+    </DropdownMenuItem>
   );
 }
 

@@ -1,12 +1,12 @@
 import { INSERT_TABLE_COMMAND } from '@lexical/table';
-import { TableIcon } from 'lucide-react';
+import { IconTable } from '@tabler/icons-react';
 
 import { ComponentPickerOption } from '@/components/editor/plugins/picker/component-picker-option';
 import { InsertTableDialog } from '@/components/editor/plugins/table-plugin';
 
 export function TablePickerPlugin() {
   return new ComponentPickerOption('Table', {
-    icon: <TableIcon className="size-4" />,
+    icon: <IconTable className="size-4" />,
     keywords: ['table', 'grid', 'spreadsheet', 'rows', 'columns'],
     onSelect: (_, editor, showModal) =>
       showModal('Insert Table', (onClose) => (
@@ -41,7 +41,7 @@ export function DynamicTablePickerPlugin({
       ...colOptions.map(
         (columns) =>
           new ComponentPickerOption(`${rows}x${columns} Table`, {
-            icon: <i className="icon table" />,
+            icon: <IconTable className="size-4" />,
             keywords: ['table'],
             onSelect: (_, editor) =>
               editor.dispatchCommand(INSERT_TABLE_COMMAND, { columns, rows }),

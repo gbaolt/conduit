@@ -2,6 +2,7 @@ import { accounts } from './articles/accounts';
 import { activityAndNotifications } from './articles/activity-and-notifications';
 import { aiPrivacy } from './articles/ai-privacy';
 import { askConduit } from './articles/ask-conduit';
+import { canvases } from './articles/canvases';
 import { channels } from './articles/channels';
 import { directMessages } from './articles/direct-messages';
 import { files } from './articles/files';
@@ -38,6 +39,7 @@ export const GUIDE: readonly GuideArticle[] = [
   threads,
   directMessages,
   files,
+  canvases,
   search,
   activityAndNotifications,
   smartActivityAndCatchUp,

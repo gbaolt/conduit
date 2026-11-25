@@ -17,10 +17,13 @@ import { ThreadPanel } from './thread-panel';
  */
 export function ThreadLayout({
   roomId,
+  threadMenu,
   children,
 }: {
   /** The conversation the page shows. Without one, as on the Threads page, a thread opens in its own room. */
   roomId?: string;
+  /** More items for the open thread's header menu. The route passes them, so this feature imports no other. */
+  threadMenu?: ReactNode;
   children: ReactNode;
 }) {
   const [{ thread: threadId, room }, setSplit] = useSplit();
@@ -50,6 +53,7 @@ export function ThreadLayout({
       key={threadId}
       roomId={splitRoomId ?? roomId}
       threadId={threadId}
+      menu={threadMenu}
       onClose={closeThread}
     />
   ) : (
