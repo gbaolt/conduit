@@ -750,6 +750,8 @@ type CanvasEditorDocumentProps = {
   presenceSlot: HTMLElement | null;
   /** Where the outline of the canvas's headings renders. */
   tocSlot: HTMLElement | null;
+  /** Where the narrow-screen outline trigger renders in the canvas chrome. */
+  compactTocSlot: HTMLElement | null;
   /** Where the bar of blocks to insert renders, for editors. */
   insertBarSlot: HTMLElement | null;
   commentsOpen: boolean;
@@ -770,6 +772,7 @@ function CanvasEditorDocument({
   fallback,
   presenceSlot,
   tocSlot,
+  compactTocSlot,
   insertBarSlot,
   commentsOpen,
   onCommentsOpenChange,
@@ -880,7 +883,13 @@ function CanvasEditorDocument({
             insertBarSlot={!loading && !previewId ? insertBarSlot : null}
           />
           {loading && fallback}
-          {!loading && !previewId && <CanvasToc slot={tocSlot} side="left" />}
+          {!loading && !previewId && (
+            <CanvasToc
+              slot={tocSlot}
+              compactSlot={compactTocSlot}
+              side="left"
+            />
+          )}
           {previewId && (
             <CanvasHistoryPreview
               canvasId={canvas.id}

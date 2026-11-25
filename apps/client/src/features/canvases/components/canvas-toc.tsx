@@ -2,21 +2,34 @@
 
 import { Button } from '@conduit/ui/components/button';
 import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from '@conduit/ui/components/hover-card';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@conduit/ui/components/popover';
 import { cn } from '@conduit/ui/lib/utils';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $isHeadingNode } from '@lexical/rich-text';
-import { IconLink } from '@tabler/icons-react';
-import { $getRoot, type LexicalEditor, type NodeKey } from 'lexical';
-import { useEffect, useRef, useState } from 'react';
+import { $isHeadingNode, type HeadingNode } from '@lexical/rich-text';
+import { IconLink, IconList } from '@tabler/icons-react';
+import {
+  $getNodeByKey,
+  $getRoot,
+  $isElementNode,
+  type ElementNode,
+  HISTORY_MERGE_TAG,
+  type LexicalEditor,
+  type NodeKey,
+} from 'lexical';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 
+import { $isToggleNode } from '@/components/editor/nodes/toggle-node';
+import { useCopy } from '@/hooks/use-copy';
+
 import {
+  $getHeadingAnchorId,
   assignHeadingAnchors,
+  findHeadingByAnchor,
   headingAnchorFromHash,
   headingUrlOf,
 } from '../lib/canvas-heading-anchor';
@@ -24,6 +37,7 @@ import {
 type CanvasHeading = {
   key: NodeKey;
   text: string;
+  anchorId: string | null;
   anchor: string;
   /** 1 for `h1`. Deeper headings than `h3` indent as `h3`. */
   depth: number;
@@ -32,16 +46,26 @@ type CanvasHeading = {
 /** A heading counts as passed once its top scrolls within this distance of the top of the canvas. */
 const ACTIVE_OFFSET_PX = 96;
 
+function $collectHeadings(node: ElementNode, out: HeadingNode[]) {
+  for (const child of node.getChildren()) {
+    if ($isHeadingNode(child)) {
+      out.push(child);
+    } else if ($isElementNode(child)) {
+      $collectHeadings(child, out);
+    }
+  }
+}
+
 function $readHeadings(): CanvasHeading[] {
+  const nodes: HeadingNode[] = [];
+  $collectHeadings($getRoot(), nodes);
   return assignHeadingAnchors(
-    $getRoot()
-      .getChildren()
-      .filter($isHeadingNode)
-      .map((node) => ({
-        key: node.getKey(),
-        text: node.getTextContent(),
-        depth: Math.min(Number(node.getTag().slice(1)), 3),
-      }))
+    nodes.map((node) => ({
+      key: node.getKey(),
+      text: node.getTextContent(),
+      anchorId: $getHeadingAnchorId(node),
+      depth: Math.min(Number(node.getTag().slice(1)), 3),
+    }))
   );
 }
 
@@ -86,7 +110,11 @@ function useActiveHeading(editor: LexicalEditor, headings: CanvasHeading[]) {
       let active = headings[0]!.key;
       for (const heading of headings) {
         const element = editor.getElementByKey(heading.key);
-        if (element && element.getBoundingClientRect().top <= line) {
+        if (
+          element &&
+          element.getClientRects().length > 0 &&
+          element.getBoundingClientRect().top <= line
+        ) {
           active = heading.key;
         }
       }
@@ -119,7 +147,23 @@ const SIDES = {
   },
 } as const;
 
+function openCollapsedTogglesFor(editor: LexicalEditor, key: NodeKey) {
+  editor.update(
+    () => {
+      let current = $getNodeByKey(key)?.getParent() ?? null;
+      while (current) {
+        if ($isToggleNode(current) && !current.getOpen()) {
+          current.setOpen(true);
+        }
+        current = current.getParent();
+      }
+    },
+    { discrete: true, tag: HISTORY_MERGE_TAG }
+  );
+}
+
 function scrollToHeading(editor: LexicalEditor, key: NodeKey, instant = false) {
+  openCollapsedTogglesFor(editor, key);
   const reduceMotion =
     instant || matchMedia('(prefers-reduced-motion: reduce)').matches;
   const element = editor.getElementByKey(key);
@@ -131,6 +175,37 @@ function scrollToHeading(editor: LexicalEditor, key: NodeKey, instant = false) {
   return true;
 }
 
+const hashListeners = new Set<() => void>();
+let historyPatched = false;
+
+/** Subscribes to hash changes from native links, Back/Forward, and Next's History API router. */
+function subscribeToHash(listener: () => void) {
+  if (!historyPatched && typeof window !== 'undefined') {
+    historyPatched = true;
+    for (const method of ['pushState', 'replaceState'] as const) {
+      const original = window.history[method].bind(window.history);
+      window.history[method] = (...args) => {
+        const before = window.location.hash;
+        original(...args);
+        if (window.location.hash !== before) {
+          for (const notify of hashListeners) notify();
+        }
+      };
+    }
+  }
+  hashListeners.add(listener);
+  window.addEventListener('hashchange', listener);
+  window.addEventListener('popstate', listener);
+  return () => {
+    hashListeners.delete(listener);
+    window.removeEventListener('hashchange', listener);
+    window.removeEventListener('popstate', listener);
+  };
+}
+
+// Keyed by editor so closing a version preview (which remounts CanvasToc) does not re-jump to an old hash.
+const settledHashes = new WeakMap<LexicalEditor, string>();
+
 /** Scrolls to the heading named in the URL hash once the document renders, and on later hash changes. */
 function useScrollToHashHeading(
   editor: LexicalEditor,
@@ -138,135 +213,201 @@ function useScrollToHashHeading(
 ) {
   const [root, setRoot] = useState<HTMLElement | null>(null);
   const [hash, setHash] = useState(() => window.location.hash);
-  const scrolled = useRef<string | null>(null);
 
   useEffect(() => editor.registerRootListener(setRoot), [editor]);
 
-  useEffect(() => {
-    const onHashChange = () => {
-      scrolled.current = null;
-      setHash(window.location.hash);
-    };
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
-  }, []);
+  useEffect(
+    () =>
+      subscribeToHash(() => {
+        settledHashes.delete(editor);
+        setHash(window.location.hash);
+      }),
+    [editor]
+  );
 
   useEffect(() => {
+    if (!root) return;
+    if (settledHashes.get(editor) === hash) return;
+    // Settle each navigation once so a missing hash never yanks the scroll after a later edit.
+    settledHashes.set(editor, hash);
     const anchor = headingAnchorFromHash(hash);
-    if (!anchor || !root || scrolled.current === anchor) return;
-    const match = headings.find((heading) => heading.anchor === anchor);
+    if (!anchor) return;
+    const match = findHeadingByAnchor(headings, anchor);
     if (!match) return;
     const frame = requestAnimationFrame(() => {
-      if (scrollToHeading(editor, match.key, true)) {
-        scrolled.current = anchor;
-      }
+      scrollToHeading(editor, match.key, true);
     });
     return () => cancelAnimationFrame(frame);
   }, [editor, root, headings, hash]);
 }
 
-function copyHeadingLink(anchor: string) {
-  const url = headingUrlOf(window.location.href, anchor);
-  navigator.clipboard
-    .writeText(url)
-    .then(() => toast.success('Heading link copied.'))
-    .catch(() => toast.error('Couldn’t copy link.'));
+function CanvasTocList({
+  headings,
+  activeKey,
+  onSelect,
+  onCopyLink,
+}: {
+  headings: CanvasHeading[];
+  activeKey: NodeKey | null;
+  onSelect: (key: NodeKey) => void;
+  onCopyLink: (anchor: string) => void;
+}) {
+  return (
+    <ul className="flex max-h-[50dvh] flex-col overflow-y-auto overscroll-contain p-2">
+      {headings.map((heading) => {
+        const label = heading.text || 'Untitled heading';
+        return (
+          <li
+            key={heading.key}
+            className="group/toc-item flex items-center gap-1"
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              data-depth={heading.depth}
+              data-active={heading.key === activeKey || undefined}
+              className={cn(
+                'text-muted-foreground hover:text-foreground data-active:text-foreground h-auto min-w-0 flex-1 justify-start px-2 py-1 text-left font-normal whitespace-normal hover:bg-transparent dark:hover:bg-transparent',
+                'data-[depth=2]:pl-3 data-[depth=3]:pl-5'
+              )}
+              onClick={() => onSelect(heading.key)}
+            >
+              <span className="line-clamp-2">{label}</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label={`Copy link to ${label}`}
+              className="text-muted-foreground hover:text-foreground shrink-0 opacity-0 transition-opacity group-focus-within/toc-item:opacity-100 group-hover/toc-item:opacity-100 [@media(hover:none)]:opacity-100"
+              onClick={() => onCopyLink(heading.anchor)}
+            >
+              <IconLink />
+            </Button>
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
 
 /**
- * The canvas outline, drawn into `slot`: a dash per heading with the one in view highlighted. Hovering it opens the
- * headings as a list, and picking one scrolls the canvas to it. Renders nothing while the canvas has no headings.
+ * The canvas outline, drawn into `slot` (wide aside) and `compactSlot` (narrow header chrome): a labelled
+ * button opens a popover list of headings where each item jumps to the heading or copies its link. Renders
+ * nothing while the canvas has no headings.
  */
 export function CanvasToc({
   slot,
+  compactSlot,
   side,
 }: {
   slot: HTMLElement | null;
+  compactSlot: HTMLElement | null;
   side: keyof typeof SIDES;
 }) {
   const [editor] = useLexicalComposerContext();
   const headings = useCanvasHeadings(editor);
   const activeKey = useActiveHeading(editor, headings);
+  const [wideOpen, setWideOpen] = useState(false);
+  const [compactOpen, setCompactOpen] = useState(false);
+  const { copy } = useCopy({
+    onCopySuccess: () => toast.success('Heading link copied.'),
+    onCopyError: () => toast.error('Couldn’t copy link.'),
+  });
   useScrollToHashHeading(editor, headings);
 
-  if (!slot || headings.length === 0) return null;
+  if (headings.length === 0) return null;
   const layout = SIDES[side];
+  const copyLink = (anchor: string) =>
+    void copy(() => headingUrlOf(window.location.href, anchor));
 
-  return createPortal(
-    <div className={cn('w-18', layout.root)}>
-      <HoverCard>
-        <HoverCardTrigger
-          delay={100}
-          closeDelay={100}
-          render={
-            <div
-              className={cn(
-                'flex max-h-[50dvh] flex-col gap-3 overflow-hidden py-3 opacity-100 transition-opacity duration-200 data-popup-open:opacity-0',
-                layout.track
-              )}
-            >
-              {headings.map((heading) => (
-                <div
-                  key={heading.key}
-                  data-depth={heading.depth}
-                  data-active={heading.key === activeKey || undefined}
-                  aria-hidden
-                  className={cn(
-                    'bg-ring/50 pointer-events-none h-0.5 w-8 shrink-0 rounded-xs transition-[background-color] duration-200 ease-out',
-                    'data-[depth=2]:w-6 data-[depth=3]:w-4',
-                    layout.dash,
-                    'data-active:bg-foreground'
-                  )}
-                />
-              ))}
-            </div>
-          }
-        />
-        <HoverCardContent
-          aria-label="Outline"
-          className="data-[side=left]:slide-in-from-right-3 data-[side=left]:slide-out-to-right-3 data-[side=right]:slide-in-from-left-3 data-[side=right]:slide-out-to-left-3 data-open:zoom-in-100 data-closed:zoom-out-100 w-56 overflow-hidden p-0 duration-200"
-          align="start"
-          alignOffset={0}
-          side={layout.popup}
-          sideOffset={-50}
-        >
-          <ul className="flex max-h-[50dvh] flex-col overflow-y-auto overscroll-contain p-2">
-            {headings.map((heading) => {
-              const label = heading.text || 'Untitled heading';
-              return (
-                <li
-                  key={heading.key}
-                  className="group/toc-item flex items-center gap-1"
-                >
+  return (
+    <>
+      {slot &&
+        createPortal(
+          <div className={cn('w-18', layout.root)}>
+            <Popover open={wideOpen} onOpenChange={setWideOpen}>
+              <PopoverTrigger
+                render={
                   <Button
                     variant="ghost"
-                    size="sm"
+                    aria-label="Outline"
+                    className={cn(
+                      'h-auto max-h-[50dvh] w-full flex-col gap-3 overflow-hidden rounded-md py-3 opacity-100 transition-opacity duration-200 hover:bg-transparent data-popup-open:opacity-0 dark:hover:bg-transparent',
+                      layout.track
+                    )}
+                  />
+                }
+              >
+                {headings.map((heading) => (
+                  <span
+                    key={heading.key}
                     data-depth={heading.depth}
                     data-active={heading.key === activeKey || undefined}
+                    aria-hidden
                     className={cn(
-                      'text-muted-foreground hover:text-foreground data-active:text-foreground h-auto min-w-0 flex-1 justify-start px-2 py-1 text-left font-normal whitespace-normal hover:bg-transparent dark:hover:bg-transparent',
-                      'data-[depth=3]:pl-4 data-[depth=4]:pl-8'
+                      'bg-ring/50 pointer-events-none h-0.5 w-8 shrink-0 rounded-xs transition-[background-color] duration-200 ease-out',
+                      'data-[depth=2]:w-6 data-[depth=3]:w-4',
+                      layout.dash,
+                      'data-active:bg-foreground'
                     )}
-                    onClick={() => scrollToHeading(editor, heading.key)}
-                  >
-                    <span className="line-clamp-2">{label}</span>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    aria-label={`Copy link to ${label}`}
-                    className="text-muted-foreground hover:text-foreground shrink-0 opacity-0 transition-opacity group-focus-within/toc-item:opacity-100 group-hover/toc-item:opacity-100 [@media(hover:none)]:opacity-100"
-                    onClick={() => copyHeadingLink(heading.anchor)}
-                  >
-                    <IconLink />
-                  </Button>
-                </li>
-              );
-            })}
-          </ul>
-        </HoverCardContent>
-      </HoverCard>
-    </div>,
-    slot
+                  />
+                ))}
+              </PopoverTrigger>
+              <PopoverContent
+                aria-label="Outline"
+                className="w-56 overflow-hidden rounded-md p-0"
+                align="start"
+                alignOffset={0}
+                side={layout.popup}
+                sideOffset={-50}
+              >
+                <CanvasTocList
+                  headings={headings}
+                  activeKey={activeKey}
+                  onSelect={(key) => {
+                    setWideOpen(false);
+                    scrollToHeading(editor, key);
+                  }}
+                  onCopyLink={copyLink}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>,
+          slot
+        )}
+      {compactSlot &&
+        createPortal(
+          <Popover open={compactOpen} onOpenChange={setCompactOpen}>
+            <PopoverTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Outline"
+                  className="bg-background/80 hover:bg-muted"
+                />
+              }
+            >
+              <IconList />
+            </PopoverTrigger>
+            <PopoverContent
+              aria-label="Outline"
+              align="end"
+              className="w-56 overflow-hidden rounded-md p-0"
+            >
+              <CanvasTocList
+                headings={headings}
+                activeKey={activeKey}
+                onSelect={(key) => {
+                  setCompactOpen(false);
+                  scrollToHeading(editor, key);
+                }}
+                onCopyLink={copyLink}
+              />
+            </PopoverContent>
+          </Popover>,
+          compactSlot
+        )}
+    </>
   );
 }

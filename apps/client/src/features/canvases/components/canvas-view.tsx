@@ -76,6 +76,9 @@ export function CanvasView({
     });
   const [presenceSlot, setPresenceSlot] = useState<HTMLDivElement | null>(null);
   const [tocSlot, setTocSlot] = useState<HTMLDivElement | null>(null);
+  const [compactTocSlot, setCompactTocSlot] = useState<HTMLDivElement | null>(
+    null
+  );
   const [insertBarSlot, setInsertBarSlot] = useState<HTMLDivElement | null>(
     null
   );
@@ -104,7 +107,11 @@ export function CanvasView({
           data-slot="canvas-cover"
           className="group/cover relative col-span-full w-full"
         >
-          <div className="absolute top-2 right-2 z-10">
+          <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
+            <div
+              ref={setCompactTocSlot}
+              className="empty:hidden @min-[60rem]:hidden"
+            />
             <CanvasActionMenu
               canvas={canvas}
               status={status}
@@ -135,6 +142,7 @@ export function CanvasView({
             fallback={<CanvasViewEditorSkeleton />}
             presenceSlot={presenceSlot}
             tocSlot={tocSlot}
+            compactTocSlot={compactTocSlot}
             insertBarSlot={insertBarSlot}
             commentsOpen={panel === 'comments'}
             onCommentsOpenChange={panelSetter('comments')}
