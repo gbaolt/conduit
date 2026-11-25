@@ -4,7 +4,12 @@ import {
 } from '@lexical/extension';
 import { HistoryExtension } from '@lexical/history';
 import { $isListItemNode, $isListNode } from '@lexical/list';
-import { $getRoot, $nodesOfType } from 'lexical';
+import {
+  $getRoot,
+  $getSelection,
+  $isRangeSelection,
+  $nodesOfType,
+} from 'lexical';
 import { describe, expect, it } from 'vitest';
 
 import { MentionNode } from '@/components/editor/nodes/mention-node';
@@ -12,6 +17,7 @@ import { matchesPickerQuery } from '@/components/editor/utils/picker-query';
 
 import {
   $replaceCanvasContent,
+  $selectNewFirstLine,
   canvasMarkdownOf,
   canvasSnapshotOf,
   createCanvasExtension,
@@ -175,5 +181,30 @@ describe('canvasSnapshotOf', () => {
     );
     expect(canvasMarkdownOf(reopened)).toBe(draft);
     reopened.dispose();
+  });
+});
+
+describe('$selectNewFirstLine', () => {
+  it('opens an empty first line above the content and puts the caret in it', () => {
+    const editor = build('Intro\n\n## Notes');
+    editor.update(() => $selectNewFirstLine(), { discrete: true });
+    editor.read(() => {
+      const first = $getRoot().getFirstChildOrThrow();
+      expect(first.getTextContent()).toBe('');
+      expect($getRoot().getChildrenSize()).toBe(3);
+      const selection = $getSelection();
+      expect(
+        $isRangeSelection(selection) && selection.anchor.getNode().is(first)
+      ).toBe(true);
+    });
+    editor.dispose();
+  });
+
+  it('reuses an empty first line instead of stacking another', () => {
+    const editor = build('Intro');
+    editor.update(() => $selectNewFirstLine(), { discrete: true });
+    editor.update(() => $selectNewFirstLine(), { discrete: true });
+    expect(editor.read(() => $getRoot().getChildrenSize())).toBe(2);
+    editor.dispose();
   });
 });

@@ -739,6 +739,8 @@ type CanvasEditorDocumentProps = {
   savingVersion: boolean;
   onSavingVersionChange: (open: boolean) => void;
   onStatusChange: (status: CanvasSaveStatus) => void;
+  /** Hands the editor out, so the heading outside it can move the caret into the document. */
+  onEditorChange?: (editor: LexicalEditor | null) => void;
 };
 
 const noop = () => {};
@@ -755,6 +757,7 @@ function CanvasEditorDocument({
   savingVersion,
   onSavingVersionChange,
   onStatusChange,
+  onEditorChange,
 }: CanvasEditorDocumentProps) {
   const collab = useCanvasCollab();
   const { data: workspaceMembers } = useWorkspaceMembers();
@@ -808,6 +811,11 @@ function CanvasEditorDocument({
   useEffect(() => {
     editor.setEditable(editable);
   }, [editor, editable]);
+
+  useEffect(() => {
+    onEditorChange?.(editor);
+    return () => onEditorChange?.(null);
+  }, [editor, onEditorChange]);
 
   const composer = (
     <MessageEmbedRenderer value={renderEmbed}>

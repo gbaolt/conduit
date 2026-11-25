@@ -122,7 +122,13 @@ export function CanvasCover({ canvas }: { canvas: CanvasDocument }) {
 }
 
 /** The title, renamed in place. It saves on Enter or when focus leaves, and Escape puts the old one back. */
-function CanvasTitle({ canvas }: { canvas: CanvasDocument }) {
+function CanvasTitle({
+  canvas,
+  onEnter,
+}: {
+  canvas: CanvasDocument;
+  onEnter?: () => void;
+}) {
   const patch = useCanvasPatch(canvas.id);
   const [title, setTitle] = useState(canvas.title);
   // Escape blurs before React applies the reset, so the blur's commit would still see the edited title.
@@ -159,9 +165,10 @@ function CanvasTitle({ canvas }: { canvas: CanvasDocument }) {
       onChange={(event) => setTitle(event.target.value.replace(/\n/g, ' '))}
       onBlur={commit}
       onKeyDown={(event) => {
-        if (event.key === 'Enter') {
+        if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
           event.preventDefault();
           event.currentTarget.blur();
+          onEnter?.();
         }
         if (event.key === 'Escape') {
           cancelled.current = true;
@@ -178,7 +185,14 @@ function CanvasTitle({ canvas }: { canvas: CanvasDocument }) {
  * The top of the document: the icon, the title, and for editors the buttons that add an icon or a cover. Like
  * Slack and Notion, those buttons show while the pointer is over the heading, and always on touch screens.
  */
-export function CanvasHeading({ canvas }: { canvas: CanvasDocument }) {
+export function CanvasHeading({
+  canvas,
+  onEnter,
+}: {
+  canvas: CanvasDocument;
+  /** Enter in the title: save it and start writing on a new first line of the document. */
+  onEnter?: () => void;
+}) {
   const patch = useCanvasPatch(canvas.id);
   const edit = canvas.access.edit;
   const pickIcon = (icon: string) => patch({ icon });
@@ -241,7 +255,7 @@ export function CanvasHeading({ canvas }: { canvas: CanvasDocument }) {
           )}
         </div>
       )}
-      <CanvasTitle key={canvas.title} canvas={canvas} />
+      <CanvasTitle key={canvas.title} canvas={canvas} onEnter={onEnter} />
     </div>
   );
 }
