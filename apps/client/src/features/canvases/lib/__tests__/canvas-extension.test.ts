@@ -4,12 +4,14 @@ import {
 } from '@lexical/extension';
 import { HistoryExtension } from '@lexical/history';
 import { $isListItemNode, $isListNode } from '@lexical/list';
+import { HeadingNode } from '@lexical/rich-text';
 import {
   $createTextNode,
   $getRoot,
   $getSelection,
   $isRangeSelection,
   $nodesOfType,
+  $parseSerializedNode,
   type ParagraphNode,
   type RangeSelection,
   type TextNode,
@@ -34,6 +36,10 @@ import {
   canvasSnapshotOf,
   createCanvasExtension,
 } from '../canvas-extension';
+import {
+  $getHeadingAnchorId,
+  isHeadingAnchorId,
+} from '../canvas-heading-anchor';
 
 function build(markdown: string, names?: ReadonlyMap<string, string>) {
   return buildEditorFromExtensions(
@@ -357,6 +363,104 @@ describe('toggles', () => {
       const anchor = ($getSelection() as RangeSelection).anchor.getNode();
       expect($isToggleContentNode(anchor.getParent())).toBe(open);
     });
+    editor.dispose();
+  });
+});
+
+describe('heading anchor IDs', () => {
+  it('assigns a persistent anchorId that survives save and reload', () => {
+    const editor = build('# Plan\n\n## Plan');
+    const ids = editor.read(() =>
+      $nodesOfType(HeadingNode).map($getHeadingAnchorId)
+    );
+    expect(ids).toHaveLength(2);
+    expect(isHeadingAnchorId(ids[0])).toBe(true);
+    expect(isHeadingAnchorId(ids[1])).toBe(true);
+    expect(ids[0]).not.toBe(ids[1]);
+
+    const snapshotJson = editor.read(() =>
+      editor.getEditorState().toJSON()
+    ) as unknown as Record<string, unknown>;
+    const reopened = buildEditorFromExtensions(
+      createCanvasExtension({ snapshotJson, markdown: '' })
+    );
+    const reloadedIds = reopened.read(() =>
+      $nodesOfType(HeadingNode).map($getHeadingAnchorId)
+    );
+    expect(reloadedIds).toEqual(ids);
+    editor.dispose();
+    reopened.dispose();
+  });
+
+  it('regenerates the anchorId when a heading is duplicated so the original keeps its ID', () => {
+    const editor = build('# Plan');
+    const [originalId, serialized] = editor.read(() => {
+      const [heading] = $nodesOfType(HeadingNode);
+      return [$getHeadingAnchorId(heading!), heading!.exportJSON()] as const;
+    });
+
+    editor.update(
+      () => {
+        const duplicate = $parseSerializedNode(serialized);
+        $getRoot().getFirstChildOrThrow().insertBefore(duplicate);
+      },
+      { discrete: true }
+    );
+
+    const ids = editor.read(() =>
+      $getRoot()
+        .getChildren()
+        .map((child) => $getHeadingAnchorId(child as HeadingNode))
+    );
+    expect(ids).toHaveLength(2);
+    expect(ids[1]).toBe(originalId);
+    expect(ids[0]).not.toBe(originalId);
+    expect(isHeadingAnchorId(ids[0])).toBe(true);
+    editor.dispose();
+  });
+
+  it('keeps legacy heading JSON without an anchorId as null in a read-only editor', () => {
+    const legacySnapshot = {
+      root: {
+        type: 'root',
+        version: 1,
+        direction: null,
+        format: '',
+        indent: 0,
+        children: [
+          {
+            type: 'heading',
+            tag: 'h1',
+            version: 1,
+            direction: null,
+            format: '',
+            indent: 0,
+            children: [
+              {
+                type: 'text',
+                text: 'Legacy Plan',
+                version: 1,
+                detail: 0,
+                format: 0,
+                mode: 'normal',
+                style: '',
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const editor = buildEditorFromExtensions({
+      name: '@conduit/canvas-readonly-test',
+      editable: false,
+      dependencies: [
+        createCanvasExtension({ snapshotJson: legacySnapshot, markdown: '' }),
+      ],
+    });
+    const ids = editor.read(() =>
+      $nodesOfType(HeadingNode).map($getHeadingAnchorId)
+    );
+    expect(ids).toEqual([null]);
     editor.dispose();
   });
 });

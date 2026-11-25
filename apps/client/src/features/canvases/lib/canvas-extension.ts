@@ -24,12 +24,13 @@ import {
   type Transformer,
   UNORDERED_LIST,
 } from '@lexical/markdown';
-import { RichTextExtension } from '@lexical/rich-text';
+import { HeadingNode, RichTextExtension } from '@lexical/rich-text';
 import { TableExtension } from '@lexical/table';
 import {
   $createParagraphNode,
   $getRoot,
   $isParagraphNode,
+  $nodesOfType,
   $parseSerializedNode,
   configExtension,
   defineExtension,
@@ -58,6 +59,12 @@ import { HR } from '@/components/editor/transformers/markdown-hr-transformer';
 import { createTableTransformer } from '@/components/editor/transformers/markdown-table-transformer';
 import { createToggleTransformer } from '@/components/editor/transformers/markdown-toggle-transformer';
 import { createMentionTransformer } from '@/features/messages/lib/mention-transformer';
+
+import {
+  $getHeadingAnchorId,
+  $setHeadingAnchorId,
+  createHeadingAnchorId,
+} from './canvas-heading-anchor';
 
 /** The kit's theme at document scale: calmer headings and tighter paragraphs than a landing page. */
 const canvasTheme: EditorThemeClasses = {
@@ -225,6 +232,67 @@ export function createCanvasExtension(
       ToggleTitleNode,
       ToggleContentNode,
     ],
+    register: (editor) => {
+      // Tracks which heading key first owned each anchorId so pasting a duplicate regenerates the copy, not the original.
+      const ownerById = new Map<string, string>();
+      const unregisterTransform = editor.registerNodeTransform(
+        HeadingNode,
+        (node) => {
+          if (!editor.isEditable()) return;
+          const current = $getHeadingAnchorId(node);
+          const key = node.getKey();
+          const used = new Set<string>();
+          for (const other of $nodesOfType(HeadingNode)) {
+            const otherId = $getHeadingAnchorId(other);
+            if (!otherId) continue;
+            if (!ownerById.has(otherId)) ownerById.set(otherId, other.getKey());
+            if (other.getKey() !== key) used.add(otherId);
+          }
+          const isDuplicate =
+            Boolean(current) &&
+            used.has(current!) &&
+            ownerById.get(current!) !== key;
+          if (!current || isDuplicate) {
+            const nextId = createHeadingAnchorId(used);
+            ownerById.set(nextId, key);
+            $setHeadingAnchorId(node, nextId);
+          } else {
+            ownerById.set(current, key);
+          }
+        }
+      );
+      const unregisterMutation = editor.registerMutationListener(
+        HeadingNode,
+        (mutations) => {
+          editor.read(() => {
+            for (const [key, mutation] of mutations) {
+              if (mutation === 'destroyed') {
+                for (const [id, ownerKey] of ownerById) {
+                  if (ownerKey === key) ownerById.delete(id);
+                }
+                continue;
+              }
+              const element = editor.getElementByKey(key);
+              if (!element) continue;
+              const node = $nodesOfType(HeadingNode).find(
+                (heading) => heading.getKey() === key
+              );
+              const id = node ? $getHeadingAnchorId(node) : null;
+              if (id) {
+                if (!ownerById.has(id)) ownerById.set(id, key);
+                element.id = id;
+              } else {
+                element.removeAttribute('id');
+              }
+            }
+          });
+        }
+      );
+      return () => {
+        unregisterTransform();
+        unregisterMutation();
+      };
+    },
     onError: (error) => {
       throw error;
     },
