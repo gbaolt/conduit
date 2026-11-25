@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 
 import { StatusButton } from '@/components/async/status-button';
 import { MessageEmbedRenderer } from '@/components/editor/nodes/message-embed-node';
+import { CalloutPlugin } from '@/components/editor/plugins/callout-plugin';
 import { useRestoreCanvasVersion } from '@/services/canvases/hooks';
 import { canvasVersionQuery } from '@/services/canvases/queries';
 
@@ -64,6 +65,7 @@ function CanvasHistoryPreviewDocument({ version }: { version: CanvasVersion }) {
           aria-readonly
           className="min-h-[50dvh] pb-24 pl-8 leading-7 outline-none"
         />
+        <CalloutPlugin />
       </LexicalExtensionComposer>
     </MessageEmbedRenderer>
   );

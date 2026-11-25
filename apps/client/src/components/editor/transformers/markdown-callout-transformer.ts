@@ -1,5 +1,6 @@
 import { EMOJI_PATTERN } from '@conduit/ui/components/twemoji';
 import type { ElementTransformer } from '@lexical/markdown';
+import { $createLineBreakNode, $createTextNode } from 'lexical';
 
 import {
   $createCalloutNode,
@@ -21,8 +22,25 @@ export const CALLOUT: ElementTransformer = {
       ...rest.map((line) => `> ${line}`),
     ].join('\n');
   },
-  regExp: new RegExp(`^>\\s(${EMOJI_PATTERN.source})\\s`, EMOJI_PATTERN.flags),
-  replace: (parentNode, children, match) => {
+  // Every quote line matches, so a callout's later lines can join it; `replace` hands plain quotes back.
+  regExp: new RegExp(
+    `^>\\s?(?:(${EMOJI_PATTERN.source})(?:\\s|$))?`,
+    EMOJI_PATTERN.flags
+  ),
+  replace: (parentNode, children, match, isImport) => {
+    const previous = parentNode.getPreviousSibling();
+    // Export separates blocks with a blank line, so a quote line straight after a callout is its next line.
+    if (isImport && $isCalloutNode(previous)) {
+      const lead = (match[0] ?? '').replace(/^>\s?/, '');
+      previous.append(
+        $createLineBreakNode(),
+        ...(lead ? [$createTextNode(lead)] : []),
+        ...children
+      );
+      parentNode.remove();
+      return;
+    }
+    if (!match[1]) return false;
     const callout = $createCalloutNode(match[1]);
     callout.append(...children);
     parentNode.replace(callout);
