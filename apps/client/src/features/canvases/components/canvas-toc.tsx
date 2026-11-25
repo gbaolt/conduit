@@ -20,7 +20,7 @@ import {
   type LexicalEditor,
   type NodeKey,
 } from 'lexical';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 
@@ -75,9 +75,7 @@ function $readHeadings(): CanvasHeading[] {
 }
 
 function useCanvasHeadings(editor: LexicalEditor) {
-  const [headings, setHeadings] = useState(() =>
-    editor.getEditorState().read($readHeadings)
-  );
+  const [headings, setHeadings] = useState(() => editor.read($readHeadings));
 
   useEffect(
     () =>
@@ -180,70 +178,107 @@ function scrollToHeading(editor: LexicalEditor, key: NodeKey, instant = false) {
   return true;
 }
 
-const hashListeners = new Set<() => void>();
-let historyPatched = false;
+type NavigationLike = EventTarget;
 
-/** Subscribes to hash changes from native links, Back/Forward, and Next's History API router. */
-function subscribeToHash(listener: () => void) {
-  if (!historyPatched && typeof window !== 'undefined') {
-    historyPatched = true;
-    for (const method of ['pushState', 'replaceState'] as const) {
-      const original = window.history[method].bind(window.history);
-      window.history[method] = (...args) => {
-        const before = window.location.hash;
-        original(...args);
-        if (window.location.hash !== before) {
-          for (const notify of hashListeners) notify();
-        }
-      };
-    }
+function getWindowNavigation(): NavigationLike | null {
+  if (typeof window === 'undefined') return null;
+  const nav = (window as Window & { navigation?: NavigationLike }).navigation;
+  return nav && typeof nav.addEventListener === 'function' ? nav : null;
+}
+
+/**
+ * Subscribes to fragment changes without monkey-patching History methods. Uses the Navigation API when
+ * available and falls back to `hashchange`/`popstate`, deferring callbacks out of history mutations.
+ */
+function subscribeToHash(onHashChange: (nextHash: string) => void) {
+  let lastHash = window.location.hash;
+  let cancelled = false;
+
+  const handleChange = () => {
+    const nextHash = window.location.hash;
+    if (nextHash === lastHash) return;
+    lastHash = nextHash;
+    queueMicrotask(() => {
+      if (!cancelled) onHashChange(nextHash);
+    });
+  };
+
+  const navigation = getWindowNavigation();
+  if (navigation) {
+    navigation.addEventListener('currententrychange', handleChange);
+    return () => {
+      cancelled = true;
+      navigation.removeEventListener('currententrychange', handleChange);
+    };
   }
-  hashListeners.add(listener);
-  window.addEventListener('hashchange', listener);
-  window.addEventListener('popstate', listener);
+
+  window.addEventListener('hashchange', handleChange);
+  window.addEventListener('popstate', handleChange);
   return () => {
-    hashListeners.delete(listener);
-    window.removeEventListener('hashchange', listener);
-    window.removeEventListener('popstate', listener);
+    cancelled = true;
+    window.removeEventListener('hashchange', handleChange);
+    window.removeEventListener('popstate', handleChange);
   };
 }
 
-// Keyed by editor so closing a version preview (which remounts CanvasToc) does not re-jump to an old hash.
-const settledHashes = new WeakMap<LexicalEditor, string>();
-
-/** Scrolls to the heading named in the URL hash once the document renders, and on later hash changes. */
-function useScrollToHashHeading(
-  editor: LexicalEditor,
-  headings: CanvasHeading[]
-) {
+/**
+ * Stays mounted across version previews so Back/Forward hash changes queue while hidden and scroll once the
+ * live editor is visible again. Never settles a non-empty hash until initial content is ready.
+ */
+export function CanvasTocHashScroll({
+  ready,
+  visible,
+}: {
+  ready: boolean;
+  visible: boolean;
+}) {
+  const [editor] = useLexicalComposerContext();
+  const headings = useCanvasHeadings(editor);
   const [root, setRoot] = useState<HTMLElement | null>(null);
-  const [hash, setHash] = useState(() => window.location.hash);
+  const [hash, setHash] = useState(() =>
+    typeof window === 'undefined' ? '' : window.location.hash
+  );
+  const settledHashRef = useRef<string | null>(null);
 
   useEffect(() => editor.registerRootListener(setRoot), [editor]);
 
+  useEffect(() => {
+    settledHashRef.current = null;
+  }, [editor]);
+
   useEffect(
     () =>
-      subscribeToHash(() => {
-        settledHashes.delete(editor);
-        setHash(window.location.hash);
+      subscribeToHash((nextHash) => {
+        settledHashRef.current = null;
+        setHash(nextHash);
       }),
-    [editor]
+    []
   );
 
   useEffect(() => {
-    if (!root) return;
-    if (settledHashes.get(editor) === hash) return;
-    // Settle each navigation once so a missing hash never yanks the scroll after a later edit.
-    settledHashes.set(editor, hash);
+    if (!ready || !visible || !root) return;
+    if (settledHashRef.current === hash) return;
     const anchor = headingAnchorFromHash(hash);
-    if (!anchor) return;
+    if (!anchor) {
+      settledHashRef.current = hash;
+      return;
+    }
     const match = findHeadingByAnchor(headings, anchor);
-    if (!match) return;
     const frame = requestAnimationFrame(() => {
-      scrollToHeading(editor, match.key, true);
+      const target =
+        match ?? findHeadingByAnchor(editor.read($readHeadings), anchor);
+      if (!target) {
+        settledHashRef.current = hash;
+        return;
+      }
+      if (scrollToHeading(editor, target.key, true)) {
+        settledHashRef.current = hash;
+      }
     });
     return () => cancelAnimationFrame(frame);
-  }, [editor, root, headings, hash]);
+  }, [editor, ready, visible, root, headings, hash]);
+
+  return null;
 }
 
 function CanvasTocList({
@@ -318,7 +353,6 @@ export function CanvasToc({
     onCopySuccess: () => toast.success('Heading link copied.'),
     onCopyError: () => toast.error('Couldn’t copy link.'),
   });
-  useScrollToHashHeading(editor, headings);
 
   if (headings.length === 0) return null;
   const layout = SIDES[side];

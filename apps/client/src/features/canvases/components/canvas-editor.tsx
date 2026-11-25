@@ -137,7 +137,7 @@ import { CanvasMessagePickerDialog } from './canvas-message-picker-dialog';
 import { CanvasPresenceAvatars } from './canvas-presence-avatars';
 import { CanvasSaveVersionDialog } from './canvas-save-version-dialog';
 import { CanvasTemplatePicker } from './canvas-templates';
-import { CanvasToc } from './canvas-toc';
+import { CanvasToc, CanvasTocHashScroll } from './canvas-toc';
 
 export type CanvasSaveStatus = 'saved' | 'saving' | 'failed';
 
@@ -908,6 +908,10 @@ function CanvasEditorDocument({
             canvas={canvas}
             anchor={anchor}
             insertBarSlot={!loading && !previewId ? insertBarSlot : null}
+          />
+          <CanvasTocHashScroll
+            ready={!loading}
+            visible={!loading && !previewId}
           />
           {loading && fallback}
           {!loading && !previewId && (
