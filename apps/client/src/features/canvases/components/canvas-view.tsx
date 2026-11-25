@@ -72,6 +72,9 @@ export function CanvasView({
     });
   const [presenceSlot, setPresenceSlot] = useState<HTMLDivElement | null>(null);
   const [tocSlot, setTocSlot] = useState<HTMLDivElement | null>(null);
+  const [insertBarSlot, setInsertBarSlot] = useState<HTMLDivElement | null>(
+    null
+  );
   const [editor, setEditor] = useState<LexicalEditor | null>(null);
   const writeFirstLine = () => {
     // A History preview hides the document, so there is nowhere to write.
@@ -109,6 +112,7 @@ export function CanvasView({
             fallback={<CanvasViewEditorSkeleton />}
             presenceSlot={presenceSlot}
             tocSlot={tocSlot}
+            insertBarSlot={insertBarSlot}
             commentsOpen={panel === 'comments'}
             onCommentsOpenChange={panelSetter('comments')}
             historyOpen={panel === 'history'}
@@ -120,6 +124,10 @@ export function CanvasView({
           />
         </CanvasLayoutContent>
       </CanvasLayout>
+      <div
+        ref={setInsertBarSlot}
+        className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-center px-4"
+      />
       {!canvas.roomId && (
         <CanvasShareDialog
           canvas={canvas}
