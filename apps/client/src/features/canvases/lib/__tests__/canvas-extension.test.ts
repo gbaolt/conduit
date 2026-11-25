@@ -12,6 +12,7 @@ import {
 } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
+import { CalloutNode } from '@/components/editor/nodes/callout-node';
 import { MentionNode } from '@/components/editor/nodes/mention-node';
 import { matchesPickerQuery } from '@/components/editor/utils/picker-query';
 
@@ -206,5 +207,69 @@ describe('$selectNewFirstLine', () => {
     editor.update(() => $selectNewFirstLine(), { discrete: true });
     expect(editor.read(() => $getRoot().getChildrenSize())).toBe(2);
     editor.dispose();
+  });
+});
+
+describe('callouts', () => {
+  it('reads `> 💡 text` as a callout and writes it back the same way', () => {
+    expect(roundTrip('> 💡 Ship it on Friday')).toBe('> 💡 Ship it on Friday');
+    const editor = build('> ⚠️ Mind the gap');
+    editor.read(() => {
+      const [callout] = $nodesOfType(CalloutNode);
+      expect(callout?.getEmoji()).toBe('⚠️');
+      expect(callout?.getTextContent()).toBe('Mind the gap');
+    });
+    editor.dispose();
+  });
+
+  it('keeps every line of a callout in one callout, even a line led by an emoji', () => {
+    const markdown = '> 💡 Line one\n> 🚀 Line two\n> Line three';
+    expect(roundTrip(markdown)).toBe(markdown);
+    const editor = build(`${markdown}\n\n> ⚠️ Second callout`);
+    editor.read(() => {
+      expect($nodesOfType(CalloutNode).map((c) => c.getTextContent())).toEqual([
+        'Line one\n🚀 Line two\nLine three',
+        'Second callout',
+      ]);
+    });
+    editor.dispose();
+  });
+
+  it('reads an empty callout whose trailing space was trimmed', () => {
+    const editor = build('> 💡');
+    expect(editor.read(() => $nodesOfType(CalloutNode))).toHaveLength(1);
+    editor.dispose();
+  });
+
+  it('leaves a quote without a leading emoji as a quote', () => {
+    const editor = build('> Just a quote');
+    expect(editor.read(() => $nodesOfType(CalloutNode))).toHaveLength(0);
+    editor.dispose();
+  });
+
+  it('keeps its emoji and color in the saved state', () => {
+    const editor = build('> 💡 Note');
+    editor.update(
+      () => {
+        const [callout] = $nodesOfType(CalloutNode);
+        callout?.setEmoji('🚀').setTone('green');
+      },
+      { discrete: true }
+    );
+    const reopened = build('');
+    reopened.setEditorState(
+      reopened.parseEditorState(
+        JSON.stringify(editor.getEditorState().toJSON())
+      )
+    );
+    reopened.read(() => {
+      const [callout] = $nodesOfType(CalloutNode);
+      expect([callout?.getEmoji(), callout?.getTone()]).toEqual([
+        '🚀',
+        'green',
+      ]);
+    });
+    editor.dispose();
+    reopened.dispose();
   });
 });

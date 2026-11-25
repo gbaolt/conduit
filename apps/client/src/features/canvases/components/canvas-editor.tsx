@@ -60,6 +60,7 @@ import {
   $createMessageEmbedNode,
   MessageEmbedRenderer,
 } from '@/components/editor/nodes/message-embed-node';
+import { CalloutPlugin } from '@/components/editor/plugins/callout-plugin';
 import { CodeBlockPlugin } from '@/components/editor/plugins/code-block-plugin';
 import { CodeHighlightPlugin } from '@/components/editor/plugins/code-highlight-plugin';
 import { ComponentPickerMenuPlugin } from '@/components/editor/plugins/component-picker-menu-plugin';
@@ -79,6 +80,7 @@ import {
   MentionPortal,
 } from '@/components/editor/plugins/mentions-plugin';
 import { BulletedListPickerPlugin } from '@/components/editor/plugins/picker/bulleted-list-picker-plugin';
+import { CalloutPickerPlugin } from '@/components/editor/plugins/picker/callout-picker-plugin';
 import { CheckListPickerPlugin } from '@/components/editor/plugins/picker/check-list-picker-plugin';
 import { CodePickerPlugin } from '@/components/editor/plugins/picker/code-picker-plugin';
 import { ColumnsLayoutPickerPlugin } from '@/components/editor/plugins/picker/columns-layout-picker-plugin';
@@ -194,6 +196,7 @@ function canvasBlockOptions(pickMessage: () => void) {
     NumberedListPickerPlugin(),
     CheckListPickerPlugin(),
     QuotePickerPlugin(),
+    CalloutPickerPlugin(),
     CodePickerPlugin(),
     DividerPickerPlugin(),
     TablePickerPlugin(),
@@ -633,6 +636,7 @@ function CanvasEditorPlugins({
       <CodeHighlightPlugin />
       <CodeBlockPlugin />
       <LayoutPlugin />
+      <CalloutPlugin />
       <Mention source={suggestions}>
         <MentionPortal>
           <MentionContent>
