@@ -35,12 +35,14 @@ import {
   $createParagraphNode,
   $getRoot,
   $getSelection,
+  $isElementNode,
   $isRangeSelection,
   $isRootOrShadowRoot,
   BLUR_COMMAND,
   COMMAND_PRIORITY_LOW,
   FOCUS_COMMAND,
   type LexicalEditor,
+  type NodeKey,
 } from 'lexical';
 import { type ReactElement, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -121,7 +123,6 @@ function InsertBarButton({
   );
 }
 
-const SCROLL_SETTLE_MS = 500;
 // Lexical scrolls the caret into view as it commits, so a scroll this soon after an update came from typing.
 const TYPING_SCROLL_MS = 150;
 
@@ -132,35 +133,65 @@ function scrollParentOf(element: HTMLElement | null): HTMLElement | Window {
   return window;
 }
 
+/** The line the caret is on: its nearest block, so each list item counts as its own line. */
+function $caretLine(): NodeKey | null {
+  const selection = $getSelection();
+  if (!$isRangeSelection(selection)) return null;
+  const block = $findMatchingParent(
+    selection.anchor.getNode(),
+    (node) => $isElementNode(node) && !node.isInline()
+  );
+  return block?.getKey() ?? null;
+}
+
 /**
- * Whether the bar shows: while the caret is in the document or the person is using the bar, and not while the
- * page scrolls, until it has been still for `SCROLL_SETTLE_MS`.
+ * Whether the bar shows: while the caret is in the document or the person is using the bar. Scrolling the page
+ * puts it away until the person moves to another line or clicks in the document again.
  */
 function useInsertBarShown(editor: LexicalEditor) {
   const [editorFocused, setEditorFocused] = useState(
     () => !!editor.getRootElement()?.contains(document.activeElement ?? null)
   );
-  const [scrolling, setScrolling] = useState(false);
+  const [scrolledAway, setScrolledAway] = useState(false);
 
   useEffect(() => {
-    let settle: ReturnType<typeof setTimeout> | undefined;
     let lastUpdate = 0;
-    const scrollParent = scrollParentOf(editor.getRootElement());
-    const onScroll = () => {
-      if (performance.now() - lastUpdate < TYPING_SCROLL_MS) return;
-      setScrolling(true);
-      clearTimeout(settle);
-      settle = setTimeout(() => setScrolling(false), SCROLL_SETTLE_MS);
+    // The line the caret was on when a scroll put the bar away, or undefined while it is out.
+    let awayFrom: NodeKey | null | undefined;
+    const putAway = () => {
+      awayFrom = editor.getEditorState().read($caretLine);
+      setScrolledAway(true);
     };
+    const bringBack = () => {
+      awayFrom = undefined;
+      setScrolledAway(false);
+    };
+    const onScroll = () => {
+      if (performance.now() - lastUpdate >= TYPING_SCROLL_MS) putAway();
+    };
+    const scrollParent = scrollParentOf(editor.getRootElement());
     scrollParent.addEventListener('scroll', onScroll, { passive: true });
+    let root: HTMLElement | null = null;
     const unregister = mergeRegister(
-      editor.registerUpdateListener(() => {
+      editor.registerRootListener((next, previous) => {
+        previous?.removeEventListener('pointerdown', bringBack);
+        next?.addEventListener('pointerdown', bringBack);
+        root = next;
+      }),
+      editor.registerUpdateListener(({ editorState }) => {
         lastUpdate = performance.now();
+        if (
+          awayFrom !== undefined &&
+          editorState.read($caretLine) !== awayFrom
+        ) {
+          bringBack();
+        }
       }),
       editor.registerCommand(
         FOCUS_COMMAND,
         () => {
           setEditorFocused(true);
+          bringBack();
           return false;
         },
         COMMAND_PRIORITY_LOW
@@ -175,13 +206,13 @@ function useInsertBarShown(editor: LexicalEditor) {
       )
     );
     return () => {
-      clearTimeout(settle);
       scrollParent.removeEventListener('scroll', onScroll);
+      root?.removeEventListener('pointerdown', bringBack);
       unregister();
     };
   }, [editor]);
 
-  return { editorFocused, scrolling };
+  return { editorFocused, scrolledAway };
 }
 
 function InsertBar({
@@ -194,7 +225,7 @@ function InsertBar({
   quick: readonly string[];
 }) {
   const [modal, showModal] = useEditorModal();
-  const { editorFocused, scrolling } = useInsertBarShown(editor);
+  const { editorFocused, scrolledAway } = useInsertBarShown(editor);
   // Focus and hover reach here from the bar's menus too, since React bubbles through portals.
   const [barFocused, setBarFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -206,7 +237,7 @@ function InsertBar({
     });
   const shown =
     openMenu !== null ||
-    ((editorFocused || barFocused || hovered) && !scrolling);
+    ((editorFocused || barFocused || hovered) && !scrolledAway);
   const [blockType, setBlockType] = useState<BlockType>(() =>
     editor.getEditorState().read($blockType)
   );
@@ -249,7 +280,7 @@ function InsertBar({
       onBlur={() => setBarFocused(false)}
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
-      className="bg-popover text-popover-foreground pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-md border p-1 shadow-md transition-[opacity,translate] duration-200 ease-out data-hidden:pointer-events-none data-hidden:translate-y-2 data-hidden:opacity-0 motion-reduce:transition-none"
+      className="bg-popover text-popover-foreground data-hidden:slide-out-to-bottom-2 fade-in-0 zoom-in-95 animate-in pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-md border p-1 shadow-md duration-200 ease-out [animation-timing-function:cubic-bezier(0.16,1,0.3,1)] data-hidden:pointer-events-none data-hidden:opacity-0 data-hidden:delay-500 motion-reduce:transition-none"
     >
       {modal}
       <DropdownMenu onOpenChange={menu('insert')}>
