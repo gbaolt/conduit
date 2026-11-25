@@ -8,8 +8,8 @@ import { queryOptions } from '@tanstack/react-query';
 import { client, orpc } from '@/lib/orpc';
 
 /** The channel's canvases, oldest first. Each is a tab beside Messages. */
-export const channelCanvasesQuery = (roomId: string) =>
-  orpc.canvases.listChannelCanvases.queryOptions({ input: { roomId } });
+export const roomCanvasesQuery = (roomId: string) =>
+  orpc.canvases.listRoomCanvases.queryOptions({ input: { roomId } });
 
 export const canvasesQuery = (scope: CanvasScope) =>
   orpc.canvases.list.queryOptions({ input: { scope } });

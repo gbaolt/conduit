@@ -39,17 +39,14 @@ export class CanvasesController {
     private readonly draftService: CanvasDraftService
   ) {}
 
-  @Implement(contract.canvases.listChannelCanvases)
-  listChannelCanvases() {
-    return implement(contract.canvases.listChannelCanvases)
+  @Implement(contract.canvases.listRoomCanvases)
+  listRoomCanvases() {
+    return implement(contract.canvases.listRoomCanvases)
       .use(authorized)
       .use(arcjet.read)
       .use(workspaceMember)
       .handler(({ context, input }) =>
-        this.canvasesService.listChannelCanvases(
-          viewerOf(context),
-          input.roomId
-        )
+        this.canvasesService.listRoomCanvases(viewerOf(context), input.roomId)
       );
   }
 

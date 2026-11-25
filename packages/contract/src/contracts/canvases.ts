@@ -78,8 +78,8 @@ const {
 } = canvasErrors;
 const { AI_DISABLED, AI_UNAVAILABLE } = aiErrors;
 
-/** The channel's canvases, oldest first. Each is a tab beside Messages. */
-export const listChannelCanvasesContract = oc
+/** The room's canvases, oldest first. Each is a tab beside Messages. */
+export const listRoomCanvasesContract = oc
   .meta(openapi({ method: 'GET', path: '/rooms/{roomId}/canvases' }))
   .errors({ NOT_FOUND })
   .input(RoomIdInputSchema)

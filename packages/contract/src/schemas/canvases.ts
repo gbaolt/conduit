@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { MessageBodySchema } from '@/lib/message-body';
+import { RoomKindSchema } from '@/schemas/rooms';
 import { MessageHitSchema } from '@/schemas/search';
 import { SUMMARY_MESSAGES_MAX } from '@/schemas/summaries';
 
@@ -44,8 +45,10 @@ export type CanvasAccess = z.infer<typeof CanvasAccessSchema>;
 export const CanvasSchema = z.object({
   id: z.string(),
   organizationId: z.string(),
-  /** The channel it lives in, or null for a standalone canvas. */
+  /** The channel or DM it lives in, or null for a standalone canvas. */
   roomId: z.string().nullable(),
+  roomKind: RoomKindSchema.nullable(),
+  /** The channel's name. Null for a DM, which shows no name. */
   roomName: z.string().nullable(),
   title: z.string(),
   /** One emoji, as typed. */

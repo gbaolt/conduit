@@ -38,6 +38,7 @@ import {
   IconFilterOff,
   IconHash,
   IconLayoutBoard,
+  IconMessage,
   IconPlus,
   IconSearch,
   IconUsers,
@@ -55,6 +56,8 @@ import { toast } from 'sonner';
 import { StatusButton } from '@/components/async/status-button';
 import { useCreateCanvas } from '@/services/canvases/hooks';
 import { canvasesQuery } from '@/services/canvases/queries';
+
+import { canvasHref } from '../lib/canvas-href';
 
 const SCOPES = [
   { value: 'all', label: 'All' },
@@ -80,14 +83,6 @@ const fullFormat = new Intl.DateTimeFormat(undefined, {
 });
 
 /** A channel canvas opens in its tab in the channel, and a standalone one on its own page. */
-function hrefOf(canvas: Canvas): Route {
-  return (
-    canvas.roomId
-      ? `/channels/${canvas.roomId}?tab=${canvas.id}`
-      : `/canvases/${canvas.id}`
-  ) as Route;
-}
-
 /** The page's one primary action: start a standalone canvas and open it. */
 export function CanvasListNewButton() {
   const router = useRouter();
@@ -236,6 +231,14 @@ function CanvasListHeader() {
 }
 
 function CanvasListPlace({ canvas }: { canvas: Canvas }) {
+  if (canvas.roomKind === 'dm') {
+    return (
+      <>
+        <IconMessage className="size-3.5 shrink-0" aria-hidden />
+        <span className="truncate">Direct message</span>
+      </>
+    );
+  }
   return canvas.roomId ? (
     <>
       <IconHash className="size-3.5 shrink-0" aria-hidden />
@@ -254,7 +257,7 @@ function CanvasListRow({ canvas }: { canvas: Canvas }) {
     <TableRow>
       <TableCell className="max-w-0 py-2 ps-2 sm:ps-4">
         <Link
-          href={hrefOf(canvas)}
+          href={canvasHref(canvas)}
           className={buttonVariants({
             variant: 'ghost',
             size: 'sm',

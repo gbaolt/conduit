@@ -23,7 +23,6 @@ import {
 } from '@conduit/ui/components/select';
 import { IconFileText } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
-import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
 import { createContext, type ReactNode, use, useId, useState } from 'react';
 
@@ -38,13 +37,15 @@ import { useCreateCanvas } from '@/services/canvases/hooks';
 import { threadRootQuery } from '@/services/messages/queries';
 import { roomQuery } from '@/services/rooms/queries';
 
-/** Where a created draft goes: a new tab in the channel, or a canvas of one's own. */
-type Destination = 'channel' | 'standalone';
+import { canvasHref } from '../lib/canvas-href';
 
-const DESTINATIONS = [
-  { value: 'channel', label: 'Channel canvas' },
-  { value: 'standalone', label: 'Standalone private canvas' },
-] as const satisfies readonly { value: Destination; label: string }[];
+/** Where a created draft goes: a new tab in the channel or DM, or a canvas of one's own. */
+type Destination = 'room' | 'standalone';
+
+const STANDALONE = {
+  value: 'standalone',
+  label: 'Standalone private canvas',
+} as const satisfies { value: Destination; label: string };
 
 const CanvasDraftContext = createContext<((threadId: string) => void) | null>(
   null
@@ -93,16 +94,19 @@ export function CanvasDraftMenuItem() {
   );
 }
 
-/** The places this thread's draft may go. A DM has no Canvas tab, and an archived channel takes no new canvas. */
+/** The places this thread's draft may go. An archived channel takes no new canvas. */
 function useDestinations(threadId: string) {
   const root = useQuery(threadRootQuery(threadId));
   const roomId = root.data?.roomId;
   const room = useQuery({ ...roomQuery(roomId ?? ''), enabled: !!roomId });
-  const inChannel = room.data?.kind === 'channel' && !room.data.archivedAt;
 
-  const options = DESTINATIONS.filter(
-    ({ value }) => value === 'standalone' || inChannel
-  );
+  const options: { value: Destination; label: string }[] = [STANDALONE];
+  if (room.data && !room.data.archivedAt) {
+    options.unshift({
+      value: 'room',
+      label: room.data.kind === 'dm' ? 'Canvas in this DM' : 'Channel canvas',
+    });
+  }
   return { roomId, options, loading: root.isPending || room.isPending };
 }
 
@@ -218,11 +222,7 @@ function CanvasDraftDialog({
         {
           onSuccess: (canvas) => {
             close();
-            router.push(
-              (canvas.roomId
-                ? `/channels/${canvas.roomId}?tab=${canvas.id}`
-                : `/canvases/${canvas.id}`) as Route
-            );
+            router.push(canvasHref(canvas));
           },
           onSettled: () => setCreating(false),
         }

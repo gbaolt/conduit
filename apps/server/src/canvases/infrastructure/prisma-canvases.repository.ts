@@ -2,11 +2,12 @@ import {
   CanvasCoverPresetSchema,
   type CanvasRole,
   type CanvasScope,
+  type Room,
 } from '@conduit/contract';
 import type {
-  Prisma} from '@generated/prisma/client';
-import type {
-  CanvasRole as CanvasRoleRow
+  CanvasRole as CanvasRoleRow,
+  Prisma,
+  RoomKind,
 } from '@generated/prisma/client';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -38,7 +39,7 @@ function select(scope: CanvasScopeOf) {
     createdById: true,
     createdAt: true,
     updatedAt: true,
-    room: { select: { name: true } },
+    room: { select: { name: true, kind: true } },
     updatedBy: { select: { name: true } },
     members: { where: { userId: scope.userId }, select: { role: true } },
   } satisfies Prisma.CanvasSelect;
@@ -59,13 +60,18 @@ type CanvasDocumentRow = Prisma.CanvasGetPayload<{
   select: ReturnType<typeof documentSelect>;
 }>;
 
+const toRoomKind = (kind: RoomKind): Room['kind'] =>
+  kind === 'DM' ? 'dm' : 'channel';
+
 function toCanvas(row: CanvasRow): StoredCanvas {
   const share = row.members[0];
   return {
     id: row.id,
     organizationId: row.organizationId,
     roomId: row.roomId,
-    roomName: row.room?.name ?? null,
+    roomKind: row.room ? toRoomKind(row.room.kind) : null,
+    // A DM stores its key in `name`, and shows no name.
+    roomName: row.room?.kind === 'CHANNEL' ? row.room.name : null,
     title: row.title,
     icon: row.icon,
     // A preset dropped from the contract reads as no cover rather than failing the response.
@@ -367,7 +373,7 @@ export class PrismaCanvasesRepository implements CanvasesRepository {
         room: {
           id: room.id,
           name: room.kind === 'DM' ? '' : room.name,
-          kind: room.kind === 'DM' ? ('dm' as const) : ('channel' as const),
+          kind: toRoomKind(room.kind),
         },
       },
     }));

@@ -15,7 +15,7 @@ import {
   canvasMarkdownOf,
   canvasSnapshotOf,
   createCanvasExtension,
-} from './canvas-extension';
+} from '../canvas-extension';
 
 function build(markdown: string, names?: ReadonlyMap<string, string>) {
   return buildEditorFromExtensions(

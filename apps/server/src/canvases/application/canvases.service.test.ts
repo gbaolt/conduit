@@ -134,7 +134,8 @@ function setup(
       id,
       organizationId,
       roomId,
-      roomName: roomId && room.name,
+      roomKind: roomId ? room.kind : null,
+      roomName: roomId && room.kind === 'channel' ? room.name : null,
       title,
       icon: null,
       coverPreset: null,
@@ -228,7 +229,9 @@ function setup(
       id === room.id ? asSeenBy(scope.userId) : null,
     list: async (scope: { userId: string }, archived: boolean) => {
       const seen = asSeenBy(scope.userId);
-      return visibleTo(scope.userId) && Boolean(seen.archivedAt) === archived
+      return seen.kind === 'channel' &&
+        visibleTo(scope.userId) &&
+        Boolean(seen.archivedAt) === archived
         ? [seen]
         : [];
     },
@@ -261,15 +264,19 @@ function setup(
 describe('CanvasesService', () => {
   it('adds a new canvas to the channel on every create, listed oldest first', async () => {
     const { service } = setup();
-    expect(await service.listChannelCanvases(alice, 'general')).toEqual([]);
+    expect(await service.listRoomCanvases(alice, 'general')).toEqual([]);
 
     const first = await service.create(alice, { roomId: 'general' });
     const second = await service.create(bob, { roomId: 'general' });
 
     expect(second.id).not.toBe(first.id);
-    expect(first).toMatchObject({ title: 'Untitled', roomName: 'general' });
+    expect(first).toMatchObject({
+      title: 'Untitled',
+      roomKind: 'channel',
+      roomName: 'general',
+    });
     expect(
-      (await service.listChannelCanvases(bob, 'general')).map((c) => c.id)
+      (await service.listRoomCanvases(bob, 'general')).map((c) => c.id)
     ).toEqual([first.id, second.id]);
   });
 
@@ -293,6 +300,26 @@ describe('CanvasesService', () => {
     ).toMatchObject({ icon: null, coverPreset: null });
   });
 
+  it('keeps a DM canvas to the people in the DM, with no room name', async () => {
+    const { service } = setup(
+      roomFor({ kind: 'dm', visibility: 'private', name: 'dm-key' }),
+      ['alice', 'bob']
+    );
+    const canvas = await service.create(alice, { roomId: 'general' });
+
+    expect(canvas).toMatchObject({ roomKind: 'dm', roomName: null });
+    expect(
+      (await service.listRoomCanvases(bob, 'general')).map((c) => c.id)
+    ).toEqual([canvas.id]);
+    expect((await service.list(bob, 'all')).map((c) => c.id)).toEqual([
+      canvas.id,
+    ]);
+    await expect(
+      service.listRoomCanvases(carol, 'general')
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(await service.list(carol, 'all')).toEqual([]);
+  });
+
   it('hides a private channel canvas from people outside the channel', async () => {
     const { service } = setup(roomFor({ visibility: 'private' }), ['alice']);
     const canvas = await service.create(alice, { roomId: 'general' });
@@ -301,7 +328,7 @@ describe('CanvasesService', () => {
       code: 'NOT_FOUND',
     });
     await expect(
-      service.listChannelCanvases(carol, 'general')
+      service.listRoomCanvases(carol, 'general')
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
     await expect(
       service.update(carol, { canvasId: canvas.id, markdown: 'x' })
@@ -416,7 +443,7 @@ describe('CanvasesService', () => {
     await expect(service.get(alice, first.id)).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
-    expect(await service.listChannelCanvases(alice, 'general')).toEqual([]);
+    expect(await service.listRoomCanvases(alice, 'general')).toEqual([]);
   });
 
   it('deletes the live room with the canvas', async () => {
@@ -845,7 +872,7 @@ describe.skipIf(!connectionString)('CanvasesService with Postgres', () => {
     ]);
     expect(a.id).not.toBe(b.id);
     expect(
-      (await service.listChannelCanvases(owner, roomId)).map((c) => c.id)
+      (await service.listRoomCanvases(owner, roomId)).map((c) => c.id)
     ).toEqual(expect.arrayContaining([a.id, b.id]));
   });
 

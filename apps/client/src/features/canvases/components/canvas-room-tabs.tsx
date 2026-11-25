@@ -31,7 +31,7 @@ import type { ReactNode } from 'react';
 import { toast } from 'sonner';
 
 import { useCreateCanvas } from '@/services/canvases/hooks';
-import { channelCanvasesQuery } from '@/services/canvases/queries';
+import { roomCanvasesQuery } from '@/services/canvases/queries';
 import { roomQuery } from '@/services/rooms/queries';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
@@ -39,7 +39,7 @@ import { type ChannelCanvasIds, resolveChannelTab } from '../lib/channel-tab';
 import { CanvasViewById, CanvasViewSkeleton } from './canvas-view';
 
 /** `?tab=` holds `messages` or a canvas id. Messages is the default, so it leaves the URL clean. */
-export const canvasChannelTabParam = parseAsString.withDefault('messages');
+export const canvasRoomTabParam = parseAsString.withDefault('messages');
 
 const TRIGGER_CLASS = 'h-full flex-none translate-y-1 px-2 after:bottom-0!';
 
@@ -51,19 +51,23 @@ function CanvasTabIcon({ canvas }: { canvas: Canvas }) {
   );
 }
 
-/** The `+` after the tabs. It adds a canvas to the channel and opens it. Only people who can post see it. */
-function CanvasChannelAddMenu({
+/**
+ * The `+` after the tabs, styled like the composer's attach button. It adds a canvas to the room and opens it.
+ * Only people who can post see it.
+ */
+function CanvasRoomAddMenu({
   roomId,
   onCreated,
 }: {
   roomId: string;
   onCreated: (canvasId: string) => void;
 }) {
-  const { data: channel } = useQuery(roomQuery(roomId));
+  const { data: room } = useQuery(roomQuery(roomId));
   const workspaceRole = useWorkspaceRole();
   const create = useCreateCanvas();
 
-  if (!channel || !canChannel('post', workspaceRole, channel)) return null;
+  if (!room || !canChannel('post', workspaceRole, room)) return null;
+  const label = room.kind === 'dm' ? 'Add to conversation' : 'Add to channel';
 
   return (
     <DropdownMenu>
@@ -73,19 +77,19 @@ function CanvasChannelAddMenu({
             <DropdownMenuTrigger
               render={
                 <Button
-                  variant="ghost"
+                  variant="secondary"
                   size="icon-sm"
-                  aria-label="Add to channel"
+                  aria-label={label}
                   disabled={create.isPending}
-                  className="shrink-0 translate-y-0.5"
+                  className="group text-muted-foreground hover:text-foreground shrink-0 translate-y-0.5 rounded-full"
                 />
               }
             />
           }
         >
-          <IconPlus />
+          <IconPlus className="size-5 transition-[rotate] duration-200 ease-out group-aria-expanded:rotate-135" />
         </TooltipTrigger>
-        <TooltipContent>Add to channel</TooltipContent>
+        <TooltipContent>{label}</TooltipContent>
       </Tooltip>
       <DropdownMenuContent align="start" className="w-48">
         <DropdownMenuItem
@@ -108,10 +112,10 @@ function CanvasChannelAddMenu({
 }
 
 /**
- * Messages, then one tab per canvas, then `+`, directly under the channel header. Messages stays mounted, so it
- * keeps its scroll.
+ * Messages, then one tab per canvas, then `+`, directly under a channel's or DM's header. Messages stays mounted,
+ * so it keeps its scroll.
  */
-export function CanvasChannelTabs({
+export function CanvasRoomTabs({
   roomId,
   banner,
   children,
@@ -119,11 +123,11 @@ export function CanvasChannelTabs({
   roomId: string;
   /** Optional banner rendered below the tabs bar, such as an archived channel notice. */
   banner?: ReactNode;
-  /** The channel's messages. */
+  /** The room's messages. */
   children: ReactNode;
 }) {
-  const [tab, setTab] = useQueryState('tab', canvasChannelTabParam);
-  const canvases = useQuery(channelCanvasesQuery(roomId));
+  const [tab, setTab] = useQueryState('tab', canvasRoomTabParam);
+  const canvases = useQuery(roomCanvasesQuery(roomId));
   // A failed refresh keeps the tabs it already had.
   let ids: ChannelCanvasIds = canvases.isError ? 'failed' : 'pending';
   if (canvases.data) ids = canvases.data.map((canvas) => canvas.id);
@@ -138,7 +142,7 @@ export function CanvasChannelTabs({
     >
       <div className="flex shrink-0 items-center gap-1 border-b px-2">
         <div className="min-w-0 overflow-x-auto">
-          <TabsList variant="line" aria-label="Channel views">
+          <TabsList variant="line" aria-label="Conversation views">
             <TabsTrigger value="messages" className={TRIGGER_CLASS}>
               <IconMessageCircle />
               Messages
@@ -155,7 +159,7 @@ export function CanvasChannelTabs({
             ))}
           </TabsList>
         </div>
-        <CanvasChannelAddMenu
+        <CanvasRoomAddMenu
           roomId={roomId}
           onCreated={(canvasId) => void setTab(canvasId)}
         />

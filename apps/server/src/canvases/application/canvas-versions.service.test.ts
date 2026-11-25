@@ -92,6 +92,7 @@ function setup(room: Room | null = null) {
             id,
             organizationId: 'org',
             roomId: room?.id ?? null,
+            roomKind: room?.kind ?? null,
             roomName: room?.name ?? null,
             title: 'Spec',
             icon: null,

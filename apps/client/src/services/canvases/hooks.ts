@@ -21,7 +21,7 @@ export function useCreateCanvas() {
         if (canvas.roomId) {
           // Added at once, so the new tab can open even if the refetch below fails.
           queryClient.setQueryData(
-            orpc.canvases.listChannelCanvases.queryKey({
+            orpc.canvases.listRoomCanvases.queryKey({
               input: { roomId: canvas.roomId },
             }),
             (tabs) =>
@@ -30,7 +30,7 @@ export function useCreateCanvas() {
                 : tabs
           );
           void queryClient.invalidateQueries({
-            queryKey: orpc.canvases.listChannelCanvases.key({
+            queryKey: orpc.canvases.listRoomCanvases.key({
               input: { roomId: canvas.roomId },
             }),
           });
@@ -67,7 +67,7 @@ export function useUpdateCanvas() {
         // Autosaves run every second while typing, so the tabs are patched rather than refetched.
         if (canvas.roomId) {
           queryClient.setQueryData(
-            orpc.canvases.listChannelCanvases.queryKey({
+            orpc.canvases.listRoomCanvases.queryKey({
               input: { roomId: canvas.roomId },
             }),
             (tabs) =>
@@ -129,7 +129,7 @@ export function useDeleteCanvas() {
         Promise.all([
           queryClient.invalidateQueries({ queryKey: orpc.canvases.list.key() }),
           queryClient.invalidateQueries({
-            queryKey: orpc.canvases.listChannelCanvases.key(),
+            queryKey: orpc.canvases.listRoomCanvases.key(),
           }),
         ]),
     })

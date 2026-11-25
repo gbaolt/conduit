@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { resolveChannelTab } from './channel-tab';
+import { resolveChannelTab } from '../channel-tab';
 
 describe('resolveChannelTab', () => {
   it('opens Messages without waiting for the canvases', () => {
