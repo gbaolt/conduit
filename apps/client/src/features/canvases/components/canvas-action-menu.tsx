@@ -26,7 +26,7 @@ import {
   IconArrowsHorizontal,
   IconCopy,
   IconDeviceFloppy,
-  IconDotsVertical,
+  IconDots,
   IconDownload,
   IconHistory,
   IconMessage2,
@@ -158,7 +158,7 @@ export function CanvasActionMenu({
             />
           }
         >
-          <IconDotsVertical />
+          <IconDots />
           {failed && (
             <span className="bg-destructive absolute top-1 right-1 size-1.5 rounded-full" />
           )}

@@ -14,14 +14,13 @@ export function CanvasLayout({
   return (
     <div
       data-slot="canvas-layout"
-      data-full-width={fullWidth || undefined}
       className="@container min-h-0 flex-1 overflow-y-auto"
     >
       <div
         className={cn(
           'grid grid-cols-1',
           fullWidth
-            ? '[--canvas-content:100%] @min-[60rem]:grid-cols-[4.5rem_minmax(0,1fr)_2rem]'
+            ? '[--canvas-content:100%] @min-[60rem]:grid-cols-[minmax(2rem,4.5rem)_minmax(56rem,1fr)_2rem]'
             : '[--canvas-content:56rem] @min-[60rem]:grid-cols-[minmax(0,1fr)_var(--canvas-content)_minmax(0,1fr)]',
           className
         )}
