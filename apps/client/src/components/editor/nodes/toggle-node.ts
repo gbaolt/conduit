@@ -5,6 +5,7 @@ import {
   $getState,
   $setState,
   createState,
+  type DOMExportOutput,
   type EditorConfig,
   ElementNode,
   type LexicalNode,
@@ -72,6 +73,12 @@ export class ToggleNode extends ElementNode {
     return false;
   }
 
+  exportDOM(): DOMExportOutput {
+    const element = document.createElement('details');
+    element.open = this.getOpen();
+    return { element };
+  }
+
   canBeEmpty(): false {
     return false;
   }
@@ -91,6 +98,10 @@ export class ToggleTitleNode extends ElementNode {
 
   updateDOM(): false {
     return false;
+  }
+
+  exportDOM(): DOMExportOutput {
+    return { element: document.createElement('summary') };
   }
 
   insertNewAfter(_: RangeSelection, restoreSelection = true): ParagraphNode {
@@ -155,13 +166,18 @@ export class ToggleContentNode extends ElementNode {
   }
 }
 
+/** A toggle's content with one empty line. */
+export function $createToggleContentNode(): ToggleContentNode {
+  return $applyNodeReplacement(new ToggleContentNode()).append(
+    $createParagraphNode()
+  );
+}
+
 /** An open toggle with an empty title and one empty line of content. */
 export function $createToggleNode(): ToggleNode {
   return $applyNodeReplacement(new ToggleNode()).append(
     $applyNodeReplacement(new ToggleTitleNode()),
-    $applyNodeReplacement(new ToggleContentNode()).append(
-      $createParagraphNode()
-    )
+    $createToggleContentNode()
   );
 }
 
