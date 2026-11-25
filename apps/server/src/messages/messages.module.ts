@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { DmsModule } from '@/dms/dms.module';
 import { FeedModule } from '@/feed/feed.module';
-import { appURL } from '@/infrastructure/auth/resend';
+import { getAppOrigin } from '@/infrastructure/app.config';
 import { NotificationsModule } from '@/notifications/notifications.module';
 import { RoomsModule } from '@/rooms/rooms.module';
 import { SearchModule } from '@/search/search.module';
@@ -36,11 +36,13 @@ import { MessagesController } from './presentation/messages.controller';
     LinkPreviewsService,
     {
       provide: LINK_PREVIEW_APP_ORIGIN,
-      useValue: URL.canParse(appURL) ? new URL(appURL).origin : '',
+      useFactory: getAppOrigin,
     },
     {
       provide: LinkPreviewFetcher,
-      useFactory: () => new HttpLinkPreviewFetcher(),
+      useFactory: (appOrigin: string) =>
+        new HttpLinkPreviewFetcher({ appOrigin }),
+      inject: [LINK_PREVIEW_APP_ORIGIN],
     },
     { provide: MessagesRepository, useClass: PrismaMessagesRepository },
     {

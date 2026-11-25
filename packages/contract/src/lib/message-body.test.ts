@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   firstLink,
+  linksIn,
   MESSAGE_BODY_MAX,
   MessageBodySchema,
   parseMentions,
@@ -74,6 +75,14 @@ describe('firstLink', () => {
     expect(
       firstLink('mail me at a@b.co or ftp://x.dev or example.com')
     ).toBeNull();
+  });
+});
+
+describe('linksIn', () => {
+  it('yields links in text order with the same punctuation rules as firstLink', () => {
+    expect([
+      ...linksIn('[docs](https://first.test/doc), <http://second.test>!'),
+    ]).toEqual(['https://first.test/doc', 'http://second.test']);
   });
 });
 
