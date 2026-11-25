@@ -23,6 +23,11 @@ import { canvasQuery } from '@/services/canvases/queries';
 
 import type { CanvasSaveStatus } from './canvas-editor';
 import { CanvasHeader } from './canvas-header';
+import {
+  CanvasLayout,
+  CanvasLayoutAside,
+  CanvasLayoutContent,
+} from './canvas-layout';
 import { CanvasShareDialog } from './canvas-share-dialog';
 
 const LINE_WIDTHS = ['w-2/3', 'w-full', 'w-5/6', 'w-1/2'];
@@ -63,6 +68,7 @@ export function CanvasView({
       return current === name ? null : current;
     });
   const [presenceSlot, setPresenceSlot] = useState<HTMLDivElement | null>(null);
+  const [tocSlot, setTocSlot] = useState<HTMLDivElement | null>(null);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -78,13 +84,17 @@ export function CanvasView({
         onShare={() => setSharing(true)}
         onDeleted={onDeleted}
       />
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-3xl px-2 py-6 sm:px-6">
+      <CanvasLayout>
+        <CanvasLayoutAside>
+          <div ref={setTocSlot} className="sticky top-6 pl-4" />
+        </CanvasLayoutAside>
+        <CanvasLayoutContent>
           <CanvasEditor
             key={canvas.id}
             canvas={canvas}
             fallback={<CanvasViewEditorSkeleton />}
             presenceSlot={presenceSlot}
+            tocSlot={tocSlot}
             commentsOpen={panel === 'comments'}
             onCommentsOpenChange={panelSetter('comments')}
             historyOpen={panel === 'history'}
@@ -93,8 +103,8 @@ export function CanvasView({
             onSavingVersionChange={setSavingVersion}
             onStatusChange={setStatus}
           />
-        </div>
-      </div>
+        </CanvasLayoutContent>
+      </CanvasLayout>
       {!canvas.roomId && (
         <CanvasShareDialog
           canvas={canvas}
@@ -112,9 +122,11 @@ export function CanvasViewSkeleton() {
       <div className="flex min-h-12 items-center px-4">
         <Skeleton className="h-5 w-48" />
       </div>
-      <div className="mx-auto w-full max-w-3xl px-2 py-6 sm:px-6">
-        <CanvasViewEditorSkeleton />
-      </div>
+      <CanvasLayout>
+        <CanvasLayoutContent>
+          <CanvasViewEditorSkeleton />
+        </CanvasLayoutContent>
+      </CanvasLayout>
     </div>
   );
 }

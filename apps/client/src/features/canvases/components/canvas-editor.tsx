@@ -131,6 +131,7 @@ import { CanvasMessageEmbed } from './canvas-message-embed';
 import { CanvasMessagePickerDialog } from './canvas-message-picker-dialog';
 import { CanvasPresenceAvatars } from './canvas-presence-avatars';
 import { CanvasSaveVersionDialog } from './canvas-save-version-dialog';
+import { CanvasToc } from './canvas-toc';
 
 export type CanvasSaveStatus = 'saved' | 'saving' | 'failed';
 
@@ -728,6 +729,8 @@ type CanvasEditorDocumentProps = {
   fallback: ReactNode;
   /** Where the avatars of everyone else on a live canvas render. */
   presenceSlot: HTMLElement | null;
+  /** Where the outline of the canvas's headings renders. */
+  tocSlot: HTMLElement | null;
   commentsOpen: boolean;
   onCommentsOpenChange: (open: boolean) => void;
   historyOpen: boolean;
@@ -743,6 +746,7 @@ function CanvasEditorDocument({
   canvas,
   fallback,
   presenceSlot,
+  tocSlot,
   commentsOpen,
   onCommentsOpenChange,
   historyOpen,
@@ -840,6 +844,7 @@ function CanvasEditorDocument({
           )}
           <CanvasEditorPlugins canvas={canvas} anchor={anchor} />
           {loading && fallback}
+          {!loading && !previewId && <CanvasToc slot={tocSlot} side="left" />}
           {previewId && (
             <CanvasHistoryPreview
               canvasId={canvas.id}
