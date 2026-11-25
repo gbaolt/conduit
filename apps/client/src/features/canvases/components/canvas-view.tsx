@@ -74,7 +74,9 @@ export function CanvasView({
   const [tocSlot, setTocSlot] = useState<HTMLDivElement | null>(null);
   const [editor, setEditor] = useState<LexicalEditor | null>(null);
   const writeFirstLine = () => {
-    if (!editor?.isEditable()) return;
+    // A History preview hides the document, so there is nowhere to write.
+    if (!editor?.isEditable() || !editor.getRootElement()?.checkVisibility())
+      return;
     editor.update($selectNewFirstLine, { onUpdate: () => editor.focus() });
   };
 

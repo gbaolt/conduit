@@ -131,6 +131,9 @@ export function CanvasActionMenu({
 
   return (
     <>
+      <span aria-live="polite" className="sr-only">
+        {failed ? 'Couldn’t save the canvas' : ''}
+      </span>
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
@@ -150,13 +153,13 @@ export function CanvasActionMenu({
           )}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-56">
-          <DropdownMenuGroup>
-            <DropdownMenuLabel className="flex min-h-8 items-center justify-between gap-2">
-              <span className={failed ? 'text-destructive' : undefined}>
-                {canvas.access.edit ? STATUS_LABELS[status] : 'Read only'}
-              </span>
-              <div ref={presenceRef} className="flex empty:hidden" />
+          <DropdownMenuGroup className="flex min-h-8 items-center justify-between gap-2 pr-1.5">
+            <DropdownMenuLabel
+              className={failed ? 'text-destructive' : undefined}
+            >
+              {canvas.access.edit ? STATUS_LABELS[status] : 'Read only'}
             </DropdownMenuLabel>
+            <div ref={presenceRef} className="flex empty:hidden" />
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>

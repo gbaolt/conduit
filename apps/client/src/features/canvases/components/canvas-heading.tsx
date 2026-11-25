@@ -165,7 +165,7 @@ function CanvasTitle({
       onChange={(event) => setTitle(event.target.value.replace(/\n/g, ' '))}
       onBlur={commit}
       onKeyDown={(event) => {
-        if (event.key === 'Enter') {
+        if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
           event.preventDefault();
           event.currentTarget.blur();
           onEnter?.();
