@@ -23,6 +23,7 @@ import { StatusButton } from '@/components/async/status-button';
 import { canvasQuery } from '@/services/canvases/queries';
 
 import { $selectNewFirstLine } from '../lib/canvas-extension';
+import { useCanvasFullWidth } from '../lib/canvas-full-width';
 import { CanvasActionMenu } from './canvas-action-menu';
 import type { CanvasSaveStatus } from './canvas-editor';
 import { CanvasCover, CanvasHeading } from './canvas-heading';
@@ -61,6 +62,7 @@ export function CanvasView({
   onDeleted: () => void;
 }) {
   const [status, setStatus] = useState<CanvasSaveStatus>('saved');
+  const [fullWidth, setFullWidth] = useCanvasFullWidth();
   const [sharing, setSharing] = useState(false);
   // Comments and History share the side card, so opening one closes the other.
   const [panel, setPanel] = useState<'comments' | 'history' | null>(null);
@@ -85,7 +87,7 @@ export function CanvasView({
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <CanvasLayout className="scroll-fade">
+      <CanvasLayout fullWidth={fullWidth} className="scroll-fade">
         <div
           data-slot="canvas-cover"
           className="group/cover relative col-span-full w-full"
@@ -95,6 +97,8 @@ export function CanvasView({
               canvas={canvas}
               status={status}
               presenceRef={setPresenceSlot}
+              fullWidth={fullWidth}
+              onFullWidthChange={setFullWidth}
               commentsOpen={panel === 'comments'}
               onCommentsOpenChange={panelSetter('comments')}
               historyOpen={panel === 'history'}

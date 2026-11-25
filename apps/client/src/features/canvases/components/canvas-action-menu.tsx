@@ -23,8 +23,9 @@ import {
   DropdownMenuTrigger,
 } from '@conduit/ui/components/dropdown-menu';
 import {
+  IconArrowsHorizontal,
   IconDeviceFloppy,
-  IconDots,
+  IconDotsVertical,
   IconHistory,
   IconMessage2,
   IconTrash,
@@ -104,6 +105,8 @@ export function CanvasActionMenu({
   canvas,
   status,
   presenceRef,
+  fullWidth,
+  onFullWidthChange,
   commentsOpen,
   onCommentsOpenChange,
   historyOpen,
@@ -115,6 +118,8 @@ export function CanvasActionMenu({
   canvas: CanvasDocument;
   status: CanvasSaveStatus;
   presenceRef: (element: HTMLDivElement | null) => void;
+  fullWidth: boolean;
+  onFullWidthChange: (fullWidth: boolean) => void;
   commentsOpen: boolean;
   onCommentsOpenChange: (open: boolean) => void;
   historyOpen: boolean;
@@ -147,7 +152,7 @@ export function CanvasActionMenu({
             />
           }
         >
-          <IconDots />
+          <IconDotsVertical />
           {failed && (
             <span className="bg-destructive absolute top-1 right-1 size-1.5 rounded-full" />
           )}
@@ -163,6 +168,14 @@ export function CanvasActionMenu({
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
+            <DropdownMenuCheckboxItem
+              checked={fullWidth}
+              onCheckedChange={onFullWidthChange}
+              closeOnClick
+            >
+              <IconArrowsHorizontal data-slot="icon" />
+              Full width
+            </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem
               checked={commentsOpen}
               onCheckedChange={onCommentsOpenChange}
