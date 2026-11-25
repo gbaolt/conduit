@@ -2,14 +2,17 @@ import { createHash } from 'node:crypto';
 
 import {
   canCanvas,
+  CANVAS_LINK_EXCERPT_MAX,
   CANVAS_UNTITLED,
   type CanvasAccess,
   type CanvasAction,
+  type CanvasLinkCardResult,
   type CanvasRole,
   type CanvasScope,
   checkCanvas,
   type CreateCanvasInput,
   type EmbeddedMessage,
+  plainText,
   type PolicyCanvas,
   type Room,
   type SaveCanvasSnapshotInput,
@@ -56,6 +59,22 @@ export function contentHashOf(snapshotJson: Record<string, unknown>) {
 const READ: LiveblocksPermission[] = ['room:read', 'room:presence:write'];
 const WRITE: LiveblocksPermission[] = ['room:write'];
 
+function canvasExcerpt(markdown: string) {
+  const content = markdown
+    // Canvas exports toggles as HTML and tables as pipe-delimited rows.
+    .replace(/<\/?(?:details|summary)>/gi, ' ')
+    .replace(/^[ \t]*\|(?:[ \t]*:?-+:?[ \t]*\|)+[ \t]*$/gm, '')
+    .replace(/^[ \t]*\|(.+)\|[ \t]*$/gm, (_match, cells: string) =>
+      cells.replace(/(?<!\\)\|/g, ' ').replace(/\\\|/g, '|')
+    )
+    .replace(/^[ \t]*[-*+][ \t]+\[[ xX]\][ \t]+/gm, '')
+    .replace(/^[ \t]*([-*_])(?:[ \t]*\1){2,}[ \t]*$/gm, '');
+  return plainText(content, {})
+    .slice(0, CANVAS_LINK_EXCERPT_MAX)
+    .replace(/\p{Surrogate}$/u, '')
+    .trimEnd();
+}
+
 @Injectable()
 export class CanvasesService {
   private readonly logger = new Logger(CanvasesService.name);
@@ -76,6 +95,17 @@ export class CanvasesService {
       channel: room,
       membership: canvas.viewerRole && { role: canvas.viewerRole },
     };
+  }
+
+  private async canvasAccessContext(
+    viewer: CanvasViewerScope,
+    canvas: StoredCanvas
+  ) {
+    const room = canvas.roomId
+      ? await this.rooms.find(viewer, canvas.roomId)
+      : null;
+    if (canvas.roomId && !room) return null;
+    return { room, policy: this.policyCanvas(canvas, room) };
   }
 
   private withAccess<T extends StoredCanvas>(
@@ -102,13 +132,12 @@ export class CanvasesService {
     action: CanvasAction
   ) {
     const canvas = await this.canvases.find(viewer, canvasId);
-    const room = canvas?.roomId
-      ? await this.rooms.find(viewer, canvas.roomId)
-      : null;
-    if (!canvas || (canvas.roomId && !room)) throw canvasError('NOT_FOUND');
-    const denial = checkCanvas(action, viewer, this.policyCanvas(canvas, room));
+    if (!canvas) throw canvasError('NOT_FOUND');
+    const access = await this.canvasAccessContext(viewer, canvas);
+    if (!access) throw canvasError('NOT_FOUND');
+    const denial = checkCanvas(action, viewer, access.policy);
     if (denial) throw canvasError(denial);
-    return { canvas, room };
+    return { canvas, room: access.room };
   }
 
   /** A channel the viewer can read, or `NOT_FOUND`. A DM has no canvas. */
@@ -380,6 +409,35 @@ export class CanvasesService {
       if (found.deletedAt) return { messageId, status: 'deleted' };
       return { messageId, status: 'ok', message: found.message };
     });
+  }
+
+  async linkCard(
+    viewer: CanvasViewerScope,
+    canvasId: string
+  ): Promise<CanvasLinkCardResult> {
+    const canvas = await this.canvases.findForLink(viewer, canvasId);
+    if (!canvas) return { status: 'inaccessible' };
+    const access = await this.canvasAccessContext(viewer, canvas);
+    if (!access || !canCanvas('view', viewer, access.policy)) {
+      return { status: 'inaccessible' };
+    }
+    if (canvas.deletedAt) return { status: 'deleted' };
+
+    return {
+      status: 'ok',
+      canvas: {
+        id: canvas.id,
+        title: canvas.title,
+        icon: canvas.icon,
+        coverPreset: canvas.coverPreset,
+        roomId: canvas.roomId,
+        roomKind: canvas.roomKind,
+        roomName: canvas.roomName,
+        excerpt: canvasExcerpt(canvas.markdown),
+        updatedAt: canvas.updatedAt,
+        updatedByName: canvas.updatedByName,
+      },
+    };
   }
 
   async share(viewer: CanvasViewerScope, input: ShareCanvasInput) {

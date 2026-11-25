@@ -2,11 +2,15 @@ import { Module } from '@nestjs/common';
 
 import { DmsModule } from '@/dms/dms.module';
 import { FeedModule } from '@/feed/feed.module';
+import { appURL } from '@/infrastructure/auth/resend';
 import { NotificationsModule } from '@/notifications/notifications.module';
 import { RoomsModule } from '@/rooms/rooms.module';
 import { SearchModule } from '@/search/search.module';
 
-import { LinkPreviewsService } from './application/link-previews.service';
+import {
+  LINK_PREVIEW_APP_ORIGIN,
+  LinkPreviewsService,
+} from './application/link-previews.service';
 import { MessagesService } from './application/messages.service';
 import { LinkPreviewFetcher } from './domain/link-preview.fetcher';
 import { MessagesRepository } from './domain/messages.repository';
@@ -30,6 +34,10 @@ import { MessagesController } from './presentation/messages.controller';
   providers: [
     MessagesService,
     LinkPreviewsService,
+    {
+      provide: LINK_PREVIEW_APP_ORIGIN,
+      useValue: URL.canParse(appURL) ? new URL(appURL).origin : '',
+    },
     {
       provide: LinkPreviewFetcher,
       useFactory: () => new HttpLinkPreviewFetcher(),

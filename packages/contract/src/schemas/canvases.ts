@@ -17,6 +17,7 @@ export const CANVAS_EMBEDS_MAX = 50;
 export const CANVAS_VERSION_LABEL_MAX = 100;
 export const CANVAS_VERSIONS_PAGE_MAX = 100;
 export const CANVAS_ICON_MAX = 16;
+export const CANVAS_LINK_EXCERPT_MAX = 200;
 
 export const CANVAS_COVER_PRESETS = [
   'sunset',
@@ -79,6 +80,28 @@ export const CanvasDocumentSchema = CanvasSchema.extend({
 export type CanvasDocument = z.infer<typeof CanvasDocumentSchema>;
 
 export const CanvasIdInputSchema = z.object({ canvasId: z.string() });
+
+export const CanvasLinkCardSchema = CanvasSchema.pick({
+  id: true,
+  title: true,
+  icon: true,
+  coverPreset: true,
+  roomId: true,
+  roomKind: true,
+  roomName: true,
+  updatedAt: true,
+  updatedByName: true,
+}).extend({
+  excerpt: z.string().max(CANVAS_LINK_EXCERPT_MAX),
+});
+export type CanvasLinkCard = z.infer<typeof CanvasLinkCardSchema>;
+
+export const CanvasLinkCardResultSchema = z.discriminatedUnion('status', [
+  z.object({ status: z.literal('ok'), canvas: CanvasLinkCardSchema }),
+  z.object({ status: z.literal('inaccessible') }),
+  z.object({ status: z.literal('deleted') }),
+]);
+export type CanvasLinkCardResult = z.infer<typeof CanvasLinkCardResultSchema>;
 
 /** `channel` keeps canvases in channels, and `shared` keeps standalone ones shared with the viewer. */
 export const CanvasScopeSchema = z.enum(['all', 'channel', 'shared']);

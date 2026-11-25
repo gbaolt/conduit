@@ -156,6 +156,12 @@ function setup(
   };
   const repository = {
     find: async (scope, id) => view(scope.userId, id),
+    findForLink: async (scope, id) => {
+      const row = canvases.get(id);
+      return row?.organizationId === scope.organizationId
+        ? { ...row, viewerRole: shares.get(id)?.get(scope.userId) ?? null }
+        : null;
+    },
     listInChannel: async (scope, roomId) =>
       [...canvases.values()]
         .filter((c) => c.roomId === roomId && !c.deletedAt)
@@ -628,6 +634,110 @@ describe('CanvasesService embedded messages', () => {
     await expect(
       service.embeddedMessages(bob, { canvasId: canvas.id, messageIds: [open] })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+});
+
+describe('CanvasesService link cards', () => {
+  it('returns the shared room canvas with a capped plain-text excerpt', async () => {
+    const { service } = setup(roomFor({ visibility: 'private' }));
+    const canvas = await service.create(alice, {
+      roomId: 'general',
+      title: 'Project plan',
+      markdown: `# Project plan\n\n- **Read** the [brief](https://example.com).\n\n${'x'.repeat(200)}`,
+    });
+    const updated = await service.update(alice, {
+      canvasId: canvas.id,
+      icon: '📋',
+      coverPreset: 'ocean',
+    });
+    const start = 'Project plan Read the brief. ';
+
+    expect(await service.linkCard(bob, canvas.id)).toEqual({
+      status: 'ok',
+      canvas: {
+        id: canvas.id,
+        title: 'Project plan',
+        icon: '📋',
+        coverPreset: 'ocean',
+        roomId: 'general',
+        roomKind: 'channel',
+        roomName: 'general',
+        excerpt: start + 'x'.repeat(200 - start.length),
+        updatedAt: updated.updatedAt,
+        updatedByName: 'alice',
+      },
+    });
+  });
+
+  it('keeps the text of canvas task lists, tables, and toggles', async () => {
+    const { service } = setup();
+    const canvas = await service.create(alice, {
+      title: 'Project plan',
+      markdown: [
+        '- [x] Done',
+        '',
+        '---',
+        '',
+        '| Role | Name |',
+        '| --- | --- |',
+        '| Lead | Alice |',
+        '',
+        '<details><summary>Next</summary>',
+        '',
+        'Send it.',
+        '',
+        '</details>',
+      ].join('\n'),
+    });
+
+    expect(await service.linkCard(alice, canvas.id)).toMatchObject({
+      status: 'ok',
+      canvas: { excerpt: 'Done Role Name Lead Alice Next Send it.' },
+    });
+  });
+
+  it('returns inaccessible for a standalone canvas the viewer cannot open', async () => {
+    const { service } = setup();
+    const canvas = await service.create(alice, {
+      title: 'Private plan',
+      markdown: 'Private content',
+    });
+
+    expect(await service.linkCard(bob, canvas.id)).toEqual({
+      status: 'inaccessible',
+    });
+  });
+
+  it('returns inaccessible for a canvas from another workspace', async () => {
+    const { service } = setup();
+    const canvas = await service.create(alice, {
+      roomId: 'general',
+      title: 'Workspace plan',
+      markdown: 'Workspace content',
+    });
+
+    expect(
+      await service.linkCard(
+        { ...alice, organizationId: 'another-workspace' },
+        canvas.id
+      )
+    ).toEqual({ status: 'inaccessible' });
+  });
+
+  it('returns deleted only to viewers who could open the canvas', async () => {
+    const { service } = setup(roomFor({ visibility: 'private' }));
+    const canvas = await service.create(alice, {
+      roomId: 'general',
+      title: 'Private channel plan',
+    });
+    await service.delete(alice, canvas.id);
+
+    expect(await service.linkCard(bob, canvas.id)).toEqual({
+      status: 'deleted',
+    });
+    expect(await service.linkCard(carol, canvas.id)).toEqual({
+      status: 'inaccessible',
+    });
   });
 });
 

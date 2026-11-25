@@ -31,7 +31,11 @@ function setup(fetch: LinkPreviewFetcher['fetch']) {
     },
   };
   return {
-    service: new LinkPreviewsService(messages, fetcher),
+    service: new LinkPreviewsService(
+      messages,
+      fetcher,
+      'https://app.conduit.test'
+    ),
     stored,
     requested,
   };
@@ -63,6 +67,33 @@ describe('LinkPreviewsService.attach', () => {
 
     expect(requested).toEqual([]);
     expect(stored).toEqual([]);
+  });
+
+  it.each([
+    'https://app.conduit.test/canvases/c1/',
+    'https://app.conduit.test/channels/r1?tab=c1',
+    'https://app.conduit.test/dms/r1?tab=c1',
+  ])('skips fetching and storing a preview for %s', async (link) => {
+    const { service, stored, requested } = setup(async () => preview);
+
+    await service.attach({ id: 'm1', body: `[Canvas](${link})` });
+
+    expect(requested).toEqual([]);
+    expect(stored).toEqual([]);
+  });
+
+  it.each([
+    'https://other.test/canvases/c1',
+    'https://app.conduit.test:8080/canvases/c1',
+    'https://app.conduit.test/canvases',
+    'https://app.conduit.test/channels/r1?tab=messages',
+  ])('still fetches a preview for %s', async (link) => {
+    const { service, stored, requested } = setup(async () => preview);
+
+    await service.attach({ id: 'm1', body: link });
+
+    expect(requested).toEqual([link]);
+    expect(stored).toHaveLength(1);
   });
 
   it('stores nothing when the page has no preview', async () => {

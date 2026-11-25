@@ -18,6 +18,9 @@ export type StoredCanvas = Omit<Canvas, 'access'> & {
 export type StoredCanvasDocument = StoredCanvas &
   Pick<CanvasDocument, 'snapshotJson' | 'markdown'>;
 
+export type StoredCanvasForLink = StoredCanvas &
+  Pick<CanvasDocument, 'markdown'> & { deletedAt: Date | null };
+
 /** Whose view of a canvas to load: `viewerRole` depends on it. */
 export type CanvasScopeOf = { userId: string; organizationId: string };
 
@@ -47,12 +50,18 @@ export type CanvasSeed = Partial<CanvasSnapshot> & {
   sourceThreadId?: string;
 };
 
-/** Canvases and their shares. Callers check access first; this port knows only rows. Deleted canvases are never returned. */
+/** Canvases and their shares. Callers check access; this port knows only rows. */
 export abstract class CanvasesRepository {
   abstract find(
     scope: CanvasScopeOf,
     canvasId: string
   ): Promise<StoredCanvasDocument | null>;
+
+  /** The workspace's canvas, including soft-deleted rows so a card can show their status after checking access. */
+  abstract findForLink(
+    scope: CanvasScopeOf,
+    canvasId: string
+  ): Promise<StoredCanvasForLink | null>;
 
   /** The channel's canvases, oldest first. */
   abstract listInChannel(

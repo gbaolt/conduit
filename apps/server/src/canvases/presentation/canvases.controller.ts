@@ -263,6 +263,17 @@ export class CanvasesController {
       );
   }
 
+  @Implement(contract.canvases.linkCard)
+  linkCard() {
+    return implement(contract.canvases.linkCard)
+      .use(authorized)
+      .use(arcjet.read)
+      .use(workspaceMember)
+      .handler(({ context, input }) =>
+        this.canvasesService.linkCard(viewerOf(context), input.canvasId)
+      );
+  }
+
   @Implement(contract.canvases.listVersions)
   listVersions() {
     return implement(contract.canvases.listVersions)
