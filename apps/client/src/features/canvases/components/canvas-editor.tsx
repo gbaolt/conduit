@@ -763,6 +763,11 @@ type CanvasEditorDocumentProps = {
   onStatusChange: (status: CanvasSaveStatus) => void;
   /** Hands the editor out, so the heading outside it can move the caret into the document. */
   onEditorChange?: (editor: LexicalEditor | null) => void;
+  /** Hands out the editor currently on screen for Markdown export (live or version preview). */
+  onExportChange?: (state: {
+    editor: LexicalEditor | null;
+    disabled: boolean;
+  }) => void;
 };
 
 const noop = () => {};
@@ -782,6 +787,7 @@ function CanvasEditorDocument({
   onSavingVersionChange,
   onStatusChange,
   onEditorChange,
+  onExportChange,
 }: CanvasEditorDocumentProps) {
   const collab = useCanvasCollab();
   const { data: workspaceMembers } = useWorkspaceMembers();
@@ -799,6 +805,9 @@ function CanvasEditorDocument({
   const cursorsRef = useRef<HTMLDivElement | null>(null);
   const [liveState, setLiveState] = useState<CanvasLiveState>('loading');
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [previewEditor, setPreviewEditor] = useState<LexicalEditor | null>(
+    null
+  );
   const loading = collab.live && liveState === 'loading';
   const editable =
     canvas.access.edit && (!collab.live || liveState === 'ready');
@@ -842,6 +851,24 @@ function CanvasEditorDocument({
     onEditorChange?.(loading ? null : editor);
     return () => onEditorChange?.(null);
   }, [editor, loading, onEditorChange]);
+
+  useEffect(() => {
+    let activeEditor: LexicalEditor | null = null;
+    if (previewId) {
+      activeEditor = previewEditor;
+    } else if (!loading) {
+      activeEditor = editor;
+    }
+    onExportChange?.({
+      editor: activeEditor,
+      disabled: Boolean(previewId) && !previewEditor,
+    });
+  }, [editor, loading, previewId, previewEditor, onExportChange]);
+
+  useEffect(
+    () => () => onExportChange?.({ editor: null, disabled: false }),
+    [onExportChange]
+  );
 
   const composer = (
     <MessageEmbedRenderer value={renderEmbed}>
@@ -902,6 +929,7 @@ function CanvasEditorDocument({
                 notifyVersions.current();
                 preview(null);
               }}
+              onPreviewEditorChange={setPreviewEditor}
             />
           )}
           <div

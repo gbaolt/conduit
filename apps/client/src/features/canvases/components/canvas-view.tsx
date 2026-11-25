@@ -13,7 +13,7 @@ import {
 import { Skeleton } from '@conduit/ui/components/skeleton';
 import { ORPCError } from '@orpc/client';
 import { IconAlertTriangle, IconLayoutBoard } from '@tabler/icons-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { LexicalEditor } from 'lexical';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
@@ -21,10 +21,18 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { StatusButton } from '@/components/async/status-button';
-import { canvasQuery } from '@/services/canvases/queries';
+import { messagePath } from '@/features/messages/lib/message-link';
+import { useCopy } from '@/hooks/use-copy';
+import {
+  canvasEmbeddedMessageQuery,
+  canvasQuery,
+} from '@/services/canvases/queries';
 
 import { useCanvasFullWidth } from '../hooks/use-canvas-full-width';
-import { $selectNewFirstLine, canvasMarkdownOf } from '../lib/canvas-extension';
+import {
+  $selectNewFirstLine,
+  canvasExportMarkdownOf,
+} from '../lib/canvas-extension';
 import { downloadMarkdownFile } from '../lib/canvas-markdown-export';
 import { CanvasActionMenu } from './canvas-action-menu';
 import type { CanvasSaveStatus } from './canvas-editor';
@@ -82,21 +90,39 @@ export function CanvasView({
   const [insertBarSlot, setInsertBarSlot] = useState<HTMLDivElement | null>(
     null
   );
+  const queryClient = useQueryClient();
   const [editor, setEditor] = useState<LexicalEditor | null>(null);
+  const [exportState, setExportState] = useState<{
+    editor: LexicalEditor | null;
+    disabled: boolean;
+  }>({ editor: null, disabled: false });
+  const { copy: copyMarkdownToClipboard } = useCopy({
+    onCopySuccess: () => toast.success('Copied as Markdown.'),
+    onCopyError: () => toast.error('Couldn’t copy Markdown.'),
+  });
   const writeFirstLine = () => {
     // A History preview hides the document, so there is nowhere to write.
     if (!editor?.isEditable() || !editor.getRootElement()?.checkVisibility())
       return;
     editor.update($selectNewFirstLine, { onUpdate: () => editor.focus() });
   };
-  const currentMarkdown = () =>
-    editor ? canvasMarkdownOf(editor) : canvas.markdown;
-  const copyMarkdown = () => {
-    navigator.clipboard
-      .writeText(currentMarkdown())
-      .then(() => toast.success('Copied as Markdown.'))
-      .catch(() => toast.error('Couldn’t copy Markdown.'));
+  const resolveMessageUrl = (messageId: string) => {
+    const data = queryClient.getQueryData(
+      canvasEmbeddedMessageQuery(canvas.id, messageId).queryKey
+    );
+    if (data?.status !== 'ok') return null;
+    const path = messagePath({
+      ...data.message,
+      roomId: data.message.room.id,
+      kind: data.message.room.kind,
+    });
+    return new URL(path, window.location.origin).toString();
   };
+  const currentMarkdown = () =>
+    exportState.editor
+      ? canvasExportMarkdownOf(exportState.editor, { resolveMessageUrl })
+      : canvas.markdown;
+  const copyMarkdown = () => void copyMarkdownToClipboard(currentMarkdown);
   const downloadMarkdown = () =>
     downloadMarkdownFile(canvas.title, currentMarkdown());
 
@@ -126,6 +152,7 @@ export function CanvasView({
               onShare={() => setSharing(true)}
               onCopyMarkdown={copyMarkdown}
               onDownloadMarkdown={downloadMarkdown}
+              exportDisabled={exportState.disabled}
               onDeleted={onDeleted}
             />
           </div>
@@ -152,6 +179,7 @@ export function CanvasView({
             onSavingVersionChange={setSavingVersion}
             onStatusChange={setStatus}
             onEditorChange={setEditor}
+            onExportChange={setExportState}
           />
         </CanvasLayoutContent>
       </CanvasLayout>

@@ -11,12 +11,19 @@ import {
   AlertDialogTitle,
 } from '@conduit/ui/components/alert-dialog';
 import { Button } from '@conduit/ui/components/button';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer';
 import { IconArrowBackUp, IconX } from '@tabler/icons-react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { defineExtension, type LexicalEditor } from 'lexical';
-import { type ReactNode, useCallback, useMemo, useState } from 'react';
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { toast } from 'sonner';
 
 import { StatusButton } from '@/components/async/status-button';
@@ -39,8 +46,29 @@ const savedFormat = new Intl.DateTimeFormat(undefined, {
   timeStyle: 'short',
 });
 
+function CanvasHistoryPreviewEditorBridge({
+  onChange,
+}: {
+  onChange?: (editor: LexicalEditor | null) => void;
+}) {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    onChange?.(editor);
+    return () => onChange?.(null);
+  }, [editor, onChange]);
+
+  return null;
+}
+
 /** A version, read-only, in its own editor: it never joins the live room, so nobody else sees it. */
-function CanvasHistoryPreviewDocument({ version }: { version: CanvasVersion }) {
+function CanvasHistoryPreviewDocument({
+  version,
+  onPreviewEditorChange,
+}: {
+  version: CanvasVersion;
+  onPreviewEditorChange?: (editor: LexicalEditor | null) => void;
+}) {
   const extension = useMemo(
     () =>
       defineExtension({
@@ -61,6 +89,7 @@ function CanvasHistoryPreviewDocument({ version }: { version: CanvasVersion }) {
   return (
     <MessageEmbedRenderer value={renderEmbed}>
       <LexicalExtensionComposer extension={extension} contentEditable={null}>
+        <CanvasHistoryPreviewEditorBridge onChange={onPreviewEditorChange} />
         <ContentEditable
           aria-label={`Version from ${savedFormat.format(version.createdAt)}`}
           aria-readonly
@@ -155,6 +184,7 @@ export function CanvasHistoryPreview({
   fallback,
   onExit,
   onRestored,
+  onPreviewEditorChange,
 }: {
   canvasId: string;
   versionId: string;
@@ -164,6 +194,7 @@ export function CanvasHistoryPreview({
   fallback: ReactNode;
   onExit: () => void;
   onRestored: () => void;
+  onPreviewEditorChange?: (editor: LexicalEditor | null) => void;
 }) {
   const version = useQuery({
     ...canvasVersionQuery(canvasId, versionId),
@@ -226,6 +257,7 @@ export function CanvasHistoryPreview({
           <CanvasHistoryPreviewDocument
             key={version.data.id}
             version={version.data}
+            onPreviewEditorChange={onPreviewEditorChange}
           />
         ) : (
           fallback

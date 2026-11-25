@@ -117,6 +117,7 @@ export function CanvasActionMenu({
   onShare,
   onCopyMarkdown,
   onDownloadMarkdown,
+  exportDisabled = false,
   onDeleted,
 }: {
   canvas: CanvasDocument;
@@ -132,6 +133,7 @@ export function CanvasActionMenu({
   onShare: () => void;
   onCopyMarkdown: () => void;
   onDownloadMarkdown: () => void;
+  exportDisabled?: boolean;
   onDeleted: () => void;
 }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -218,11 +220,17 @@ export function CanvasActionMenu({
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuItem onClick={onCopyMarkdown}>
+            <DropdownMenuItem
+              disabled={exportDisabled}
+              onClick={onCopyMarkdown}
+            >
               <IconCopy data-slot="icon" />
               Copy as Markdown
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={onDownloadMarkdown}>
+            <DropdownMenuItem
+              disabled={exportDisabled}
+              onClick={onDownloadMarkdown}
+            >
               <IconDownload data-slot="icon" />
               Download Markdown
             </DropdownMenuItem>

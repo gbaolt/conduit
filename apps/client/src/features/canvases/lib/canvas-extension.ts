@@ -14,6 +14,7 @@ import {
   BOLD_STAR,
   CHECK_LIST,
   CODE,
+  type ElementTransformer,
   HEADING,
   INLINE_CODE,
   ITALIC_STAR,
@@ -21,6 +22,7 @@ import {
   ORDERED_LIST,
   QUOTE,
   STRIKETHROUGH,
+  type TextMatchTransformer,
   type Transformer,
   UNORDERED_LIST,
 } from '@lexical/markdown';
@@ -44,10 +46,22 @@ import { EmojisExtension } from '@/components/editor/extensions/emojis-extension
 import { MarkdownShortcutsExtension } from '@/components/editor/extensions/markdown-shortcuts-extension';
 import { CalloutNode } from '@/components/editor/nodes/callout-node';
 import { CodeBlockNode } from '@/components/editor/nodes/code-block-node';
-import { LayoutContainerNode } from '@/components/editor/nodes/layout-container-node';
-import { LayoutItemNode } from '@/components/editor/nodes/layout-item-node';
-import { MentionNode } from '@/components/editor/nodes/mention-node';
-import { MessageEmbedNode } from '@/components/editor/nodes/message-embed-node';
+import {
+  $isLayoutContainerNode,
+  LayoutContainerNode,
+} from '@/components/editor/nodes/layout-container-node';
+import {
+  $isLayoutItemNode,
+  LayoutItemNode,
+} from '@/components/editor/nodes/layout-item-node';
+import {
+  $isMentionNode,
+  MentionNode,
+} from '@/components/editor/nodes/mention-node';
+import {
+  $isMessageEmbedNode,
+  MessageEmbedNode,
+} from '@/components/editor/nodes/message-embed-node';
 import {
   ToggleContentNode,
   ToggleNode,
@@ -120,6 +134,54 @@ const blockTransformers: Transformer[] = [
   LINK,
 ];
 
+function createColumnsTransformer(
+  transformers: () => Transformer[]
+): ElementTransformer {
+  return {
+    dependencies: [LayoutContainerNode, LayoutItemNode],
+    type: 'element',
+    export: (node) => {
+      if (!$isLayoutContainerNode(node)) return null;
+      return node
+        .getChildren()
+        .filter($isLayoutItemNode)
+        .map((cell) => $convertToMarkdownString(transformers(), cell).trim())
+        .filter(Boolean)
+        .join('\n\n');
+    },
+    regExp: /(?!)/,
+    replace: () => false,
+  };
+}
+
+const DISPLAY_MENTION: TextMatchTransformer = {
+  dependencies: [MentionNode],
+  type: 'text-match',
+  export: (node) => ($isMentionNode(node) ? node.getTextContent() : null),
+  importRegExp: /(?!)/,
+  regExp: /(?!)/,
+  replace: () => {},
+};
+
+function createMessageEmbedTransformer(
+  resolveMessageUrl?: (messageId: string) => string | null
+): ElementTransformer {
+  return {
+    dependencies: [MessageEmbedNode],
+    type: 'element',
+    export: (node) => {
+      if (!$isMessageEmbedNode(node)) return null;
+      const messageId = node.getMessageId();
+      const url =
+        resolveMessageUrl?.(messageId) ??
+        `?message=${encodeURIComponent(messageId)}`;
+      return `[Embedded message](${url})`;
+    },
+    regExp: /(?!)/,
+    replace: () => false,
+  };
+}
+
 function transformersWith(names: ReadonlyMap<string, string>) {
   // CALLOUT comes before QUOTE, or `> 💡 Note` would read as a quote.
   const inline = [
@@ -129,6 +191,21 @@ function transformersWith(names: ReadonlyMap<string, string>) {
   ];
   const all: Transformer[] = [
     createToggleTransformer(() => all),
+    createColumnsTransformer(() => all),
+    ...inline,
+    createTableTransformer(inline),
+  ];
+  return all;
+}
+
+function userExportTransformers(
+  resolveMessageUrl?: (messageId: string) => string | null
+) {
+  const inline = [CALLOUT, ...blockTransformers, DISPLAY_MENTION];
+  const all: Transformer[] = [
+    createToggleTransformer(() => all),
+    createColumnsTransformer(() => all),
+    createMessageEmbedTransformer(resolveMessageUrl),
     ...inline,
     createTableTransformer(inline),
   ];
@@ -140,6 +217,15 @@ const exportTransformers = transformersWith(new Map());
 /** The canvas as Markdown, which search and AI read. A mention is `<@userId>`, as in a message. */
 export function canvasMarkdownOf(editor: LexicalEditor) {
   return editor.read(() => $convertToMarkdownString(exportTransformers));
+}
+
+/** User-facing Markdown export: mentions render as `@Name`, columns separate with blank lines, and embeds become links. */
+export function canvasExportMarkdownOf(
+  editor: LexicalEditor,
+  options?: { resolveMessageUrl?: (messageId: string) => string | null }
+) {
+  const transformers = userExportTransformers(options?.resolveMessageUrl);
+  return editor.read(() => $convertToMarkdownString(transformers));
 }
 
 export type CanvasContent = {
