@@ -400,4 +400,15 @@ export class PrismaCanvasesRepository implements CanvasesRepository {
     });
     return new Map(users.map((user) => [user.id, user.name]));
   }
+
+  async workspaceUserNames(organizationId: string, userIds: string[]) {
+    const users = await this.db.user.findMany({
+      where: {
+        id: { in: userIds },
+        members: { some: { organizationId, deactivation: null } },
+      },
+      select: { id: true, name: true },
+    });
+    return new Map(users.map((user) => [user.id, user.name]));
+  }
 }

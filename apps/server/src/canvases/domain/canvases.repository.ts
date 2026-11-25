@@ -155,4 +155,10 @@ export abstract class CanvasesRepository {
 
   /** Display names by user id. A user who no longer exists has no entry. */
   abstract userNames(userIds: string[]): Promise<Map<string, string>>;
+
+  /** Display names of active members of a workspace, by user id. */
+  abstract workspaceUserNames(
+    organizationId: string,
+    userIds: string[]
+  ): Promise<Map<string, string>>;
 }

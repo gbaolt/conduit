@@ -2,7 +2,6 @@ import { createHash } from 'node:crypto';
 
 import {
   canCanvas,
-  CANVAS_LINK_EXCERPT_MAX,
   CANVAS_UNTITLED,
   type CanvasAccess,
   type CanvasAction,
@@ -12,7 +11,6 @@ import {
   checkCanvas,
   type CreateCanvasInput,
   type EmbeddedMessage,
-  plainText,
   type PolicyCanvas,
   type Room,
   type SaveCanvasSnapshotInput,
@@ -23,6 +21,7 @@ import {
 import { Inject, Injectable, Logger } from '@nestjs/common';
 
 import { canvasError } from '@/canvases/domain/canvas-errors';
+import { canvasExcerpt } from '@/canvases/domain/canvas-excerpt';
 import {
   autoVersionDue,
   type CanvasVersionContent,
@@ -58,22 +57,6 @@ export function contentHashOf(snapshotJson: Record<string, unknown>) {
 // Liveblocks rejects passing both room:read and room:write; room:write implies read and presence.
 const READ: LiveblocksPermission[] = ['room:read', 'room:presence:write'];
 const WRITE: LiveblocksPermission[] = ['room:write'];
-
-function canvasExcerpt(markdown: string) {
-  const content = markdown
-    // Canvas exports toggles as HTML and tables as pipe-delimited rows.
-    .replace(/<\/?(?:details|summary)>/gi, ' ')
-    .replace(/^[ \t]*\|(?:[ \t]*:?-+:?[ \t]*\|)+[ \t]*$/gm, '')
-    .replace(/^[ \t]*\|(.+)\|[ \t]*$/gm, (_match, cells: string) =>
-      cells.replace(/(?<!\\)\|/g, ' ').replace(/\\\|/g, '|')
-    )
-    .replace(/^[ \t]*[-*+][ \t]+\[[ xX]\][ \t]+/gm, '')
-    .replace(/^[ \t]*([-*_])(?:[ \t]*\1){2,}[ \t]*$/gm, '');
-  return plainText(content, {})
-    .slice(0, CANVAS_LINK_EXCERPT_MAX)
-    .replace(/\p{Surrogate}$/u, '')
-    .trimEnd();
-}
 
 @Injectable()
 export class CanvasesService {
@@ -433,7 +416,9 @@ export class CanvasesService {
         roomId: canvas.roomId,
         roomKind: canvas.roomKind,
         roomName: canvas.roomName,
-        excerpt: canvasExcerpt(canvas.markdown),
+        excerpt: await canvasExcerpt(canvas.markdown, (userIds) =>
+          this.canvases.workspaceUserNames(viewer.organizationId, userIds)
+        ),
         updatedAt: canvas.updatedAt,
         updatedByName: canvas.updatedByName,
       },
