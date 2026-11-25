@@ -29,7 +29,8 @@ function afterLinkDestination(text: string, start: number) {
   let quoted: string | undefined;
   for (let index = start; index < text.length; index++) {
     const char = text[index];
-    if (char === '\\') {
+    if (char === '\n') return index;
+    if (char === '\\' && text[index + 1] !== '\n') {
       index++;
       continue;
     }
@@ -118,7 +119,10 @@ function excerptParts(source: string) {
       if (marker?.[1]?.startsWith(fence) && !marker[2]?.trim())
         fence = undefined;
       else parts.push(line, ' ');
-    } else if (marker?.[1]) {
+    } else if (
+      marker?.[1] &&
+      (marker[1][0] === '~' || !marker[2]?.includes('`'))
+    ) {
       appendInline(parts, prose.join('\n'));
       parts.push(' ');
       prose = [];

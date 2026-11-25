@@ -72,6 +72,7 @@ describe('LinkPreviewsService.attach', () => {
     'https://app.conduit.test/canvases/c1/',
     'https://app.conduit.test/channels/r1?tab=cm4v31ajc000008l2d3v9ta9w',
     'https://app.conduit.test/dms/r1?tab=cm4v31ajc000008l2d3v9ta9w',
+    'https://app.conduit.test/dm/r1?tab=cm4v31ajc000008l2d3v9ta9w',
     'https://app.conduit.test/channels/r1?tab=canvas',
   ])('skips fetching and storing a preview for %s', async (link) => {
     const { service, stored, requested } = setup(async () => preview);

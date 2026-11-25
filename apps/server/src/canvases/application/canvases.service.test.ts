@@ -764,6 +764,31 @@ describe('CanvasesService link cards', () => {
     });
   });
 
+  it('keeps later lines after an unclosed link destination', async () => {
+    const { service } = setup();
+    const canvas = await service.create(alice, {
+      markdown: 'See [the plan](draft\n\nThe deadline is Friday.',
+    });
+
+    expect(await service.linkCard(alice, canvas.id)).toMatchObject({
+      status: 'ok',
+      canvas: { excerpt: 'See the plan The deadline is Friday.' },
+    });
+  });
+
+  it('renders a line-start inline code span and parses the following prose', async () => {
+    const { service, workspaceUserNames } = setup();
+    workspaceUserNames.mockResolvedValue(new Map([['alice', 'Alice']]));
+    const canvas = await service.create(alice, {
+      markdown: '```x_y```\n\nAfter **review** <@alice>',
+    });
+
+    expect(await service.linkCard(alice, canvas.id)).toMatchObject({
+      status: 'ok',
+      canvas: { excerpt: 'x_y After review @Alice' },
+    });
+  });
+
   it('resolves unique mention IDs in the canvas workspace and drops missing names', async () => {
     const { service, workspaceUserNames } = setup();
     workspaceUserNames.mockResolvedValue(new Map([['usr_member', 'Bao']]));
