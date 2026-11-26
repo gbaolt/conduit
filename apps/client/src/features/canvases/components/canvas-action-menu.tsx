@@ -136,8 +136,12 @@ export function CanvasActionMenu({
   exportDisabled?: boolean;
   onDeleted: () => void;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const { data: threads } = useQuery(canvasCommentsQuery(canvas.id));
+  const { data: threads } = useQuery({
+    ...canvasCommentsQuery(canvas.id),
+    enabled: menuOpen || commentsOpen,
+  });
   const openThreads =
     threads?.filter((thread) => !thread.resolvedAt).length ?? 0;
   const failed = canvas.access.edit && status === 'failed';
@@ -147,7 +151,7 @@ export function CanvasActionMenu({
       <span aria-live="polite" className="sr-only">
         {failed ? 'Couldn’t save the canvas' : ''}
       </span>
-      <DropdownMenu>
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger
           render={
             <Button

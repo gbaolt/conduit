@@ -1,9 +1,13 @@
 import type { CanvasRole, Room } from '@conduit/contract';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import type { CanvasCommentsRepository } from '@/canvases/domain/canvas-comments.repository';
 import type {
   CanvasesRepository,
+  CanvasMeta,
+  CanvasScopeOf,
   CanvasSeed,
+  StoredCanvas,
   StoredCanvasDocument,
   StoredEmbeddedMessage,
 } from '@/canvases/domain/canvases.repository';
@@ -17,6 +21,7 @@ import { PrismaRoomsRepository } from '@/rooms/infrastructure/prisma-rooms.repos
 import type { WorkspaceMembersRepository } from '@/workspaces/domain/workspace-members.repository';
 import { PrismaWorkspaceMembersRepository } from '@/workspaces/infrastructure/prisma-workspace-members.repository';
 
+import { CanvasCommentsService } from './canvas-comments.service';
 import { CanvasesService, type CanvasViewerScope } from './canvases.service';
 
 vi.hoisted(() => {
@@ -90,7 +95,6 @@ function embeddedIn(
   };
 }
 
-/** An in-memory port. `members` of a room are who `rooms.find` treats as in it. */
 function setup(
   room: Room = roomFor(),
   roomMembers = ['alice', 'bob'],
@@ -99,7 +103,7 @@ function setup(
 ) {
   const canvases = new Map<
     string,
-    Omit<StoredCanvasDocument, 'viewerRole'> & {
+    Omit<StoredCanvasDocument, 'viewerRole' | 'roomPolicy'> & {
       deletedAt: Date | null;
       seededAt: Date | null;
       contentHash: string | null;
@@ -117,12 +121,46 @@ function setup(
       throw Object.assign(new Error('LAST_EDITOR'), { code: 'LAST_EDITOR' });
     }
   };
-  const view = (userId: string, id: string) => {
+  const asSeenBy = (userId: string): Room => ({
+    ...room,
+    membership: roomMembers.includes(userId) ? room.membership : null,
+  });
+  const visibleTo = (userId: string) => {
+    const seen = asSeenBy(userId);
+    return seen.visibility === 'public' || seen.membership !== null;
+  };
+  const read = (scope: CanvasScopeOf, id: string, includeDeleted = false) => {
     const row = canvases.get(id);
-    return row && !row.deletedAt
-      ? { ...row, viewerRole: shares.get(id)?.get(userId) ?? null }
+    return row?.organizationId === scope.organizationId &&
+      (includeDeleted || !row.deletedAt)
+      ? row
       : null;
   };
+  const canvasOf = (
+    row: NonNullable<ReturnType<typeof read>>,
+    userId: string
+  ): StoredCanvas => ({
+    id: row.id,
+    organizationId: row.organizationId,
+    roomId: row.roomId,
+    roomKind: row.roomKind,
+    roomName: row.roomName,
+    title: row.title,
+    icon: row.icon,
+    coverPreset: row.coverPreset,
+    createdById: row.createdById,
+    updatedByName: row.updatedByName,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    viewerRole: shares.get(row.id)?.get(userId) ?? null,
+  });
+  const metaOf = (
+    row: NonNullable<ReturnType<typeof read>>,
+    userId: string
+  ): CanvasMeta => ({
+    ...canvasOf(row, userId),
+    roomPolicy: row.roomId === room.id ? asSeenBy(userId) : null,
+  });
   const insert = (
     roomId: string | null,
     title: string,
@@ -158,29 +196,52 @@ function setup(
     async () => new Map()
   );
   const repository = {
-    find: async (scope, id) => view(scope.userId, id),
+    findMeta: vi.fn<CanvasesRepository['findMeta']>(async (scope, id) => {
+      const row = read(scope, id);
+      return row && metaOf(row, scope.userId);
+    }),
+    findDocument: vi.fn<CanvasesRepository['findDocument']>(
+      async (scope, id) => {
+        const row = read(scope, id);
+        return (
+          row && {
+            ...metaOf(row, scope.userId),
+            snapshotJson: row.snapshotJson,
+            markdown: row.markdown,
+          }
+        );
+      }
+    ),
     findForLink: async (scope, id) => {
-      const row = canvases.get(id);
-      return row?.organizationId === scope.organizationId
-        ? { ...row, viewerRole: shares.get(id)?.get(scope.userId) ?? null }
-        : null;
+      const row = read(scope, id, true);
+      return (
+        row && {
+          ...metaOf(row, scope.userId),
+          markdown: row.markdown,
+          deletedAt: row.deletedAt,
+        }
+      );
     },
     listInChannel: async (scope, roomId) =>
       [...canvases.values()]
         .filter((c) => c.roomId === roomId && !c.deletedAt)
-        .map((c) => view(scope.userId, c.id)!),
+        .map((c) => canvasOf(c, scope.userId)),
     createInChannel: async (scope, roomId, title, seed) =>
       insert(roomId, title, scope.userId, seed),
     createStandalone: async (scope, title, seed) =>
       insert(null, title, scope.userId, seed),
-    list: async (scope, roomIds) =>
-      [...canvases.keys()]
-        .map((id) => view(scope.userId, id))
+    list: vi.fn<CanvasesRepository['list']>(async (scope, canvasScope) =>
+      [...canvases.values()]
         .filter(
-          (c) =>
-            c !== null &&
-            (c.roomId ? roomIds.includes(c.roomId) : c.viewerRole !== null)
-        ) as StoredCanvasDocument[],
+          (row) => !row.deletedAt && row.organizationId === scope.organizationId
+        )
+        .map((row) => metaOf(row, scope.userId))
+        .filter((row) =>
+          row.roomId
+            ? canvasScope !== 'shared' && visibleTo(scope.userId)
+            : canvasScope !== 'channel' && row.viewerRole !== null
+        )
+    ),
     update: async (_scope, id, patch) => {
       canvases.set(id, { ...canvases.get(id)!, ...patch });
     },
@@ -226,32 +287,19 @@ function setup(
     userNames: async (ids) => new Map(ids.map((id) => [id, id])),
     workspaceUserNames,
   } satisfies CanvasesRepository;
-  const asSeenBy = (userId: string): Room => ({
-    ...room,
-    membership: roomMembers.includes(userId) ? room.membership : null,
-  });
-  const visibleTo = (userId: string) => {
-    const seen = asSeenBy(userId);
-    return seen.visibility === 'public' || seen.membership !== null;
-  };
   const rooms = {
-    find: async (scope: { userId: string }, id: string) =>
-      id === room.id ? asSeenBy(scope.userId) : null,
-    list: async (scope: { userId: string }, archived: boolean) => {
-      const seen = asSeenBy(scope.userId);
-      return seen.kind === 'channel' &&
-        visibleTo(scope.userId) &&
-        Boolean(seen.archivedAt) === archived
-        ? [seen]
-        : [];
-    },
-    accessibleRoomIds: async (scope: { userId: string }) => [
-      ...(visibleTo(scope.userId) ? [room.id] : []),
-      ...embedded
-        .filter(({ readers }) => readers.includes(scope.userId))
-        .map(({ message }) => message.room.id),
-    ],
-  } as Partial<RoomsRepository> as RoomsRepository;
+    find: vi.fn<RoomsRepository['find']>(async (scope, id) =>
+      id === room.id ? asSeenBy(scope.userId) : null
+    ),
+    accessibleRoomIds: vi.fn<RoomsRepository['accessibleRoomIds']>(
+      async (scope) => [
+        ...(visibleTo(scope.userId) ? [room.id] : []),
+        ...embedded
+          .filter(({ readers }) => readers.includes(scope.userId))
+          .map(({ message }) => message.room.id),
+      ]
+    ),
+  } satisfies Partial<RoomsRepository>;
   const versions = new FakeCanvasVersionsRepository();
   const workspaceMembers = {
     count: async (_org: string, userIds: string[]) =>
@@ -260,19 +308,169 @@ function setup(
   return {
     service: new CanvasesService(
       repository,
-      rooms,
+      rooms as Partial<RoomsRepository> as RoomsRepository,
       workspaceMembers,
       liveblocks,
       versions
     ),
     canvases,
     liveblocks,
+    repository,
+    rooms,
     versions,
     workspaceUserNames,
   };
 }
 
 describe('CanvasesService', () => {
+  it('uses metadata for load, Liveblocks auth, and comment lists', async () => {
+    const { service, repository, rooms, liveblocks } = setup(
+      roomFor({ kind: 'dm', visibility: 'private' })
+    );
+    const content = { snapshotJson: { root: {} }, markdown: '# Draft' };
+    const canvas = await service.create(alice, {
+      ...content,
+      roomId: 'general',
+    });
+    repository.findDocument.mockClear();
+    rooms.find.mockClear();
+
+    const list = vi
+      .fn<CanvasCommentsRepository['list']>()
+      .mockResolvedValue([]);
+    const comments = new CanvasCommentsService(service, {
+      list,
+    } as Partial<CanvasCommentsRepository> as CanvasCommentsRepository);
+
+    const loaded = await service.load(bob, canvas.id, 'view');
+    expect(loaded.canvas).not.toHaveProperty('snapshotJson');
+    expect(loaded.canvas).not.toHaveProperty('markdown');
+    await service.liveblocksAuth(bob, canvas.id, { name: 'Bob' });
+    expect(liveblocks.grants[0]?.permissions).toEqual(['room:write']);
+
+    await expect(comments.list(bob, canvas.id)).resolves.toEqual([]);
+    await expect(comments.list(carol, canvas.id)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+    expect(list).toHaveBeenCalledExactlyOnceWith(canvas.id);
+    await expect(
+      service.liveblocksAuth(carol, canvas.id, { name: 'Carol' })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+
+    expect(repository.findMeta).toHaveBeenCalledTimes(5);
+    expect(repository.findDocument).not.toHaveBeenCalled();
+    expect(rooms.find).not.toHaveBeenCalled();
+
+    await expect(service.get(bob, canvas.id)).resolves.toMatchObject(content);
+    expect(repository.findDocument).toHaveBeenCalledExactlyOnceWith(
+      bob,
+      canvas.id
+    );
+    expect(repository.findMeta).toHaveBeenCalledTimes(5);
+    expect(rooms.find).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      name: 'public channel visitor',
+      room: {},
+      viewer: carol,
+      read: true,
+      edit: false,
+    },
+    {
+      name: 'private channel outsider',
+      room: { visibility: 'private' },
+      viewer: carol,
+      read: false,
+      edit: false,
+    },
+    {
+      name: 'private channel member',
+      room: { visibility: 'private' },
+      viewer: bob,
+      read: true,
+      edit: true,
+    },
+    {
+      name: 'DM outsider',
+      room: { kind: 'dm', visibility: 'private' },
+      viewer: carol,
+      read: false,
+      edit: false,
+    },
+    {
+      name: 'DM member',
+      room: { kind: 'dm', visibility: 'private' },
+      viewer: bob,
+      read: true,
+      edit: true,
+    },
+    {
+      name: 'archived channel member',
+      room: {},
+      viewer: bob,
+      archived: true,
+      read: true,
+      edit: false,
+    },
+  ] satisfies {
+    name: string;
+    room: Partial<Room>;
+    viewer: CanvasViewerScope;
+    archived?: boolean;
+    read: boolean;
+    edit: boolean;
+  }[])(
+    'lists canvases by scope for a $name',
+    async ({ room: overrides, viewer, archived, read, edit }) => {
+      const room = roomFor(overrides);
+      const { service, repository, rooms } = setup(room);
+      const inRoom = await service.create(alice, {
+        roomId: room.id,
+        markdown: 'Room body',
+      });
+      if (archived) room.archivedAt = new Date();
+      const shared = await service.create(alice, { markdown: 'Shared body' });
+      await service.create(alice, {});
+      await service.share(alice, {
+        canvasId: shared.id,
+        userIds: [viewer.userId],
+        role: 'viewer',
+      });
+      rooms.find.mockClear();
+
+      const [all, channel, standalone] = await Promise.all([
+        service.list(viewer, 'all'),
+        service.list(viewer, 'channel'),
+        service.list(viewer, 'shared'),
+      ]);
+
+      expect(all.map((canvas) => canvas.id)).toEqual(
+        read ? [inRoom.id, shared.id] : [shared.id]
+      );
+      expect(channel.map((canvas) => canvas.id)).toEqual(
+        read ? [inRoom.id] : []
+      );
+      expect(standalone.map((canvas) => canvas.id)).toEqual([shared.id]);
+      if (read) {
+        expect(channel[0]?.access).toMatchObject({ edit, comment: edit });
+      }
+      for (const canvas of all) {
+        expect(canvas).not.toHaveProperty('markdown');
+        expect(canvas).not.toHaveProperty('snapshotJson');
+        expect(canvas).not.toHaveProperty('roomPolicy');
+      }
+      expect(repository.list.mock.calls).toEqual([
+        [viewer, 'all'],
+        [viewer, 'channel'],
+        [viewer, 'shared'],
+      ]);
+      expect(rooms.find).not.toHaveBeenCalled();
+      expect(rooms.accessibleRoomIds).not.toHaveBeenCalled();
+    }
+  );
+
   it('adds a new canvas to the channel on every create, listed oldest first', async () => {
     const { service } = setup();
     expect(await service.listRoomCanvases(alice, 'general')).toEqual([]);
@@ -289,6 +487,18 @@ describe('CanvasesService', () => {
     expect(
       (await service.listRoomCanvases(bob, 'general')).map((c) => c.id)
     ).toEqual([first.id, second.id]);
+  });
+
+  it('does not read canvases when room authorization denies access', async () => {
+    const { service, repository } = setup(roomFor({ visibility: 'private' }));
+    const list = vi
+      .spyOn(repository, 'listInChannel')
+      .mockRejectedValue(new Error('Room canvases read failed'));
+
+    await expect(
+      service.listRoomCanvases(carol, 'general')
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(list).not.toHaveBeenCalled();
   });
 
   it('sets and clears the icon and cover', async () => {
@@ -633,12 +843,24 @@ describe('CanvasesService embedded messages', () => {
     ]);
   });
 
-  it('refuses someone who cannot open the canvas', async () => {
-    const { service } = setup(roomFor(), ['alice', 'bob'], undefined, embeds);
+  it('does not read rooms or messages when canvas authorization denies access', async () => {
+    const { service, repository, rooms } = setup(
+      roomFor(),
+      ['alice', 'bob'],
+      undefined,
+      embeds
+    );
     const canvas = await service.create(alice, {});
+    const findMessages = vi
+      .spyOn(repository, 'findMessages')
+      .mockRejectedValue(new Error('Messages read failed'));
+    rooms.accessibleRoomIds.mockRejectedValue(new Error('Rooms read failed'));
+
     await expect(
       service.embeddedMessages(bob, { canvasId: canvas.id, messageIds: [open] })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(rooms.accessibleRoomIds).not.toHaveBeenCalled();
+    expect(findMessages).not.toHaveBeenCalled();
   });
 });
 
@@ -1154,6 +1376,116 @@ describe.skipIf(!connectionString)('CanvasesService with Postgres', () => {
     expect(
       (await service.listRoomCanvases(owner, roomId)).map((c) => c.id)
     ).toEqual(expect.arrayContaining([a.id, b.id]));
+  });
+
+  it('filters workspace canvas lists by room visibility, membership, and scope', async () => {
+    const roomCases = [
+      {
+        name: 'public-list',
+        kind: 'CHANNEL',
+        visibility: 'PUBLIC',
+        joined: false,
+        readable: true,
+      },
+      {
+        name: 'private-list',
+        kind: 'CHANNEL',
+        visibility: 'PRIVATE',
+        joined: true,
+        readable: true,
+      },
+      {
+        name: 'hidden-private-list',
+        kind: 'CHANNEL',
+        visibility: 'PRIVATE',
+        joined: false,
+        readable: false,
+      },
+      {
+        name: 'dm-list',
+        kind: 'DM',
+        visibility: 'PRIVATE',
+        joined: true,
+        readable: true,
+      },
+      {
+        name: 'hidden-dm-list',
+        kind: 'DM',
+        visibility: 'PRIVATE',
+        joined: false,
+        readable: false,
+      },
+      {
+        name: 'archived-list',
+        kind: 'CHANNEL',
+        visibility: 'PUBLIC',
+        joined: true,
+        readable: true,
+      },
+    ] as const;
+    const entries = await Promise.all(
+      roomCases.map(async ({ name, kind, visibility, joined, readable }) => {
+        const room = await prisma.room.create({
+          data: {
+            name,
+            kind,
+            visibility,
+            organizationId: run,
+            archivedAt: name === 'archived-list' ? new Date() : null,
+            members: { create: joined ? [{ userId: users.member }] : [] },
+          },
+        });
+        const canvas = await prisma.canvas.create({
+          data: {
+            title: name,
+            roomId: room.id,
+            organizationId: run,
+            createdById: users.owner,
+          },
+        });
+        return { name, id: canvas.id, readable };
+      })
+    );
+    const shared = await service.create(owner, {});
+    await service.share(owner, {
+      canvasId: shared.id,
+      userIds: [users.member],
+      role: 'viewer',
+    });
+    const unshared = await service.create(owner, {});
+    const fixtureIds = new Set([
+      ...entries.map(({ id }) => id),
+      shared.id,
+      unshared.id,
+    ]);
+    const readableIds = entries
+      .filter(({ readable }) => readable)
+      .map(({ id }) => id);
+
+    const [all, channels, standalone] = await Promise.all([
+      service.list(member, 'all'),
+      service.list(member, 'channel'),
+      service.list(member, 'shared'),
+    ]);
+
+    for (const [canvases, ids] of [
+      [all, [...readableIds, shared.id]],
+      [channels, readableIds],
+      [standalone, [shared.id]],
+    ] as const) {
+      expect(
+        canvases
+          .map(({ id }) => id)
+          .filter((id) => fixtureIds.has(id))
+          .sort()
+      ).toEqual([...ids].sort());
+    }
+    expect(
+      channels.find(({ title }) => title === 'archived-list')?.access.edit
+    ).toBe(false);
+    expect(channels.find(({ title }) => title === 'dm-list')?.access.edit).toBe(
+      true
+    );
   });
 
   it('keeps the last editor when two editors demote each other at once', async () => {

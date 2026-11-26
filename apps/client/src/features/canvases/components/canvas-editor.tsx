@@ -116,6 +116,7 @@ import { createLiveblocksYjsAdapter } from '../lib/liveblocks-yjs-adapter';
 import { parseMessageUrl } from '../lib/message-url';
 import {
   CanvasCollabProvider,
+  type CanvasLiveblocksAuthState,
   useCanvasCollab,
 } from './canvas-collab-provider';
 import {
@@ -529,10 +530,13 @@ function CanvasEditorLive({
  */
 function CanvasEditorSharePrompt({ canvasId }: { canvasId: string }) {
   const [editor] = useLexicalComposerContext();
-  const { data: members } = useQuery(canvasMembersQuery(canvasId));
+  const [mentioned, setMentioned] = useState<string[]>([]);
+  const { data: members } = useQuery({
+    ...canvasMembersQuery(canvasId),
+    enabled: mentioned.length > 0,
+  });
   const { data: workspaceMembers = [] } = useWorkspaceMembers();
   const share = useShareCanvas();
-  const [mentioned, setMentioned] = useState<string[]>([]);
 
   useEffect(
     () =>
@@ -646,27 +650,27 @@ function CanvasEditorPlugins({
       <LayoutPlugin />
       <CalloutPlugin />
       <TogglePlugin />
-      <Mention source={suggestions}>
-        <MentionPortal>
-          <MentionContent>
-            {() => (
-              <MentionItem>
-                <MentionAvatar />
-                <MentionLabel />
-                <MentionHint />
-              </MentionItem>
-            )}
-          </MentionContent>
-          <MentionFooter />
-        </MentionPortal>
-      </Mention>
-      <EmojiPickerPlugin />
-      <ComponentPickerMenuPlugin
-        baseOptions={blockOptions}
-        dynamicOptionsFn={DynamicTablePickerPlugin}
-      />
       {canvas.access.edit && (
         <>
+          <Mention source={suggestions}>
+            <MentionPortal>
+              <MentionContent>
+                {() => (
+                  <MentionItem>
+                    <MentionAvatar />
+                    <MentionLabel />
+                    <MentionHint />
+                  </MentionItem>
+                )}
+              </MentionContent>
+              <MentionFooter />
+            </MentionPortal>
+          </Mention>
+          <EmojiPickerPlugin />
+          <ComponentPickerMenuPlugin
+            baseOptions={blockOptions}
+            dynamicOptionsFn={DynamicTablePickerPlugin}
+          />
           <FloatingTextFormatToolbarPlugin
             anchorElem={anchor}
             setIsLinkEditMode={setIsLinkEditMode}
@@ -723,15 +727,17 @@ function buildCanvasEditor(
  */
 export function CanvasEditor({
   canvas,
+  auth,
   fallback,
   presenceSlot,
   ...props
 }: CanvasEditorDocumentProps & {
   /** Read once, when the editor mounts. Remount with a `key` to open another canvas. */
   canvas: CanvasDocument;
+  auth: CanvasLiveblocksAuthState;
 }) {
   return (
-    <CanvasCollabProvider canvasId={canvas.id} fallback={fallback}>
+    <CanvasCollabProvider canvasId={canvas.id} auth={auth} fallback={fallback}>
       <CanvasEditorDocument
         canvas={canvas}
         fallback={fallback}

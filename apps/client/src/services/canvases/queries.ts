@@ -21,16 +21,24 @@ export const canvasQuery = (canvasId: string) =>
 export const canvasMembersQuery = (canvasId: string) =>
   orpc.canvases.listMembers.queryOptions({ input: { canvasId } });
 
-/** Read once, when a canvas opens, to choose live or single-user editing. */
-export const canvasLiveblocksAuthQuery = (canvasId: string) =>
-  orpc.canvases.liveblocksAuth.queryOptions({
-    input: { canvasId },
+/** Read once per canvas opening to choose live or single-user editing. */
+export const canvasLiveblocksAuthQuery = (
+  canvasId: string,
+  openingId?: string
+) => {
+  const baseKey = orpc.canvases.liveblocksAuth.key({ input: { canvasId } });
+  return queryOptions({
+    queryKey: openingId ? ([...baseKey, openingId] as const) : baseKey,
+    queryFn: ({ signal }) =>
+      client.canvases.liveblocksAuth({ canvasId }, { signal }),
     retry: false,
     staleTime: 0,
     gcTime: 0,
+    refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
+};
 
 export const canvasCommentsQuery = (canvasId: string) =>
   orpc.canvases.listComments.queryOptions({ input: { canvasId } });

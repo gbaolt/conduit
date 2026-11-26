@@ -7,6 +7,7 @@ import type {
   CanvasRole,
   CanvasScope,
   MessageHit,
+  PolicyChannel,
 } from '@conduit/contract';
 
 /** A canvas row as the app sees it, before the viewer's `access` is worked out. */
@@ -15,10 +16,12 @@ export type StoredCanvas = Omit<Canvas, 'access'> & {
   viewerRole: CanvasRole | null;
 };
 
-export type StoredCanvasDocument = StoredCanvas &
+export type CanvasMeta = StoredCanvas & { roomPolicy: PolicyChannel | null };
+
+export type StoredCanvasDocument = CanvasMeta &
   Pick<CanvasDocument, 'snapshotJson' | 'markdown'>;
 
-export type StoredCanvasForLink = StoredCanvas &
+export type StoredCanvasForLink = CanvasMeta &
   Pick<CanvasDocument, 'markdown'> & { deletedAt: Date | null };
 
 /** Whose view of a canvas to load: `viewerRole` depends on it. */
@@ -50,9 +53,14 @@ export type CanvasSeed = Partial<CanvasSnapshot> & {
   sourceThreadId?: string;
 };
 
-/** Canvases and their shares. Callers check access; this port knows only rows. */
+/** Canvases and their shares. Callers check what actions the viewer may take. */
 export abstract class CanvasesRepository {
-  abstract find(
+  abstract findMeta(
+    scope: CanvasScopeOf,
+    canvasId: string
+  ): Promise<CanvasMeta | null>;
+
+  abstract findDocument(
     scope: CanvasScopeOf,
     canvasId: string
   ): Promise<StoredCanvasDocument | null>;
@@ -84,12 +92,11 @@ export abstract class CanvasesRepository {
     seed?: CanvasSeed
   ): Promise<string>;
 
-  /** Canvases in `roomIds` and standalone canvases shared with the scope's user, recently updated first. */
+  /** Readable canvases matching the requested scope, recently updated first. */
   abstract list(
     scope: CanvasScopeOf,
-    roomIds: string[],
     canvasScope: CanvasScope
-  ): Promise<StoredCanvas[]>;
+  ): Promise<CanvasMeta[]>;
 
   abstract update(
     scope: CanvasScopeOf,

@@ -12,7 +12,7 @@ import {
   type CreateCanvasInput,
   type EmbeddedMessage,
   type PolicyCanvas,
-  type Room,
+  type PolicyChannel,
   type SaveCanvasSnapshotInput,
   type ShareCanvasInput,
   type UpdateCanvasInput,
@@ -29,6 +29,7 @@ import {
 } from '@/canvases/domain/canvas-versions.repository';
 import {
   CanvasesRepository,
+  type CanvasMeta,
   type CanvasSeed,
   type StoredCanvas,
 } from '@/canvases/domain/canvases.repository';
@@ -72,7 +73,10 @@ export class CanvasesService {
     private readonly versions: CanvasVersionsRepository
   ) {}
 
-  private policyCanvas(canvas: StoredCanvas, room: Room | null): PolicyCanvas {
+  private policyCanvas(
+    canvas: StoredCanvas,
+    room: PolicyChannel | null
+  ): PolicyCanvas {
     return {
       createdById: canvas.createdById,
       channel: room,
@@ -80,21 +84,24 @@ export class CanvasesService {
     };
   }
 
-  private async canvasAccessContext(
+  private authorizedCanvas<T extends CanvasMeta>(
     viewer: CanvasViewerScope,
-    canvas: StoredCanvas
+    stored: T | null,
+    action: CanvasAction
   ) {
-    const room = canvas.roomId
-      ? await this.rooms.find(viewer, canvas.roomId)
-      : null;
-    if (canvas.roomId && !room) return null;
-    return { room, policy: this.policyCanvas(canvas, room) };
+    if (!stored || (stored.roomId && !stored.roomPolicy)) {
+      throw canvasError('NOT_FOUND');
+    }
+    const { roomPolicy: room, ...canvas } = stored;
+    const denial = checkCanvas(action, viewer, this.policyCanvas(canvas, room));
+    if (denial) throw canvasError(denial);
+    return { canvas, room };
   }
 
   private withAccess<T extends StoredCanvas>(
     viewer: CanvasViewerScope,
     canvas: T,
-    room: Room | null
+    room: PolicyChannel | null
   ) {
     const policy = this.policyCanvas(canvas, room);
     const can = (action: CanvasAction) => canCanvas(action, viewer, policy);
@@ -114,16 +121,11 @@ export class CanvasesService {
     canvasId: string,
     action: CanvasAction
   ) {
-    const canvas = await this.canvases.find(viewer, canvasId);
-    if (!canvas) throw canvasError('NOT_FOUND');
-    const access = await this.canvasAccessContext(viewer, canvas);
-    if (!access) throw canvasError('NOT_FOUND');
-    const denial = checkCanvas(action, viewer, access.policy);
-    if (denial) throw canvasError(denial);
-    return { canvas, room: access.room };
+    const canvas = await this.canvases.findMeta(viewer, canvasId);
+    return this.authorizedCanvas(viewer, canvas, action);
   }
 
-  /** A channel the viewer can read, or `NOT_FOUND`. A DM has no canvas. */
+  /** A room the viewer can read, or `NOT_FOUND`. */
   private async readableRoom(viewer: CanvasViewerScope, roomId: string) {
     const room = await this.rooms.find(viewer, roomId);
     if (
@@ -146,42 +148,22 @@ export class CanvasesService {
   }
 
   async get(viewer: CanvasViewerScope, canvasId: string) {
-    const { canvas, room } = await this.load(viewer, canvasId, 'view');
+    const document = await this.canvases.findDocument(viewer, canvasId);
+    const { canvas, room } = this.authorizedCanvas(viewer, document, 'view');
     return this.withAccess(viewer, canvas, room);
   }
 
   async list(viewer: CanvasViewerScope, scope: CanvasScope) {
-    const [active, archived, roomIds] = await Promise.all([
-      this.rooms.list(viewer, false),
-      this.rooms.list(viewer, true),
-      this.rooms.accessibleRoomIds(viewer),
-    ]);
-    const rooms = new Map(
-      [...active, ...archived].map((room) => [room.id, room])
-    );
-    const canvases = await this.canvases.list(viewer, roomIds, scope);
-    // The channel lists leave out DMs, so the few DMs that hold canvases are read one by one.
-    const dmIds = new Set(
-      canvases.flatMap(({ roomId }) =>
-        roomId && !rooms.has(roomId) ? [roomId] : []
-      )
-    );
-    const dms = await Promise.all(
-      [...dmIds].map((roomId) => this.rooms.find(viewer, roomId))
-    );
-    for (const dm of dms) if (dm) rooms.set(dm.id, dm);
-    // A room canvas never falls back to the standalone rules, so one whose room vanished meanwhile is dropped.
-    return canvases
-      .flatMap((canvas) =>
-        canvas.roomId && !rooms.has(canvas.roomId) ? [] : [canvas]
-      )
-      .map((canvas) =>
-        this.withAccess(
-          viewer,
-          canvas,
-          canvas.roomId ? (rooms.get(canvas.roomId) ?? null) : null
-        )
-      );
+    const canvases = await this.canvases.list(viewer, scope);
+    return canvases.flatMap(({ roomPolicy, ...canvas }) => {
+      if (
+        (canvas.roomId && !roomPolicy) ||
+        !canCanvas('view', viewer, this.policyCanvas(canvas, roomPolicy))
+      ) {
+        return [];
+      }
+      return [this.withAccess(viewer, canvas, roomPolicy)];
+    });
   }
 
   async create(viewer: CanvasViewerScope, input: CreateCanvasInput) {
@@ -399,9 +381,11 @@ export class CanvasesService {
     canvasId: string
   ): Promise<CanvasLinkCardResult> {
     const canvas = await this.canvases.findForLink(viewer, canvasId);
-    if (!canvas) return { status: 'inaccessible' };
-    const access = await this.canvasAccessContext(viewer, canvas);
-    if (!access || !canCanvas('view', viewer, access.policy)) {
+    if (
+      !canvas ||
+      (canvas.roomId && !canvas.roomPolicy) ||
+      !canCanvas('view', viewer, this.policyCanvas(canvas, canvas.roomPolicy))
+    ) {
       return { status: 'inaccessible' };
     }
     if (canvas.deletedAt) return { status: 'deleted' };
