@@ -25,17 +25,15 @@ import {
   IconMessageCircle,
   IconPlus,
 } from '@tabler/icons-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import dynamic from 'next/dynamic';
 import { useQueryState } from 'nuqs';
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect } from 'react';
 import { toast } from 'sonner';
 
-import {
-  CanvasViewById,
-  CanvasViewSkeleton,
-} from '@/features/canvases/components/canvas-view';
+import { CanvasViewSkeleton } from '@/features/canvases/components/canvas-view-skeleton';
 import { useCreateCanvas } from '@/services/canvases/hooks';
-import { roomCanvasesQuery } from '@/services/canvases/queries';
+import { canvasQuery, roomCanvasesQuery } from '@/services/canvases/queries';
 import { roomQuery } from '@/services/rooms/queries';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
@@ -44,6 +42,14 @@ import {
   type RoomCanvasIds,
   roomTabParam,
 } from '../lib/room-tab';
+
+const CanvasViewById = dynamic(
+  () =>
+    import('@/features/canvases/components/canvas-view').then(
+      (m) => m.CanvasViewById
+    ),
+  { ssr: false, loading: () => <CanvasViewSkeleton /> }
+);
 
 function RoomTabCanvasIcon({ canvas }: { canvas: Canvas }) {
   return canvas.icon ? (
@@ -129,12 +135,20 @@ export function RoomTabs({
   children: ReactNode;
 }) {
   const [tab, setTab] = useQueryState('tab', roomTabParam);
+  const queryClient = useQueryClient();
   const canvases = useQuery(roomCanvasesQuery(roomId));
   // A failed refresh keeps the tabs it already had.
   let ids: RoomCanvasIds = canvases.isError ? 'failed' : 'pending';
   if (canvases.data) ids = canvases.data.map((canvas) => canvas.id);
   const active = resolveRoomTab(tab, ids);
   const showMessages = () => void setTab(null);
+
+  useEffect(() => {
+    // Start canvases.get alongside the dynamic CanvasViewById chunk download.
+    if (active && active !== 'messages') {
+      void queryClient.prefetchQuery(canvasQuery(active));
+    }
+  }, [active, queryClient]);
 
   return (
     <Tabs

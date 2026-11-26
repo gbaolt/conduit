@@ -10,14 +10,13 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@conduit/ui/components/empty';
-import { Skeleton } from '@conduit/ui/components/skeleton';
 import { ORPCError } from '@orpc/client';
 import { IconAlertTriangle, IconLayoutBoard } from '@tabler/icons-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { LexicalEditor } from 'lexical';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import { StatusButton } from '@/components/async/status-button';
@@ -25,17 +24,14 @@ import { messagePath } from '@/features/messages/lib/message-link';
 import { useCopy } from '@/hooks/use-copy';
 import {
   canvasEmbeddedMessageQuery,
+  canvasLiveblocksAuthQuery,
   canvasQuery,
 } from '@/services/canvases/queries';
 
 import { useCanvasFullWidth } from '../hooks/use-canvas-full-width';
-import {
-  $selectNewFirstLine,
-  canvasEmbeddedMessageIdsOf,
-  canvasExportMarkdownOf,
-} from '../lib/canvas-extension';
 import { downloadMarkdownFile } from '../lib/canvas-markdown-export';
 import { CanvasActionMenu } from './canvas-action-menu';
+import type { CanvasLiveblocksAuthState } from './canvas-collab-provider';
 import type { CanvasSaveStatus } from './canvas-editor';
 import { CanvasCover, CanvasHeading } from './canvas-heading';
 import {
@@ -44,19 +40,10 @@ import {
   CanvasLayoutContent,
 } from './canvas-layout';
 import { CanvasShareDialog } from './canvas-share-dialog';
-
-const LINE_WIDTHS = ['w-2/3', 'w-full', 'w-5/6', 'w-1/2'];
-
-/** Lines where the document will be, while the editor's code loads. */
-export function CanvasViewEditorSkeleton() {
-  return (
-    <div role="status" aria-label="Loading canvas" className="space-y-4 pl-8">
-      {LINE_WIDTHS.map((width) => (
-        <Skeleton key={width} className={`h-4 ${width}`} />
-      ))}
-    </div>
-  );
-}
+import {
+  CanvasViewEditorSkeleton,
+  CanvasViewSkeleton,
+} from './canvas-view-skeleton';
 
 // Loaded only when a canvas opens, so a channel's first load does not carry the editor's plugins.
 const CanvasEditor = dynamic(
@@ -67,9 +54,11 @@ const CanvasEditor = dynamic(
 /** A canvas with its action menu, its cover and heading, its document, and its share dialog. */
 export function CanvasView({
   canvas,
+  auth,
   onDeleted,
 }: {
   canvas: CanvasDocument;
+  auth: CanvasLiveblocksAuthState;
   onDeleted: () => void;
 }) {
   const [status, setStatus] = useState<CanvasSaveStatus>('saved');
@@ -105,10 +94,15 @@ export function CanvasView({
     // A History preview hides the document, so there is nowhere to write.
     if (!editor?.isEditable() || !editor.getRootElement()?.checkVisibility())
       return;
-    editor.update($selectNewFirstLine, { onUpdate: () => editor.focus() });
+    void import('../lib/canvas-extension')
+      .then(({ $selectNewFirstLine }) => {
+        if (!editor.isEditable() || !editor.getRootElement()?.checkVisibility())
+          return;
+        editor.update($selectNewFirstLine, { onUpdate: () => editor.focus() });
+      })
+      .catch(() => toast.error('Couldn’t move to the canvas body.'));
   };
-  const resolveMessageUrls = async (target: LexicalEditor) => {
-    const ids = canvasEmbeddedMessageIdsOf(target);
+  const resolveMessageUrls = async (ids: string[]) => {
     const urls = new Map<string, string>();
     await Promise.all(
       ids.map(async (messageId) => {
@@ -133,16 +127,18 @@ export function CanvasView({
   const currentMarkdown = async () => {
     const target = exportState.editor;
     if (!target) return canvas.markdown;
-    const urls = await resolveMessageUrls(target);
+    const { canvasEmbeddedMessageIdsOf, canvasExportMarkdownOf } =
+      await import('../lib/canvas-extension');
+    const urls = await resolveMessageUrls(canvasEmbeddedMessageIdsOf(target));
     return canvasExportMarkdownOf(target, {
       resolveMessageUrl: (id) => urls.get(id) ?? null,
     });
   };
   const copyMarkdown = () => void copyMarkdownToClipboard(currentMarkdown);
   const downloadMarkdown = () => {
-    void currentMarkdown().then((markdown) =>
-      downloadMarkdownFile(canvas.title, markdown)
-    );
+    void currentMarkdown()
+      .then((markdown) => downloadMarkdownFile(canvas.title, markdown))
+      .catch(() => toast.error('Couldn’t download Markdown.'));
   };
 
   return (
@@ -185,6 +181,7 @@ export function CanvasView({
           <CanvasEditor
             key={canvas.id}
             canvas={canvas}
+            auth={auth}
             fallback={<CanvasViewEditorSkeleton />}
             presenceSlot={presenceSlot}
             tocSlot={tocSlot}
@@ -213,18 +210,6 @@ export function CanvasView({
           onOpenChange={setSharing}
         />
       )}
-    </div>
-  );
-}
-
-export function CanvasViewSkeleton() {
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <CanvasLayout>
-        <CanvasLayoutContent>
-          <CanvasViewEditorSkeleton />
-        </CanvasLayoutContent>
-      </CanvasLayout>
     </div>
   );
 }
@@ -292,7 +277,30 @@ export function CanvasViewById({
   onDeleted?: () => void;
 }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const [activationId, setActivationId] = useState(() => crypto.randomUUID());
+  const openingId = `${canvasId}:${activationId}`;
   const canvas = useQuery(canvasQuery(canvasId));
+  const auth = useQuery(canvasLiveblocksAuthQuery(canvasId, openingId));
+
+  useEffect(() => {
+    // Warm the editor chunk alongside the canvas and auth fetches so it does not wait on them.
+    void import('./canvas-editor').catch(() => {});
+  }, [canvasId]);
+
+  useEffect(() => {
+    return () => {
+      // Cache Components hides routes via <Activity> without unmounting; rotate on deactivation so reveal fetches fresh.
+      setActivationId(crypto.randomUUID());
+    };
+  }, []);
+
+  useEffect(() => {
+    const { queryKey } = canvasLiveblocksAuthQuery(canvasId, openingId);
+    return () => {
+      queryClient.removeQueries({ queryKey, exact: true });
+    };
+  }, [canvasId, openingId, queryClient]);
 
   if (canvas.isPending) return <CanvasViewSkeleton />;
   if (canvas.isError) {
@@ -319,6 +327,7 @@ export function CanvasViewById({
   return (
     <CanvasView
       canvas={canvas.data}
+      auth={auth}
       onDeleted={onDeleted ?? (() => router.push('/canvases'))}
     />
   );

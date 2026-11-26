@@ -1,9 +1,7 @@
 import { Suspense } from 'react';
 
-import {
-  CanvasViewById,
-  CanvasViewSkeleton,
-} from '@/features/canvases/components/canvas-view';
+import { CanvasViewById } from '@/features/canvases/components/canvas-view';
+import { CanvasViewSkeleton } from '@/features/canvases/components/canvas-view-skeleton';
 
 export default function CanvasPage({
   params,

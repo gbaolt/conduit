@@ -11,11 +11,30 @@ import { Button } from '@conduit/ui/components/button';
 import { LiveblocksProvider, RoomProvider } from '@liveblocks/react';
 import { ORPCError } from '@orpc/client';
 import { IconAlertTriangle } from '@tabler/icons-react';
-import { useQuery } from '@tanstack/react-query';
 import { createContext, type ReactNode, use, useRef, useState } from 'react';
 
 import { useCanvasLiveblocksToken } from '@/services/canvases/hooks';
-import { canvasLiveblocksAuthQuery } from '@/services/canvases/queries';
+
+/** Opening-scoped Liveblocks auth query state shared from CanvasViewById. */
+export type CanvasLiveblocksAuthState =
+  | {
+      isPending: true;
+      isError: false;
+      data: undefined;
+      refetch: () => unknown;
+    }
+  | {
+      isPending: false;
+      isError: true;
+      data: CanvasLiveblocksAuth | undefined;
+      refetch: () => unknown;
+    }
+  | {
+      isPending: false;
+      isError: false;
+      data: CanvasLiveblocksAuth;
+      refetch: () => unknown;
+    };
 
 declare global {
   interface Liveblocks {
@@ -45,15 +64,15 @@ export function useCanvasCollab() {
  */
 export function CanvasCollabProvider({
   canvasId,
+  auth,
   fallback,
   children,
 }: {
   canvasId: string;
+  auth: CanvasLiveblocksAuthState;
   fallback: ReactNode;
   children: ReactNode;
 }) {
-  const auth = useQuery(canvasLiveblocksAuthQuery(canvasId));
-
   if (auth.isPending) return fallback;
   if (auth.isError) {
     return (
@@ -64,7 +83,11 @@ export function CanvasCollabProvider({
           Check your connection, then try again.
         </AlertDescription>
         <AlertAction>
-          <Button variant="outline" size="sm" onClick={() => auth.refetch()}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void auth.refetch()}
+          >
             Retry
           </Button>
         </AlertAction>
