@@ -26,22 +26,26 @@ import {
   IconPlus,
 } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
-import { parseAsString, useQueryState } from 'nuqs';
+import { useQueryState } from 'nuqs';
 import type { ReactNode } from 'react';
 import { toast } from 'sonner';
 
+import {
+  CanvasViewById,
+  CanvasViewSkeleton,
+} from '@/features/canvases/components/canvas-view';
 import { useCreateCanvas } from '@/services/canvases/hooks';
 import { roomCanvasesQuery } from '@/services/canvases/queries';
 import { roomQuery } from '@/services/rooms/queries';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
-import { type ChannelCanvasIds, resolveChannelTab } from '../lib/channel-tab';
-import { CanvasViewById, CanvasViewSkeleton } from './canvas-view';
+import {
+  resolveRoomTab,
+  type RoomCanvasIds,
+  roomTabParam,
+} from '../lib/room-tab';
 
-/** `?tab=` holds `messages` or a canvas id. Messages is the default, so it leaves the URL clean. */
-export const canvasRoomTabParam = parseAsString.withDefault('messages');
-
-function CanvasTabIcon({ canvas }: { canvas: Canvas }) {
+function RoomTabCanvasIcon({ canvas }: { canvas: Canvas }) {
   return canvas.icon ? (
     <Twemoji className="size-4 shrink-0">{canvas.icon}</Twemoji>
   ) : (
@@ -53,7 +57,7 @@ function CanvasTabIcon({ canvas }: { canvas: Canvas }) {
  * The `+` after the tabs, styled like the composer's attach button. It adds a canvas to the room and opens it.
  * Only people who can post see it.
  */
-function CanvasRoomAddMenu({
+function RoomTabsAddMenu({
   roomId,
   onCreated,
 }: {
@@ -113,7 +117,7 @@ function CanvasRoomAddMenu({
  * Messages, then one tab per canvas, then `+`, directly under a channel's or DM's header. Messages stays mounted,
  * so it keeps its scroll.
  */
-export function CanvasRoomTabs({
+export function RoomTabs({
   roomId,
   banner,
   children,
@@ -124,12 +128,12 @@ export function CanvasRoomTabs({
   /** The room's messages. */
   children: ReactNode;
 }) {
-  const [tab, setTab] = useQueryState('tab', canvasRoomTabParam);
+  const [tab, setTab] = useQueryState('tab', roomTabParam);
   const canvases = useQuery(roomCanvasesQuery(roomId));
   // A failed refresh keeps the tabs it already had.
-  let ids: ChannelCanvasIds = canvases.isError ? 'failed' : 'pending';
+  let ids: RoomCanvasIds = canvases.isError ? 'failed' : 'pending';
   if (canvases.data) ids = canvases.data.map((canvas) => canvas.id);
-  const active = resolveChannelTab(tab, ids);
+  const active = resolveRoomTab(tab, ids);
   const showMessages = () => void setTab(null);
 
   return (
@@ -150,12 +154,12 @@ export function CanvasRoomTabs({
               value={canvas.id}
               className="h-10 max-w-48 px-2 after:bottom-1!"
             >
-              <CanvasTabIcon canvas={canvas} />
+              <RoomTabCanvasIcon canvas={canvas} />
               <span className="truncate">{canvas.title}</span>
             </TabsTrigger>
           ))}
         </TabsList>
-        <CanvasRoomAddMenu
+        <RoomTabsAddMenu
           roomId={roomId}
           onCreated={(canvasId) => void setTab(canvasId)}
         />
