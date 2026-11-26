@@ -102,7 +102,7 @@ Each milestone ships its core features first, then the AI feature that depends o
 | [M1](#m1-messaging)                        | Messages, threads, DMs, realtime         | Summaries                   | Shipped     |
 | [M2](#m2-activity-and-notifications)       | Activity feed, notifications             | Smart Activity, Catch me up | Shipped     |
 | [M3](#m3-files-and-search)                 | Files, search, command menu              | Ask Conduit                 | In progress |
-| [M4](#m4-canvas)                           | Canvas                                   | Thread to canvas            | Not started |
+| [M4](#m4-canvas)                           | Canvas                                   | Thread to canvas            | In progress |
 | [M5](#m5-kanban)                           | Kanban boards                            | Actions and decisions       | Not started |
 | [M6](#m6-workflows)                        | Workflows                                | Plain-English workflows     | Not started |
 | [M7](#m7-admin-analytics-and-ai-teammates) | Admin analytics                          | AI teammates                | Not started |
@@ -216,15 +216,15 @@ Teams share files in chat and need to find old answers. Ask Conduit answers from
 
 Some talk needs to become a document that people keep editing. A canvas is attached to a channel by default.
 
-| ID   | Sub-feature                                                                   | Status      | PR  |
-| ---- | ----------------------------------------------------------------------------- | ----------- | --- |
-| M4.1 | Create a canvas as a channel tab, or on its own and shared with chosen people | Not started |     |
-| M4.2 | Several people edit at once, and each person's cursor shows                   | Not started |     |
-| M4.3 | Comment on selected text                                                      | Not started |     |
-| M4.4 | Mentions and checklists                                                       | Not started |     |
-| M4.5 | Embed a message in a canvas                                                   | Not started |     |
-| M4.6 | Version history                                                               | Not started |     |
-| M4.7 | AI: turn a thread into a canvas draft                                         | Not started |     |
+| ID   | Sub-feature                                                                   | Status  | PR                                                 |
+| ---- | ----------------------------------------------------------------------------- | ------- | -------------------------------------------------- |
+| M4.1 | Create a canvas as a channel tab, or on its own and shared with chosen people | Shipped | [#104](https://github.com/gbaolt/conduit/pull/104) |
+| M4.2 | Several people edit at once, and each person's cursor shows                   | Shipped | [#105](https://github.com/gbaolt/conduit/pull/105) |
+| M4.3 | Comment on selected text                                                      | Shipped | [#106](https://github.com/gbaolt/conduit/pull/106) |
+| M4.4 | Mentions and checklists                                                       | Shipped | [#104](https://github.com/gbaolt/conduit/pull/104) |
+| M4.5 | Embed a message in a canvas                                                   | Shipped | [#106](https://github.com/gbaolt/conduit/pull/106) |
+| M4.6 | Version history                                                               | Shipped | [#107](https://github.com/gbaolt/conduit/pull/107) |
+| M4.7 | AI: turn a thread into a canvas draft                                         | Shipped |                                                    |
 
 Later: canvas templates, and export to PDF or Markdown.
 

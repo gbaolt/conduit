@@ -5,6 +5,7 @@ import net from 'node:net';
 
 import type { LinkPreview } from '@conduit/contract';
 
+import { isCanvasLink } from '@/messages/domain/canvas-link';
 import type { LinkPreviewFetcher } from '@/messages/domain/link-preview.fetcher';
 
 export const MAX_REDIRECTS = 3;
@@ -261,16 +262,19 @@ function publicImage(value: string | undefined, base: URL) {
 export class HttpLinkPreviewFetcher implements LinkPreviewFetcher {
   private readonly allow: (address: string) => boolean;
   private readonly timeoutMs: number;
+  private readonly appOrigin: string;
 
   /** Tests widen `allow` to reach a local server and shorten `timeoutMs`. */
   constructor(
     options: {
       allow?: (address: string) => boolean;
       timeoutMs?: number;
+      appOrigin?: string;
     } = {}
   ) {
     this.allow = options.allow ?? isPublicAddress;
     this.timeoutMs = options.timeoutMs ?? TIMEOUT_MS;
+    this.appOrigin = options.appOrigin ?? '';
   }
 
   async fetch(link: string): Promise<LinkPreview | null> {
@@ -280,6 +284,7 @@ export class HttpLinkPreviewFetcher implements LinkPreviewFetcher {
 
       for (let hops = 0; hops <= MAX_REDIRECTS; hops++) {
         if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+        if (isCanvasLink(url, this.appOrigin)) return null;
 
         const page = await readPage(url, this.allow, signal);
         if (!page) return null;

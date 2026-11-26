@@ -177,6 +177,9 @@ importers:
       '@lexical/list':
         specifier: ^0.49.0
         version: 0.49.0(@typescript/typescript6@6.0.2)
+      '@lexical/mark':
+        specifier: ^0.49.0
+        version: 0.49.0(@typescript/typescript6@6.0.2)
       '@lexical/markdown':
         specifier: ^0.49.0
         version: 0.49.0(@typescript/typescript6@6.0.2)
@@ -185,7 +188,7 @@ importers:
         version: 0.49.0(@typescript/typescript6@6.0.2)
       '@lexical/react':
         specifier: ^0.49.0
-        version: 0.49.0(@typescript/typescript6@6.0.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(yjs@13.6.32)
+        version: 0.49.0(@typescript/typescript6@6.0.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(yjs@13.6.33)
       '@lexical/rich-text':
         specifier: ^0.49.0
         version: 0.49.0(@typescript/typescript6@6.0.2)
@@ -201,6 +204,15 @@ importers:
       '@lexical/utils':
         specifier: ^0.49.0
         version: 0.49.0(@typescript/typescript6@6.0.2)
+      '@liveblocks/client':
+        specifier: ^3.25.2
+        version: 3.25.2(@types/json-schema@7.0.15)
+      '@liveblocks/react':
+        specifier: ^3.25.2
+        version: 3.25.2(@types/json-schema@7.0.15)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react@19.3.1)
+      '@liveblocks/yjs':
+        specifier: ^3.25.2
+        version: 3.25.2(@types/json-schema@7.0.15)(yjs@13.6.33)
       '@neon/realtime':
         specifier: ^0.2.0
         version: 0.2.0(ws@8.22.0)
@@ -312,6 +324,9 @@ importers:
       unist-util-visit:
         specifier: ^5.2.0
         version: 5.2.0
+      yjs:
+        specifier: ^13.6.33
+        version: 13.6.33
       zod:
         specifier: 'catalog:'
         version: 4.4.3
@@ -379,6 +394,9 @@ importers:
       '@conduit/contract':
         specifier: workspace:*
         version: link:../../packages/contract
+      '@liveblocks/node':
+        specifier: ^3.25.2
+        version: 3.25.2(@types/json-schema@7.0.15)
       '@neon/realtime':
         specifier: ^0.2.0
         version: 0.2.0(ws@8.21.1)
@@ -2302,6 +2320,34 @@ packages:
       typescript:
         optional: true
 
+  '@liveblocks/client@3.25.2':
+    resolution: {integrity: sha512-ViRRoo1ZTS+DGtfYkH5028TwMe6avpKFgTDfDqnC6uzG3hZNwPe8kX7BndH6X4vgwmOEmMT2wzmw0bTMjtvRNA==}
+
+  '@liveblocks/core@3.25.2':
+    resolution: {integrity: sha512-Ccx7thlWAxFJ0uC+p1KN68OvFJCTzaxvXiJAikgNyqzNENNOwFvEt51DnS9PFfsDIxNdCzFZFUnqhPNc/A3BIA==}
+    peerDependencies:
+      '@types/json-schema': ^7
+
+  '@liveblocks/node@3.25.2':
+    resolution: {integrity: sha512-HfArig0Z9YJtegQCgpwUpv8R+AtM77uzMpehbhDZR2fjSwpd5mEdn9v9zGZi35GzzzpUnwDZUhl+HiRJgrufJQ==}
+
+  '@liveblocks/react@3.25.2':
+    resolution: {integrity: sha512-6hdELrXVtf9RvNqtt/4TRXHizjZLg6zO/X86kuWSfjWjD/PFKN/oRsKEIBaOqEAnC2FeBZkS1BtlkO4WFUN6yA==}
+    peerDependencies:
+      '@types/react': 19.3.0
+      '@types/react-dom': 19.3.0
+      react: ^18 || ^19 || ^19.0.0-rc
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      '@types/react-dom':
+        optional: true
+
+  '@liveblocks/yjs@3.25.2':
+    resolution: {integrity: sha512-sOaswquZizGi9QcmuGZWWUhtyk54fzzUWdQxQGpn3H7xM3/Wbbyjm5Xkt09K4R0NZnWm7GqkcupcS8PYW+5EZw==}
+    peerDependencies:
+      yjs: ^13
+
   '@lukeed/csprng@1.1.0':
     resolution: {integrity: sha512-Z7C/xXCiGWsg0KuKsHTKJxbWhpI3Vs5GwLfOean7MGyVFGqdRgBbAjOCh6u4bbjPc/8MJ2pZmK/0DLdCbivLDA==}
     engines: {node: '>=8'}
@@ -2562,6 +2608,10 @@ packages:
   '@noble/ciphers@2.2.0':
     resolution: {integrity: sha512-Z6pjIZ/8IJcCGzb2S/0Px5J81yij85xASuk1teLNeg75bfT07MV3a/O2Mtn1I2se43k3lkVEcFaR10N4cgQcZA==}
     engines: {node: '>= 20.19.0'}
+
+  '@noble/hashes@1.8.0':
+    resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
+    engines: {node: ^14.21.3 || >=16}
 
   '@noble/hashes@2.2.0':
     resolution: {integrity: sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg==}
@@ -5855,6 +5905,9 @@ packages:
   jose@6.2.4:
     resolution: {integrity: sha512-N8acGzVsQy6M/fjFcxtysNc4Q379TcM5dM/qKkNtsHFji88yANnXTr7BLeP75iPnFwBfQzM/jg2BZ9+HZrHCZA==}
 
+  js-base64@3.9.7:
+    resolution: {integrity: sha512-UT2XYOCbXOXYoymbytretRDFnb6E6vYPqC1blehA/alnG6vRC0mNTQ6ijXYAPtiCG9o1FDNJXJvQtCwbChFDRQ==}
+
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
 
@@ -6182,6 +6235,11 @@ packages:
 
   markdown-table@3.1.0:
     resolution: {integrity: sha512-xpeSCdM+B+6P3ncfgaB7FoDbtJ30xAe6Z18TGT7AgXJsHqCElCICZovQqdRMm7kHgpTyYv36EupqewoFFSB8vw==}
+
+  marked@15.0.12:
+    resolution: {integrity: sha512-8dD6FusOQSrpv9Z1rdNMdlSgQOIP880DHqnohobOmYLElGEqAL/JvxvuxZO16r4HtjTlfPRDC1hbvxC9dPN2nA==}
+    engines: {node: '>= 18'}
+    hasBin: true
 
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
@@ -6514,6 +6572,15 @@ packages:
 
   node-emoji@1.11.0:
     resolution: {integrity: sha512-wo2DpQkQp7Sjm2A0cq+sN7EHKO6Sl0ctXeBdFZrL9T9+UywORbufTcTZxom8YqpLQt/FqNMUkOpkZrJVYSKD3A==}
+
+  node-fetch@2.7.0:
+    resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
+    engines: {node: 4.x || >=6.0.0}
+    peerDependencies:
+      encoding: ^0.1.0
+    peerDependenciesMeta:
+      encoding:
+        optional: true
 
   node-releases@2.0.51:
     resolution: {integrity: sha512-wRNIrw4DmVLKQlbgOMdkMx27Wrpzes2hh5Jtbi2bjPd+4wJstWIqP5A+lscnqbm0xxmT5Bpg8Lec5ItEBwx6BQ==}
@@ -7685,6 +7752,9 @@ packages:
     resolution: {integrity: sha512-dRXchy+C0IgK8WPC6xvCHFRIWYUbqqdEIKPaKo/AcTUNzwLTK6AH7RjdLWsEZcAN/TBdtfUw3PYEgPr5VPr6ww==}
     engines: {node: '>=14.16'}
 
+  tr46@0.0.3:
+    resolution: {integrity: sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==}
+
   trim-lines@3.0.1:
     resolution: {integrity: sha512-kRj8B+YHZCc9kQYdWfJB2/oUl9rA99qbowYYBtr4ui4mZyAQ2JpvVBd/6U2YloATfqBhBTSMhTpgBHtU0Mf3Rg==}
 
@@ -8031,6 +8101,9 @@ packages:
   web-worker@1.5.0:
     resolution: {integrity: sha512-RiMReJrTAiA+mBjGONMnjVDP2u3p9R1vkcGz6gDIrOMT3oGuYwX2WRMYI9ipkphSuE5XKEhydbhNEJh4NY9mlw==}
 
+  webidl-conversions@3.0.1:
+    resolution: {integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==}
+
   webpack-node-externals@3.0.0:
     resolution: {integrity: sha512-LnL6Z3GGDPht/AigwRh2dvL9PQPFQ8skEpVrWZXLWBYmqcaojHNN0onvHzie6rq7EWKrrBfPYqNEzTJgiwEQDQ==}
     engines: {node: '>=6'}
@@ -8048,6 +8121,9 @@ packages:
     peerDependenciesMeta:
       webpack-cli:
         optional: true
+
+  whatwg-url@5.0.0:
+    resolution: {integrity: sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==}
 
   which-boxed-primitive@1.1.1:
     resolution: {integrity: sha512-TbX3mj8n0odCBFVlY8AxkqcHASw3L60jIuF8jFP78az3C2YhmGvqbHBpAjTRH2/xqYunrJ9g1jSyjCjpoWzIAA==}
@@ -8163,6 +8239,12 @@ packages:
     resolution: {integrity: sha512-sqMMuL1rc0FmMBOzCpd0yuy9trqF2yTTVe+E9ogwCSWQCdDEtQUwrZPT6AxqtsFGRNxycgncbP/xmOOSPw5ZUw==}
     engines: {node: '>= 6.0'}
 
+  y-indexeddb@9.0.12:
+    resolution: {integrity: sha512-9oCFRSPPzBK7/w5vOkJBaVCQZKHXB/v6SIT+WYhnJxlEC61juqG0hBrAf+y3gmSMLFLwICNH9nQ53uscuse6Hg==}
+    engines: {node: '>=16.0.0', npm: '>=8.0.0'}
+    peerDependencies:
+      yjs: ^13.0.0
+
   y18n@5.0.8:
     resolution: {integrity: sha512-0pfFzegeDWJHJIAmTLRP2DwHjdF5s7jo9tuztdQxAhINCdvS+3nGINqPd00AphqJR/0LhANUS6/+7SCb98YOfA==}
     engines: {node: '>=10'}
@@ -8191,8 +8273,8 @@ packages:
     resolution: {integrity: sha512-jIH9yLR9wqr0wOS0TpBvo/g/2UgZH5qePVbjgRliiF0BYvOZyaBknKsF+x9Iht0O6sqgnB93rCICdOZFecJuDw==}
     engines: {node: '>=12'}
 
-  yjs@13.6.32:
-    resolution: {integrity: sha512-lfiJIIC4Xayt5ItynE407ehlE03pCjeOc4hkR4yxxvvNJ4kuiN25B0g+Qp8XagYz361LLL7DCzR5bvFJ81QKtQ==}
+  yjs@13.6.33:
+    resolution: {integrity: sha512-q/UYvr1gOk4XII+Cu1CW2dINjYqJJFifTzogEaIARznrvX7uOlHsdTEXcnOBMuIsrCGEEKdNxi74kyMLZlKVfw==}
     engines: {node: '>=16.0.0', npm: '>=8.0.0'}
 
   yocto-queue@0.1.0:
@@ -9746,7 +9828,7 @@ snapshots:
     optionalDependencies:
       typescript: '@typescript/typescript6@6.0.2'
 
-  '@lexical/react@0.49.0(@typescript/typescript6@6.0.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(yjs@13.6.32)':
+  '@lexical/react@0.49.0(@typescript/typescript6@6.0.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(yjs@13.6.33)':
     dependencies:
       '@floating-ui/react': 0.27.20(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@lexical/a11y': 0.49.0(@typescript/typescript6@6.0.2)
@@ -9766,13 +9848,13 @@ snapshots:
       '@lexical/table': 0.49.0(@typescript/typescript6@6.0.2)
       '@lexical/text': 0.49.0(@typescript/typescript6@6.0.2)
       '@lexical/utils': 0.49.0(@typescript/typescript6@6.0.2)
-      '@lexical/yjs': 0.49.0(@typescript/typescript6@6.0.2)(yjs@13.6.32)
+      '@lexical/yjs': 0.49.0(@typescript/typescript6@6.0.2)(yjs@13.6.33)
       lexical: 0.49.0(@typescript/typescript6@6.0.2)
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
     optionalDependencies:
       typescript: '@typescript/typescript6@6.0.2'
-      yjs: 13.6.32
+      yjs: 13.6.33
 
   '@lexical/rich-text@0.49.0(@typescript/typescript6@6.0.2)':
     dependencies:
@@ -9819,14 +9901,58 @@ snapshots:
     optionalDependencies:
       typescript: '@typescript/typescript6@6.0.2'
 
-  '@lexical/yjs@0.49.0(@typescript/typescript6@6.0.2)(yjs@13.6.32)':
+  '@lexical/yjs@0.49.0(@typescript/typescript6@6.0.2)(yjs@13.6.33)':
     dependencies:
       '@lexical/internal': 0.49.0(@typescript/typescript6@6.0.2)
       '@lexical/selection': 0.49.0(@typescript/typescript6@6.0.2)
       lexical: 0.49.0(@typescript/typescript6@6.0.2)
-      yjs: 13.6.32
+      yjs: 13.6.33
     optionalDependencies:
       typescript: '@typescript/typescript6@6.0.2'
+
+  '@liveblocks/client@3.25.2(@types/json-schema@7.0.15)':
+    dependencies:
+      '@liveblocks/core': 3.25.2(@types/json-schema@7.0.15)
+    transitivePeerDependencies:
+      - '@types/json-schema'
+
+  '@liveblocks/core@3.25.2(@types/json-schema@7.0.15)':
+    dependencies:
+      '@types/json-schema': 7.0.15
+
+  '@liveblocks/node@3.25.2(@types/json-schema@7.0.15)':
+    dependencies:
+      '@liveblocks/core': 3.25.2(@types/json-schema@7.0.15)
+      '@stablelib/base64': 1.0.1
+      fast-sha256: 1.3.0
+      marked: 15.0.12
+      node-fetch: 2.7.0
+    transitivePeerDependencies:
+      - '@types/json-schema'
+      - encoding
+
+  '@liveblocks/react@3.25.2(@types/json-schema@7.0.15)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react@19.3.1)':
+    dependencies:
+      '@liveblocks/client': 3.25.2(@types/json-schema@7.0.15)
+      '@liveblocks/core': 3.25.2(@types/json-schema@7.0.15)
+      react: 19.3.1
+    optionalDependencies:
+      '@types/react': 19.3.0
+      '@types/react-dom': 19.3.0(@types/react@19.3.0)
+    transitivePeerDependencies:
+      - '@types/json-schema'
+
+  '@liveblocks/yjs@3.25.2(@types/json-schema@7.0.15)(yjs@13.6.33)':
+    dependencies:
+      '@liveblocks/client': 3.25.2(@types/json-schema@7.0.15)
+      '@liveblocks/core': 3.25.2(@types/json-schema@7.0.15)
+      '@noble/hashes': 1.8.0
+      js-base64: 3.9.7
+      lib0: 0.2.117
+      y-indexeddb: 9.0.12(yjs@13.6.33)
+      yjs: 13.6.33
+    transitivePeerDependencies:
+      - '@types/json-schema'
 
   '@lukeed/csprng@1.1.0': {}
 
@@ -10076,6 +10202,8 @@ snapshots:
     optional: true
 
   '@noble/ciphers@2.2.0': {}
+
+  '@noble/hashes@1.8.0': {}
 
   '@noble/hashes@2.2.0': {}
 
@@ -13495,6 +13623,8 @@ snapshots:
 
   jose@6.2.4: {}
 
+  js-base64@3.9.7: {}
+
   js-tokens@4.0.0: {}
 
   js-yaml@4.1.0:
@@ -13754,6 +13884,8 @@ snapshots:
   map-stream@0.1.0: {}
 
   markdown-table@3.1.0: {}
+
+  marked@15.0.12: {}
 
   math-intrinsics@1.1.0: {}
 
@@ -14296,6 +14428,10 @@ snapshots:
   node-emoji@1.11.0:
     dependencies:
       lodash: 4.18.1
+
+  node-fetch@2.7.0:
+    dependencies:
+      whatwg-url: 5.0.0
 
   node-releases@2.0.51: {}
 
@@ -15540,6 +15676,8 @@ snapshots:
       '@tokenizer/token': 0.3.0
       ieee754: 1.2.1
 
+  tr46@0.0.3: {}
+
   trim-lines@3.0.1: {}
 
   trough@2.2.0: {}
@@ -15883,6 +16021,8 @@ snapshots:
 
   web-worker@1.5.0: {}
 
+  webidl-conversions@3.0.1: {}
+
   webpack-node-externals@3.0.0: {}
 
   webpack-sources@3.5.1: {}
@@ -15926,6 +16066,11 @@ snapshots:
       - lightningcss
       - postcss
       - uglify-js
+
+  whatwg-url@5.0.0:
+    dependencies:
+      tr46: 0.0.3
+      webidl-conversions: 3.0.1
 
   which-boxed-primitive@1.1.1:
     dependencies:
@@ -16048,6 +16193,11 @@ snapshots:
     dependencies:
       os-paths: 4.4.0
 
+  y-indexeddb@9.0.12(yjs@13.6.33):
+    dependencies:
+      lib0: 0.2.117
+      yjs: 13.6.33
+
   y18n@5.0.8: {}
 
   yallist@3.1.1: {}
@@ -16072,7 +16222,7 @@ snapshots:
     dependencies:
       pend: 1.2.0
 
-  yjs@13.6.32:
+  yjs@13.6.33:
     dependencies:
       lib0: 0.2.117
 

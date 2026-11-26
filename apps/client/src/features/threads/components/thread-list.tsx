@@ -27,6 +27,7 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useQueryState } from 'nuqs';
+import type { ReactNode } from 'react';
 
 import { PageHeader } from '@/components/page-header';
 import { MessageExcerpt } from '@/features/messages/components/message/message-excerpt';
@@ -223,12 +224,15 @@ function ThreadListItems() {
   );
 }
 
-/** Threads the member started or replied in, newest reply first. Each opens beside the list to reply. */
-export function ThreadList() {
+/**
+ * Threads the member started or replied in, newest reply first. Each opens beside the list to reply.
+ * `threadMenu` adds items to the open thread's header menu.
+ */
+export function ThreadList({ threadMenu }: { threadMenu?: ReactNode }) {
   const { names } = useAuthors();
 
   return (
-    <ThreadLayout>
+    <ThreadLayout threadMenu={threadMenu}>
       <div className="flex h-full min-h-0 flex-col">
         <PageHeader icon={IconMessages} title="Threads" className="border-b" />
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">

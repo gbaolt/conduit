@@ -15,12 +15,18 @@ export type ParsedMentions = {
 };
 
 const MENTION = /<@([\w-]+)>/g;
-const LINK = /https?:\/\/[^\s<>()[\]"'`]+/i;
+const LINK = /https?:\/\/[^\s<>()[\]"'`]+/gi;
+
+/** The http and https links in text order, without trailing punctuation. */
+export function* linksIn(body: string): Generator<string, void> {
+  for (const [link] of body.matchAll(LINK)) {
+    yield link.replace(/[.,;:!?*_~]+$/, '');
+  }
+}
 
 /** The first http or https link in the text, without trailing punctuation. */
 export function firstLink(body: string) {
-  const match = LINK.exec(body);
-  return match ? match[0].replace(/[.,;:!?*_~]+$/, '') : null;
+  return linksIn(body).next().value ?? null;
 }
 
 /** Reads `<@userId>`, `<@channel>`, and `<@here>`. Each user id appears once, in order. */

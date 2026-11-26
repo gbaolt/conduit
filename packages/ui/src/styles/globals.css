@@ -273,7 +273,3 @@
 @utility outline-shadow {
   @apply shadow-[inset_0_1px_0_0_rgba(0,0,0,0.1),inset_1px_0_0_0_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15)];
 }
-
-@utility btn-magnify {
-  @apply duration-150 group-hover/button:scale-150 group-active/button:scale-100;
-}

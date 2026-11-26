@@ -1,0 +1,64 @@
+/* Other people's carets, name flags and selections on a live canvas. Lexical places them with inline
+   top/left on each change, so nothing here transitions a layout property. */
+.canvas-cursor {
+  pointer-events: none;
+  width: 2px;
+  margin-left: -1px;
+  background-color: var(--lexical-cursor-color);
+}
+
+.canvas-cursor-name {
+  position: absolute;
+  bottom: 100%;
+  left: -1px;
+  margin-bottom: 2px;
+  padding: 1px 6px;
+  border-radius: 4px 4px 4px 0;
+  background-color: var(--lexical-cursor-color);
+  /* Every cursor color takes white text at 4.5:1 or more, in both themes. */
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  white-space: nowrap;
+  user-select: none;
+  transform-origin: bottom left;
+  animation: canvas-pop-in 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.canvas-selection {
+  pointer-events: none;
+}
+
+.canvas-selection-bg {
+  background-color: var(--lexical-cursor-color);
+  opacity: 0.2;
+}
+
+.dark .canvas-selection-bg {
+  opacity: 0.35;
+}
+
+@keyframes canvas-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+@keyframes canvas-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@utility animate-canvas-pop-in {
+  animation: canvas-pop-in 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .canvas-cursor-name,
+  .animate-canvas-pop-in {
+    animation-name: canvas-fade-in;
+  }
+}

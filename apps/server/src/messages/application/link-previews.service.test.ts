@@ -14,7 +14,10 @@ const preview: LinkPreview = {
   image: null,
 };
 
-function setup(fetch: LinkPreviewFetcher['fetch']) {
+function setup(
+  fetch: LinkPreviewFetcher['fetch'],
+  appOrigin = 'https://app.conduit.test'
+) {
   const stored: { id: string; preview: LinkPreview | null; body?: string }[] =
     [];
   const requested: string[] = [];
@@ -31,7 +34,7 @@ function setup(fetch: LinkPreviewFetcher['fetch']) {
     },
   };
   return {
-    service: new LinkPreviewsService(messages, fetcher),
+    service: new LinkPreviewsService(messages, fetcher, appOrigin),
     stored,
     requested,
   };
@@ -63,6 +66,57 @@ describe('LinkPreviewsService.attach', () => {
 
     expect(requested).toEqual([]);
     expect(stored).toEqual([]);
+  });
+
+  it.each([
+    'https://app.conduit.test/canvases/c1/',
+    'https://app.conduit.test/channels/r1?tab=cm4v31ajc000008l2d3v9ta9w',
+    'https://app.conduit.test/dms/r1?tab=cm4v31ajc000008l2d3v9ta9w',
+    'https://app.conduit.test/dm/r1?tab=cm4v31ajc000008l2d3v9ta9w',
+    'https://app.conduit.test/channels/r1?tab=canvas',
+  ])('skips fetching and storing a preview for %s', async (link) => {
+    const { service, stored, requested } = setup(async () => preview);
+
+    await service.attach({ id: 'm1', body: `[Canvas](${link})` });
+
+    expect(requested).toEqual([]);
+    expect(stored).toEqual([]);
+  });
+
+  it.each([
+    'https://other.test/canvases/c1',
+    'https://app.conduit.test:8080/canvases/c1',
+    'https://app.conduit.test/canvases',
+    'https://app.conduit.test/channels/r1?tab=messages',
+    'https://app.conduit.test/channels/r1?tab=typo',
+  ])('still fetches a preview for %s', async (link) => {
+    const { service, stored, requested } = setup(async () => preview);
+
+    await service.attach({ id: 'm1', body: link });
+
+    expect(requested).toEqual([link]);
+    expect(stored).toHaveLength(1);
+  });
+
+  it('skips canvas links and fetches the first eligible link', async () => {
+    const { service, stored, requested } = setup(async () => preview);
+    const body =
+      'See https://app.conduit.test/canvases/c1 and [doc](https://example.com/doc), then https://other.dev.';
+
+    await service.attach({ id: 'm1', body });
+
+    expect(requested).toEqual(['https://example.com/doc']);
+    expect(stored).toEqual([{ id: 'm1', preview, body }]);
+  });
+
+  it('fetches canvas-shaped URLs when the app origin is empty', async () => {
+    const { service, stored, requested } = setup(async () => preview, '');
+    const body = 'https://app.conduit.test/canvases/c1';
+
+    await service.attach({ id: 'm1', body });
+
+    expect(requested).toEqual([body]);
+    expect(stored).toHaveLength(1);
   });
 
   it('stores nothing when the page has no preview', async () => {

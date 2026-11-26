@@ -38,7 +38,7 @@ export function DmHeader({
   const count = dm?.members.length ?? 0;
 
   return (
-    <header className="flex min-h-12 shrink-0 items-center gap-1.5 border-b px-2">
+    <header className="flex min-h-12 shrink-0 items-center gap-1.5 px-2">
       <ListBackLink />
       <RoomStarButton room={channel} />
       <h1 className="min-w-0 flex-1 text-sm font-semibold">

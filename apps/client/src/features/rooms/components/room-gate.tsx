@@ -17,6 +17,7 @@ import type { ReactNode } from 'react';
 
 import { ListBackLink } from '@/components/list-view';
 import { draftQuery } from '@/services/activity/queries';
+import { roomCanvasesQuery } from '@/services/canvases/queries';
 import { messagesQuery } from '@/services/messages/queries';
 import { roomQuery } from '@/services/rooms/queries';
 
@@ -48,9 +49,10 @@ export function RoomGate({
   );
   const canLoadRoomData =
     state.status === 'loading' || state.status === 'ready';
-  // Start messages and draft in parallel with roomQuery so unseeded rooms (such as DMs) do not waterfall.
+  // Start messages, draft, and room canvases in parallel with roomQuery so unseeded rooms (such as DMs and direct channel links) do not waterfall.
   useInfiniteQuery({ ...messagesQuery(roomId), enabled: canLoadRoomData });
   useQuery({ ...draftQuery(roomId), enabled: canLoadRoomData });
+  useQuery({ ...roomCanvasesQuery(roomId), enabled: canLoadRoomData });
 
   switch (state.status) {
     case 'ready':

@@ -20,14 +20,8 @@ import { createPortal } from 'react-dom';
 
 import { useEditorModal } from '@/components/editor/editor-hooks/use-modal';
 import type { ComponentPickerOption } from '@/components/editor/plugins/picker/component-picker-option';
+import { matchesPickerQuery } from '@/components/editor/utils/picker-query';
 import { cn } from '@/lib/utils';
-
-// const LexicalTypeaheadMenuPlugin = lazy(
-//   () =>
-//     import("@lexical/react/LexicalTypeaheadMenuPlugin").then(
-//       (mod) => mod.LexicalTypeaheadMenuPlugin<ComponentPickerOption>
-//     ),
-// )
 
 function ComponentPickerMenu({
   options,
@@ -54,6 +48,7 @@ function ComponentPickerMenu({
   return (
     <div className="bg-popover text-popover-foreground absolute h-min min-w-48 rounded-md border shadow-md">
       <Command
+        className="rounded-md p-0.5"
         onKeyDown={(e) => {
           if (e.key === 'ArrowUp') {
             e.preventDefault();
@@ -79,11 +74,12 @@ function ComponentPickerMenu({
                   itemRefs.current[index] = el;
                 }}
                 value={option.title}
+                onMouseEnter={() => setHighlightedIndex(index)}
                 onSelect={() => {
                   selectOptionAndCleanUp(option);
                 }}
                 className={cn(
-                  'flex items-center gap-2',
+                  '[&_svg]:text-muted-foreground flex items-center gap-2',
                   selectedIndex === index
                     ? 'bg-accent text-accent-foreground'
                     : 'bg-transparent!'
@@ -124,18 +120,13 @@ export function ComponentPickerMenuPlugin({
       return baseOptions;
     }
 
-    const regex = new RegExp(queryString, 'i');
-
     return [
       ...(dynamicOptionsFn?.({ queryString }) || []),
-      ...baseOptions.filter(
-        (option) =>
-          regex.test(option.title) ||
-          option.keywords.some((keyword) => regex.test(keyword))
+      ...baseOptions.filter((option) =>
+        matchesPickerQuery(option, queryString)
       ),
     ];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor, queryString, showModal]);
+  }, [baseOptions, dynamicOptionsFn, queryString]);
 
   const onSelectOption = useCallback(
     (

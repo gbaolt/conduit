@@ -22,9 +22,8 @@ export const editorTheme: EditorThemeClasses = {
     checklist: 'relative',
     listitem: 'mx-8',
     listitemChecked:
-      'relative mx-2 px-6 list-none outline-none line-through before:content-[""] before:w-4 before:h-4 before:top-0.5 before:left-0 before:cursor-pointer before:block before:bg-cover before:absolute before:border before:border-primary before:rounded before:bg-primary before:bg-no-repeat after:content-[""] after:cursor-pointer after:border-white after:border-solid after:absolute after:block after:top-[6px] after:w-[3px] after:left-[7px] after:right-[7px] after:h-[6px] after:rotate-45 after:border-r-2 after:border-b-2 after:border-l-0 after:border-t-0',
-    listitemUnchecked:
-      'relative mx-2 px-6 list-none outline-none before:content-[""] before:w-4 before:h-4 before:top-0.5 before:left-0 before:cursor-pointer before:block before:bg-cover before:absolute before:border before:border-primary before:rounded',
+      'editor-checklist-item editor-checklist-item-checked mx-2 px-6',
+    listitemUnchecked: 'editor-checklist-item mx-2 px-6',
     nested: {
       listitem: 'list-none before:hidden after:hidden',
     },
@@ -79,7 +78,7 @@ export const editorTheme: EditorThemeClasses = {
     'EditorTheme__tableCellResizer absolute -right-1 h-full w-2 cursor-ew-resize z-10 top-0',
   tableCellSelected: 'EditorTheme__tableCellSelected bg-muted',
   tableCellSortedIndicator:
-    'EditorTheme__tableCellSortedIndicator block opacity-50 bsolute bottom-0 left-0 w-full h-1 bg-muted',
+    'EditorTheme__tableCellSortedIndicator block opacity-50 absolute bottom-0 left-0 w-full h-1 bg-muted',
   tableResizeRuler:
     'EditorTheme__tableCellResizeRuler block absolute w-[1px] h-full bg-primary top-0',
   tableRowStriping:
@@ -96,6 +95,7 @@ export const editorTheme: EditorThemeClasses = {
   },
   hr: 'p-0.5 border-none my-1 mx-0 cursor-pointer after:content-[""] after:block after:h-0.5 after:bg-muted selected:ring-2 selected:ring-primary selected:ring-offset-2 selected:user-select-none',
   indent: '[--lexical-indent-base-value:40px]',
-  mark: '',
-  markOverlap: '',
+  // A quiet tint until its thread is the active one; `.editor-mark-active` in editor-theme.css raises it.
+  mark: 'editor-mark rounded-xs bg-amber-200/40 underline decoration-amber-500/60 decoration-2 underline-offset-4 dark:bg-amber-300/10 dark:decoration-amber-300/50',
+  markOverlap: 'bg-amber-200/70 dark:bg-amber-300/20',
 };

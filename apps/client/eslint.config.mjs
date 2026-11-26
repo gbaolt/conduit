@@ -7,7 +7,7 @@ const featureDeps = {
   auth: [],
   onboarding: ['auth'],
   workspace: ['rooms', 'channels', 'dms'],
-  rooms: ['workspace', 'messages'],
+  rooms: ['workspace', 'messages', 'canvases'],
   channels: ['rooms'],
   dms: ['rooms'],
   messages: ['rooms', 'channels', 'dms'],
@@ -17,12 +17,14 @@ const featureDeps = {
   files: ['rooms', 'messages'],
   search: ['rooms', 'messages', 'files', 'ask'],
   ask: ['rooms', 'messages'],
+  canvases: ['rooms', 'workspace', 'messages'],
 };
 
 const services = [
   'activity',
   'ask',
   'auth',
+  'canvases',
   'channels',
   'dms',
   'feed',

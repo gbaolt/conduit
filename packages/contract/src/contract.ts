@@ -1,15 +1,4 @@
 import {
-  getAiSettingsContract,
-  updateAiSettingsContract,
-} from './contracts/ai-settings';
-import {
-  createChannelSectionContract,
-  deleteChannelSectionContract,
-  listChannelSectionsContract,
-  renameChannelSectionContract,
-  reorderChannelSectionsContract,
-} from './contracts/channel-sections';
-import {
   getDraftContract,
   heartbeatContract,
   markReadContract,
@@ -17,6 +6,55 @@ import {
   saveDraftContract,
   typingPingContract,
 } from './contracts/activity';
+import {
+  getAiSettingsContract,
+  updateAiSettingsContract,
+} from './contracts/ai-settings';
+import {
+  askAttachFileContract,
+  askAttachmentUrlContract,
+  askQuestionContract,
+  completeAskAttachmentContract,
+  deleteAskChatContract,
+  getAskChatContract,
+  getAskGuideContract,
+  listAskChatsContract,
+} from './contracts/ask';
+import {
+  canvasEmbeddedMessagesContract,
+  canvasLinkCardContract,
+  canvasLiveblocksAuthContract,
+  claimCanvasBootstrapContract,
+  createCanvasCommentThreadContract,
+  createCanvasContract,
+  createCanvasVersionContract,
+  deleteCanvasCommentContract,
+  deleteCanvasContract,
+  draftCanvasFromThreadContract,
+  editCanvasCommentContract,
+  getCanvasContract,
+  getCanvasVersionContract,
+  listCanvasCommentsContract,
+  listCanvasesContract,
+  listCanvasMembersContract,
+  listCanvasVersionsContract,
+  listRoomCanvasesContract,
+  removeCanvasMemberContract,
+  replyCanvasCommentContract,
+  resolveCanvasCommentThreadContract,
+  restoreCanvasVersionContract,
+  saveCanvasSnapshotContract,
+  shareCanvasContract,
+  updateCanvasContract,
+  updateCanvasMemberRoleContract,
+} from './contracts/canvases';
+import {
+  createChannelSectionContract,
+  deleteChannelSectionContract,
+  listChannelSectionsContract,
+  renameChannelSectionContract,
+  reorderChannelSectionsContract,
+} from './contracts/channel-sections';
 import {
   addChannelMembersContract,
   archiveChannelContract,
@@ -29,10 +67,10 @@ import {
   removeChannelMemberContract,
   renameChannelContract,
   setChannelMemberRoleContract,
-  updateChannelContract,
   setChannelPermissionsContract,
   setChannelVisibilityContract,
   unarchiveChannelContract,
+  updateChannelContract,
 } from './contracts/channels';
 import {
   addDmPeopleContract,
@@ -49,39 +87,24 @@ import {
   rankFeedContract,
 } from './contracts/feed';
 import {
+  attachFileContract,
   cancelFileContract,
   completeFileContract,
-  fileUploadUrlContract,
-  fileTextContract,
-  fileUrlsContract,
-  attachFileContract,
   fileCountsContract,
+  fileTextContract,
+  fileUploadUrlContract,
+  fileUrlsContract,
   listFilesContract,
 } from './contracts/files';
-import {
-  askAttachFileContract,
-  askAttachmentUrlContract,
-  askQuestionContract,
-  completeAskAttachmentContract,
-  getAskGuideContract,
-  deleteAskChatContract,
-  getAskChatContract,
-  listAskChatsContract,
-} from './contracts/ask';
 import { healthCheckContract } from './contracts/health';
-import { searchContract } from './contracts/search';
 import {
-  getNotificationSettingsContract,
-  updateNotificationSettingsContract,
-} from './contracts/notification-settings';
-import {
+  clearSavedMessagesContract,
   deleteMessageContract,
   editMessageContract,
   getMessageContract,
   listMessagesContract,
   listPinnedMessagesContract,
   listRepliesContract,
-  clearSavedMessagesContract,
   listSavedMessagesContract,
   listThreadsContract,
   pinMessageContract,
@@ -93,6 +116,10 @@ import {
   unreactMessageContract,
   unsaveMessageContract,
 } from './contracts/messages';
+import {
+  getNotificationSettingsContract,
+  updateNotificationSettingsContract,
+} from './contracts/notification-settings';
 import {
   acceptInvitationContract,
   createInvitationsContract,
@@ -106,9 +133,9 @@ import {
   listInvitationsContract,
   listJoinableOrganizationsContract,
   listMembersContract,
-  organizationIconUploadUrlContract,
   listOrganizationsContract,
   listWorkspaceInvitationsContract,
+  organizationIconUploadUrlContract,
   previewJoinLinkContract,
   reactivateMemberContract,
   removeMemberContract,
@@ -132,6 +159,7 @@ import {
   unmuteRoomContract,
   unstarRoomContract,
 } from './contracts/rooms';
+import { searchContract } from './contracts/search';
 import {
   catchUpContract,
   getSummaryContract,
@@ -315,6 +343,34 @@ export const contract = {
   },
   presence: {
     heartbeat: heartbeatContract,
+  },
+  canvases: {
+    listRoomCanvases: listRoomCanvasesContract,
+    list: listCanvasesContract,
+    get: getCanvasContract,
+    create: createCanvasContract,
+    update: updateCanvasContract,
+    delete: deleteCanvasContract,
+    listMembers: listCanvasMembersContract,
+    share: shareCanvasContract,
+    updateMemberRole: updateCanvasMemberRoleContract,
+    removeMember: removeCanvasMemberContract,
+    liveblocksAuth: canvasLiveblocksAuthContract,
+    claimBootstrap: claimCanvasBootstrapContract,
+    saveSnapshot: saveCanvasSnapshotContract,
+    listComments: listCanvasCommentsContract,
+    createCommentThread: createCanvasCommentThreadContract,
+    replyComment: replyCanvasCommentContract,
+    editComment: editCanvasCommentContract,
+    deleteComment: deleteCanvasCommentContract,
+    resolveCommentThread: resolveCanvasCommentThreadContract,
+    embeddedMessages: canvasEmbeddedMessagesContract,
+    linkCard: canvasLinkCardContract,
+    listVersions: listCanvasVersionsContract,
+    getVersion: getCanvasVersionContract,
+    createVersion: createCanvasVersionContract,
+    restoreVersion: restoreCanvasVersionContract,
+    draftFromThread: draftCanvasFromThreadContract,
   },
   channelSections: {
     list: listChannelSectionsContract,
