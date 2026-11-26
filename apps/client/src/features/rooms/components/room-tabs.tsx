@@ -28,7 +28,7 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
 import { useQueryState } from 'nuqs';
-import { type ReactNode, useEffect } from 'react';
+import { type ReactNode, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
 import { CanvasViewSkeleton } from '@/features/canvases/components/canvas-view-skeleton';
@@ -119,6 +119,8 @@ function RoomTabsAddMenu({
   );
 }
 
+const PREFETCH_DWELL_MS = 120;
+
 /**
  * Messages, then one tab per canvas, then `+`, directly under a channel's or DM's header. Messages stays mounted,
  * so it keeps its scroll.
@@ -136,12 +138,26 @@ export function RoomTabs({
 }) {
   const [tab, setTab] = useQueryState('tab', roomTabParam);
   const queryClient = useQueryClient();
+  const prefetchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const canvases = useQuery(roomCanvasesQuery(roomId));
   // A failed refresh keeps the tabs it already had.
   let ids: RoomCanvasIds = canvases.isError ? 'failed' : 'pending';
   if (canvases.data) ids = canvases.data.map((canvas) => canvas.id);
   const active = resolveRoomTab(tab, ids);
   const showMessages = () => void setTab(null);
+  const cancelPrefetch = () => {
+    clearTimeout(prefetchTimer.current);
+  };
+  const prefetchCanvas = (canvasId: string) => {
+    void import('@/features/canvases/components/canvas-view').catch(() => {});
+    void import('@/features/canvases/components/canvas-editor').catch(() => {});
+    clearTimeout(prefetchTimer.current);
+    prefetchTimer.current = setTimeout(() => {
+      void queryClient.prefetchQuery(canvasQuery(canvasId));
+    }, PREFETCH_DWELL_MS);
+  };
+
+  useEffect(() => cancelPrefetch, []);
 
   useEffect(() => {
     // Start canvases.get alongside the dynamic CanvasViewById chunk download.
@@ -166,6 +182,10 @@ export function RoomTabs({
             <TabsTrigger
               key={canvas.id}
               value={canvas.id}
+              onPointerEnter={() => prefetchCanvas(canvas.id)}
+              onPointerLeave={cancelPrefetch}
+              onFocus={() => prefetchCanvas(canvas.id)}
+              onBlur={cancelPrefetch}
               className="h-10 max-w-48 px-2 after:bottom-1!"
             >
               <RoomTabCanvasIcon canvas={canvas} />

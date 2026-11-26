@@ -386,6 +386,7 @@ function useFloatingTextFormatToolbar(
   }, [editor]);
 
   useEffect(() => {
+    updatePopup();
     document.addEventListener('selectionchange', updatePopup);
     return () => {
       document.removeEventListener('selectionchange', updatePopup);

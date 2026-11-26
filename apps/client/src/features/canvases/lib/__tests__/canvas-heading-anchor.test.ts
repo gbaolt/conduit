@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   assignHeadingAnchors,
+  type CanvasHeading,
   createHeadingAnchorId,
   extractHeadingAnchorId,
   findHeadingByAnchor,
@@ -9,6 +10,7 @@ import {
   headingAnchorOf,
   headingUrlOf,
   isHeadingAnchorId,
+  sameHeadings,
   slugifyHeading,
 } from '../canvas-heading-anchor';
 
@@ -114,5 +116,51 @@ describe('canvas heading anchors', () => {
     );
     expect(headingAnchorFromHash('')).toBeNull();
     expect(headingAnchorFromHash('#%E0%A4%A')).toBeNull();
+  });
+
+  it('compares heading lists by value across all fields', () => {
+    const base: CanvasHeading[] = [
+      {
+        key: '1',
+        text: 'Intro',
+        anchorId: 'a1b2c3d4',
+        anchor: 'intro--a1b2c3d4',
+        legacyAnchor: 'intro',
+        depth: 1,
+      },
+      {
+        key: '2',
+        text: 'Details',
+        anchorId: null,
+        anchor: 'details',
+        legacyAnchor: 'details',
+        depth: 2,
+      },
+    ];
+    expect(
+      sameHeadings(
+        base,
+        base.map((h) => ({ ...h }))
+      )
+    ).toBe(true);
+    expect(sameHeadings(base, base.slice(0, 1))).toBe(false);
+    expect(
+      sameHeadings(base, [{ ...base[0]!, text: 'Overview' }, base[1]!])
+    ).toBe(false);
+    expect(sameHeadings(base, [{ ...base[0]!, depth: 2 }, base[1]!])).toBe(
+      false
+    );
+    expect(sameHeadings(base, [{ ...base[0]!, key: '9' }, base[1]!])).toBe(
+      false
+    );
+    expect(
+      sameHeadings(base, [{ ...base[0]!, anchorId: null }, base[1]!])
+    ).toBe(false);
+    expect(
+      sameHeadings(base, [{ ...base[0]!, anchor: 'intro' }, base[1]!])
+    ).toBe(false);
+    expect(
+      sameHeadings(base, [{ ...base[0]!, legacyAnchor: 'intro-2' }, base[1]!])
+    ).toBe(false);
   });
 });

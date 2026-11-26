@@ -1,5 +1,35 @@
 import type { HeadingNode } from '@lexical/rich-text';
-import { $getState, $setState, createState } from 'lexical';
+import { $getState, $setState, createState, type NodeKey } from 'lexical';
+
+export type CanvasHeading = {
+  key: NodeKey;
+  text: string;
+  anchorId: string | null;
+  anchor: string;
+  legacyAnchor: string;
+  /** 1 for `h1`. Deeper headings than `h3` indent as `h3`. */
+  depth: number;
+};
+
+export function sameHeadings(
+  a: readonly CanvasHeading[],
+  b: readonly CanvasHeading[]
+): boolean {
+  return (
+    a.length === b.length &&
+    a.every((heading, index) => {
+      const other = b[index]!;
+      return (
+        heading.key === other.key &&
+        heading.text === other.text &&
+        heading.anchorId === other.anchorId &&
+        heading.anchor === other.anchor &&
+        heading.legacyAnchor === other.legacyAnchor &&
+        heading.depth === other.depth
+      );
+    })
+  );
+}
 
 const HEADING_ANCHOR_ID_PATTERN = /^[a-z0-9]{8}$/;
 const EMBEDDED_ID_PATTERN = /--([a-z0-9]{8})$/;

@@ -40,9 +40,9 @@ import {
 } from 'react';
 
 import { CodeBlockPlugin } from '@/components/editor/plugins/code-block-plugin';
-import { CodeHighlightPlugin } from '@/components/editor/plugins/code-highlight-plugin';
 import { EmojiPickerPlugin } from '@/components/editor/plugins/emoji-picker-plugin';
 import { FloatingLinkEditorPlugin } from '@/components/editor/plugins/floating-link-editor-plugin';
+import { LazyCodeHighlightPlugin } from '@/components/editor/plugins/lazy-code-highlight-plugin';
 import {
   Mention,
   MentionAvatar,
@@ -332,7 +332,7 @@ function ComposerBehavior({
 
   return (
     <>
-      <CodeHighlightPlugin />
+      <LazyCodeHighlightPlugin />
       <CodeBlockPlugin />
       <TabFocusPlugin />
       {attachments}
