@@ -4,7 +4,6 @@ import {
   CanvasDraftMenuItem,
   CanvasDraftProvider,
 } from '@/features/canvases/components/canvas-draft-dialog';
-import { CanvasRoomTabs } from '@/features/canvases/components/canvas-room-tabs';
 import { ChannelIntro } from '@/features/channels/components/channel-intro';
 import { ChannelTitle } from '@/features/channels/components/channel-title';
 import {
@@ -16,6 +15,7 @@ import { PinnedButton } from '@/features/messages/components/pinned';
 import { SummaryChannelItems } from '@/features/messages/components/summary/summary-menu';
 import { RoomGate } from '@/features/rooms/components/room-gate';
 import { RoomPageSkeleton } from '@/features/rooms/components/room-skeletons';
+import { RoomTabs } from '@/features/rooms/components/room-tabs';
 import { ThreadLayout } from '@/features/threads/components/thread-layout';
 
 export default function ChannelPage({
@@ -49,7 +49,7 @@ async function Room({
             >
               <PinnedButton roomId={roomId} />
             </ChannelHeader>
-            <CanvasRoomTabs
+            <RoomTabs
               roomId={roomId}
               banner={<ChannelArchivedBanner roomId={roomId} />}
             >
@@ -58,7 +58,7 @@ async function Room({
                 roomId={roomId}
                 start={<ChannelIntro roomId={roomId} />}
               />
-            </CanvasRoomTabs>
+            </RoomTabs>
           </div>
         </ThreadLayout>
       </CanvasDraftProvider>

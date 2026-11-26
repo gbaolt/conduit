@@ -7,7 +7,7 @@ const featureDeps = {
   auth: [],
   onboarding: ['auth'],
   workspace: ['rooms', 'channels', 'dms'],
-  rooms: ['workspace', 'messages'],
+  rooms: ['workspace', 'messages', 'canvases'],
   channels: ['rooms'],
   dms: ['rooms'],
   messages: ['rooms', 'channels', 'dms'],
