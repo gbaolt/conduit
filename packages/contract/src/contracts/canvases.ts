@@ -5,13 +5,14 @@ import { z } from 'zod';
 import { aiErrors } from '@/contracts/ai-settings';
 import {
   CanvasBootstrapSchema,
-  CanvasDraftEventSchema,
-  CanvasDraftInputSchema,
   CanvasCommentInputSchema,
   CanvasCommentSchema,
   CanvasCommentThreadSchema,
   CanvasDocumentSchema,
+  CanvasDraftEventSchema,
+  CanvasDraftInputSchema,
   CanvasIdInputSchema,
+  CanvasLinkCardResultSchema,
   CanvasLiveblocksAuthSchema,
   CanvasMemberInputSchema,
   CanvasMemberSchema,
@@ -235,6 +236,12 @@ export const canvasEmbeddedMessagesContract = oc
   .errors({ NOT_FOUND })
   .input(EmbeddedMessagesInputSchema)
   .output(z.array(EmbeddedMessageSchema));
+
+/** A canvas shared as a link, checked against the viewer's own access. */
+export const canvasLinkCardContract = oc
+  .meta(openapi({ method: 'GET', path: '/canvases/{canvasId}/link-card' }))
+  .input(CanvasIdInputSchema)
+  .output(CanvasLinkCardResultSchema);
 
 /** The canvas's versions, newest first. Anyone who can view the canvas reads them. */
 export const listCanvasVersionsContract = oc

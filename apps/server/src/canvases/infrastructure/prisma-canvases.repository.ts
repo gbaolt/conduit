@@ -123,6 +123,20 @@ export class PrismaCanvasesRepository implements CanvasesRepository {
     return row && toDocument(row);
   }
 
+  async findForLink(scope: CanvasScopeOf, canvasId: string) {
+    const row = await this.db.canvas.findFirst({
+      where: { id: canvasId, organizationId: scope.organizationId },
+      select: { ...select(scope), markdown: true, deletedAt: true },
+    });
+    return (
+      row && {
+        ...toCanvas(row),
+        markdown: row.markdown,
+        deletedAt: row.deletedAt,
+      }
+    );
+  }
+
   async listInChannel(scope: CanvasScopeOf, roomId: string) {
     const rows = await this.db.canvas.findMany({
       where: { roomId, organizationId: scope.organizationId, deletedAt: null },
@@ -382,6 +396,17 @@ export class PrismaCanvasesRepository implements CanvasesRepository {
   async userNames(userIds: string[]) {
     const users = await this.db.user.findMany({
       where: { id: { in: userIds } },
+      select: { id: true, name: true },
+    });
+    return new Map(users.map((user) => [user.id, user.name]));
+  }
+
+  async workspaceUserNames(organizationId: string, userIds: string[]) {
+    const users = await this.db.user.findMany({
+      where: {
+        id: { in: userIds },
+        members: { some: { organizationId, deactivation: null } },
+      },
       select: { id: true, name: true },
     });
     return new Map(users.map((user) => [user.id, user.name]));

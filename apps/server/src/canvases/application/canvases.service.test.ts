@@ -154,8 +154,17 @@ function setup(
     shares.set(id, new Map(roomId ? [] : [[userId, 'editor']]));
     return id;
   };
+  const workspaceUserNames = vi.fn<CanvasesRepository['workspaceUserNames']>(
+    async () => new Map()
+  );
   const repository = {
     find: async (scope, id) => view(scope.userId, id),
+    findForLink: async (scope, id) => {
+      const row = canvases.get(id);
+      return row?.organizationId === scope.organizationId
+        ? { ...row, viewerRole: shares.get(id)?.get(scope.userId) ?? null }
+        : null;
+    },
     listInChannel: async (scope, roomId) =>
       [...canvases.values()]
         .filter((c) => c.roomId === roomId && !c.deletedAt)
@@ -215,6 +224,7 @@ function setup(
     findMessages: async (_org, ids) =>
       embedded.filter(({ message }) => ids.includes(message.id)),
     userNames: async (ids) => new Map(ids.map((id) => [id, id])),
+    workspaceUserNames,
   } satisfies CanvasesRepository;
   const asSeenBy = (userId: string): Room => ({
     ...room,
@@ -258,6 +268,7 @@ function setup(
     canvases,
     liveblocks,
     versions,
+    workspaceUserNames,
   };
 }
 
@@ -628,6 +639,275 @@ describe('CanvasesService embedded messages', () => {
     await expect(
       service.embeddedMessages(bob, { canvasId: canvas.id, messageIds: [open] })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+});
+
+describe('CanvasesService link cards', () => {
+  it('returns inaccessible for a missing canvas', async () => {
+    const { service } = setup();
+
+    expect(await service.linkCard(alice, 'missing')).toEqual({
+      status: 'inaccessible',
+    });
+  });
+
+  it.each([carol, viewerOf('carol', 'admin')])(
+    'hides a live private channel canvas from a workspace $workspaceRole outside the channel',
+    async (viewer) => {
+      const { service, workspaceUserNames } = setup(
+        roomFor({ visibility: 'private' }),
+        ['alice']
+      );
+      const canvas = await service.create(alice, {
+        roomId: 'general',
+        markdown: 'Hi <@alice>',
+      });
+
+      expect(await service.linkCard(viewer, canvas.id)).toEqual({
+        status: 'inaccessible',
+      });
+      expect(workspaceUserNames).not.toHaveBeenCalled();
+    }
+  );
+
+  it('shows a DM canvas to members without exposing a room name', async () => {
+    const { service } = setup(
+      roomFor({ kind: 'dm', visibility: 'private', name: 'dm-key' })
+    );
+    const canvas = await service.create(alice, { roomId: 'general' });
+
+    expect(await service.linkCard(bob, canvas.id)).toMatchObject({
+      status: 'ok',
+      canvas: { id: canvas.id, roomKind: 'dm', roomName: null },
+    });
+    expect(await service.linkCard(carol, canvas.id)).toEqual({
+      status: 'inaccessible',
+    });
+  });
+
+  it('returns the shared room canvas with a capped plain-text excerpt', async () => {
+    const { service } = setup(roomFor({ visibility: 'private' }));
+    const canvas = await service.create(alice, {
+      roomId: 'general',
+      title: 'Project plan',
+      markdown: `# Project plan\n\n- **Read** the [brief](https://example.com).\n\n${'x'.repeat(200)}`,
+    });
+    const updated = await service.update(alice, {
+      canvasId: canvas.id,
+      icon: '📋',
+      coverPreset: 'ocean',
+    });
+    const start = 'Project plan Read the brief. ';
+
+    expect(await service.linkCard(bob, canvas.id)).toEqual({
+      status: 'ok',
+      canvas: {
+        id: canvas.id,
+        title: 'Project plan',
+        icon: '📋',
+        coverPreset: 'ocean',
+        roomId: 'general',
+        roomKind: 'channel',
+        roomName: 'general',
+        excerpt: start + 'x'.repeat(200 - start.length),
+        updatedAt: updated.updatedAt,
+        updatedByName: 'alice',
+      },
+    });
+  });
+
+  it('keeps the text of canvas task lists, tables, and toggles', async () => {
+    const { service } = setup();
+    const canvas = await service.create(alice, {
+      title: 'Project plan',
+      markdown: [
+        '- [x] Done',
+        '',
+        '---',
+        '',
+        '| Role | Name |',
+        '| --- | --- |',
+        '| Lead | Alice |',
+        '',
+        '<details><summary>Next</summary>',
+        '',
+        'Send it.',
+        '',
+        '</details>',
+      ].join('\n'),
+    });
+
+    expect(await service.linkCard(alice, canvas.id)).toMatchObject({
+      status: 'ok',
+      canvas: { excerpt: 'Done Role Name Lead Alice Next Send it.' },
+    });
+  });
+
+  it('preserves code and link labels, strips attributed tags, and decodes entities', async () => {
+    const { service } = setup();
+    const canvas = await service.create(alice, {
+      markdown: [
+        '<details open><summary title="a > b">R&amp;D</summary>',
+        '`snake_case` [doc](https://example.test/wiki_(x(y)) "a ) title")',
+        '&#x1F680; &#65; &lt;ok&gt;</details>',
+        '```ts',
+        'const snake_case = "*literal*";',
+        '```',
+      ].join('\n'),
+    });
+
+    expect(await service.linkCard(alice, canvas.id)).toMatchObject({
+      status: 'ok',
+      canvas: {
+        excerpt: 'R&D snake_case doc 🚀 A <ok> const snake_case = "*literal*";',
+      },
+    });
+  });
+
+  it('keeps later lines after an unclosed link destination', async () => {
+    const { service } = setup();
+    const canvas = await service.create(alice, {
+      markdown: 'See [the plan](draft\n\nThe deadline is Friday.',
+    });
+
+    expect(await service.linkCard(alice, canvas.id)).toMatchObject({
+      status: 'ok',
+      canvas: { excerpt: 'See the plan The deadline is Friday.' },
+    });
+  });
+
+  it('renders a line-start inline code span and parses the following prose', async () => {
+    const { service, workspaceUserNames } = setup();
+    workspaceUserNames.mockResolvedValue(new Map([['alice', 'Alice']]));
+    const canvas = await service.create(alice, {
+      markdown: '```x_y```\n\nAfter **review** <@alice>',
+    });
+
+    expect(await service.linkCard(alice, canvas.id)).toMatchObject({
+      status: 'ok',
+      canvas: { excerpt: 'x_y After review @Alice' },
+    });
+  });
+
+  it('resolves unique mention IDs in the canvas workspace and drops missing names', async () => {
+    const { service, workspaceUserNames } = setup();
+    workspaceUserNames.mockResolvedValue(new Map([['usr_member', 'Bao']]));
+    const canvas = await service.create(alice, {
+      markdown: 'Hi <@usr_member> <@usr_outside> and <@usr_member>.',
+    });
+
+    expect(await service.linkCard(alice, canvas.id)).toMatchObject({
+      status: 'ok',
+      canvas: { excerpt: 'Hi @Bao and @Bao.' },
+    });
+    expect(workspaceUserNames).toHaveBeenCalledExactlyOnceWith(organizationId, [
+      'usr_member',
+      'usr_outside',
+    ]);
+  });
+
+  it.each([
+    [197, ''],
+    [195, '👩‍💻'],
+  ])(
+    'fits a whole grapheme within the excerpt cap after %i ASCII characters',
+    async (length, emoji) => {
+      const { service } = setup();
+      const prefix = 'a'.repeat(length);
+      const canvas = await service.create(alice, {
+        markdown: `${prefix}👩‍💻tail`,
+      });
+
+      expect(await service.linkCard(alice, canvas.id)).toMatchObject({
+        status: 'ok',
+        canvas: { excerpt: prefix + emoji },
+      });
+    }
+  );
+
+  it('builds a link card for 200,000 unmatched brackets in under 100 ms', async () => {
+    const { service } = setup();
+    const canvas = await service.create(alice, {
+      markdown: '['.repeat(200_000),
+    });
+
+    const started = performance.now();
+    const card = await service.linkCard(alice, canvas.id);
+    const elapsed = performance.now() - started;
+
+    console.info(`200,000-bracket link card took ${elapsed.toFixed(2)} ms`);
+    expect(elapsed).toBeLessThan(100);
+    expect(card).toMatchObject({
+      status: 'ok',
+      canvas: { excerpt: '['.repeat(200) },
+    });
+  });
+
+  it('returns inaccessible for a standalone canvas the viewer cannot open', async () => {
+    const { service } = setup();
+    const canvas = await service.create(alice, {
+      title: 'Private plan',
+      markdown: 'Private content',
+    });
+
+    expect(await service.linkCard(bob, canvas.id)).toEqual({
+      status: 'inaccessible',
+    });
+  });
+
+  it('returns a shared standalone card until the viewer loses the share', async () => {
+    const { service } = setup();
+    const canvas = await service.create(alice, { title: 'Shared plan' });
+    await service.share(alice, {
+      canvasId: canvas.id,
+      userIds: [bob.userId],
+      role: 'viewer',
+    });
+
+    expect(await service.linkCard(bob, canvas.id)).toMatchObject({
+      status: 'ok',
+      canvas: { id: canvas.id, roomId: null, roomKind: null, roomName: null },
+    });
+
+    await service.removeMember(alice, {
+      canvasId: canvas.id,
+      userId: bob.userId,
+    });
+    const missing = await service.linkCard(bob, 'missing');
+    expect(missing).toEqual({ status: 'inaccessible' });
+    expect(await service.linkCard(bob, canvas.id)).toEqual(missing);
+  });
+
+  it('returns inaccessible for a canvas from another workspace', async () => {
+    const { service } = setup();
+    const canvas = await service.create(alice, {
+      roomId: 'general',
+      title: 'Workspace plan',
+      markdown: 'Workspace content',
+    });
+
+    expect(
+      await service.linkCard(
+        { ...alice, organizationId: 'another-workspace' },
+        canvas.id
+      )
+    ).toEqual({ status: 'inaccessible' });
+  });
+
+  it('returns deleted only to viewers who could open the canvas', async () => {
+    const { service } = setup(roomFor({ visibility: 'private' }));
+    const canvas = await service.create(alice, {
+      roomId: 'general',
+      title: 'Private channel plan',
+    });
+    await service.delete(alice, canvas.id);
+
+    expect(await service.linkCard(bob, canvas.id)).toEqual({
+      status: 'deleted',
+    });
+    expect(await service.linkCard(carol, canvas.id)).toEqual({
+      status: 'inaccessible',
+    });
   });
 });
 

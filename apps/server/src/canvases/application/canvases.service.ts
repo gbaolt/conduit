@@ -5,6 +5,7 @@ import {
   CANVAS_UNTITLED,
   type CanvasAccess,
   type CanvasAction,
+  type CanvasLinkCardResult,
   type CanvasRole,
   type CanvasScope,
   checkCanvas,
@@ -20,6 +21,7 @@ import {
 import { Inject, Injectable, Logger } from '@nestjs/common';
 
 import { canvasError } from '@/canvases/domain/canvas-errors';
+import { canvasExcerpt } from '@/canvases/domain/canvas-excerpt';
 import {
   autoVersionDue,
   type CanvasVersionContent,
@@ -78,6 +80,17 @@ export class CanvasesService {
     };
   }
 
+  private async canvasAccessContext(
+    viewer: CanvasViewerScope,
+    canvas: StoredCanvas
+  ) {
+    const room = canvas.roomId
+      ? await this.rooms.find(viewer, canvas.roomId)
+      : null;
+    if (canvas.roomId && !room) return null;
+    return { room, policy: this.policyCanvas(canvas, room) };
+  }
+
   private withAccess<T extends StoredCanvas>(
     viewer: CanvasViewerScope,
     canvas: T,
@@ -102,13 +115,12 @@ export class CanvasesService {
     action: CanvasAction
   ) {
     const canvas = await this.canvases.find(viewer, canvasId);
-    const room = canvas?.roomId
-      ? await this.rooms.find(viewer, canvas.roomId)
-      : null;
-    if (!canvas || (canvas.roomId && !room)) throw canvasError('NOT_FOUND');
-    const denial = checkCanvas(action, viewer, this.policyCanvas(canvas, room));
+    if (!canvas) throw canvasError('NOT_FOUND');
+    const access = await this.canvasAccessContext(viewer, canvas);
+    if (!access) throw canvasError('NOT_FOUND');
+    const denial = checkCanvas(action, viewer, access.policy);
     if (denial) throw canvasError(denial);
-    return { canvas, room };
+    return { canvas, room: access.room };
   }
 
   /** A channel the viewer can read, or `NOT_FOUND`. A DM has no canvas. */
@@ -380,6 +392,37 @@ export class CanvasesService {
       if (found.deletedAt) return { messageId, status: 'deleted' };
       return { messageId, status: 'ok', message: found.message };
     });
+  }
+
+  async linkCard(
+    viewer: CanvasViewerScope,
+    canvasId: string
+  ): Promise<CanvasLinkCardResult> {
+    const canvas = await this.canvases.findForLink(viewer, canvasId);
+    if (!canvas) return { status: 'inaccessible' };
+    const access = await this.canvasAccessContext(viewer, canvas);
+    if (!access || !canCanvas('view', viewer, access.policy)) {
+      return { status: 'inaccessible' };
+    }
+    if (canvas.deletedAt) return { status: 'deleted' };
+
+    return {
+      status: 'ok',
+      canvas: {
+        id: canvas.id,
+        title: canvas.title,
+        icon: canvas.icon,
+        coverPreset: canvas.coverPreset,
+        roomId: canvas.roomId,
+        roomKind: canvas.roomKind,
+        roomName: canvas.roomName,
+        excerpt: await canvasExcerpt(canvas.markdown, (userIds) =>
+          this.canvases.workspaceUserNames(viewer.organizationId, userIds)
+        ),
+        updatedAt: canvas.updatedAt,
+        updatedByName: canvas.updatedByName,
+      },
+    };
   }
 
   async share(viewer: CanvasViewerScope, input: ShareCanvasInput) {

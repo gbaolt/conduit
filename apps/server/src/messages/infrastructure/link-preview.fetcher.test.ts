@@ -186,6 +186,29 @@ describe('HttpLinkPreviewFetcher', () => {
     });
   });
 
+  it('stops before requesting a canvas URL after redirects', async () => {
+    const fetcher = new HttpLinkPreviewFetcher({
+      allow: local,
+      timeoutMs: 1000,
+      appOrigin: origin,
+    });
+    const requested: string[] = [];
+    handler = (req, res) => {
+      requested.push(req.url ?? '');
+      res.statusCode = 302;
+      res.setHeader(
+        'location',
+        req.url === '/start' ? '/next' : `${origin}/canvases/c1`
+      );
+      res.end();
+    };
+
+    await expect(fetcher.fetch(`${origin}/start`)).resolves.toBeNull();
+    expect(requested).toEqual(['/start', '/next']);
+    await expect(fetcher.fetch(`${origin}/canvases/c1`)).resolves.toBeNull();
+    expect(requested).toEqual(['/start', '/next']);
+  });
+
   it('refuses a redirect into a private address', async () => {
     handler = (_req, res) => {
       res.statusCode = 302;
