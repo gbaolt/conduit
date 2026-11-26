@@ -32,6 +32,7 @@ import {
   type CanvasMeta,
   type CanvasSeed,
   type StoredCanvas,
+  type StoredCanvasDocument,
 } from '@/canvases/domain/canvases.repository';
 import {
   cursorColorOf,
@@ -147,10 +148,19 @@ export class CanvasesService {
     return canvases.map((canvas) => this.withAccess(viewer, canvas, room));
   }
 
-  async get(viewer: CanvasViewerScope, canvasId: string) {
-    const document = await this.canvases.findDocument(viewer, canvasId);
+  private viewDocument(
+    viewer: CanvasViewerScope,
+    document: StoredCanvasDocument | null
+  ) {
     const { canvas, room } = this.authorizedCanvas(viewer, document, 'view');
     return this.withAccess(viewer, canvas, room);
+  }
+
+  async get(viewer: CanvasViewerScope, canvasId: string) {
+    return this.viewDocument(
+      viewer,
+      await this.canvases.findDocument(viewer, canvasId)
+    );
   }
 
   async list(viewer: CanvasViewerScope, scope: CanvasScope) {
@@ -183,9 +193,9 @@ export class CanvasesService {
       ...sourceMessageIds,
     ]);
 
-    let id: string;
+    let document: StoredCanvasDocument;
     if (!roomId) {
-      id = await this.canvases.createStandalone(
+      document = await this.canvases.createStandalone(
         viewer,
         title || CANVAS_UNTITLED,
         seed
@@ -198,7 +208,7 @@ export class CanvasesService {
         membership: null,
       });
       if (denial) throw canvasError(denial);
-      id = await this.canvases.createInChannel(
+      document = await this.canvases.createInChannel(
         viewer,
         room.id,
         title || CANVAS_UNTITLED,
@@ -209,7 +219,7 @@ export class CanvasesService {
     if (versionTrigger && seed.snapshotJson && seed.contentHash) {
       await this.versions
         .create({
-          canvasId: id,
+          canvasId: document.id,
           organizationId: viewer.organizationId,
           // An AI draft has no author; the history shows it as "AI draft".
           authorId: null,
@@ -221,10 +231,12 @@ export class CanvasesService {
         })
         .catch((error: unknown) => {
           // The canvas is already created, so a missing first version must not make the client create it twice.
-          this.logger.warn(`Could not record version 1 of ${id}: ${error}`);
+          this.logger.warn(
+            `Could not record version 1 of ${document.id}: ${error}`
+          );
         });
     }
-    return this.get(viewer, id);
+    return this.viewDocument(viewer, document);
   }
 
   /** Refuses with `NOT_FOUND` unless every message exists in the workspace, in a room the viewer reads. */
@@ -251,7 +263,8 @@ export class CanvasesService {
     const { canvasId, ...patch } = input;
     await this.load(viewer, canvasId, 'edit');
     if (patch.title !== undefined) patch.title = patch.title || CANVAS_UNTITLED;
-    await this.canvases.update(viewer, canvasId, patch);
+    const document = await this.canvases.update(viewer, canvasId, patch);
+    if (!document) throw canvasError('NOT_FOUND');
     if (patch.snapshotJson) {
       await this.checkpoint(viewer, canvasId, {
         snapshotJson: patch.snapshotJson,
@@ -259,7 +272,7 @@ export class CanvasesService {
         contentHash: contentHashOf(patch.snapshotJson),
       });
     }
-    return this.get(viewer, canvasId);
+    return this.viewDocument(viewer, document);
   }
 
   /** Records an autosave version when the content changed and the last version is 5 minutes old. */

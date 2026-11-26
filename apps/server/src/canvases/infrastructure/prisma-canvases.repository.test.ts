@@ -1,4 +1,5 @@
 import type { CanvasScope } from '@conduit/contract';
+import { Prisma } from '@generated/prisma/client';
 import { expect, it, vi } from 'vitest';
 
 import type { PrismaService } from '@/infrastructure/database/prisma.service';
@@ -41,16 +42,29 @@ const room = {
   ],
 };
 
-it('selects the document body only for document reads and maps room policy', async () => {
+it('uses the same document projection and room policy for reads and writes', async () => {
   const snapshotJson = { root: {} };
   const markdown = '# Spec';
-  const findFirst = vi.fn().mockResolvedValue({
+  const row = {
     ...stored,
     snapshotJson,
     markdown,
     room,
-  });
-  const db = { canvas: { findFirst } } as unknown as PrismaService;
+  };
+  const findFirst = vi.fn().mockResolvedValue(row);
+  const create = vi
+    .fn()
+    .mockResolvedValueOnce(row)
+    .mockResolvedValueOnce({
+      ...row,
+      roomId: null,
+      room: null,
+      members: [{ role: 'EDITOR' }],
+    });
+  const update = vi.fn().mockResolvedValue(row);
+  const db = {
+    canvas: { findFirst, create, update },
+  } as unknown as PrismaService;
   const repository = new PrismaCanvasesRepository(db);
 
   const meta = await repository.findMeta(scope, 'canvas');
@@ -93,6 +107,107 @@ it('selects the document body only for document reads and maps room policy', asy
     ...metaQuery,
     select: { ...metaQuery.select, snapshotJson: true, markdown: true },
   });
+  await expect(
+    repository.createInChannel(scope, stored.roomId, stored.title)
+  ).resolves.toEqual(document);
+  await expect(
+    repository.createStandalone(scope, stored.title)
+  ).resolves.toEqual({
+    ...document,
+    roomId: null,
+    roomKind: null,
+    roomName: null,
+    roomPolicy: null,
+    viewerRole: 'editor',
+  });
+  await expect(
+    repository.update(scope, stored.id, { snapshotJson, markdown })
+  ).resolves.toEqual(document);
+  expect(create.mock.calls.map(([query]) => query.select)).toEqual([
+    documentQuery.select,
+    documentQuery.select,
+  ]);
+  expect(update).toHaveBeenCalledExactlyOnceWith({
+    where: {
+      id: stored.id,
+      organizationId: scope.organizationId,
+      deletedAt: null,
+    },
+    data: expect.objectContaining({
+      updatedById: scope.userId,
+      snapshotJson,
+      markdown,
+    }),
+    select: documentQuery.select,
+  });
+  expect(findFirst).toHaveBeenCalledTimes(2);
+});
+
+it('returns null when the scoped canvas update matches no row', async () => {
+  const update = vi.fn().mockRejectedValue(
+    new Prisma.PrismaClientKnownRequestError('Record not found', {
+      code: 'P2025',
+      clientVersion: Prisma.prismaVersion.client,
+    })
+  );
+  const db = { canvas: { update } } as unknown as PrismaService;
+  const repository = new PrismaCanvasesRepository(db);
+
+  await expect(repository.update(scope, stored.id, {})).resolves.toBeNull();
+  expect(update).toHaveBeenCalledTimes(1);
+});
+
+const snapshot = {
+  snapshotJson: { root: {} },
+  markdown: '# Spec',
+  contentHash: 'hash',
+};
+
+it.each([true, false])(
+  'returns the timestamp in one snapshot statement (saved: %s)',
+  async (saved) => {
+    const result = { saved, updatedAt: new Date(1) };
+    const $queryRaw = vi.fn().mockResolvedValue([result]);
+    const findUniqueOrThrow = vi.fn();
+    const db = {
+      $queryRaw,
+      canvas: { findUniqueOrThrow },
+    } as unknown as PrismaService;
+    const repository = new PrismaCanvasesRepository(db);
+
+    await expect(
+      repository.saveSnapshot(scope, stored.id, snapshot)
+    ).resolves.toEqual(result);
+    expect($queryRaw).toHaveBeenCalledExactlyOnceWith(
+      expect.arrayContaining([
+        expect.stringMatching(/WHERE id = $/),
+        expect.stringMatching(/^\s+AND "organizationId" = $/),
+        expect.stringMatching(
+          /^\s+AND "deletedAt" IS NULL\s+FOR NO KEY UPDATE/
+        ),
+      ]),
+      stored.id,
+      scope.organizationId,
+      JSON.stringify(snapshot.snapshotJson),
+      snapshot.markdown,
+      snapshot.contentHash,
+      scope.userId,
+      expect.any(Date),
+      snapshot.contentHash
+    );
+    expect(findUniqueOrThrow).not.toHaveBeenCalled();
+  }
+);
+
+it('reports a missing snapshot target without another query', async () => {
+  const $queryRaw = vi.fn().mockResolvedValue([]);
+  const db = { $queryRaw } as unknown as PrismaService;
+  const repository = new PrismaCanvasesRepository(db);
+
+  await expect(
+    repository.saveSnapshot(scope, stored.id, snapshot)
+  ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  expect($queryRaw).toHaveBeenCalledTimes(1);
 });
 
 it('retains the room ID but clears room metadata for a room in another workspace', async () => {

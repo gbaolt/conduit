@@ -2,6 +2,7 @@ import type { CanvasRole, Room } from '@conduit/contract';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { CanvasCommentsRepository } from '@/canvases/domain/canvas-comments.repository';
+import { canvasError } from '@/canvases/domain/canvas-errors';
 import type {
   CanvasesRepository,
   CanvasMeta,
@@ -161,6 +162,14 @@ function setup(
     ...canvasOf(row, userId),
     roomPolicy: row.roomId === room.id ? asSeenBy(userId) : null,
   });
+  const documentOf = (
+    row: NonNullable<ReturnType<typeof read>>,
+    userId: string
+  ): StoredCanvasDocument => ({
+    ...metaOf(row, userId),
+    snapshotJson: row.snapshotJson,
+    markdown: row.markdown,
+  });
   const insert = (
     roomId: string | null,
     title: string,
@@ -168,7 +177,7 @@ function setup(
     seed: CanvasSeed = {}
   ) => {
     const id = `canvas-${++next}`;
-    canvases.set(id, {
+    const row = {
       id,
       organizationId,
       roomId,
@@ -188,9 +197,10 @@ function setup(
       contentHash: seed.contentHash ?? null,
       initialMarkdown: seed.initialMarkdown ?? null,
       sourceThreadId: seed.sourceThreadId ?? null,
-    });
+    };
+    canvases.set(id, row);
     shares.set(id, new Map(roomId ? [] : [[userId, 'editor']]));
-    return id;
+    return documentOf(row, userId);
   };
   const workspaceUserNames = vi.fn<CanvasesRepository['workspaceUserNames']>(
     async () => new Map()
@@ -203,13 +213,7 @@ function setup(
     findDocument: vi.fn<CanvasesRepository['findDocument']>(
       async (scope, id) => {
         const row = read(scope, id);
-        return (
-          row && {
-            ...metaOf(row, scope.userId),
-            snapshotJson: row.snapshotJson,
-            markdown: row.markdown,
-          }
-        );
+        return row && documentOf(row, scope.userId);
       }
     ),
     findForLink: async (scope, id) => {
@@ -242,8 +246,17 @@ function setup(
             : canvasScope !== 'channel' && row.viewerRole !== null
         )
     ),
-    update: async (_scope, id, patch) => {
-      canvases.set(id, { ...canvases.get(id)!, ...patch });
+    update: async (scope, id, patch) => {
+      const row = read(scope, id);
+      if (!row) return null;
+      const updated = {
+        ...row,
+        ...patch,
+        updatedByName: scope.userId,
+        updatedAt: new Date(),
+      };
+      canvases.set(id, updated);
+      return documentOf(updated, scope.userId);
     },
     claimBootstrap: async (id) => {
       const row = canvases.get(id)!;
@@ -254,8 +267,9 @@ function setup(
         initialMarkdown: row.initialMarkdown,
       };
     },
-    saveSnapshot: async (_scope, id, snapshot) => {
-      const row = canvases.get(id)!;
+    saveSnapshot: async (scope, id, snapshot) => {
+      const row = read(scope, id);
+      if (!row) throw canvasError('NOT_FOUND');
       const saved = row.contentHash !== snapshot.contentHash;
       if (saved) canvases.set(id, { ...row, ...snapshot });
       return { saved, updatedAt: row.updatedAt };
@@ -323,6 +337,94 @@ function setup(
 }
 
 describe('CanvasesService', () => {
+  it.each(['update', 'saveSnapshot'] as const)(
+    'rejects %s when the canvas is deleted after load',
+    async (method) => {
+      const { service, canvases, repository, versions } = setup();
+      const canvas = await service.create(alice, {});
+      const before = canvases.get(canvas.id);
+      const createIfDue = vi.spyOn(versions, 'createIfDue');
+      const load = service.load.bind(service);
+      vi.spyOn(service, 'load').mockImplementationOnce(async (...args) => {
+        const loaded = await load(...args);
+        await repository.softDelete(canvas.id);
+        return loaded;
+      });
+      const patch = {
+        canvasId: canvas.id,
+        snapshotJson: { root: {} },
+        markdown: 'Updated content',
+      };
+
+      await expect(
+        method === 'update'
+          ? service.update(alice, patch)
+          : service.saveSnapshot(alice, {
+              ...patch,
+              contentHash: 'a'.repeat(64),
+            })
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+      expect(createIfDue).not.toHaveBeenCalled();
+      expect(canvases.get(canvas.id)).toEqual({
+        ...before,
+        deletedAt: expect.any(Date),
+      });
+    }
+  );
+
+  it('returns the updated document and access with only the pre-write authorization read', async () => {
+    const { service, repository, canvases, versions } = setup();
+    const created = await service.create(alice, { roomId: 'general' });
+    const snapshotJson = { root: { children: [] } };
+
+    const updated = await service.update(bob, {
+      canvasId: created.id,
+      title: 'Updated spec',
+      icon: '📄',
+      coverPreset: 'mint',
+      snapshotJson,
+      markdown: '# Updated',
+    });
+
+    expect(repository.findMeta).toHaveBeenCalledExactlyOnceWith(
+      bob,
+      created.id
+    );
+    expect(repository.findDocument).not.toHaveBeenCalled();
+    expect(updated).toEqual({
+      id: created.id,
+      organizationId,
+      roomId: 'general',
+      roomKind: 'channel',
+      roomName: 'general',
+      title: 'Updated spec',
+      icon: '📄',
+      coverPreset: 'mint',
+      createdById: alice.userId,
+      updatedByName: bob.userId,
+      createdAt: created.createdAt,
+      updatedAt: canvases.get(created.id)?.updatedAt,
+      viewerRole: null,
+      snapshotJson,
+      markdown: '# Updated',
+      access: {
+        edit: true,
+        comment: true,
+        manageSharing: false,
+        delete: false,
+      },
+    });
+    expect(versions.rows).toMatchObject([
+      {
+        canvasId: created.id,
+        trigger: 'auto',
+        snapshotJson,
+        markdown: '# Updated',
+      },
+    ]);
+    await expect(service.get(bob, created.id)).resolves.toEqual(updated);
+  });
+
   it('uses metadata for load, Liveblocks auth, and comment lists', async () => {
     const { service, repository, rooms, liveblocks } = setup(
       roomFor({ kind: 'dm', visibility: 'private' })
@@ -700,7 +802,7 @@ describe('CanvasesService AI drafts', () => {
   const thread = () => [embeddedIn('product', 'channel', ['alice'])];
 
   it('creates the channel canvas with the draft and records it as version 1', async () => {
-    const { service, canvases, versions } = setup(
+    const { service, canvases, repository, versions } = setup(
       roomFor(),
       ['alice', 'bob'],
       undefined,
@@ -709,11 +811,28 @@ describe('CanvasesService AI drafts', () => {
 
     const canvas = await service.create(alice, { ...draft, roomId: 'general' });
 
-    expect(canvas).toMatchObject({
+    const stored = canvases.get(canvas.id);
+    expect(canvas).toEqual({
+      id: 'canvas-1',
+      organizationId,
       roomId: 'general',
+      roomKind: 'channel',
+      roomName: 'general',
       title: 'Search filters',
+      icon: null,
+      coverPreset: null,
+      createdById: alice.userId,
+      updatedByName: alice.userId,
+      createdAt: stored?.createdAt,
+      updatedAt: stored?.updatedAt,
+      viewerRole: null,
+      snapshotJson,
       markdown: '## Scope',
+      access: { edit: true, comment: true, manageSharing: false, delete: true },
     });
+    expect(repository.findDocument).not.toHaveBeenCalled();
+    expect(repository.findMeta).not.toHaveBeenCalled();
+    await expect(service.get(alice, canvas.id)).resolves.toEqual(canvas);
     expect(canvases.get(canvas.id)).toMatchObject({
       snapshotJson,
       initialMarkdown: '## Scope',
@@ -737,11 +856,26 @@ describe('CanvasesService AI drafts', () => {
   });
 
   it('creates a standalone draft only its creator can open', async () => {
-    const { service } = setup(roomFor(), ['alice', 'bob'], undefined, thread());
+    const { service, repository } = setup(
+      roomFor(),
+      ['alice', 'bob'],
+      undefined,
+      thread()
+    );
 
     const canvas = await service.create(alice, draft);
 
-    expect(canvas).toMatchObject({ roomId: null, title: 'Search filters' });
+    expect(repository.findDocument).not.toHaveBeenCalled();
+    expect(repository.findMeta).not.toHaveBeenCalled();
+    expect(canvas).toMatchObject({
+      roomId: null,
+      roomKind: null,
+      roomName: null,
+      title: 'Search filters',
+      viewerRole: 'editor',
+      access: { edit: true, comment: true, manageSharing: true, delete: true },
+    });
+    await expect(service.get(alice, canvas.id)).resolves.toEqual(canvas);
     await expect(service.get(bob, canvas.id)).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
