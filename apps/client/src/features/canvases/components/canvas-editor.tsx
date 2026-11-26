@@ -38,6 +38,7 @@ import {
 } from 'lexical';
 import dynamic from 'next/dynamic';
 import {
+  Component,
   type ComponentProps,
   type ReactNode,
   type RefObject,
@@ -82,6 +83,7 @@ import {
   canvasMarkdownOf,
   createCanvasExtension,
 } from '../lib/canvas-extension';
+import { tryBuildCanvasPreviewEditor } from '../lib/canvas-snapshot-preview';
 import { createLiveblocksYjsAdapter } from '../lib/liveblocks-yjs-adapter';
 import { parseMessageUrl } from '../lib/message-url';
 import {
@@ -674,6 +676,131 @@ function buildCanvasEditor(
   );
 }
 
+class CanvasSnapshotPreviewBoundary extends Component<
+  { fallback: ReactNode; onError: () => void; children: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch() {
+    this.props.onError();
+  }
+
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
+
+function CanvasSnapshotPreviewEditor({
+  canvasId,
+  title,
+  content,
+  names,
+  fallback,
+}: {
+  canvasId: string;
+  title: string;
+  content: Pick<CanvasDocument, 'snapshotJson' | 'markdown'>;
+  names: ReadonlyMap<string, string>;
+  fallback: ReactNode;
+}) {
+  const [editor, setEditor] = useState<LexicalEditorWithDispose | null>(() =>
+    tryBuildCanvasPreviewEditor(content, names)
+  );
+  const renderEmbed = useCallback(
+    (messageId: string) => (
+      <CanvasMessageEmbed canvasId={canvasId} messageId={messageId} />
+    ),
+    [canvasId]
+  );
+
+  useEffect(() => {
+    if (!editor) return;
+    if (disposedEditors.has(editor)) {
+      setEditor(tryBuildCanvasPreviewEditor(content, names));
+      return;
+    }
+    return () => {
+      editor.dispose();
+      disposedEditors.add(editor);
+    };
+  }, [editor, content, names]);
+
+  if (editor === null) return fallback;
+
+  return (
+    <MessageEmbedRenderer value={renderEmbed}>
+      <LexicalExtensionEditorComposer
+        key={editor.getKey()}
+        initialEditor={editor}
+      >
+        <ContentEditable
+          aria-label={title}
+          aria-readonly
+          className="min-h-[50dvh] pb-24 pl-8 leading-7 outline-none"
+        />
+        <LazyCodeHighlightPlugin />
+        <CodeBlockPlugin />
+        <LayoutPlugin />
+        <CalloutPlugin />
+        <TogglePlugin />
+      </LexicalExtensionEditorComposer>
+    </MessageEmbedRenderer>
+  );
+}
+
+/** Read-only Postgres snapshot rendered while initial Yjs sync completes. */
+function CanvasSnapshotPreview({
+  canvas,
+  names,
+  fallback,
+}: {
+  canvas: CanvasDocument;
+  names: ReadonlyMap<string, string>;
+  fallback: ReactNode;
+}) {
+  const [initial] = useState(canvas);
+  const [mode, setMode] = useState<'snapshot' | 'markdown' | 'fallback'>(() => {
+    if (initial.snapshotJson !== null) return 'snapshot';
+    return initial.markdown.length > 0 ? 'markdown' : 'fallback';
+  });
+  const markdownContent = useMemo(
+    () => ({ snapshotJson: null, markdown: initial.markdown }),
+    [initial.markdown]
+  );
+
+  if (mode === 'fallback') return fallback;
+
+  const content = mode === 'snapshot' ? initial : markdownContent;
+  const handleError = () =>
+    setMode((current) =>
+      current === 'snapshot' && initial.markdown.length > 0
+        ? 'markdown'
+        : 'fallback'
+    );
+
+  return (
+    <CanvasSnapshotPreviewBoundary
+      key={mode}
+      fallback={fallback}
+      onError={handleError}
+    >
+      <CanvasSnapshotPreviewEditor
+        key={mode}
+        canvasId={canvas.id}
+        title={canvas.title}
+        content={content}
+        names={names}
+        fallback={fallback}
+      />
+    </CanvasSnapshotPreviewBoundary>
+  );
+}
+
 /**
  * The canvas document, with a floating toolbar on selection, a `/` block menu, and a drag handle per block.
  * There is no fixed toolbar. Loaded on demand, so a channel's first load does not carry the editor.
@@ -685,16 +812,23 @@ export function CanvasEditor({
   fallback,
   presenceSlot,
   ...props
-}: CanvasEditorDocumentProps & {
+}: Omit<CanvasEditorDocumentProps, 'namesAtMount'> & {
   /** Read once, when the editor mounts. Remount with a `key` to open another canvas. */
   canvas: CanvasDocument;
   auth: CanvasLiveblocksAuthState;
 }) {
+  const { data: workspaceMembers } = useWorkspaceMembers();
+  // Names only label mentions in Markdown without a saved state, so a later members refresh must not rebuild.
+  const [namesAtMount] = useState<ReadonlyMap<string, string>>(
+    () => new Map(workspaceMembers?.map((m) => [m.userId, m.name]))
+  );
+
   return (
     <CanvasCollabProvider canvasId={canvas.id} auth={auth} fallback={fallback}>
       <CanvasEditorDocument
         canvas={canvas}
         fallback={fallback}
+        namesAtMount={namesAtMount}
         presenceSlot={presenceSlot}
         {...props}
       />
@@ -704,8 +838,9 @@ export function CanvasEditor({
 
 type CanvasEditorDocumentProps = {
   canvas: CanvasDocument;
-  /** Shown until the live document is ready. */
+  /** Skeleton shown while auth completes, while a history version is loading, or when no snapshot preview can be built. */
   fallback: ReactNode;
+  namesAtMount: ReadonlyMap<string, string>;
   /** Where the avatars of everyone else on a live canvas render. */
   presenceSlot: HTMLElement | null;
   /** Where the outline of the canvas's headings renders. */
@@ -735,6 +870,7 @@ const noop = () => {};
 function CanvasEditorDocument({
   canvas,
   fallback,
+  namesAtMount,
   presenceSlot,
   tocSlot,
   compactTocSlot,
@@ -750,13 +886,6 @@ function CanvasEditorDocument({
   onExportChange,
 }: CanvasEditorDocumentProps) {
   const collab = useCanvasCollab();
-  const { data: workspaceMembers } = useWorkspaceMembers();
-  const names = useMemo(
-    () => new Map(workspaceMembers?.map((m) => [m.userId, m.name])),
-    [workspaceMembers]
-  );
-  // Names only label mentions in Markdown without a saved state, so a later members refresh must not rebuild.
-  const [namesAtMount] = useState(names);
   const [initial] = useState(canvas);
   const [editor, setEditor] = useState(() =>
     buildCanvasEditor(initial, namesAtMount, collab.live)
@@ -878,7 +1007,13 @@ function CanvasEditorDocument({
             tocSlot={tocSlot}
             compactTocSlot={compactTocSlot}
           />
-          {loading && fallback}
+          {loading && !previewId && (
+            <CanvasSnapshotPreview
+              canvas={canvas}
+              names={namesAtMount}
+              fallback={fallback}
+            />
+          )}
           {previewId && (
             <CanvasHistoryPreview
               canvasId={canvas.id}

@@ -276,9 +276,12 @@ export function CanvasViewState({
 /** A standalone or channel canvas opened by its id, as `/canvases/[canvasId]` and a channel's canvas tab do. */
 export function CanvasViewById({
   canvasId,
+  expectedRoomId,
   onDeleted,
 }: {
   canvasId: string;
+  /** When opened inside a room tab, reject canvases belonging to another room. */
+  expectedRoomId?: string;
   /** Where to go once it is deleted. All canvases, unless the caller says otherwise. */
   onDeleted?: () => void;
 }) {
@@ -308,18 +311,22 @@ export function CanvasViewById({
     };
   }, [canvasId, openingId, queryClient]);
 
+  const notFound = (
+    <CanvasViewState
+      title="Canvas not found"
+      description="It was deleted, or it has not been shared with you."
+      action={{
+        label: 'All canvases',
+        onClick: () => router.push('/canvases'),
+      }}
+    />
+  );
+
   if (canvas.isPending) return <CanvasViewSkeleton />;
   if (canvas.isError) {
     return canvas.error instanceof ORPCError &&
       canvas.error.code === 'NOT_FOUND' ? (
-      <CanvasViewState
-        title="Canvas not found"
-        description="It was deleted, or it has not been shared with you."
-        action={{
-          label: 'All canvases',
-          onClick: () => router.push('/canvases'),
-        }}
-      />
+      notFound
     ) : (
       <CanvasViewState
         failed
@@ -329,12 +336,22 @@ export function CanvasViewById({
       />
     );
   }
+  if (expectedRoomId !== undefined && canvas.data.roomId !== expectedRoomId) {
+    return notFound;
+  }
 
   return (
     <CanvasView
       canvas={canvas.data}
       auth={auth}
-      onDeleted={onDeleted ?? (() => router.push('/canvases'))}
+      onDeleted={
+        onDeleted ??
+        (() => {
+          if (window.location.pathname === `/canvases/${canvasId}`) {
+            router.push('/canvases');
+          }
+        })
+      }
     />
   );
 }

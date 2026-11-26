@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { resolveRoomTab } from '../room-tab';
+import { prefetchTargetCanvasId, resolveRoomTab } from '../room-tab';
 
 describe('resolveRoomTab', () => {
   it('opens Messages without waiting for the canvases', () => {
@@ -28,5 +28,35 @@ describe('resolveRoomTab', () => {
   it('still opens an id when the list failed, so its view can explain', () => {
     expect(resolveRoomTab('c1', 'failed')).toBe('c1');
     expect(resolveRoomTab('canvas', 'failed')).toBe('messages');
+  });
+});
+
+describe('prefetchTargetCanvasId', () => {
+  const validCuid = 'cm1234567890abcdefghij123';
+
+  it('returns the resolved canvas id when active is a canvas', () => {
+    expect(prefetchTargetCanvasId('c1', 'c1')).toBe('c1');
+    expect(prefetchTargetCanvasId('canvas', 'c1')).toBe('c1');
+    expect(prefetchTargetCanvasId(validCuid, validCuid)).toBe(validCuid);
+  });
+
+  it('returns null when active resolved to Messages', () => {
+    expect(prefetchTargetCanvasId('messages', 'messages')).toBeNull();
+    expect(prefetchTargetCanvasId('gone', 'messages')).toBeNull();
+  });
+
+  it('returns a CUID-shaped ?tab=<canvasId> while the room canvases list is still pending', () => {
+    expect(prefetchTargetCanvasId(validCuid, null)).toBe(validCuid);
+  });
+
+  it('returns null while pending for typos, arbitrary strings, or reserved tab names', () => {
+    expect(prefetchTargetCanvasId('messages', null)).toBeNull();
+    expect(prefetchTargetCanvasId('canvas', null)).toBeNull();
+    expect(prefetchTargetCanvasId('', null)).toBeNull();
+    expect(prefetchTargetCanvasId('c1', null)).toBeNull();
+    expect(prefetchTargetCanvasId('not-a-cuid', null)).toBeNull();
+    expect(
+      prefetchTargetCanvasId('CM1234567890abcdefghij123', null)
+    ).toBeNull();
   });
 });

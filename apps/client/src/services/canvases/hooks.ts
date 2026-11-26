@@ -118,7 +118,8 @@ export function useClaimCanvasBootstrap() {
 }
 
 /**
- * Mirrors a live canvas into Postgres. The live document is what editors open, so no cached document is patched.
+ * Mirrors a live canvas into Postgres and marks the cached document stale without refetching the active
+ * live editor, so reopening fetches fresh without risking stale overwrites or clearing access errors.
  * `keepalive` lets a small save finish after the page closes.
  */
 export function useSaveCanvasSnapshot() {
@@ -130,9 +131,21 @@ export function useSaveCanvasSnapshot() {
       ...input
     }: SaveCanvasSnapshotInput & { keepalive?: boolean }) =>
       client.canvases.saveSnapshot(input, { context: { keepalive } }),
-    onSuccess: ({ saved }) =>
-      saved &&
-      queryClient.invalidateQueries({ queryKey: orpc.canvases.list.key() }),
+    onSuccess: ({ saved }, variables) => {
+      if (!saved) return;
+      return Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: orpc.canvases.get.queryKey({
+            input: { canvasId: variables.canvasId },
+          }),
+          exact: true,
+          refetchType: 'none',
+        }),
+        queryClient.invalidateQueries({
+          queryKey: orpc.canvases.list.key(),
+        }),
+      ]);
+    },
   });
 }
 
@@ -141,13 +154,22 @@ export function useDeleteCanvas() {
 
   return useMutation(
     orpc.canvases.delete.mutationOptions({
-      onSuccess: () =>
-        Promise.all([
+      onSuccess: (_, { canvasId }) => {
+        queryClient.removeQueries({
+          queryKey: orpc.canvases.get.queryKey({ input: { canvasId } }),
+          exact: true,
+        });
+        queryClient.setQueriesData<Canvas[]>(
+          { queryKey: orpc.canvases.listRoomCanvases.key() },
+          (tabs) => tabs?.filter((tab) => tab.id !== canvasId)
+        );
+        return Promise.all([
           queryClient.invalidateQueries({ queryKey: orpc.canvases.list.key() }),
           queryClient.invalidateQueries({
             queryKey: orpc.canvases.listRoomCanvases.key(),
           }),
-        ]),
+        ]);
+      },
     })
   );
 }

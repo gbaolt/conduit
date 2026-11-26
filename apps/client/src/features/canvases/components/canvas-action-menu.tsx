@@ -76,18 +76,15 @@ function CanvasActionMenuDelete({
           <StatusButton
             variant="destructive"
             status={remove.isPending ? 'loading' : 'idle'}
-            onClick={() =>
-              remove.mutate(
-                { canvasId: canvas.id },
-                {
-                  onSuccess: () => {
-                    onOpenChange(false);
-                    onDeleted();
-                  },
-                  onError: (error) => toast.error(error.message),
-                }
-              )
-            }
+            onClick={() => {
+              void remove.mutateAsync({ canvasId: canvas.id }).then(
+                () => {
+                  onOpenChange(false);
+                  onDeleted();
+                },
+                (error: Error) => toast.error(error.message)
+              );
+            }}
           >
             Delete
           </StatusButton>

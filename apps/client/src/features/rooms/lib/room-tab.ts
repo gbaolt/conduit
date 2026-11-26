@@ -21,3 +21,17 @@ export function resolveRoomTab(
   if (tab === 'canvas') return canvases[0] ?? 'messages';
   return canvases.includes(tab) ? tab : 'messages';
 }
+
+const CUID_PATTERN = /^c[a-z0-9]{20,32}$/;
+
+/**
+ * The canvas id to warm right away while a room tab opens: the resolved canvas id when known,
+ * or a CUID-shaped `?tab=<canvasId>` while the room's canvas list is still loading.
+ */
+export function prefetchTargetCanvasId(
+  tab: string,
+  active: string | null
+): string | null {
+  if (active) return active === 'messages' ? null : active;
+  return CUID_PATTERN.test(tab) ? tab : null;
+}

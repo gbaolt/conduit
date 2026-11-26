@@ -38,6 +38,7 @@ import { roomQuery } from '@/services/rooms/queries';
 import { useWorkspaceRole } from '@/services/workspaces/hooks';
 
 import {
+  prefetchTargetCanvasId,
   resolveRoomTab,
   type RoomCanvasIds,
   roomTabParam,
@@ -121,9 +122,14 @@ function RoomTabsAddMenu({
 
 const PREFETCH_DWELL_MS = 120;
 
+function warmCanvasChunks() {
+  void import('@/features/canvases/components/canvas-view').catch(() => {});
+  void import('@/features/canvases/components/canvas-editor').catch(() => {});
+}
+
 /**
  * Messages, then one tab per canvas, then `+`, directly under a channel's or DM's header. Messages stays mounted,
- * so it keeps its scroll.
+ * so switching back from a canvas does not reload the stream or lose scroll position.
  */
 export function RoomTabs({
   roomId,
@@ -138,33 +144,52 @@ export function RoomTabs({
 }) {
   const [tab, setTab] = useQueryState('tab', roomTabParam);
   const queryClient = useQueryClient();
+  const activeRoomRef = useRef<string | null>(roomId);
   const prefetchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const canvases = useQuery(roomCanvasesQuery(roomId));
   // A failed refresh keeps the tabs it already had.
   let ids: RoomCanvasIds = canvases.isError ? 'failed' : 'pending';
   if (canvases.data) ids = canvases.data.map((canvas) => canvas.id);
   const active = resolveRoomTab(tab, ids);
-  const showMessages = () => void setTab(null);
+  const prefetchTarget = prefetchTargetCanvasId(tab, active);
+  const handleDeleted = (deletedId: string) => {
+    // Guard against both unmount/room change and pre-effect URL navigation before touching `?tab=`.
+    if (
+      activeRoomRef.current !== roomId ||
+      window.location.pathname.split('/').at(-1) !== roomId
+    ) {
+      return;
+    }
+    const currentTab = new URLSearchParams(window.location.search).get('tab');
+    if (currentTab !== deletedId && currentTab !== 'canvas') return;
+    void setTab(null);
+  };
   const cancelPrefetch = () => {
     clearTimeout(prefetchTimer.current);
   };
   const prefetchCanvas = (canvasId: string) => {
-    void import('@/features/canvases/components/canvas-view').catch(() => {});
-    void import('@/features/canvases/components/canvas-editor').catch(() => {});
+    warmCanvasChunks();
     clearTimeout(prefetchTimer.current);
     prefetchTimer.current = setTimeout(() => {
       void queryClient.prefetchQuery(canvasQuery(canvasId));
     }, PREFETCH_DWELL_MS);
   };
 
+  useEffect(() => {
+    activeRoomRef.current = roomId;
+    return () => {
+      activeRoomRef.current = null;
+    };
+  }, [roomId]);
+
   useEffect(() => cancelPrefetch, []);
 
   useEffect(() => {
-    // Start canvases.get alongside the dynamic CanvasViewById chunk download.
-    if (active && active !== 'messages') {
-      void queryClient.prefetchQuery(canvasQuery(active));
-    }
-  }, [active, queryClient]);
+    // Start canvases.get and warm the canvas chunks alongside roomCanvasesQuery on direct ?tab=<canvasId> links.
+    if (!prefetchTarget) return;
+    warmCanvasChunks();
+    void queryClient.prefetchQuery(canvasQuery(prefetchTarget));
+  }, [prefetchTarget, queryClient]);
 
   return (
     <Tabs
@@ -215,7 +240,8 @@ export function RoomTabs({
             <CanvasViewById
               key={active}
               canvasId={active}
-              onDeleted={showMessages}
+              expectedRoomId={roomId}
+              onDeleted={() => handleDeleted(active)}
             />
           ) : (
             <CanvasViewSkeleton />
