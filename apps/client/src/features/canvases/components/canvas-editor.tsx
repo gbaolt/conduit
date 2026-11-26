@@ -624,11 +624,13 @@ function CanvasEditorPlugins({
 
 /** One heading subscription for both the hash scroll and the outline. */
 function CanvasEditorOutline({
+  active,
   loading,
   previewing,
   tocSlot,
   compactTocSlot,
 }: {
+  active: boolean;
   loading: boolean;
   previewing: boolean;
   tocSlot: HTMLElement | null;
@@ -642,7 +644,7 @@ function CanvasEditorOutline({
       <CanvasTocHashScroll
         headings={headings}
         ready={!loading}
-        visible={!loading && !previewing}
+        visible={active && !loading && !previewing}
       />
       {!loading && !previewing && (
         <CanvasToc
@@ -653,6 +655,26 @@ function CanvasEditorOutline({
         />
       )}
     </>
+  );
+}
+
+function CanvasSnapshotPreviewToc({
+  tocSlot,
+  compactTocSlot,
+}: {
+  tocSlot: HTMLElement | null;
+  compactTocSlot: HTMLElement | null;
+}) {
+  const [editor] = useLexicalComposerContext();
+  const headings = useCanvasHeadings(editor);
+
+  return (
+    <CanvasToc
+      headings={headings}
+      slot={tocSlot}
+      compactSlot={compactTocSlot}
+      side="left"
+    />
   );
 }
 
@@ -701,12 +723,16 @@ function CanvasSnapshotPreviewEditor({
   content,
   names,
   fallback,
+  tocSlot,
+  compactTocSlot,
 }: {
   canvasId: string;
   title: string;
   content: Pick<CanvasDocument, 'snapshotJson' | 'markdown'>;
   names: ReadonlyMap<string, string>;
   fallback: ReactNode;
+  tocSlot: HTMLElement | null;
+  compactTocSlot: HTMLElement | null;
 }) {
   const [editor, setEditor] = useState<LexicalEditorWithDispose | null>(() =>
     tryBuildCanvasPreviewEditor(content, names)
@@ -743,6 +769,10 @@ function CanvasSnapshotPreviewEditor({
           aria-readonly
           className="min-h-[50dvh] pb-24 pl-8 leading-7 outline-none"
         />
+        <CanvasSnapshotPreviewToc
+          tocSlot={tocSlot}
+          compactTocSlot={compactTocSlot}
+        />
         <LazyCodeHighlightPlugin />
         <CodeBlockPlugin />
         <LayoutPlugin />
@@ -753,15 +783,19 @@ function CanvasSnapshotPreviewEditor({
   );
 }
 
-/** Read-only Postgres snapshot rendered while initial Yjs sync completes. */
+/** Read-only Postgres snapshot rendered while Liveblocks auth and initial Yjs sync complete. */
 function CanvasSnapshotPreview({
   canvas,
   names,
   fallback,
+  tocSlot,
+  compactTocSlot,
 }: {
   canvas: CanvasDocument;
   names: ReadonlyMap<string, string>;
   fallback: ReactNode;
+  tocSlot: HTMLElement | null;
+  compactTocSlot: HTMLElement | null;
 }) {
   const [initial] = useState(canvas);
   const [mode, setMode] = useState<'snapshot' | 'markdown' | 'fallback'>(() => {
@@ -796,6 +830,8 @@ function CanvasSnapshotPreview({
         content={content}
         names={names}
         fallback={fallback}
+        tocSlot={tocSlot}
+        compactTocSlot={compactTocSlot}
       />
     </CanvasSnapshotPreviewBoundary>
   );
@@ -809,35 +845,64 @@ function CanvasSnapshotPreview({
 export function CanvasEditor({
   canvas,
   auth,
+  active = true,
   fallback,
   presenceSlot,
+  tocSlot,
+  compactTocSlot,
   ...props
-}: Omit<CanvasEditorDocumentProps, 'namesAtMount'> & {
+}: Omit<
+  CanvasEditorDocumentProps,
+  'namesAtMount' | 'active' | 'onLiveLoadingChange' | 'onPreviewingChange'
+> & {
   /** Read once, when the editor mounts. Remount with a `key` to open another canvas. */
   canvas: CanvasDocument;
   auth: CanvasLiveblocksAuthState;
+  active?: boolean;
 }) {
   const { data: workspaceMembers } = useWorkspaceMembers();
   // Names only label mentions in Markdown without a saved state, so a later members refresh must not rebuild.
   const [namesAtMount] = useState<ReadonlyMap<string, string>>(
     () => new Map(workspaceMembers?.map((m) => [m.userId, m.name]))
   );
+  const [liveLoading, setLiveLoading] = useState(true);
+  const [previewing, setPreviewing] = useState(false);
+  const showSnapshotPreview =
+    auth.isPending ||
+    (!auth.isError && auth.data.enabled && liveLoading && !previewing);
 
   return (
-    <CanvasCollabProvider canvasId={canvas.id} auth={auth} fallback={fallback}>
-      <CanvasEditorDocument
-        canvas={canvas}
-        fallback={fallback}
-        namesAtMount={namesAtMount}
-        presenceSlot={presenceSlot}
-        {...props}
-      />
-    </CanvasCollabProvider>
+    <>
+      {showSnapshotPreview && (
+        <CanvasSnapshotPreview
+          canvas={canvas}
+          names={namesAtMount}
+          fallback={fallback}
+          tocSlot={tocSlot}
+          compactTocSlot={compactTocSlot}
+        />
+      )}
+      <CanvasCollabProvider canvasId={canvas.id} auth={auth} fallback={null}>
+        <CanvasEditorDocument
+          canvas={canvas}
+          active={active}
+          fallback={fallback}
+          namesAtMount={namesAtMount}
+          presenceSlot={presenceSlot}
+          tocSlot={tocSlot}
+          compactTocSlot={compactTocSlot}
+          onLiveLoadingChange={setLiveLoading}
+          onPreviewingChange={setPreviewing}
+          {...props}
+        />
+      </CanvasCollabProvider>
+    </>
   );
 }
 
 type CanvasEditorDocumentProps = {
   canvas: CanvasDocument;
+  active: boolean;
   /** Skeleton shown while auth completes, while a history version is loading, or when no snapshot preview can be built. */
   fallback: ReactNode;
   namesAtMount: ReadonlyMap<string, string>;
@@ -856,6 +921,8 @@ type CanvasEditorDocumentProps = {
   savingVersion: boolean;
   onSavingVersionChange: (open: boolean) => void;
   onStatusChange: (status: CanvasSaveStatus) => void;
+  onLiveLoadingChange: (loading: boolean) => void;
+  onPreviewingChange: (previewing: boolean) => void;
   /** Hands the editor out, so the heading outside it can move the caret into the document. */
   onEditorChange?: (editor: LexicalEditor | null) => void;
   /** Hands out the editor currently on screen for Markdown export (live or version preview). */
@@ -869,6 +936,7 @@ const noop = () => {};
 
 function CanvasEditorDocument({
   canvas,
+  active,
   fallback,
   namesAtMount,
   presenceSlot,
@@ -882,6 +950,8 @@ function CanvasEditorDocument({
   savingVersion,
   onSavingVersionChange,
   onStatusChange,
+  onLiveLoadingChange,
+  onPreviewingChange,
   onEditorChange,
   onExportChange,
 }: CanvasEditorDocumentProps) {
@@ -896,6 +966,13 @@ function CanvasEditorDocument({
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [previewEditor, setPreviewEditor] = useState<LexicalEditor | null>(
     null
+  );
+  const handleLiveStateChange = useCallback(
+    (next: CanvasLiveState) => {
+      setLiveState(next);
+      onLiveLoadingChange(next === 'loading');
+    },
+    [onLiveLoadingChange]
   );
   const loading = collab.live && liveState === 'loading';
   const editable =
@@ -934,6 +1011,10 @@ function CanvasEditorDocument({
       disposedEditors.add(editor);
     };
   }, [editor, initial, namesAtMount, collab.live]);
+
+  useEffect(() => {
+    onPreviewingChange(previewId !== null);
+  }, [previewId, onPreviewingChange]);
 
   useEffect(() => {
     editor.setEditable(editable);
@@ -982,7 +1063,7 @@ function CanvasEditorDocument({
               names={namesAtMount}
               cursorsRef={cursorsRef}
               presenceSlot={presenceSlot}
-              onStateChange={setLiveState}
+              onStateChange={handleLiveStateChange}
               onStatusChange={onStatusChange}
             />
           ) : (
@@ -1002,18 +1083,12 @@ function CanvasEditorDocument({
             insertBarSlot={!loading && !previewId ? insertBarSlot : null}
           />
           <CanvasEditorOutline
+            active={active}
             loading={loading}
             previewing={previewId !== null}
             tocSlot={tocSlot}
             compactTocSlot={compactTocSlot}
           />
-          {loading && !previewId && (
-            <CanvasSnapshotPreview
-              canvas={canvas}
-              names={namesAtMount}
-              fallback={fallback}
-            />
-          )}
           {previewId && (
             <CanvasHistoryPreview
               canvasId={canvas.id}

@@ -35,3 +35,24 @@ export function prefetchTargetCanvasId(
   if (active) return active === 'messages' ? null : active;
   return CUID_PATTERN.test(tab) ? tab : null;
 }
+
+const DEFAULT_MAX_MOUNTED_CANVASES = 5;
+
+/**
+ * Keeps recently visited canvas tabs mounted (LRU) so switching between Messages and canvases
+ * does not tear down the editor or reconnect Liveblocks, while pruning deleted canvases.
+ */
+export function updateMountedCanvasTabs(
+  current: readonly string[],
+  active: string | null,
+  validIds: readonly string[] | null,
+  maxMounted = DEFAULT_MAX_MOUNTED_CANVASES
+): string[] {
+  const allowed = validIds ? new Set(validIds) : null;
+  const kept = allowed ? current.filter((id) => allowed.has(id)) : [...current];
+  if (!active || active === 'messages') return kept;
+  if (allowed && !allowed.has(active)) return kept;
+  const next = kept.filter((id) => id !== active);
+  next.push(active);
+  return next.length > maxMounted ? next.slice(next.length - maxMounted) : next;
+}

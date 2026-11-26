@@ -60,10 +60,12 @@ const CanvasShareDialog = dynamic(
 export function CanvasView({
   canvas,
   auth,
+  active = true,
   onDeleted,
 }: {
   canvas: CanvasDocument;
   auth: CanvasLiveblocksAuthState;
+  active?: boolean;
   onDeleted: () => void;
 }) {
   const [status, setStatus] = useState<CanvasSaveStatus>('saved');
@@ -188,6 +190,7 @@ export function CanvasView({
             key={canvas.id}
             canvas={canvas}
             auth={auth}
+            active={active}
             fallback={<CanvasViewEditorSkeleton />}
             presenceSlot={presenceSlot}
             tocSlot={tocSlot}
@@ -277,11 +280,13 @@ export function CanvasViewState({
 export function CanvasViewById({
   canvasId,
   expectedRoomId,
+  active = true,
   onDeleted,
 }: {
   canvasId: string;
   /** When opened inside a room tab, reject canvases belonging to another room. */
   expectedRoomId?: string;
+  active?: boolean;
   /** Where to go once it is deleted. All canvases, unless the caller says otherwise. */
   onDeleted?: () => void;
 }) {
@@ -344,6 +349,7 @@ export function CanvasViewById({
     <CanvasView
       canvas={canvas.data}
       auth={auth}
+      active={active}
       onDeleted={
         onDeleted ??
         (() => {

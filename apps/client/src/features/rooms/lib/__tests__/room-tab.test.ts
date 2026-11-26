@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { prefetchTargetCanvasId, resolveRoomTab } from '../room-tab';
+import {
+  prefetchTargetCanvasId,
+  resolveRoomTab,
+  updateMountedCanvasTabs,
+} from '../room-tab';
 
 describe('resolveRoomTab', () => {
   it('opens Messages without waiting for the canvases', () => {
@@ -58,5 +62,50 @@ describe('prefetchTargetCanvasId', () => {
     expect(
       prefetchTargetCanvasId('CM1234567890abcdefghij123', null)
     ).toBeNull();
+  });
+});
+
+describe('updateMountedCanvasTabs', () => {
+  it('leaves mounted list empty while on Messages or pending', () => {
+    expect(updateMountedCanvasTabs([], 'messages', ['c1'])).toEqual([]);
+    expect(updateMountedCanvasTabs([], null, null)).toEqual([]);
+  });
+
+  it('keeps visited canvases mounted when switching back to Messages', () => {
+    const visited = updateMountedCanvasTabs([], 'c1', ['c1', 'c2']);
+    expect(visited).toEqual(['c1']);
+    expect(updateMountedCanvasTabs(visited, 'messages', ['c1', 'c2'])).toEqual([
+      'c1',
+    ]);
+  });
+
+  it('moves a revisited canvas to the most-recent slot and evicts the oldest past the cap', () => {
+    const afterTwo = updateMountedCanvasTabs(
+      ['c1'],
+      'c2',
+      ['c1', 'c2', 'c3'],
+      2
+    );
+    expect(afterTwo).toEqual(['c1', 'c2']);
+    const revisited = updateMountedCanvasTabs(
+      afterTwo,
+      'c1',
+      ['c1', 'c2', 'c3'],
+      2
+    );
+    expect(revisited).toEqual(['c2', 'c1']);
+    const evicted = updateMountedCanvasTabs(
+      revisited,
+      'c3',
+      ['c1', 'c2', 'c3'],
+      2
+    );
+    expect(evicted).toEqual(['c1', 'c3']);
+  });
+
+  it('prunes canvases removed from the room', () => {
+    expect(updateMountedCanvasTabs(['c1', 'c2'], 'messages', ['c2'])).toEqual([
+      'c2',
+    ]);
   });
 });

@@ -28,7 +28,7 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
 import { useQueryState } from 'nuqs';
-import { type ReactNode, useEffect, useRef } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { CanvasViewSkeleton } from '@/features/canvases/components/canvas-view-skeleton';
@@ -42,6 +42,7 @@ import {
   resolveRoomTab,
   type RoomCanvasIds,
   roomTabParam,
+  updateMountedCanvasTabs,
 } from '../lib/room-tab';
 
 const CanvasViewById = dynamic(
@@ -152,6 +153,16 @@ export function RoomTabs({
   if (canvases.data) ids = canvases.data.map((canvas) => canvas.id);
   const active = resolveRoomTab(tab, ids);
   const prefetchTarget = prefetchTargetCanvasId(tab, active);
+  const validIds = Array.isArray(ids) ? ids : null;
+  const [mountedState, setMountedState] = useState<{
+    roomId: string;
+    ids: string[];
+  }>({ roomId, ids: [] });
+  const mountedCanvases = updateMountedCanvasTabs(
+    mountedState.roomId === roomId ? mountedState.ids : [],
+    active,
+    validIds
+  );
   const handleDeleted = (deletedId: string) => {
     // Guard against both unmount/room change and pre-effect URL navigation before touching `?tab=`.
     if (
@@ -183,6 +194,25 @@ export function RoomTabs({
   }, [roomId]);
 
   useEffect(() => cancelPrefetch, []);
+
+  useEffect(() => {
+    setMountedState((current) => {
+      const prev = current.roomId === roomId ? current.ids : [];
+      const next = updateMountedCanvasTabs(
+        prev,
+        active,
+        canvases.data ? canvases.data.map((canvas) => canvas.id) : null
+      );
+      if (
+        current.roomId === roomId &&
+        next.length === prev.length &&
+        next.every((id, index) => id === prev[index])
+      ) {
+        return current;
+      }
+      return { roomId, ids: next };
+    });
+  }, [roomId, active, canvases.data]);
 
   useEffect(() => {
     // Start canvases.get and warm the canvas chunks alongside roomCanvasesQuery on direct ?tab=<canvasId> links.
@@ -234,18 +264,25 @@ export function RoomTabs({
         {children}
       </TabsContent>
 
-      {active !== 'messages' && (
-        <TabsContent value={active ?? tab} className="flex min-h-0 flex-col">
-          {active ? (
-            <CanvasViewById
-              key={active}
-              canvasId={active}
-              expectedRoomId={roomId}
-              onDeleted={() => handleDeleted(active)}
-            />
-          ) : (
-            <CanvasViewSkeleton />
-          )}
+      {mountedCanvases.map((canvasId) => (
+        <TabsContent
+          key={canvasId}
+          value={canvasId}
+          keepMounted
+          className="flex min-h-0 flex-col data-hidden:hidden"
+        >
+          <CanvasViewById
+            canvasId={canvasId}
+            expectedRoomId={roomId}
+            active={active === canvasId}
+            onDeleted={() => handleDeleted(canvasId)}
+          />
+        </TabsContent>
+      ))}
+
+      {active === null && tab !== 'messages' && (
+        <TabsContent value={tab} className="flex min-h-0 flex-col">
+          <CanvasViewSkeleton />
         </TabsContent>
       )}
     </Tabs>

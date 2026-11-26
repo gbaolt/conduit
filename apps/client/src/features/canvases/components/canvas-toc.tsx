@@ -1,11 +1,11 @@
 'use client';
 
-import { Button } from '@conduit/ui/components/button';
+import { Button, buttonVariants } from '@conduit/ui/components/button';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@conduit/ui/components/popover';
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@conduit/ui/components/hover-card';
 import { cn } from '@conduit/ui/lib/utils';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $isHeadingNode, HeadingNode } from '@lexical/rich-text';
@@ -342,7 +342,7 @@ function CanvasTocList({
 
 /**
  * The canvas outline, drawn into `slot` (wide aside) and `compactSlot` (narrow header chrome): a labelled
- * button opens a popover list of headings where each item jumps to the heading or copies its link. Renders
+ * trigger opens a hover card list of headings where each item jumps to the heading or copies its link. Renders
  * nothing while the canvas has no headings.
  */
 export function CanvasToc({
@@ -404,13 +404,16 @@ export function CanvasToc({
       {slot &&
         createPortal(
           <div className={cn('w-18', layout.root)}>
-            <Popover open={wideOpen} onOpenChange={setWideOpen}>
-              <PopoverTrigger
+            <HoverCard open={wideOpen} onOpenChange={setWideOpen}>
+              <HoverCardTrigger
+                delay={100}
+                closeDelay={100}
                 render={
-                  <Button
-                    variant="ghost"
+                  <button
+                    type="button"
                     aria-label="Outline"
                     className={cn(
+                      buttonVariants({ variant: 'ghost' }),
                       'h-auto max-h-[50dvh] w-full flex-col gap-3 overflow-hidden rounded-md py-3 opacity-100 transition-opacity duration-200 hover:bg-transparent data-popup-open:opacity-0 dark:hover:bg-transparent',
                       layout.track
                     )}
@@ -431,10 +434,10 @@ export function CanvasToc({
                     )}
                   />
                 ))}
-              </PopoverTrigger>
-              <PopoverContent
+              </HoverCardTrigger>
+              <HoverCardContent
                 aria-label="Outline"
-                className="w-56 overflow-hidden rounded-md p-0"
+                className="data-[side=left]:slide-in-from-right-3 data-[side=left]:slide-out-to-right-3 data-[side=right]:slide-in-from-left-3 data-[side=right]:slide-out-to-left-3 data-open:zoom-in-100 data-closed:zoom-out-100 w-56 overflow-hidden rounded-md p-0 duration-200"
                 align="start"
                 alignOffset={0}
                 side={layout.popup}
@@ -449,27 +452,32 @@ export function CanvasToc({
                   }}
                   onCopyLink={copyLink}
                 />
-              </PopoverContent>
-            </Popover>
+              </HoverCardContent>
+            </HoverCard>
           </div>,
           slot
         )}
       {compactSlot &&
         createPortal(
-          <Popover open={compactOpen} onOpenChange={setCompactOpen}>
-            <PopoverTrigger
+          <HoverCard open={compactOpen} onOpenChange={setCompactOpen}>
+            <HoverCardTrigger
+              delay={100}
+              closeDelay={100}
               render={
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
+                <button
+                  type="button"
                   aria-label="Outline"
-                  className="bg-background/80 hover:bg-muted"
+                  className={cn(
+                    buttonVariants({ variant: 'ghost', size: 'icon-sm' }),
+                    'bg-background/80 hover:bg-muted'
+                  )}
+                  onClick={() => setCompactOpen((open) => !open)}
                 />
               }
             >
               <IconList />
-            </PopoverTrigger>
-            <PopoverContent
+            </HoverCardTrigger>
+            <HoverCardContent
               aria-label="Outline"
               align="end"
               className="w-56 overflow-hidden rounded-md p-0"
@@ -483,8 +491,8 @@ export function CanvasToc({
                 }}
                 onCopyLink={copyLink}
               />
-            </PopoverContent>
-          </Popover>,
+            </HoverCardContent>
+          </HoverCard>,
           compactSlot
         )}
     </>
