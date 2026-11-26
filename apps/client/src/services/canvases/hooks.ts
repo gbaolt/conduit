@@ -1,7 +1,7 @@
 'use client';
 
 import type {
-  CanvasDocument,
+  Canvas,
   SaveCanvasSnapshotInput,
   UpdateCanvasInput,
 } from '@conduit/contract';
@@ -45,6 +45,34 @@ export function useCreateCanvas() {
 }
 
 /**
+ * Merges a `canvases.update` response into a cached canvas without letting a slower
+ * response (such as an autosave) overwrite fields changed by a concurrent update.
+ */
+export function applyCanvasUpdate<T extends Canvas>(
+  old: T,
+  response: Canvas,
+  variables: UpdateCanvasInput
+): T {
+  return {
+    ...old,
+    updatedAt: response.updatedAt,
+    updatedByName: response.updatedByName,
+    access: response.access,
+    ...(variables.title !== undefined && { title: response.title }),
+    ...(variables.icon !== undefined && { icon: response.icon }),
+    ...(variables.coverPreset !== undefined && {
+      coverPreset: response.coverPreset,
+    }),
+    ...('snapshotJson' in old &&
+      variables.snapshotJson !== undefined && {
+        snapshotJson: variables.snapshotJson,
+      }),
+    ...('markdown' in old &&
+      variables.markdown !== undefined && { markdown: variables.markdown }),
+  };
+}
+
+/**
  * Saves edits. The open editor already shows them, so the cached document is patched in place rather than
  * refetched, and reopening the canvas starts from what was saved.
  */
@@ -53,17 +81,10 @@ export function useUpdateCanvas() {
 
   return useMutation(
     orpc.canvases.update.mutationOptions({
-      onSuccess: (canvas, { snapshotJson, markdown }) => {
-        const patch = <T extends CanvasDocument | null | undefined>(old: T) =>
-          (old && {
-            ...old,
-            ...canvas,
-            snapshotJson: snapshotJson ?? old.snapshotJson,
-            markdown: markdown ?? old.markdown,
-          }) as T;
+      onSuccess: (canvas, variables) => {
         queryClient.setQueryData(
           orpc.canvases.get.queryKey({ input: { canvasId: canvas.id } }),
-          patch
+          (old) => old && applyCanvasUpdate(old, canvas, variables)
         );
         // Autosaves run every second while typing, so the tabs are patched rather than refetched.
         if (canvas.roomId) {
@@ -74,13 +95,7 @@ export function useUpdateCanvas() {
             (tabs) =>
               tabs?.map((tab) =>
                 tab.id === canvas.id
-                  ? {
-                      ...tab,
-                      title: canvas.title,
-                      icon: canvas.icon,
-                      coverPreset: canvas.coverPreset,
-                      updatedAt: canvas.updatedAt,
-                    }
+                  ? applyCanvasUpdate(tab, canvas, variables)
                   : tab
               )
           );

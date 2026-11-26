@@ -3,10 +3,8 @@
 import { MESSAGE_BODY_MAX } from '@conduit/contract';
 import { Button } from '@conduit/ui/components/button';
 import { Popover, PopoverContent } from '@conduit/ui/components/popover';
-import { Separator } from '@conduit/ui/components/separator';
 import { Textarea } from '@conduit/ui/components/textarea';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { IconMessagePlus } from '@tabler/icons-react';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -17,25 +15,6 @@ import {
   type CanvasCommentDraft,
   useCanvasComments,
 } from './canvas-comments-plugin';
-
-/** The floating toolbar's Comment button, for the selected text. */
-export function CanvasCommentPopoverButton() {
-  const { startDraft } = useCanvasComments();
-  return (
-    <>
-      <Separator orientation="vertical" />
-      <Button
-        variant="ghost"
-        size="sm"
-        onMouseDown={(event) => event.preventDefault()}
-        onClick={() => startDraft('toolbar')}
-      >
-        <IconMessagePlus data-icon="inline-start" />
-        Comment
-      </Button>
-    </>
-  );
-}
 
 function CanvasCommentPopoverForm({ draft }: { draft: CanvasCommentDraft }) {
   const [editor] = useLexicalComposerContext();

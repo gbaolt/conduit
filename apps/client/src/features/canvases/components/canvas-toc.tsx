@@ -32,22 +32,14 @@ import {
   $getHeadingAnchorId,
   $setHeadingAnchorId,
   assignHeadingAnchors,
+  type CanvasHeading,
   createHeadingAnchorId,
   findHeadingByAnchor,
   headingAnchorFromHash,
   headingAnchorOf,
   headingUrlOf,
+  sameHeadings,
 } from '../lib/canvas-heading-anchor';
-
-type CanvasHeading = {
-  key: NodeKey;
-  text: string;
-  anchorId: string | null;
-  anchor: string;
-  legacyAnchor: string;
-  /** 1 for `h1`. Deeper headings than `h3` indent as `h3`. */
-  depth: number;
-};
 
 /** A heading counts as passed once its top scrolls within this distance of the top of the canvas. */
 const ACTIVE_OFFSET_PX = 96;
@@ -75,18 +67,22 @@ function $readHeadings(): CanvasHeading[] {
   );
 }
 
-function useCanvasHeadings(editor: LexicalEditor) {
+/** One walk of the document per edit, shared by the outline and the hash scroll. */
+export function useCanvasHeadings(editor: LexicalEditor) {
   const [headings, setHeadings] = useState(() => editor.read($readHeadings));
 
   useEffect(
     () =>
-      editor.registerUpdateListener(({ editorState }) => {
-        const next = editorState.read($readHeadings);
-        // Most edits leave the outline as it was, so they must not re-render it.
-        setHeadings((current) =>
-          JSON.stringify(current) === JSON.stringify(next) ? current : next
-        );
-      }),
+      editor.registerUpdateListener(
+        ({ editorState, dirtyElements, dirtyLeaves }) => {
+          if (dirtyElements.size === 0 && dirtyLeaves.size === 0) return;
+          const next = editorState.read($readHeadings);
+          // Most edits leave the outline as it was, so they must not re-render it.
+          setHeadings((current) =>
+            sameHeadings(current, next) ? current : next
+          );
+        }
+      ),
     [editor]
   );
 
@@ -103,7 +99,9 @@ function useActiveHeading(editor: LexicalEditor, headings: CanvasHeading[]) {
   useEffect(() => {
     const scroller = root?.closest('[data-slot="canvas-layout"]');
     if (!scroller || headings.length === 0) return;
+    let frame = 0;
     const update = () => {
+      frame = 0;
       const atEnd =
         scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 1;
       if (atEnd && scroller.scrollTop > 0) {
@@ -124,9 +122,15 @@ function useActiveHeading(editor: LexicalEditor, headings: CanvasHeading[]) {
       }
       setActiveKey(active);
     };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
     update();
-    scroller.addEventListener('scroll', update, { passive: true });
-    return () => scroller.removeEventListener('scroll', update);
+    scroller.addEventListener('scroll', schedule, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      scroller.removeEventListener('scroll', schedule);
+    };
   }, [editor, root, headings]);
 
   return activeKey;
@@ -231,14 +235,15 @@ function subscribeToHash(onHashChange: (nextHash: string) => void) {
  * live editor is visible again. Never settles a non-empty hash until initial content is ready.
  */
 export function CanvasTocHashScroll({
+  headings,
   ready,
   visible,
 }: {
+  headings: CanvasHeading[];
   ready: boolean;
   visible: boolean;
 }) {
   const [editor] = useLexicalComposerContext();
-  const headings = useCanvasHeadings(editor);
   const [root, setRoot] = useState<HTMLElement | null>(null);
   const [hash, setHash] = useState(() =>
     typeof window === 'undefined' ? '' : window.location.hash
@@ -341,16 +346,17 @@ function CanvasTocList({
  * nothing while the canvas has no headings.
  */
 export function CanvasToc({
+  headings,
   slot,
   compactSlot,
   side,
 }: {
+  headings: CanvasHeading[];
   slot: HTMLElement | null;
   compactSlot: HTMLElement | null;
   side: keyof typeof SIDES;
 }) {
   const [editor] = useLexicalComposerContext();
-  const headings = useCanvasHeadings(editor);
   const activeKey = useActiveHeading(editor, headings);
   const [wideOpen, setWideOpen] = useState(false);
   const [compactOpen, setCompactOpen] = useState(false);

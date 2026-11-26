@@ -103,14 +103,21 @@ function setup(room: Room | null = null) {
           roomPolicy: room,
         }
       : null;
+  const findDocument: CanvasesRepository['findDocument'] = async (
+    scope,
+    id
+  ) => {
+    const canvas = await findMeta(scope, id);
+    return canvas && { ...canvas, snapshotJson: null, markdown: '' };
+  };
   const repository = {
     findMeta,
-    findDocument: async (scope, id) => {
-      const canvas = await findMeta(scope, id);
-      return canvas && { ...canvas, snapshotJson: null, markdown: '' };
-    },
+    findDocument,
     saveSnapshot: async () => ({ saved: true, updatedAt: new Date() }),
-    update: async () => {},
+    update: async (scope, id, patch) => {
+      const canvas = await findDocument(scope, id);
+      return canvas && { ...canvas, ...patch };
+    },
   } satisfies Partial<CanvasesRepository> as unknown as CanvasesRepository;
   const canvases = new CanvasesService(
     repository,

@@ -6,11 +6,11 @@ import {
   type PolicyChannel,
   type Room,
 } from '@conduit/contract';
-import type {
-  CanvasRole as CanvasRoleRow,
-  ChannelAudience as ChannelAudienceRow,
+import {
+  type CanvasRole as CanvasRoleRow,
+  type ChannelAudience as ChannelAudienceRow,
   Prisma,
-  RoomKind,
+  type RoomKind,
 } from '@generated/prisma/client';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -241,9 +241,9 @@ export class PrismaCanvasesRepository implements CanvasesRepository {
         createdById: scope.userId,
         updatedById: scope.userId,
       },
-      select: { id: true },
+      select: documentSelect(scope),
     });
-    return row.id;
+    return toDocument(row);
   }
 
   async createStandalone(
@@ -266,9 +266,9 @@ export class PrismaCanvasesRepository implements CanvasesRepository {
           },
         },
       },
-      select: { id: true },
+      select: documentSelect(scope),
     });
-    return row.id;
+    return toDocument(row);
   }
 
   async list(scope: CanvasScopeOf, canvasScope: CanvasScope) {
@@ -314,19 +314,35 @@ export class PrismaCanvasesRepository implements CanvasesRepository {
   }
 
   async update(scope: CanvasScopeOf, canvasId: string, patch: CanvasPatch) {
-    await this.db.canvas.update({
-      where: { id: canvasId },
-      data: {
-        title: patch.title,
-        icon: patch.icon,
-        coverPreset: patch.coverPreset,
-        snapshotJson: patch.snapshotJson as Prisma.InputJsonValue | undefined,
-        markdown: patch.markdown,
-        // A save outside `saveSnapshot` makes the stored hash stale.
-        contentHash: patch.snapshotJson ? null : undefined,
-        updatedById: scope.userId,
-      },
-    });
+    try {
+      const row = await this.db.canvas.update({
+        where: {
+          id: canvasId,
+          organizationId: scope.organizationId,
+          deletedAt: null,
+        },
+        data: {
+          title: patch.title,
+          icon: patch.icon,
+          coverPreset: patch.coverPreset,
+          snapshotJson: patch.snapshotJson as Prisma.InputJsonValue | undefined,
+          markdown: patch.markdown,
+          // A save outside `saveSnapshot` makes the stored hash stale.
+          contentHash: patch.snapshotJson ? null : undefined,
+          updatedById: scope.userId,
+        },
+        select: documentSelect(scope),
+      });
+      return toDocument(row);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        return null;
+      }
+      throw error;
+    }
   }
 
   async claimBootstrap(canvasId: string) {
@@ -351,26 +367,34 @@ export class PrismaCanvasesRepository implements CanvasesRepository {
     canvasId: string,
     snapshot: CanvasSnapshot
   ) {
-    const { count } = await this.db.canvas.updateMany({
-      where: {
-        id: canvasId,
-        OR: [
-          { contentHash: null },
-          { contentHash: { not: snapshot.contentHash } },
-        ],
-      },
-      data: {
-        snapshotJson: snapshot.snapshotJson as Prisma.InputJsonValue,
-        markdown: snapshot.markdown,
-        contentHash: snapshot.contentHash,
-        updatedById: scope.userId,
-      },
-    });
-    const { updatedAt } = await this.db.canvas.findUniqueOrThrow({
-      where: { id: canvasId },
-      select: { updatedAt: true },
-    });
-    return { saved: count > 0, updatedAt };
+    // Lock before comparing hashes so a deduped save returns the concurrent writer's timestamp.
+    const [result] = await this.db.$queryRaw<
+      { saved: boolean; updatedAt: Date }[]
+    >`
+      WITH locked AS (
+        SELECT id, "contentHash", "updatedAt"
+        FROM "Canvas"
+        WHERE id = ${canvasId}
+          AND "organizationId" = ${scope.organizationId}
+          AND "deletedAt" IS NULL
+        FOR NO KEY UPDATE
+      ), saved AS (
+        UPDATE "Canvas" AS canvas
+        SET "snapshotJson" = ${JSON.stringify(snapshot.snapshotJson)}::jsonb,
+            markdown = ${snapshot.markdown},
+            "contentHash" = ${snapshot.contentHash},
+            "updatedById" = ${scope.userId},
+            "updatedAt" = ${new Date()}
+        FROM locked
+        WHERE canvas.id = locked.id
+          AND locked."contentHash" IS DISTINCT FROM ${snapshot.contentHash}
+        RETURNING canvas.id, canvas."updatedAt"
+      )
+      SELECT saved.id IS NOT NULL AS saved,
+             COALESCE(saved."updatedAt", locked."updatedAt") AS "updatedAt"
+      FROM locked LEFT JOIN saved USING (id)`;
+    if (!result) throw canvasError('NOT_FOUND');
+    return result;
   }
 
   async softDelete(canvasId: string) {

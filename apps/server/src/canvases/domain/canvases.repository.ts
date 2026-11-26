@@ -83,14 +83,14 @@ export abstract class CanvasesRepository {
     roomId: string,
     title: string,
     seed?: CanvasSeed
-  ): Promise<string>;
+  ): Promise<StoredCanvasDocument>;
 
   /** Creates a standalone canvas shared with its creator as an editor. */
   abstract createStandalone(
     scope: CanvasScopeOf,
     title: string,
     seed?: CanvasSeed
-  ): Promise<string>;
+  ): Promise<StoredCanvasDocument>;
 
   /** Readable canvases matching the requested scope, recently updated first. */
   abstract list(
@@ -102,7 +102,7 @@ export abstract class CanvasesRepository {
     scope: CanvasScopeOf,
     canvasId: string,
     patch: CanvasPatch
-  ): Promise<void>;
+  ): Promise<StoredCanvasDocument | null>;
 
   /**
    * Marks the canvas seeded and returns what to seed it from, or null when someone already claimed it.

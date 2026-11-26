@@ -29,6 +29,7 @@ import {
 } from '@/services/canvases/queries';
 
 import { useCanvasFullWidth } from '../hooks/use-canvas-full-width';
+import { useOpenedOnce } from '../hooks/use-opened-once';
 import { downloadMarkdownFile } from '../lib/canvas-markdown-export';
 import { CanvasActionMenu } from './canvas-action-menu';
 import type { CanvasLiveblocksAuthState } from './canvas-collab-provider';
@@ -39,7 +40,6 @@ import {
   CanvasLayoutAside,
   CanvasLayoutContent,
 } from './canvas-layout';
-import { CanvasShareDialog } from './canvas-share-dialog';
 import {
   CanvasViewEditorSkeleton,
   CanvasViewSkeleton,
@@ -49,6 +49,11 @@ import {
 const CanvasEditor = dynamic(
   () => import('./canvas-editor').then((module) => module.CanvasEditor),
   { ssr: false, loading: () => <CanvasViewEditorSkeleton /> }
+);
+const CanvasShareDialog = dynamic(
+  () =>
+    import('./canvas-share-dialog').then((module) => module.CanvasShareDialog),
+  { ssr: false }
 );
 
 /** A canvas with its action menu, its cover and heading, its document, and its share dialog. */
@@ -64,6 +69,7 @@ export function CanvasView({
   const [status, setStatus] = useState<CanvasSaveStatus>('saved');
   const [fullWidth, setFullWidth] = useCanvasFullWidth();
   const [sharing, setSharing] = useState(false);
+  const shareOpened = useOpenedOnce(sharing);
   // Comments and History share the side card, so opening one closes the other.
   const [panel, setPanel] = useState<'comments' | 'history' | null>(null);
   const [savingVersion, setSavingVersion] = useState(false);
@@ -203,7 +209,7 @@ export function CanvasView({
         ref={setInsertBarSlot}
         className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-center px-4"
       />
-      {!canvas.roomId && (
+      {!canvas.roomId && shareOpened && (
         <CanvasShareDialog
           canvas={canvas}
           open={sharing}

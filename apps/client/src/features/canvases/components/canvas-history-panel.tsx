@@ -14,14 +14,12 @@ import {
 } from '@conduit/ui/components/empty';
 import { Sheet, SheetContent } from '@conduit/ui/components/sheet';
 import { Skeleton } from '@conduit/ui/components/skeleton';
-import { useBroadcastEvent, useEventListener } from '@liveblocks/react';
 import { IconDeviceFloppy, IconHistory, IconX } from '@tabler/icons-react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { type KeyboardEvent, type RefObject, useEffect } from 'react';
+import type { KeyboardEvent } from 'react';
 
 import { SidePanel } from '@/components/side-panel';
 import { useMediaQuery } from '@/hooks/use-media-query';
-import { useInvalidateCanvasVersions } from '@/services/canvases/hooks';
 import {
   canvasVersionQuery,
   canvasVersionsQuery,
@@ -274,26 +272,4 @@ export function CanvasHistoryPanel(props: CanvasHistoryPanelProps) {
       </SheetContent>
     </Sheet>
   );
-}
-
-/**
- * On a live canvas, refetches the version list when someone else saves or restores a version, and points
- * `notifyRef` at the broadcast that tells everyone else to.
- */
-export function CanvasHistoryPanelSync({
-  canvasId,
-  notifyRef,
-}: {
-  canvasId: string;
-  notifyRef: RefObject<() => void>;
-}) {
-  const invalidate = useInvalidateCanvasVersions();
-  const broadcast = useBroadcastEvent();
-  useEventListener(({ event }) => {
-    if (event.type === 'VERSIONS_CHANGED') void invalidate({ canvasId });
-  });
-  useEffect(() => {
-    notifyRef.current = () => broadcast({ type: 'VERSIONS_CHANGED' });
-  }, [broadcast, notifyRef]);
-  return null;
 }

@@ -18,27 +18,49 @@ import { useEffect } from 'react';
 import { createHighlighterCoreSync } from 'shiki/core';
 import { createJavaScriptRegexEngine } from 'shiki/engine/javascript';
 import { bundledLanguagesInfo } from 'shiki/langs';
-import { bundledThemes } from 'shiki/themes';
 
 // The themes `CodeBlockContent` uses, so a block reads the same in the composer and in the log.
 const THEMES = { light: 'github-light', dark: 'github-dark' } as const;
 
-// Lexical's own Shiki tokenizer colours with one theme, so this one asks for both as CSS variables.
-const highlighter = createHighlighterCoreSync({
-  engine: createJavaScriptRegexEngine(),
-  themes: [],
-  langs: [],
-});
+type Shiki = {
+  highlighter: ReturnType<typeof createHighlighterCoreSync>;
+  themesLoaded: Promise<unknown>;
+};
 
-const themesLoaded = Promise.all(
-  Object.values(THEMES).map((theme) =>
-    highlighter.loadTheme(bundledThemes[theme]())
-  )
-);
+let shiki: Shiki | null = null;
 let themesReady = false;
-void themesLoaded.then(() => {
-  themesReady = true;
-});
+
+// Built on first use, so a page that never shows a code block never starts Shiki.
+function getShiki() {
+  if (shiki) return shiki;
+  // Lexical's own Shiki tokenizer colours with one theme, so this one asks for both as CSS variables.
+  const highlighter = createHighlighterCoreSync({
+    engine: createJavaScriptRegexEngine(),
+    themes: [],
+    langs: [],
+  });
+  const themesLoaded = Promise.all(
+    [
+      import('shiki/themes/github-light.mjs'),
+      import('shiki/themes/github-dark.mjs'),
+    ].map((theme) =>
+      theme.then((module) => highlighter.loadTheme(module.default))
+    )
+  ).then(
+    () => {
+      themesReady = true;
+    },
+    (error) => {
+      shiki = null;
+      themesReady = false;
+      throw error;
+    }
+  );
+  // Prevent unhandled rejections on language-free blocks that never await `themesLoaded`.
+  void themesLoaded.catch(() => undefined);
+  shiki = { highlighter, themesLoaded };
+  return shiki;
+}
 
 const languagesLoading = new Map<string, Promise<unknown>>();
 
@@ -49,16 +71,23 @@ function languageInfo(language: string) {
 }
 
 function isReady(language: string) {
-  return themesReady && highlighter.getLoadedLanguages().includes(language);
+  return (
+    themesReady &&
+    getShiki().highlighter.getLoadedLanguages().includes(language)
+  );
 }
 
 function load(language: string, info: { import: () => Promise<unknown> }) {
   let loading = languagesLoading.get(language);
   if (!loading) {
+    const { highlighter, themesLoaded } = getShiki();
     loading = Promise.all([
       themesLoaded,
       highlighter.loadLanguage(info.import() as never),
-    ]);
+    ]).catch((error) => {
+      languagesLoading.delete(language);
+      throw error;
+    });
     languagesLoading.set(language, loading);
   }
   return loading;
@@ -95,7 +124,7 @@ const tokenizer: Tokenizer = {
     const info = language ? languageInfo(language) : undefined;
 
     if (language && info && isReady(language)) {
-      const { tokens } = highlighter.codeToTokens(code, {
+      const { tokens } = getShiki().highlighter.codeToTokens(code, {
         lang: language,
         themes: THEMES,
         defaultColor: false,
@@ -121,7 +150,10 @@ const tokenizer: Tokenizer = {
 export function CodeHighlightPlugin() {
   const [editor] = useLexicalComposerContext();
 
-  useEffect(() => registerCodeHighlighting(editor, tokenizer), [editor]);
+  useEffect(() => {
+    getShiki();
+    return registerCodeHighlighting(editor, tokenizer);
+  }, [editor]);
 
   return null;
 }

@@ -46,17 +46,17 @@ import {
   IconX,
   type TablerIcon,
 } from '@tabler/icons-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { StatusButton } from '@/components/async/status-button';
 import { useCreateCanvas } from '@/services/canvases/hooks';
-import { canvasesQuery } from '@/services/canvases/queries';
+import { canvasesQuery, canvasQuery } from '@/services/canvases/queries';
 
 import { CANVAS_COVERS } from '../lib/canvas-covers';
 import { canvasHref } from '../lib/canvas-href';
@@ -254,12 +254,33 @@ function CanvasListPlace({ canvas }: { canvas: Canvas }) {
   );
 }
 
+const PREFETCH_DWELL_MS = 120;
+
 function CanvasListRow({ canvas }: { canvas: Canvas }) {
+  const queryClient = useQueryClient();
+  const prefetchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const cancelPrefetch = () => {
+    clearTimeout(prefetchTimer.current);
+  };
+  const prefetch = () => {
+    void import('./canvas-editor').catch(() => {});
+    clearTimeout(prefetchTimer.current);
+    prefetchTimer.current = setTimeout(() => {
+      void queryClient.prefetchQuery(canvasQuery(canvas.id));
+    }, PREFETCH_DWELL_MS);
+  };
+
+  useEffect(() => cancelPrefetch, []);
+
   return (
     <TableRow>
       <TableCell className="max-w-0 py-2 ps-2 sm:ps-4">
         <Link
           href={canvasHref(canvas)}
+          onPointerEnter={prefetch}
+          onPointerLeave={cancelPrefetch}
+          onFocus={prefetch}
+          onBlur={cancelPrefetch}
           className={cn(
             buttonVariants({
               variant: 'ghost',

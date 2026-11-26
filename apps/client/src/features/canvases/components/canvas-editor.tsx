@@ -36,6 +36,7 @@ import {
   type LexicalEditorWithDispose,
   PASTE_COMMAND,
 } from 'lexical';
+import dynamic from 'next/dynamic';
 import {
   type ComponentProps,
   type ReactNode,
@@ -62,40 +63,8 @@ import {
 } from '@/components/editor/nodes/message-embed-node';
 import { CalloutPlugin } from '@/components/editor/plugins/callout-plugin';
 import { CodeBlockPlugin } from '@/components/editor/plugins/code-block-plugin';
-import { CodeHighlightPlugin } from '@/components/editor/plugins/code-highlight-plugin';
-import { ComponentPickerMenuPlugin } from '@/components/editor/plugins/component-picker-menu-plugin';
-import { DraggableBlockPlugin } from '@/components/editor/plugins/draggable-block-plugin';
-import { EmojiPickerPlugin } from '@/components/editor/plugins/emoji-picker-plugin';
-import { FloatingLinkEditorPlugin } from '@/components/editor/plugins/floating-link-editor-plugin';
-import { FloatingTextFormatToolbarPlugin } from '@/components/editor/plugins/floating-text-format-plugin';
-import { InsertBarPlugin } from '@/components/editor/plugins/insert-bar-plugin';
 import { LayoutPlugin } from '@/components/editor/plugins/layout-plugin';
-import {
-  Mention,
-  MentionAvatar,
-  MentionContent,
-  MentionFooter,
-  MentionHint,
-  MentionItem,
-  MentionLabel,
-  MentionPortal,
-} from '@/components/editor/plugins/mentions-plugin';
-import { BulletedListPickerPlugin } from '@/components/editor/plugins/picker/bulleted-list-picker-plugin';
-import { CalloutPickerPlugin } from '@/components/editor/plugins/picker/callout-picker-plugin';
-import { CheckListPickerPlugin } from '@/components/editor/plugins/picker/check-list-picker-plugin';
-import { CodePickerPlugin } from '@/components/editor/plugins/picker/code-picker-plugin';
-import { ColumnsLayoutPickerPlugin } from '@/components/editor/plugins/picker/columns-layout-picker-plugin';
-import { DividerPickerPlugin } from '@/components/editor/plugins/picker/divider-picker-plugin';
-import { HeadingPickerPlugin } from '@/components/editor/plugins/picker/heading-picker-plugin';
-import { MessageEmbedPickerPlugin } from '@/components/editor/plugins/picker/message-embed-picker-plugin';
-import { NumberedListPickerPlugin } from '@/components/editor/plugins/picker/numbered-list-picker-plugin';
-import { ParagraphPickerPlugin } from '@/components/editor/plugins/picker/paragraph-picker-plugin';
-import { QuotePickerPlugin } from '@/components/editor/plugins/picker/quote-picker-plugin';
-import {
-  DynamicTablePickerPlugin,
-  TablePickerPlugin,
-} from '@/components/editor/plugins/picker/table-picker-plugin';
-import { TogglePickerPlugin } from '@/components/editor/plugins/picker/toggle-picker-plugin';
+import { LazyCodeHighlightPlugin } from '@/components/editor/plugins/lazy-code-highlight-plugin';
 import { TogglePlugin } from '@/components/editor/plugins/toggle-plugin';
 import { sessionQuery } from '@/services/auth/queries';
 import {
@@ -107,6 +76,7 @@ import {
 import { canvasMembersQuery } from '@/services/canvases/queries';
 import { useWorkspaceMembers } from '@/services/workspaces/hooks';
 
+import { useOpenedOnce } from '../hooks/use-opened-once';
 import {
   $seedCanvasFromMarkdown,
   canvasMarkdownOf,
@@ -120,25 +90,64 @@ import {
   useCanvasCollab,
 } from './canvas-collab-provider';
 import {
-  CanvasCommentPopover,
-  CanvasCommentPopoverButton,
-} from './canvas-comment-popover';
-import { CanvasCommentsPanel } from './canvas-comments-panel';
-import {
   CanvasCommentsPlugin,
   CanvasCommentsPluginLive,
+  useCanvasComments,
 } from './canvas-comments-plugin';
-import {
-  CanvasHistoryPanel,
-  CanvasHistoryPanelSync,
-} from './canvas-history-panel';
-import { CanvasHistoryPreview } from './canvas-history-preview';
+import { CanvasHistoryPanelSync } from './canvas-history-panel-sync';
 import { CanvasMessageEmbed } from './canvas-message-embed';
-import { CanvasMessagePickerDialog } from './canvas-message-picker-dialog';
 import { CanvasPresenceAvatars } from './canvas-presence-avatars';
-import { CanvasSaveVersionDialog } from './canvas-save-version-dialog';
 import { CanvasTemplatePicker } from './canvas-templates';
-import { CanvasToc, CanvasTocHashScroll } from './canvas-toc';
+import {
+  CanvasToc,
+  CanvasTocHashScroll,
+  useCanvasHeadings,
+} from './canvas-toc';
+import { CanvasViewEditorSkeleton } from './canvas-view-skeleton';
+
+// Each loads the first time it is needed, so opening a canvas carries only the document.
+const CanvasEditorEditPlugins = dynamic(
+  () =>
+    import('./canvas-editor-edit-plugins').then(
+      (module) => module.CanvasEditorEditPlugins
+    ),
+  { ssr: false }
+);
+const CanvasCommentPopover = dynamic(
+  () =>
+    import('./canvas-comment-popover').then(
+      (module) => module.CanvasCommentPopover
+    ),
+  { ssr: false }
+);
+const CanvasCommentsPanel = dynamic(
+  () =>
+    import('./canvas-comments-panel').then(
+      (module) => module.CanvasCommentsPanel
+    ),
+  { ssr: false }
+);
+const CanvasHistoryPanel = dynamic(
+  () =>
+    import('./canvas-history-panel').then(
+      (module) => module.CanvasHistoryPanel
+    ),
+  { ssr: false }
+);
+const CanvasHistoryPreview = dynamic(
+  () =>
+    import('./canvas-history-preview').then(
+      (module) => module.CanvasHistoryPreview
+    ),
+  { ssr: false, loading: () => <CanvasViewEditorSkeleton /> }
+);
+const CanvasSaveVersionDialog = dynamic(
+  () =>
+    import('./canvas-save-version-dialog').then(
+      (module) => module.CanvasSaveVersionDialog
+    ),
+  { ssr: false }
+);
 
 export type CanvasSaveStatus = 'saved' | 'saving' | 'failed';
 
@@ -187,61 +196,6 @@ function seedCanvas(
     },
     { discrete: true, tag: HISTORY_MERGE_TAG }
   );
-}
-
-/** The `/` menu, in the order a document is usually built. */
-function canvasBlockOptions(pickMessage: () => void) {
-  return [
-    ParagraphPickerPlugin(),
-    HeadingPickerPlugin({ n: 1 }),
-    HeadingPickerPlugin({ n: 2 }),
-    HeadingPickerPlugin({ n: 3 }),
-    BulletedListPickerPlugin(),
-    NumberedListPickerPlugin(),
-    CheckListPickerPlugin(),
-    QuotePickerPlugin(),
-    CalloutPickerPlugin(),
-    TogglePickerPlugin(),
-    CodePickerPlugin(),
-    DividerPickerPlugin(),
-    TablePickerPlugin(),
-    ColumnsLayoutPickerPlugin(),
-    MessageEmbedPickerPlugin({ onSelect: pickMessage }),
-  ];
-}
-
-function $insertMessageEmbed(messageId: string) {
-  // Closing a dialog leaves the editor blurred with no active selection.
-  if (!$getSelection()) $getRoot().selectEnd();
-  $insertNodeToNearestRoot($createMessageEmbedNode(messageId));
-}
-
-/** Pasting a Conduit message link on its own embeds the message instead of the link. */
-function CanvasEditorMessagePaste() {
-  const [editor] = useLexicalComposerContext();
-
-  useEffect(
-    () =>
-      editor.registerCommand(
-        PASTE_COMMAND,
-        (event) => {
-          const text =
-            event instanceof ClipboardEvent
-              ? event.clipboardData?.getData('text/plain')
-              : null;
-          const messageId =
-            text && parseMessageUrl(text, window.location.origin);
-          if (!messageId) return false;
-          event.preventDefault();
-          $insertMessageEmbed(messageId);
-          return true;
-        },
-        COMMAND_PRIORITY_HIGH
-      ),
-    [editor]
-  );
-
-  return null;
 }
 
 /** Saves a second after typing stops, when the editor loses focus, and when the canvas closes. */
@@ -607,7 +561,34 @@ function CanvasEditorSharePrompt({ canvasId }: { canvasId: string }) {
   );
 }
 
-const INSERT_BAR_QUICK = ['Check List', 'Table', 'Columns Layout'];
+/** Pasting a Conduit message link on its own embeds the message instead of the link. */
+function CanvasEditorMessagePaste() {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(
+    () =>
+      editor.registerCommand(
+        PASTE_COMMAND,
+        (event) => {
+          const text =
+            event instanceof ClipboardEvent
+              ? event.clipboardData?.getData('text/plain')
+              : null;
+          const messageId =
+            text && parseMessageUrl(text, window.location.origin);
+          if (!messageId) return false;
+          event.preventDefault();
+          if (!$getSelection()) $getRoot().selectEnd();
+          $insertNodeToNearestRoot($createMessageEmbedNode(messageId));
+          return true;
+        },
+        COMMAND_PRIORITY_HIGH
+      ),
+    [editor]
+  );
+
+  return null;
+}
 
 function CanvasEditorPlugins({
   canvas,
@@ -618,91 +599,64 @@ function CanvasEditorPlugins({
   anchor: HTMLDivElement | null;
   insertBarSlot: HTMLElement | null;
 }) {
-  const [editor] = useLexicalComposerContext();
-  const [isLinkEditMode, setIsLinkEditMode] = useState(false);
-  const [pickingMessage, setPickingMessage] = useState(false);
-  const { data: session } = useQuery(sessionQuery);
-  const { data: workspaceMembers } = useWorkspaceMembers();
-  const blockOptions = useMemo(
-    () => canvasBlockOptions(() => setPickingMessage(true)),
-    []
-  );
-  const viewerId = session?.user.id;
-  // A canvas never notifies a whole channel, so `@channel` and `@here` are not offered.
-  const suggestions = useMemo(
-    () =>
-      (workspaceMembers ?? [])
-        .filter((member) => member.status === 'active')
-        .map(({ userId, name, email, image }) => ({
-          id: userId,
-          name,
-          detail: email,
-          image,
-          hint: userId === viewerId ? 'You' : undefined,
-        })),
-    [workspaceMembers, viewerId]
-  );
-
   return (
     <>
-      <CodeHighlightPlugin />
+      <LazyCodeHighlightPlugin />
       <CodeBlockPlugin />
       <LayoutPlugin />
       <CalloutPlugin />
       <TogglePlugin />
       {canvas.access.edit && (
         <>
-          <Mention source={suggestions}>
-            <MentionPortal>
-              <MentionContent>
-                {() => (
-                  <MentionItem>
-                    <MentionAvatar />
-                    <MentionLabel />
-                    <MentionHint />
-                  </MentionItem>
-                )}
-              </MentionContent>
-              <MentionFooter />
-            </MentionPortal>
-          </Mention>
-          <EmojiPickerPlugin />
-          <ComponentPickerMenuPlugin
-            baseOptions={blockOptions}
-            dynamicOptionsFn={DynamicTablePickerPlugin}
-          />
-          <FloatingTextFormatToolbarPlugin
-            anchorElem={anchor}
-            setIsLinkEditMode={setIsLinkEditMode}
-            trailing={canvas.access.comment && <CanvasCommentPopoverButton />}
-          />
-          <FloatingLinkEditorPlugin
-            anchorElem={anchor}
-            isLinkEditMode={isLinkEditMode}
-            setIsLinkEditMode={setIsLinkEditMode}
-          />
-          <DraggableBlockPlugin
-            anchorElem={anchor}
-            baseOptions={blockOptions}
-            dynamicOptionsFn={DynamicTablePickerPlugin}
-          />
-          <InsertBarPlugin
-            slot={insertBarSlot}
-            options={blockOptions}
-            quick={INSERT_BAR_QUICK}
-          />
           <CanvasEditorMessagePaste />
-          <CanvasMessagePickerDialog
-            open={pickingMessage}
-            onOpenChange={setPickingMessage}
-            onPick={(messageId) =>
-              editor.update(() => $insertMessageEmbed(messageId))
-            }
+          <CanvasEditorEditPlugins
+            canvas={canvas}
+            anchor={anchor}
+            insertBarSlot={insertBarSlot}
           />
         </>
       )}
     </>
   );
+}
+
+/** One heading subscription for both the hash scroll and the outline. */
+function CanvasEditorOutline({
+  loading,
+  previewing,
+  tocSlot,
+  compactTocSlot,
+}: {
+  loading: boolean;
+  previewing: boolean;
+  tocSlot: HTMLElement | null;
+  compactTocSlot: HTMLElement | null;
+}) {
+  const [editor] = useLexicalComposerContext();
+  const headings = useCanvasHeadings(editor);
+
+  return (
+    <>
+      <CanvasTocHashScroll
+        headings={headings}
+        ready={!loading}
+        visible={!loading && !previewing}
+      />
+      {!loading && !previewing && (
+        <CanvasToc
+          headings={headings}
+          slot={tocSlot}
+          compactSlot={compactTocSlot}
+          side="left"
+        />
+      )}
+    </>
+  );
+}
+
+function CanvasEditorCommentDraft() {
+  const { draft } = useCanvasComments();
+  return draft && <CanvasCommentPopover />;
 }
 
 const disposedEditors = new WeakSet<LexicalEditorWithDispose>();
@@ -817,6 +771,9 @@ function CanvasEditorDocument({
   const loading = collab.live && liveState === 'loading';
   const editable =
     canvas.access.edit && (!collab.live || liveState === 'ready');
+  const commentsOpened = useOpenedOnce(commentsOpen);
+  const historyOpened = useOpenedOnce(historyOpen);
+  const saveVersionOpened = useOpenedOnce(savingVersion);
   const Comments = collab.live
     ? CanvasCommentsPluginLive
     : CanvasCommentsPlugin;
@@ -915,18 +872,13 @@ function CanvasEditorDocument({
             anchor={anchor}
             insertBarSlot={!loading && !previewId ? insertBarSlot : null}
           />
-          <CanvasTocHashScroll
-            ready={!loading}
-            visible={!loading && !previewId}
+          <CanvasEditorOutline
+            loading={loading}
+            previewing={previewId !== null}
+            tocSlot={tocSlot}
+            compactTocSlot={compactTocSlot}
           />
           {loading && fallback}
-          {!loading && !previewId && (
-            <CanvasToc
-              slot={tocSlot}
-              compactSlot={compactTocSlot}
-              side="left"
-            />
-          )}
           {previewId && (
             <CanvasHistoryPreview
               canvasId={canvas.id}
@@ -963,24 +915,26 @@ function CanvasEditorDocument({
             />
             {editable && <CanvasTemplatePicker canvas={canvas} />}
           </div>
-          <CanvasCommentPopover />
-          <CanvasCommentsPanel />
-          <CanvasHistoryPanel
-            canvasId={canvas.id}
-            canEdit={canvas.access.edit}
-            open={historyOpen}
-            onOpenChange={onHistoryOpenChange}
-            previewId={previewId}
-            onPreview={preview}
-            onSaveVersion={() => onSavingVersionChange(true)}
-          />
+          <CanvasEditorCommentDraft />
+          {commentsOpened && <CanvasCommentsPanel />}
+          {historyOpened && (
+            <CanvasHistoryPanel
+              canvasId={canvas.id}
+              canEdit={canvas.access.edit}
+              open={historyOpen}
+              onOpenChange={onHistoryOpenChange}
+              previewId={previewId}
+              onPreview={preview}
+              onSaveVersion={() => onSavingVersionChange(true)}
+            />
+          )}
           {collab.live && (
             <CanvasHistoryPanelSync
               canvasId={canvas.id}
               notifyRef={notifyVersions}
             />
           )}
-          {canvas.access.edit && (
+          {canvas.access.edit && saveVersionOpened && (
             <CanvasSaveVersionDialog
               canvasId={canvas.id}
               open={savingVersion}
