@@ -2,19 +2,35 @@ import {
   buildEditorFromExtensions,
   getExtensionDependencyFromEditor,
 } from '@lexical/extension';
-import { HistoryExtension } from '@lexical/history';
+import {
+  createEmptyHistoryState,
+  HistoryExtension,
+  registerHistory,
+} from '@lexical/history';
 import { $isListItemNode, $isListNode } from '@lexical/list';
+import {
+  $createHeadingNode,
+  HeadingNode,
+  type SerializedHeadingNode,
+} from '@lexical/rich-text';
 import {
   $createTextNode,
   $getRoot,
   $getSelection,
   $isRangeSelection,
   $nodesOfType,
+  $parseSerializedNode,
+  COLLABORATION_TAG,
+  HISTORY_PUSH_TAG,
   type ParagraphNode,
+  PASTE_TAG,
   type RangeSelection,
+  REDO_COMMAND,
   type TextNode,
+  UNDO_COMMAND,
 } from 'lexical';
 import { describe, expect, it } from 'vitest';
+import * as Y from 'yjs';
 
 import { CalloutNode } from '@/components/editor/nodes/callout-node';
 import { MentionNode } from '@/components/editor/nodes/mention-node';
@@ -34,6 +50,14 @@ import {
   canvasSnapshotOf,
   createCanvasExtension,
 } from '../canvas-extension';
+import {
+  $getHeadingAnchorId,
+  $setHeadingAnchorId,
+  assignHeadingAnchors,
+  createHeadingAnchorId,
+  findHeadingByAnchor,
+  isHeadingAnchorId,
+} from '../canvas-heading-anchor';
 
 function build(markdown: string, names?: ReadonlyMap<string, string>) {
   return buildEditorFromExtensions(
@@ -357,6 +381,322 @@ describe('toggles', () => {
       const anchor = ($getSelection() as RangeSelection).anchor.getNode();
       expect($isToggleContentNode(anchor.getParent())).toBe(open);
     });
+    editor.dispose();
+  });
+});
+
+describe('heading anchor IDs', () => {
+  const legacySnapshot = {
+    root: {
+      type: 'root',
+      version: 1,
+      direction: null,
+      format: '',
+      indent: 0,
+      children: [
+        {
+          type: 'heading',
+          tag: 'h1',
+          version: 1,
+          direction: null,
+          format: '',
+          indent: 0,
+          children: [
+            {
+              type: 'text',
+              text: 'Legacy Plan',
+              version: 1,
+              detail: 0,
+              format: 0,
+              mode: 'normal',
+              style: '',
+            },
+          ],
+        },
+      ],
+    },
+  };
+
+  it('loads legacy JSON twice with no mutation and a stable legacy slug', () => {
+    const first = buildEditorFromExtensions(
+      createCanvasExtension({ snapshotJson: legacySnapshot, markdown: '' })
+    );
+    const second = buildEditorFromExtensions(
+      createCanvasExtension({ snapshotJson: legacySnapshot, markdown: '' })
+    );
+
+    const readHeadings = (editor: ReturnType<typeof build>) =>
+      editor.read(() =>
+        assignHeadingAnchors(
+          $nodesOfType(HeadingNode).map((node) => ({
+            text: node.getTextContent(),
+            anchorId: $getHeadingAnchorId(node),
+          }))
+        )
+      );
+
+    expect(readHeadings(first)).toEqual([
+      {
+        text: 'Legacy Plan',
+        anchorId: null,
+        anchor: 'legacy-plan',
+        legacyAnchor: 'legacy-plan',
+      },
+    ]);
+    expect(readHeadings(second)).toEqual(readHeadings(first));
+    expect(first.read(() => first.getEditorState().toJSON())).toEqual(
+      second.read(() => second.getEditorState().toJSON())
+    );
+
+    first.dispose();
+    second.dispose();
+  });
+
+  it('assigns a fresh persisted ID on local creation and keeps it across rename, reload, and undo/redo', () => {
+    const editor = build('');
+    // HistoryExtension defaults to disabled in Node (typeof window === 'undefined'), so attach history explicitly.
+    const unregisterHistory = registerHistory(
+      editor,
+      createEmptyHistoryState(),
+      300
+    );
+    // Flush InitialStateExtension's pending HISTORY_MERGE_TAG update before local edits.
+    editor.read(() => {});
+    editor.update(
+      () => {
+        const h1 = $createHeadingNode('h1').append($createTextNode('Plan'));
+        const h2 = $createHeadingNode('h2').append($createTextNode('Plan'));
+        $getRoot().clear().append(h1, h2);
+      },
+      { discrete: true, tag: HISTORY_PUSH_TAG }
+    );
+
+    const ids = editor.read(() =>
+      $nodesOfType(HeadingNode).map($getHeadingAnchorId)
+    );
+    expect(ids).toHaveLength(2);
+    expect(isHeadingAnchorId(ids[0])).toBe(true);
+    expect(isHeadingAnchorId(ids[1])).toBe(true);
+    expect(ids[0]).not.toBe(ids[1]);
+
+    // Rename the first heading, then undo and redo — the ID must stay identical throughout.
+    editor.update(
+      () => {
+        const [first] = $nodesOfType(HeadingNode);
+        first!.clear().append($createTextNode('Q4 Launch Plan'));
+      },
+      { discrete: true, tag: HISTORY_PUSH_TAG }
+    );
+    expect(
+      editor.read(() => $getHeadingAnchorId($nodesOfType(HeadingNode)[0]!))
+    ).toBe(ids[0]);
+
+    editor.dispatchCommand(UNDO_COMMAND, undefined);
+    expect(
+      editor.read(() => {
+        const [first] = $nodesOfType(HeadingNode);
+        return [first!.getTextContent(), $getHeadingAnchorId(first!)];
+      })
+    ).toEqual(['Plan', ids[0]]);
+
+    editor.dispatchCommand(REDO_COMMAND, undefined);
+    expect(
+      editor.read(() => {
+        const [first] = $nodesOfType(HeadingNode);
+        return [first!.getTextContent(), $getHeadingAnchorId(first!)];
+      })
+    ).toEqual(['Q4 Launch Plan', ids[0]]);
+
+    // Reload from serialized snapshot preserves the IDs.
+    const snapshotJson = editor.read(() =>
+      editor.getEditorState().toJSON()
+    ) as unknown as Record<string, unknown>;
+    const reopened = buildEditorFromExtensions(
+      createCanvasExtension({ snapshotJson, markdown: '' })
+    );
+    expect(
+      reopened.read(() => $nodesOfType(HeadingNode).map($getHeadingAnchorId))
+    ).toEqual(ids);
+
+    unregisterHistory();
+    editor.dispose();
+    reopened.dispose();
+  });
+
+  it('always assigns a new ID when pasting an anchored heading, even if its source ID is absent', () => {
+    const source = build('');
+    source.read(() => {});
+    source.update(
+      () => {
+        const heading = $createHeadingNode('h1').append(
+          $createTextNode('Copied Plan')
+        );
+        $getRoot().clear().append(heading);
+      },
+      { discrete: true }
+    );
+    const [sourceId, serialized] = source.read(() => {
+      const [heading] = $nodesOfType(HeadingNode);
+      return [$getHeadingAnchorId(heading!)!, heading!.exportJSON()] as const;
+    });
+    source.dispose();
+
+    const destination = build('');
+    destination.read(() => {});
+    destination.update(
+      () => {
+        $getRoot().clear().append($parseSerializedNode(serialized));
+      },
+      { discrete: true, tag: PASTE_TAG }
+    );
+
+    const pastedId = destination.read(() =>
+      $getHeadingAnchorId($nodesOfType(HeadingNode)[0]!)
+    );
+    expect(isHeadingAnchorId(pastedId)).toBe(true);
+    expect(pastedId).not.toBe(sourceId);
+    destination.dispose();
+  });
+
+  it('gives two in-memory Yjs peers distinct IDs when both paste the same anchored heading', () => {
+    const source = build('');
+    source.read(() => {});
+    source.update(
+      () => {
+        $getRoot()
+          .clear()
+          .append($createHeadingNode('h1').append($createTextNode('Shared')));
+      },
+      { discrete: true }
+    );
+    const [sourceId, serialized] = source.read(() => {
+      const [heading] = $nodesOfType(HeadingNode);
+      return [$getHeadingAnchorId(heading!)!, heading!.exportJSON()] as const;
+    });
+    source.dispose();
+
+    const docA = new Y.Doc();
+    const docB = new Y.Doc();
+    const listA = docA.getArray<string>('headings');
+    const listB = docB.getArray<string>('headings');
+
+    const peerA = buildEditorFromExtensions(
+      createCanvasExtension({ snapshotJson: null, markdown: '' }, new Map(), {
+        collaborative: true,
+      })
+    );
+    const peerB = buildEditorFromExtensions(
+      createCanvasExtension({ snapshotJson: null, markdown: '' }, new Map(), {
+        collaborative: true,
+      })
+    );
+
+    // Each peer pastes the same serialized heading locally before syncing.
+    const pasteInto = (
+      editor: ReturnType<typeof build>,
+      list: Y.Array<string>
+    ) => {
+      editor.update(
+        () => {
+          $getRoot().append($parseSerializedNode(serialized));
+        },
+        { discrete: true, tag: PASTE_TAG }
+      );
+      const pasted = editor.read(() =>
+        $nodesOfType(HeadingNode).at(-1)!.exportJSON()
+      );
+      list.push([JSON.stringify(pasted)]);
+    };
+
+    pasteInto(peerA, listA);
+    pasteInto(peerB, listB);
+
+    // Exchange Yjs updates and apply remote headings with COLLABORATION_TAG.
+    const updateA = Y.encodeStateAsUpdate(docA);
+    const updateB = Y.encodeStateAsUpdate(docB);
+    Y.applyUpdate(docA, updateB);
+    Y.applyUpdate(docB, updateA);
+
+    const applyMerged = (
+      editor: ReturnType<typeof build>,
+      list: Y.Array<string>
+    ) => {
+      editor.update(
+        () => {
+          const root = $getRoot().clear();
+          for (const raw of list.toArray()) {
+            root.append(
+              $parseSerializedNode(JSON.parse(raw) as SerializedHeadingNode)
+            );
+          }
+        },
+        { discrete: true, tag: COLLABORATION_TAG }
+      );
+    };
+
+    applyMerged(peerA, listA);
+    applyMerged(peerB, listB);
+
+    const idsA = peerA.read(() =>
+      $nodesOfType(HeadingNode).map($getHeadingAnchorId)
+    );
+    const idsB = peerB.read(() =>
+      $nodesOfType(HeadingNode).map($getHeadingAnchorId)
+    );
+    expect(idsA).toHaveLength(2);
+    expect(idsA).toEqual(idsB);
+    expect(idsA[0]).not.toBe(idsA[1]);
+    expect(idsA[0]).not.toBe(sourceId);
+    expect(idsA[1]).not.toBe(sourceId);
+
+    peerA.dispose();
+    peerB.dispose();
+  });
+
+  it('keeps legacy slug links resolving after lazy ID assignment on Copy link', () => {
+    const editor = buildEditorFromExtensions(
+      createCanvasExtension({ snapshotJson: legacySnapshot, markdown: '' })
+    );
+    let assignedId: string | null = null;
+    editor.update(
+      () => {
+        const [heading] = $nodesOfType(HeadingNode);
+        assignedId = createHeadingAnchorId();
+        $setHeadingAnchorId(heading!, assignedId);
+      },
+      { discrete: true }
+    );
+
+    const headings = editor.read(() =>
+      assignHeadingAnchors(
+        $nodesOfType(HeadingNode).map((node) => ({
+          key: node.getKey(),
+          text: node.getTextContent(),
+          anchorId: $getHeadingAnchorId(node),
+        }))
+      )
+    );
+    expect(findHeadingByAnchor(headings, 'legacy-plan')?.key).toBe(
+      headings[0]!.key
+    );
+    expect(
+      findHeadingByAnchor(headings, `legacy-plan--${assignedId}`)?.key
+    ).toBe(headings[0]!.key);
+    editor.dispose();
+  });
+
+  it('keeps legacy heading JSON without an anchorId as null in a read-only editor', () => {
+    const editor = buildEditorFromExtensions({
+      name: '@conduit/canvas-readonly-test',
+      editable: false,
+      dependencies: [
+        createCanvasExtension({ snapshotJson: legacySnapshot, markdown: '' }),
+      ],
+    });
+    const ids = editor.read(() =>
+      $nodesOfType(HeadingNode).map($getHeadingAnchorId)
+    );
+    expect(ids).toEqual([null]);
     editor.dispose();
   });
 });

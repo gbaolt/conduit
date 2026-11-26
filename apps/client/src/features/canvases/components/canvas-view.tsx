@@ -13,16 +13,28 @@ import {
 import { Skeleton } from '@conduit/ui/components/skeleton';
 import { ORPCError } from '@orpc/client';
 import { IconAlertTriangle, IconLayoutBoard } from '@tabler/icons-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { LexicalEditor } from 'lexical';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 import { StatusButton } from '@/components/async/status-button';
-import { canvasQuery } from '@/services/canvases/queries';
+import { messagePath } from '@/features/messages/lib/message-link';
+import { useCopy } from '@/hooks/use-copy';
+import {
+  canvasEmbeddedMessageQuery,
+  canvasQuery,
+} from '@/services/canvases/queries';
 
-import { $selectNewFirstLine } from '../lib/canvas-extension';
+import { useCanvasFullWidth } from '../hooks/use-canvas-full-width';
+import {
+  $selectNewFirstLine,
+  canvasEmbeddedMessageIdsOf,
+  canvasExportMarkdownOf,
+} from '../lib/canvas-extension';
+import { downloadMarkdownFile } from '../lib/canvas-markdown-export';
 import { CanvasActionMenu } from './canvas-action-menu';
 import type { CanvasSaveStatus } from './canvas-editor';
 import { CanvasCover, CanvasHeading } from './canvas-heading';
@@ -61,6 +73,7 @@ export function CanvasView({
   onDeleted: () => void;
 }) {
   const [status, setStatus] = useState<CanvasSaveStatus>('saved');
+  const [fullWidth, setFullWidth] = useCanvasFullWidth();
   const [sharing, setSharing] = useState(false);
   // Comments and History share the side card, so opening one closes the other.
   const [panel, setPanel] = useState<'comments' | 'history' | null>(null);
@@ -72,35 +85,93 @@ export function CanvasView({
     });
   const [presenceSlot, setPresenceSlot] = useState<HTMLDivElement | null>(null);
   const [tocSlot, setTocSlot] = useState<HTMLDivElement | null>(null);
+  const [compactTocSlot, setCompactTocSlot] = useState<HTMLDivElement | null>(
+    null
+  );
   const [insertBarSlot, setInsertBarSlot] = useState<HTMLDivElement | null>(
     null
   );
+  const queryClient = useQueryClient();
   const [editor, setEditor] = useState<LexicalEditor | null>(null);
+  const [exportState, setExportState] = useState<{
+    editor: LexicalEditor | null;
+    disabled: boolean;
+  }>({ editor: null, disabled: false });
+  const { copy: copyMarkdownToClipboard } = useCopy({
+    onCopySuccess: () => toast.success('Copied as Markdown.'),
+    onCopyError: () => toast.error('Couldn’t copy Markdown.'),
+  });
   const writeFirstLine = () => {
     // A History preview hides the document, so there is nowhere to write.
     if (!editor?.isEditable() || !editor.getRootElement()?.checkVisibility())
       return;
     editor.update($selectNewFirstLine, { onUpdate: () => editor.focus() });
   };
+  const resolveMessageUrls = async (target: LexicalEditor) => {
+    const ids = canvasEmbeddedMessageIdsOf(target);
+    const urls = new Map<string, string>();
+    await Promise.all(
+      ids.map(async (messageId) => {
+        try {
+          const data = await queryClient.ensureQueryData(
+            canvasEmbeddedMessageQuery(canvas.id, messageId)
+          );
+          if (data.status !== 'ok') return;
+          const path = messagePath({
+            ...data.message,
+            roomId: data.message.room.id,
+            kind: data.message.room.kind,
+          });
+          urls.set(messageId, new URL(path, window.location.origin).toString());
+        } catch {
+          // Unavailable or errored embeds fall back to plain text.
+        }
+      })
+    );
+    return urls;
+  };
+  const currentMarkdown = async () => {
+    const target = exportState.editor;
+    if (!target) return canvas.markdown;
+    const urls = await resolveMessageUrls(target);
+    return canvasExportMarkdownOf(target, {
+      resolveMessageUrl: (id) => urls.get(id) ?? null,
+    });
+  };
+  const copyMarkdown = () => void copyMarkdownToClipboard(currentMarkdown);
+  const downloadMarkdown = () => {
+    void currentMarkdown().then((markdown) =>
+      downloadMarkdownFile(canvas.title, markdown)
+    );
+  };
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <CanvasLayout className="scroll-fade">
+      <CanvasLayout fullWidth={fullWidth} className="scroll-fade">
         <div
           data-slot="canvas-cover"
           className="group/cover relative col-span-full w-full"
         >
-          <div className="absolute top-2 right-2 z-10">
+          <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
+            <div
+              ref={setCompactTocSlot}
+              className="empty:hidden @min-[60rem]:hidden"
+            />
             <CanvasActionMenu
               canvas={canvas}
               status={status}
               presenceRef={setPresenceSlot}
+              fullWidth={fullWidth}
+              onFullWidthChange={setFullWidth}
               commentsOpen={panel === 'comments'}
               onCommentsOpenChange={panelSetter('comments')}
               historyOpen={panel === 'history'}
               onHistoryOpenChange={panelSetter('history')}
               onSaveVersion={() => setSavingVersion(true)}
               onShare={() => setSharing(true)}
+              onCopyMarkdown={copyMarkdown}
+              onDownloadMarkdown={downloadMarkdown}
+              exportDisabled={exportState.disabled}
               onDeleted={onDeleted}
             />
           </div>
@@ -117,6 +188,7 @@ export function CanvasView({
             fallback={<CanvasViewEditorSkeleton />}
             presenceSlot={presenceSlot}
             tocSlot={tocSlot}
+            compactTocSlot={compactTocSlot}
             insertBarSlot={insertBarSlot}
             commentsOpen={panel === 'comments'}
             onCommentsOpenChange={panelSetter('comments')}
@@ -126,6 +198,7 @@ export function CanvasView({
             onSavingVersionChange={setSavingVersion}
             onStatusChange={setStatus}
             onEditorChange={setEditor}
+            onExportChange={setExportState}
           />
         </CanvasLayoutContent>
       </CanvasLayout>

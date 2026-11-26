@@ -27,11 +27,11 @@ export function useCopy({
   );
 
   const copy = useCallback(
-    async (text: string | (() => string)) => {
+    async (text: string | (() => string | Promise<string>)) => {
       if (resetTimeout.current) clearTimeout(resetTimeout.current);
 
       try {
-        const finalText = typeof text === 'function' ? text() : text;
+        const finalText = typeof text === 'function' ? await text() : text;
         await navigator.clipboard.writeText(finalText);
         setState('done');
         onCopySuccess?.(finalText);

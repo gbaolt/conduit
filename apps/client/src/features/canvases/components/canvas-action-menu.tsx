@@ -23,8 +23,11 @@ import {
   DropdownMenuTrigger,
 } from '@conduit/ui/components/dropdown-menu';
 import {
+  IconArrowsHorizontal,
+  IconCopy,
   IconDeviceFloppy,
   IconDots,
+  IconDownload,
   IconHistory,
   IconMessage2,
   IconTrash,
@@ -104,23 +107,33 @@ export function CanvasActionMenu({
   canvas,
   status,
   presenceRef,
+  fullWidth,
+  onFullWidthChange,
   commentsOpen,
   onCommentsOpenChange,
   historyOpen,
   onHistoryOpenChange,
   onSaveVersion,
   onShare,
+  onCopyMarkdown,
+  onDownloadMarkdown,
+  exportDisabled = false,
   onDeleted,
 }: {
   canvas: CanvasDocument;
   status: CanvasSaveStatus;
   presenceRef: (element: HTMLDivElement | null) => void;
+  fullWidth: boolean;
+  onFullWidthChange: (fullWidth: boolean) => void;
   commentsOpen: boolean;
   onCommentsOpenChange: (open: boolean) => void;
   historyOpen: boolean;
   onHistoryOpenChange: (open: boolean) => void;
   onSaveVersion: () => void;
   onShare: () => void;
+  onCopyMarkdown: () => void;
+  onDownloadMarkdown: () => void;
+  exportDisabled?: boolean;
   onDeleted: () => void;
 }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -164,6 +177,14 @@ export function CanvasActionMenu({
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuCheckboxItem
+              checked={fullWidth}
+              onCheckedChange={onFullWidthChange}
+              closeOnClick
+            >
+              <IconArrowsHorizontal data-slot="icon" />
+              Full width
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
               checked={commentsOpen}
               onCheckedChange={onCommentsOpenChange}
               closeOnClick
@@ -196,6 +217,23 @@ export function CanvasActionMenu({
                 Save version
               </DropdownMenuItem>
             )}
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <DropdownMenuItem
+              disabled={exportDisabled}
+              onClick={onCopyMarkdown}
+            >
+              <IconCopy data-slot="icon" />
+              Copy as Markdown
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={exportDisabled}
+              onClick={onDownloadMarkdown}
+            >
+              <IconDownload data-slot="icon" />
+              Download Markdown
+            </DropdownMenuItem>
           </DropdownMenuGroup>
           {canvas.access.delete && (
             <>

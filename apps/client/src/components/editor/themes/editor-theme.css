@@ -63,3 +63,67 @@
   );
   text-decoration-color: var(--color-amber-300);
 }
+
+@layer components {
+  /* Lexical owns checklist <li> DOM and hit-tests clicks against ::before, so the box stays a pseudo-element matching shadcn Checkbox. */
+  .editor-checklist-item {
+    position: relative;
+    list-style: none;
+    outline: none;
+  }
+
+  .editor-checklist-item::before {
+    content: '';
+    position: absolute;
+    top: calc((1lh - 1rem) / 2);
+    inset-inline-start: 0;
+    display: block;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 4px;
+    border: 1px solid var(--input);
+    background-color: transparent;
+    cursor: pointer;
+    transition:
+      color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+      background-color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+      border-color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dark .editor-checklist-item::before,
+  [data-surface='dark'] .editor-checklist-item::before {
+    background-color: color-mix(in oklab, var(--input) 30%, transparent);
+  }
+
+  .editor-checklist-item-checked {
+    text-decoration-line: line-through;
+  }
+
+  .editor-checklist-item-checked::before,
+  .dark .editor-checklist-item-checked::before,
+  [data-surface='dark'] .editor-checklist-item-checked::before {
+    border-color: var(--primary);
+    background-color: var(--primary);
+  }
+
+  .editor-checklist-item:focus-visible::before {
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent);
+  }
+
+  .editor-checklist-item-checked::after {
+    content: '';
+    position: absolute;
+    top: calc((1lh - 0.875rem) / 2);
+    inset-inline-start: calc((1rem - 0.875rem) / 2);
+    display: block;
+    width: 0.875rem;
+    height: 0.875rem;
+    cursor: pointer;
+    background-color: var(--primary-foreground);
+    /* Tabler IconCheck (viewBox 0 0 24 24, stroke-width 2). */
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5l10 -10'/%3E%3C/svg%3E")
+      center / contain no-repeat;
+  }
+}

@@ -6,7 +6,11 @@ import type { ComponentProps } from 'react';
  * grid of three columns: an aside for the outline, the document, and an empty margin. A narrower card shows the
  * document alone.
  */
-export function CanvasLayout({ className, ...props }: ComponentProps<'div'>) {
+export function CanvasLayout({
+  className,
+  fullWidth = false,
+  ...props
+}: ComponentProps<'div'> & { fullWidth?: boolean }) {
   return (
     <div
       data-slot="canvas-layout"
@@ -14,7 +18,10 @@ export function CanvasLayout({ className, ...props }: ComponentProps<'div'>) {
     >
       <div
         className={cn(
-          'grid grid-cols-1 [--canvas-content:56rem] @min-[60rem]:grid-cols-[minmax(0,1fr)_var(--canvas-content)_minmax(0,1fr)]',
+          'grid grid-cols-1',
+          fullWidth
+            ? '[--canvas-content:100%] @min-[60rem]:grid-cols-[minmax(2rem,4.5rem)_minmax(56rem,1fr)_2rem]'
+            : '[--canvas-content:56rem] @min-[60rem]:grid-cols-[minmax(0,1fr)_var(--canvas-content)_minmax(0,1fr)]',
           className
         )}
         {...props}

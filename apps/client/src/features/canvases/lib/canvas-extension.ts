@@ -14,6 +14,7 @@ import {
   BOLD_STAR,
   CHECK_LIST,
   CODE,
+  type ElementTransformer,
   HEADING,
   INLINE_CODE,
   ITALIC_STAR,
@@ -21,20 +22,33 @@ import {
   ORDERED_LIST,
   QUOTE,
   STRIKETHROUGH,
+  type TextMatchTransformer,
   type Transformer,
   UNORDERED_LIST,
 } from '@lexical/markdown';
-import { RichTextExtension } from '@lexical/rich-text';
+import {
+  $isHeadingNode,
+  HeadingNode,
+  RichTextExtension,
+} from '@lexical/rich-text';
 import { TableExtension } from '@lexical/table';
 import {
   $createParagraphNode,
+  $getNodeByKey,
   $getRoot,
+  $hasUpdateTag,
   $isParagraphNode,
+  $nodesOfType,
   $parseSerializedNode,
+  COLLABORATION_TAG,
   configExtension,
   defineExtension,
   type EditorThemeClasses,
+  HISTORIC_TAG,
+  HISTORY_MERGE_TAG,
   type LexicalEditor,
+  type NodeKey,
+  PASTE_TAG,
   type SerializedEditorState,
 } from 'lexical';
 
@@ -43,10 +57,22 @@ import { EmojisExtension } from '@/components/editor/extensions/emojis-extension
 import { MarkdownShortcutsExtension } from '@/components/editor/extensions/markdown-shortcuts-extension';
 import { CalloutNode } from '@/components/editor/nodes/callout-node';
 import { CodeBlockNode } from '@/components/editor/nodes/code-block-node';
-import { LayoutContainerNode } from '@/components/editor/nodes/layout-container-node';
-import { LayoutItemNode } from '@/components/editor/nodes/layout-item-node';
-import { MentionNode } from '@/components/editor/nodes/mention-node';
-import { MessageEmbedNode } from '@/components/editor/nodes/message-embed-node';
+import {
+  $isLayoutContainerNode,
+  LayoutContainerNode,
+} from '@/components/editor/nodes/layout-container-node';
+import {
+  $isLayoutItemNode,
+  LayoutItemNode,
+} from '@/components/editor/nodes/layout-item-node';
+import {
+  $isMentionNode,
+  MentionNode,
+} from '@/components/editor/nodes/mention-node';
+import {
+  $isMessageEmbedNode,
+  MessageEmbedNode,
+} from '@/components/editor/nodes/message-embed-node';
 import {
   ToggleContentNode,
   ToggleNode,
@@ -58,6 +84,12 @@ import { HR } from '@/components/editor/transformers/markdown-hr-transformer';
 import { createTableTransformer } from '@/components/editor/transformers/markdown-table-transformer';
 import { createToggleTransformer } from '@/components/editor/transformers/markdown-toggle-transformer';
 import { createMentionTransformer } from '@/features/messages/lib/mention-transformer';
+
+import {
+  $getHeadingAnchorId,
+  $setHeadingAnchorId,
+  createHeadingAnchorId,
+} from './canvas-heading-anchor';
 
 /** The kit's theme at document scale: calmer headings and tighter paragraphs than a landing page. */
 const canvasTheme: EditorThemeClasses = {
@@ -113,6 +145,51 @@ const blockTransformers: Transformer[] = [
   LINK,
 ];
 
+function createColumnsTransformer(
+  transformers: () => Transformer[]
+): ElementTransformer {
+  return {
+    dependencies: [LayoutContainerNode, LayoutItemNode],
+    type: 'element',
+    export: (node) => {
+      if (!$isLayoutContainerNode(node)) return null;
+      return node
+        .getChildren()
+        .filter($isLayoutItemNode)
+        .map((cell) => $convertToMarkdownString(transformers(), cell).trim())
+        .filter(Boolean)
+        .join('\n\n');
+    },
+    regExp: /(?!)/,
+    replace: () => false,
+  };
+}
+
+const DISPLAY_MENTION: TextMatchTransformer = {
+  dependencies: [MentionNode],
+  type: 'text-match',
+  export: (node) => ($isMentionNode(node) ? node.getTextContent() : null),
+  importRegExp: /(?!)/,
+  regExp: /(?!)/,
+  replace: () => {},
+};
+
+function createMessageEmbedTransformer(
+  resolveMessageUrl?: (messageId: string) => string | null
+): ElementTransformer {
+  return {
+    dependencies: [MessageEmbedNode],
+    type: 'element',
+    export: (node) => {
+      if (!$isMessageEmbedNode(node)) return null;
+      const url = resolveMessageUrl?.(node.getMessageId()) ?? null;
+      return url ? `[Embedded message](${url})` : 'Embedded message';
+    },
+    regExp: /(?!)/,
+    replace: () => false,
+  };
+}
+
 function transformersWith(names: ReadonlyMap<string, string>) {
   // CALLOUT comes before QUOTE, or `> 💡 Note` would read as a quote.
   const inline = [
@@ -122,6 +199,21 @@ function transformersWith(names: ReadonlyMap<string, string>) {
   ];
   const all: Transformer[] = [
     createToggleTransformer(() => all),
+    createColumnsTransformer(() => all),
+    ...inline,
+    createTableTransformer(inline),
+  ];
+  return all;
+}
+
+function userExportTransformers(
+  resolveMessageUrl?: (messageId: string) => string | null
+) {
+  const inline = [CALLOUT, ...blockTransformers, DISPLAY_MENTION];
+  const all: Transformer[] = [
+    createToggleTransformer(() => all),
+    createColumnsTransformer(() => all),
+    createMessageEmbedTransformer(resolveMessageUrl),
     ...inline,
     createTableTransformer(inline),
   ];
@@ -133,6 +225,24 @@ const exportTransformers = transformersWith(new Map());
 /** The canvas as Markdown, which search and AI read. A mention is `<@userId>`, as in a message. */
 export function canvasMarkdownOf(editor: LexicalEditor) {
   return editor.read(() => $convertToMarkdownString(exportTransformers));
+}
+
+/** Distinct message IDs embedded in the editor, for resolving export permalinks. */
+export function canvasEmbeddedMessageIdsOf(editor: LexicalEditor): string[] {
+  return editor.read(() => [
+    ...new Set(
+      $nodesOfType(MessageEmbedNode).map((node) => node.getMessageId())
+    ),
+  ]);
+}
+
+/** User-facing Markdown export: mentions render as `@Name`, columns separate with blank lines, and embeds become links. */
+export function canvasExportMarkdownOf(
+  editor: LexicalEditor,
+  options?: { resolveMessageUrl?: (messageId: string) => string | null }
+) {
+  const transformers = userExportTransformers(options?.resolveMessageUrl);
+  return editor.read(() => $convertToMarkdownString(transformers));
 }
 
 export type CanvasContent = {
@@ -203,7 +313,7 @@ export function $replaceCanvasContent(snapshotJson: Record<string, unknown>) {
 export function createCanvasExtension(
   { snapshotJson, markdown }: CanvasContent,
   names: ReadonlyMap<string, string> = new Map(),
-  { collaborative = false } = {}
+  { collaborative = false, writeHeadingDomIds = true } = {}
 ) {
   return defineExtension({
     name: '@conduit/canvas',
@@ -225,6 +335,80 @@ export function createCanvasExtension(
       ToggleTitleNode,
       ToggleContentNode,
     ],
+    register: (editor) => {
+      // Committed heading keys let the transform distinguish newly created or pasted headings from loaded ones.
+      const knownKeys = new Set<NodeKey>(
+        editor
+          .getEditorState()
+          .read(() => $nodesOfType(HeadingNode).map((node) => node.getKey()))
+      );
+      const unregisterTransform = editor.registerNodeTransform(
+        HeadingNode,
+        (node) => {
+          if (
+            !editor.isEditable() ||
+            $hasUpdateTag(COLLABORATION_TAG) ||
+            $hasUpdateTag(HISTORY_MERGE_TAG) ||
+            $hasUpdateTag(HISTORIC_TAG)
+          ) {
+            return;
+          }
+          const key = node.getKey();
+          if (knownKeys.has(key)) return;
+          knownKeys.add(key);
+
+          const current = $getHeadingAnchorId(node);
+          const used = new Set<string>();
+          for (const other of $nodesOfType(HeadingNode)) {
+            if (other.getKey() === key) continue;
+            const otherId = $getHeadingAnchorId(other);
+            if (otherId) used.add(otherId);
+          }
+
+          const isPaste = $hasUpdateTag(PASTE_TAG);
+          const isDuplicate = Boolean(current) && used.has(current!);
+          if (isPaste || !current || isDuplicate) {
+            if (current) used.add(current);
+            $setHeadingAnchorId(node, createHeadingAnchorId(used));
+          }
+        }
+      );
+      const unregisterUpdate = editor.registerUpdateListener(
+        ({ editorState }) => {
+          editorState.read(() => {
+            knownKeys.clear();
+            for (const node of $nodesOfType(HeadingNode)) {
+              knownKeys.add(node.getKey());
+            }
+          });
+        }
+      );
+      const unregisterMutation = writeHeadingDomIds
+        ? editor.registerMutationListener(HeadingNode, (mutations) => {
+            editor.read(() => {
+              for (const [key, mutation] of mutations) {
+                if (mutation === 'destroyed') continue;
+                const element = editor.getElementByKey(key);
+                if (!element) continue;
+                const node = $getNodeByKey(key);
+                const id = $isHeadingNode(node)
+                  ? $getHeadingAnchorId(node)
+                  : null;
+                if (id) {
+                  element.id = id;
+                } else {
+                  element.removeAttribute('id');
+                }
+              }
+            });
+          })
+        : () => {};
+      return () => {
+        unregisterTransform();
+        unregisterUpdate();
+        unregisterMutation();
+      };
+    },
     onError: (error) => {
       throw error;
     },
