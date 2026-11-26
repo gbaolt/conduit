@@ -58,6 +58,7 @@ function canvasesFor(canvas: (viewer: CanvasViewerScope) => PolicyCanvas) {
       _id: string,
       action: CanvasAction
     ) => {
+      await Promise.resolve();
       const denial = checkCanvas(action, viewer, canvas(viewer));
       if (denial) throw canvasError(denial);
     },
@@ -259,12 +260,20 @@ describe('CanvasCommentsService', () => {
     ).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 
-  it('hides comments from someone the canvas is not shared with', async () => {
-    const service = setup();
-    await start(service);
+  it('does not read comments when canvas authorization denies access', async () => {
+    const comments = fakeComments();
+    const list = vi
+      .spyOn(comments, 'list')
+      .mockRejectedValue(new Error('Comments read failed'));
+    const service = new CanvasCommentsService(
+      canvasesFor(() => standalone),
+      comments
+    );
+
     await expect(
       service.list(viewerOf('dave'), 'canvas')
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(list).not.toHaveBeenCalled();
   });
 
   it('keeps comments on an archived channel canvas readable but closed', async () => {

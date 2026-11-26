@@ -5,10 +5,7 @@ import {
   AUTO_VERSION_INTERVAL_MS,
   SAFETY_VERSION_LABEL,
 } from '@/canvases/domain/canvas-versions.repository';
-import type {
-  CanvasesRepository,
-  StoredCanvasDocument,
-} from '@/canvases/domain/canvases.repository';
+import type { CanvasesRepository } from '@/canvases/domain/canvases.repository';
 import { PrismaCanvasVersionsRepository } from '@/canvases/infrastructure/prisma-canvas-versions.repository';
 import { PrismaCanvasesRepository } from '@/canvases/infrastructure/prisma-canvases.repository';
 import { FakeCanvasVersionsRepository } from '@/canvases/testing/fake-canvas-versions.repository';
@@ -85,39 +82,39 @@ const archived: Room = {
 /** A real `CanvasesService` over one in-memory canvas, standalone unless `room` is given. */
 function setup(room: Room | null = null) {
   const versions = new FakeCanvasVersionsRepository();
+  const findMeta: CanvasesRepository['findMeta'] = async (scope, id) =>
+    id === 'canvas'
+      ? {
+          id,
+          organizationId: 'org',
+          roomId: room?.id ?? null,
+          roomKind: room?.kind ?? null,
+          roomName: room?.name ?? null,
+          title: 'Spec',
+          icon: null,
+          coverPreset: null,
+          createdById: 'alice',
+          updatedByName: null,
+          createdAt: new Date(0),
+          updatedAt: new Date(0),
+          viewerRole: room
+            ? null
+            : (roles[scope.userId as keyof typeof roles] ?? null),
+          roomPolicy: room,
+        }
+      : null;
   const repository = {
-    find: async (scope, id): Promise<StoredCanvasDocument | null> =>
-      id === 'canvas'
-        ? {
-            id,
-            organizationId: 'org',
-            roomId: room?.id ?? null,
-            roomKind: room?.kind ?? null,
-            roomName: room?.name ?? null,
-            title: 'Spec',
-            icon: null,
-            coverPreset: null,
-            createdById: 'alice',
-            updatedByName: null,
-            createdAt: new Date(0),
-            updatedAt: new Date(0),
-            viewerRole: room
-              ? null
-              : (roles[scope.userId as keyof typeof roles] ?? null),
-            snapshotJson: null,
-            markdown: '',
-          }
-        : null,
+    findMeta,
+    findDocument: async (scope, id) => {
+      const canvas = await findMeta(scope, id);
+      return canvas && { ...canvas, snapshotJson: null, markdown: '' };
+    },
     saveSnapshot: async () => ({ saved: true, updatedAt: new Date() }),
     update: async () => {},
   } satisfies Partial<CanvasesRepository> as unknown as CanvasesRepository;
-  const rooms = {
-    find: async (_scope: unknown, id: string) =>
-      room && id === room.id ? room : null,
-  } as Partial<RoomsRepository> as RoomsRepository;
   const canvases = new CanvasesService(
     repository,
-    rooms,
+    {} as RoomsRepository,
     {} as WorkspaceMembersRepository,
     new FakeLiveblocksGateway(),
     versions
@@ -309,15 +306,22 @@ describe('CanvasVersionsService', () => {
   });
 
   it('hides versions from someone the canvas is not shared with', async () => {
-    const { service } = setup();
+    const { service, versions } = setup();
     const v1 = await service.create(alice, {
       canvasId: 'canvas',
       ...content('Draft 1'),
     });
 
+    const list = vi
+      .spyOn(versions, 'list')
+      .mockRejectedValue(new Error('Versions read failed'));
     await expect(
       service.list(dave, { canvasId: 'canvas', limit: 50 })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(
+      service.list(dave, { canvasId: 'canvas', cursor: 'missing', limit: 50 })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(list).not.toHaveBeenCalled();
     await expect(
       service.get(dave, { canvasId: 'canvas', versionId: v1.id })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });

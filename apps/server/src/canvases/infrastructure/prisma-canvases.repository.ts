@@ -2,10 +2,13 @@ import {
   CanvasCoverPresetSchema,
   type CanvasRole,
   type CanvasScope,
+  type ChannelAudience,
+  type PolicyChannel,
   type Room,
 } from '@conduit/contract';
 import type {
   CanvasRole as CanvasRoleRow,
+  ChannelAudience as ChannelAudienceRow,
   Prisma,
   RoomKind,
 } from '@generated/prisma/client';
@@ -14,6 +17,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { canvasError } from '@/canvases/domain/canvas-errors';
 import type {
   CanvasesRepository,
+  CanvasMeta,
   CanvasPatch,
   CanvasScopeOf,
   CanvasSeed,
@@ -22,13 +26,17 @@ import type {
   StoredCanvasDocument,
 } from '@/canvases/domain/canvases.repository';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import {
+  membershipSelect,
+  toMembership,
+} from '@/rooms/infrastructure/prisma-rooms.repository';
 
 const toRole = (role: CanvasRoleRow): CanvasRole =>
   role === 'EDITOR' ? 'editor' : 'viewer';
 const fromRole = (role: CanvasRole): CanvasRoleRow =>
   role === 'editor' ? 'EDITOR' : 'VIEWER';
 
-function select(scope: CanvasScopeOf) {
+function canvasSelect(scope: CanvasScopeOf) {
   return {
     id: true,
     organizationId: true,
@@ -39,15 +47,44 @@ function select(scope: CanvasScopeOf) {
     createdById: true,
     createdAt: true,
     updatedAt: true,
-    room: { select: { name: true, kind: true } },
     updatedBy: { select: { name: true } },
     members: { where: { userId: scope.userId }, select: { role: true } },
   } satisfies Prisma.CanvasSelect;
 }
 
+function select(scope: CanvasScopeOf) {
+  return {
+    ...canvasSelect(scope),
+    room: { select: { name: true, kind: true } },
+  } satisfies Prisma.CanvasSelect;
+}
+
+function metaSelect(scope: CanvasScopeOf) {
+  return {
+    ...canvasSelect(scope),
+    room: {
+      select: {
+        name: true,
+        kind: true,
+        organizationId: true,
+        visibility: true,
+        postAudience: true,
+        replyAudience: true,
+        mentionEveryoneAudience: true,
+        defaultForOrganizationId: true,
+        archivedAt: true,
+        members: {
+          where: { userId: scope.userId },
+          select: membershipSelect,
+        },
+      },
+    },
+  } satisfies Prisma.CanvasSelect;
+}
+
 function documentSelect(scope: CanvasScopeOf) {
   return {
-    ...select(scope),
+    ...metaSelect(scope),
     snapshotJson: true,
     markdown: true,
   } satisfies Prisma.CanvasSelect;
@@ -55,6 +92,9 @@ function documentSelect(scope: CanvasScopeOf) {
 
 type CanvasRow = Prisma.CanvasGetPayload<{
   select: ReturnType<typeof select>;
+}>;
+type CanvasMetaRow = Prisma.CanvasGetPayload<{
+  select: ReturnType<typeof metaSelect>;
 }>;
 type CanvasDocumentRow = Prisma.CanvasGetPayload<{
   select: ReturnType<typeof documentSelect>;
@@ -85,9 +125,37 @@ function toCanvas(row: CanvasRow): StoredCanvas {
   };
 }
 
+const toAudience = (audience: ChannelAudienceRow): ChannelAudience =>
+  audience === 'MANAGERS' ? 'managers' : 'everyone';
+
+function toRoomPolicy(room: NonNullable<CanvasMetaRow['room']>): PolicyChannel {
+  const member = room.members[0];
+  return {
+    kind: toRoomKind(room.kind),
+    visibility: room.visibility === 'PRIVATE' ? 'private' : 'public',
+    permissions: {
+      post: toAudience(room.postAudience),
+      reply: toAudience(room.replyAudience),
+      mentionEveryone: toAudience(room.mentionEveryoneAudience),
+    },
+    isDefault: room.defaultForOrganizationId !== null,
+    archivedAt: room.archivedAt,
+    membership: member ? toMembership(member) : null,
+  };
+}
+
+function toMeta(row: CanvasMetaRow): CanvasMeta {
+  const room =
+    row.room?.organizationId === row.organizationId ? row.room : null;
+  return {
+    ...toCanvas({ ...row, room }),
+    roomPolicy: room && toRoomPolicy(room),
+  };
+}
+
 function toDocument(row: CanvasDocumentRow): StoredCanvasDocument {
   return {
-    ...toCanvas(row),
+    ...toMeta(row),
     snapshotJson: row.snapshotJson as Record<string, unknown> | null,
     markdown: row.markdown,
   };
@@ -111,7 +179,19 @@ const seedData = (seed: CanvasSeed) => ({
 export class PrismaCanvasesRepository implements CanvasesRepository {
   constructor(@Inject(PrismaService) private readonly db: PrismaService) {}
 
-  async find(scope: CanvasScopeOf, canvasId: string) {
+  async findMeta(scope: CanvasScopeOf, canvasId: string) {
+    const row = await this.db.canvas.findFirst({
+      where: {
+        id: canvasId,
+        organizationId: scope.organizationId,
+        deletedAt: null,
+      },
+      select: metaSelect(scope),
+    });
+    return row && toMeta(row);
+  }
+
+  async findDocument(scope: CanvasScopeOf, canvasId: string) {
     const row = await this.db.canvas.findFirst({
       where: {
         id: canvasId,
@@ -126,11 +206,11 @@ export class PrismaCanvasesRepository implements CanvasesRepository {
   async findForLink(scope: CanvasScopeOf, canvasId: string) {
     const row = await this.db.canvas.findFirst({
       where: { id: canvasId, organizationId: scope.organizationId },
-      select: { ...select(scope), markdown: true, deletedAt: true },
+      select: { ...metaSelect(scope), markdown: true, deletedAt: true },
     });
     return (
       row && {
-        ...toCanvas(row),
+        ...toMeta(row),
         markdown: row.markdown,
         deletedAt: row.deletedAt,
       }
@@ -191,34 +271,46 @@ export class PrismaCanvasesRepository implements CanvasesRepository {
     return row.id;
   }
 
-  async list(
-    scope: CanvasScopeOf,
-    roomIds: string[],
-    canvasScope: CanvasScope
-  ) {
-    const inChannels = {
-      roomId: { in: roomIds },
-    } satisfies Prisma.CanvasWhereInput;
+  async list(scope: CanvasScopeOf, canvasScope: CanvasScope) {
+    const where = { organizationId: scope.organizationId, deletedAt: null };
+    const orderBy = [
+      { updatedAt: 'desc' },
+      { id: 'desc' },
+    ] satisfies Prisma.CanvasOrderByWithRelationInput[];
+    // Shortcut: the newest 500 only, add a cursor once a workspace holds more.
+    const page = { orderBy, take: 500 };
     const shared = {
       roomId: null,
       members: { some: { userId: scope.userId } },
     } satisfies Prisma.CanvasWhereInput;
-    const rows = await this.db.canvas.findMany({
-      where: {
+
+    if (canvasScope === 'shared') {
+      const rows = await this.db.canvas.findMany({
+        ...page,
+        where: { ...where, ...shared },
+        select: canvasSelect(scope),
+      });
+      return rows.map((row) => toMeta({ ...row, room: null }));
+    }
+
+    const inRooms = {
+      room: {
         organizationId: scope.organizationId,
-        deletedAt: null,
-        OR: {
-          all: [inChannels, shared],
-          channel: [inChannels],
-          shared: [shared],
-        }[canvasScope],
+        OR: [
+          { kind: 'CHANNEL', visibility: 'PUBLIC' },
+          { members: { some: { userId: scope.userId } } },
+        ],
       },
-      select: select(scope),
-      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
-      // shortcut: the newest 500 only, add a cursor once a workspace holds more.
-      take: 500,
+    } satisfies Prisma.CanvasWhereInput;
+    const rows = await this.db.canvas.findMany({
+      ...page,
+      where: {
+        ...where,
+        ...(canvasScope === 'channel' ? inRooms : { OR: [inRooms, shared] }),
+      },
+      select: metaSelect(scope),
     });
-    return rows.map(toCanvas);
+    return rows.map(toMeta);
   }
 
   async update(scope: CanvasScopeOf, canvasId: string, patch: CanvasPatch) {
